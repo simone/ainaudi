@@ -24,7 +24,12 @@ function SectionForm({section, updateSection, cancel}) {
     };
 
     return (
-        <form className="mt-3">
+        <form>
+            <div className="card">
+                <div className="card-header bg-info">
+                    Compilare tutti i campi richiesti con i numeri presi nel seggio.
+                </div>
+            </div>
             <div className="card">
                 <div className="card-header">
                     Informazioni Generali

@@ -15,3 +15,8 @@
 
 # Node.js dependencies:
 node_modules/
+
+# Include package.json and package-lock.json
+!backend/package.json
+!backend/package-lock.json
+!backend/node_modules/

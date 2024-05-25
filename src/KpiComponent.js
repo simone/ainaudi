@@ -6,7 +6,7 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, ChartDataLabels);
 
 
-function KpiComponent({ sheet }) {
+function KpiComponent({ client }) {
     const [preferencesData, setPreferencesData] = useState({});
     const [listaData, setListaData] = useState({});
     const [percentData, setPercentData] = useState({});
@@ -42,38 +42,34 @@ function KpiComponent({ sheet }) {
     }, [countdown]);
 
     const loadKpiData = () => {
-        gapi.client.sheets.spreadsheets.values.get({
-            spreadsheetId: sheet,
-            range: 'Dati!A2:AJ',
-        }).then(response => {
-            const rows = response.result.values;
+        client.get({ range: `Dati!A2:AJ` })
+            .then(data => {
+                const rows = data.values;
             if (rows && rows.length > 0) {
                 processKpiData(rows);
             }
-        }).catch(error => {
-            console.error('Error fetching KPI data:', error);
-        });
+            }).catch(error => {
+                console.error('Error fetching KPI data:', error);
+            });
     };
 
     const loadSezioniData = () => {
-        gapi.client.sheets.spreadsheets.values.get({
-            spreadsheetId: sheet,
-            range: 'Sezioni!A2:C',
-        }).then(response => {
-            const sezioniRows = response.result.values;
-            const newMap = new Map();
-            sezioniRows.forEach(row => {
-                const sezione = row[0];
-                const comune = row[1];
-                const municipio = row[2];
-                if (comune === 'ROMA' && municipio) {
-                    newMap.set(sezione, municipio);
-                }
+        client.get({ range: 'Sezioni!A2:C'})
+            .then(data => {
+                const sezioniRows = data.values;
+                const newMap = new Map();
+                sezioniRows.forEach(row => {
+                    const sezione = row[0];
+                    const comune = row[1];
+                    const municipio = row[2];
+                    if (comune === 'ROMA' && municipio) {
+                        newMap.set(sezione, municipio);
+                    }
+                });
+                setSezioneToMunicipio(newMap);
+            }).catch(error => {
+                console.error('Error fetching Sezioni data:', error);
             });
-            setSezioneToMunicipio(newMap);
-        }).catch(error => {
-            console.error('Error fetching Sezioni data:', error);
-        });
     };
 
     const stringToColor = (string) => {
@@ -237,10 +233,6 @@ function KpiComponent({ sheet }) {
 
     };
 
-    if (!preferencesData.labels || !listaData.labels) {
-        return <div>Loading...</div>;
-    }
-
     const options = {
         indexAxis: 'y',
         scales: {
@@ -291,8 +283,24 @@ function KpiComponent({ sheet }) {
 
     const progress = countdown/60 * 100;
 
+    if (!preferencesData.labels || !listaData.labels) {
+        return <div className="card-body d-flex align-items-center justify-content-center"
+                    style={{minHeight: '50vh'}}>
+            <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+            </div>
+        </div>;
+    }
+
     return (
         <>
+            <div className="card">
+                <div className="card-header bg-info">
+                    Visualizza i grafici delle performance elettorali nella sezione KPI. Analizza i
+                    dati per le preferenze dei candidati e i voti di lista per valutare l'andamento
+                    elettorale.
+                </div>
+            </div>
             <div className="small" style={{
                 position: 'relative',
                 top: -20,

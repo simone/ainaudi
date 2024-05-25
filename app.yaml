@@ -1,6 +1,12 @@
 runtime: nodejs18
 
 handlers:
+  - url: /api/.*
+    script: backend/server.js
+
+  - url: /static
+    static_dir: build/static
+
   - url: /
     static_files: build/index.html
     upload: build/index.html
