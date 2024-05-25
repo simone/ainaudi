@@ -1,19 +1,4 @@
 const Client = (server, user, token) => {
-    if (!token || !user) {
-        return {
-            get: () => Promise.reject(new Error('token is required')),
-            update: () => Promise.reject(new Error('token is required')),
-            append: () => Promise.reject(new Error('token is required')),
-            permissions: () => Promise.resolve({
-                sections: false,
-                referenti: false,
-                kpi: false
-            }),
-            email: '',
-            fullName: ''
-        };
-    }
-
     const get = ({range}) => {
         return fetch(`${server}/api/sheets/values?range=${range}`, {
             headers: {
@@ -63,14 +48,47 @@ const Client = (server, user, token) => {
     const email = profile.getEmail();
     const fullName = profile.getName();
 
-    const permissions = async () => {
-        let kpi = (await get({range: "KPI!A2:A"})).values.filter((row) => row[0] === email).length > 0;
-        let referenti = (await get({range: "Referenti!A2:A"})).values.filter((row) => row[0] === email).length > 0;
-        let sections = referenti || (await get({range: "Dati!C2:C"})).values.filter((row) => row[0] === email).length > 0;
-        return { sections, referenti, kpi };
+    const permissions = async () =>
+        fetch(`${server}/api/permissions`, {
+            headers: {
+                'Authorization': token
+            }
+        })
+        .then(response => response.json())
+        .catch(error => {
+            console.error(error);
+            return {error: error.message};
+        });
+
+    const sections = {
+        get: async () =>
+            fetch(`${server}/api/sections`, {
+                headers: {
+                    'Authorization': token
+                }
+            })
+            .then(response => response.json())
+            .catch(error => {
+                console.error(error);
+                return {error: error.message};
+            }),
+        save: async ({comune, sezione, values}) =>
+            fetch(`${server}/api/sections`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token
+                },
+                body: JSON.stringify({comune, sezione, values})
+            })
+            .then(response => response.json())
+            .catch(error => {
+                console.error(error);
+                return {error: error.message};
+            }),
     }
 
-    return { get, update, append, permissions, email, fullName };
+    return { get, update, append, permissions, email, fullName, sections };
 }
 
 export default Client;

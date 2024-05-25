@@ -14,135 +14,103 @@ function RDLComponent({client, setError}) {
     }, []);
 
     const listSections = () => {
-        client.get({
-                range: "Dati!A2:AJ",
-        })
-        .then((response) => {
-            const rows = response.values;
+        client.sections.get().then((response) => {
+            const rows = response.rows;
             if (rows && rows.length > 0) {
-                const userSections = rows.filter((row) => row[2] === client.email);
                 setSections(
-                    userSections.map((row) => ({
-                        comune: row[0],
-                        sezione: row[1],
-                        email: row[2],
-                        nElettoriMaschi: row[3],
-                        nElettoriDonne: row[4],
-                        schedeRicevute: row[5],
-                        schedeAutenticate: row[6],
-                        schedeBianche: row[7],
-                        schedeNulle: row[8],
-                        schedeContestate: row[9],
-                        "Morace Carolina": row[10],
-                        "Tamburrano Dario": row[11],
-                        "Ferrara Gianluca": row[12],
-                        "Basile Giovanna": row[13],
-                        "Esposito Giusy": row[14],
-                        "Fazio Valentina": row[15],
-                        "Lauretti Federica": row[16],
-                        "Pacetti Giuliano": row[17],
-                        "Volpi Stefania": row[18],
-                        "Romagnoli Sergio": row[19],
-                        "Emiliozzi Mirella": row[20],
-                        "Pococacio Valentina": row[21],
-                        "Ceccato Emanuele": row[22],
-                        "Alloatti Luca": row[23],
-                        "Cecere Stefano": row[24],
-                        "MOVIMENTO 5 STELLE": row[25],
-                        "FRATELLI D'ITALIA": row[26],
-                        "FORZA ITALIA-NOI MODERATI": row[27],
-                        "LEGA SALVINI PREMIER": row[28],
-                        "PARTITO DEMOCRATICO": row[29],
-                        "ALLEANZA VERDI E SINISTRA": row[30],
-                        "ALTERNATIVA POPOLARE": row[31],
-                        "STATI UNITI D'EUROPA": row[32],
-                        "DEMOCRAZIA POPOLARE SOVRANA": row[33],
-                        "PACE TERRA DIGNITA'": row[34],
-                        "AZIONE-SIAMO EUROPEI": row[35],
+                    rows.map(({comune, sezione, values}) => ({
+                        comune,
+                        sezione,
+                        email: client.email,
+                        nElettoriMaschi: values[0],
+                        nElettoriDonne: values[1],
+                        schedeRicevute: values[2],
+                        schedeAutenticate: values[3],
+                        schedeBianche: values[4],
+                        schedeNulle: values[5],
+                        schedeContestate: values[6],
+                        "Morace Carolina": values[7],
+                        "Tamburrano Dario": values[8],
+                        "Ferrara Gianluca": values[9],
+                        "Basile Giovanna": values[10],
+                        "Esposito Giusy": values[11],
+                        "Fazio Valentina": values[12],
+                        "Lauretti Federica": values[13],
+                        "Pacetti Giuliano": values[14],
+                        "Volpi Stefania": values[15],
+                        "Romagnoli Sergio": values[16],
+                        "Emiliozzi Mirella": values[17],
+                        "Pococacio Valentina": values[18],
+                        "Ceccato Emanuele": values[19],
+                        "Alloatti Luca": values[20],
+                        "Cecere Stefano": values[21],
+                        "MOVIMENTO 5 STELLE": values[22],
+                        "FRATELLI D'ITALIA": values[23],
+                        "FORZA ITALIA-NOI MODERATI": values[24],
+                        "LEGA SALVINI PREMIER": values[25],
+                        "PARTITO DEMOCRATICO": values[26],
+                        "ALLEANZA VERDI E SINISTRA": values[27],
+                        "ALTERNATIVA POPOLARE": values[28],
+                        "STATI UNITI D'EUROPA": values[29],
+                        "DEMOCRAZIA POPOLARE SOVRANA": values[30],
+                        "PACE TERRA DIGNITA'": values[31],
+                        "AZIONE-SIAMO EUROPEI": values[32],
                     }))
                 );
             }
         })
-        .catch((error) => {
-            console.error("Error reading Sheet:", error);
-            setError("Errore durante la lettura del foglio di calcolo: " + error.result.message);
-        });
+            .catch((error) => {
+                console.error("Error reading Sheet:", error);
+                setError("Errore durante la lettura del foglio di calcolo: " + error.result.message);
+            });
     };
-
-    const findIndexByComuneSezione = (comune, sezione, data) => {
-        return data.findIndex(row => row[0] === comune && row[1] === sezione);
-    };
-
 
     const updateSection = (newData) => {
-        client.get({
-            range: "Dati!A2:C", // Supponiamo che le colonne A, B e C siano comune, sezione ed email
-        })
-        .then((response) => {
-            const data = response.values;
-            const correctIndex = findIndexByComuneSezione(newData.comune, newData.sezione, data);
-            if (correctIndex !== -1) {
-                const range = `Dati!A${correctIndex + 2}:AJ${correctIndex + 2}`; // Supponendo che l'indice inizi da 0 e il foglio abbia intestazioni
-                client.update({
-                    range: range,
-                    valueInputOption: "RAW",
-                    values: [
-                        [
-                            newData.comune,
-                            newData.sezione,
-                            newData.email,
-                            newData.nElettoriMaschi,
-                            newData.nElettoriDonne,
-                            newData.schedeRicevute,
-                            newData.schedeAutenticate,
-                            newData.schedeBianche,
-                            newData.schedeNulle,
-                            newData.schedeContestate,
-                            newData["Morace Carolina"],
-                            newData["Tamburrano Dario"],
-                            newData["Ferrara Gianluca"],
-                            newData["Basile Giovanna"],
-                            newData["Esposito Giusy"],
-                            newData["Fazio Valentina"],
-                            newData["Lauretti Federica"],
-                            newData["Pacetti Giuliano"],
-                            newData["Volpi Stefania"],
-                            newData["Romagnoli Sergio"],
-                            newData["Emiliozzi Mirella"],
-                            newData["Pococacio Valentina"],
-                            newData["Ceccato Emanuele"],
-                            newData["Alloatti Luca"],
-                            newData["Cecere Stefano"],
-                            newData["MOVIMENTO 5 STELLE"],
-                            newData["FRATELLI D'ITALIA"],
-                            newData["FORZA ITALIA-NOI MODERATI"],
-                            newData["LEGA SALVINI PREMIER"],
-                            newData["PARTITO DEMOCRATICO"],
-                            newData["ALLEANZA VERDI E SINISTRA"],
-                            newData["ALTERNATIVA POPOLARE"],
-                            newData["STATI UNITI D'EUROPA"],
-                            newData["DEMOCRAZIA POPOLARE SOVRANA"],
-                            newData["PACE TERRA DIGNITA'"],
-                            newData["AZIONE-SIAMO EUROPEI"],
-                        ],
-                    ],
-                })
-                .then((response) => {
-                    listSections();
-                    setSelectedSection(null);
-                })
-                .catch((error) => {
-                    console.error("Error updating Sheet:", error);
-                    setError("Errore durante l'aggiornamento del foglio di calcolo: " + error.result.message);
-                });
-            } else {
-                console.error("Record not found for update");
-                setError("Errore: record non trovato per l'aggiornamento");
-            }
+        client.sections.save({
+            comune: newData.comune,
+            sezione: newData.sezione,
+            values: [
+                newData.nElettoriMaschi,
+                newData.nElettoriDonne,
+                newData.schedeRicevute,
+                newData.schedeAutenticate,
+                newData.schedeBianche,
+                newData.schedeNulle,
+                newData.schedeContestate,
+                newData["Morace Carolina"],
+                newData["Tamburrano Dario"],
+                newData["Ferrara Gianluca"],
+                newData["Basile Giovanna"],
+                newData["Esposito Giusy"],
+                newData["Fazio Valentina"],
+                newData["Lauretti Federica"],
+                newData["Pacetti Giuliano"],
+                newData["Volpi Stefania"],
+                newData["Romagnoli Sergio"],
+                newData["Emiliozzi Mirella"],
+                newData["Pococacio Valentina"],
+                newData["Ceccato Emanuele"],
+                newData["Alloatti Luca"],
+                newData["Cecere Stefano"],
+                newData["MOVIMENTO 5 STELLE"],
+                newData["FRATELLI D'ITALIA"],
+                newData["FORZA ITALIA-NOI MODERATI"],
+                newData["LEGA SALVINI PREMIER"],
+                newData["PARTITO DEMOCRATICO"],
+                newData["ALLEANZA VERDI E SINISTRA"],
+                newData["ALTERNATIVA POPOLARE"],
+                newData["STATI UNITI D'EUROPA"],
+                newData["DEMOCRAZIA POPOLARE SOVRANA"],
+                newData["PACE TERRA DIGNITA'"],
+                newData["AZIONE-SIAMO EUROPEI"],
+            ],
+        }).then((response) => {
+            listSections();
+            setSelectedSection(null);
         })
         .catch((error) => {
-            console.error("Error reading Sheet:", error);
-            setError("Errore durante la lettura del foglio di calcolo: " + error.result.message);
+            console.error("Error updating Sheet:", error);
+            setError("Errore durante l'aggiornamento del foglio di calcolo: " + error.result.message);
         });
     };
 
@@ -190,7 +158,7 @@ function RDLComponent({client, setError}) {
             <SectionForm
                 section={selectedSection}
                 updateSection={updateSection}
-                cancel={()=>setSelectedSection(null)}
+                cancel={() => setSelectedSection(null)}
             />
         );
     }
