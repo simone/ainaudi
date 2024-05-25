@@ -189,10 +189,10 @@ function RDLComponent({client, setError}) {
                             className="list-group-item d-flex justify-content-between align-items-center"
                             key={index}
                         >
-                            {section.comune} - {section.sezione}
+                            <span className="col-6 col-md-4 col-lg-3">{section.comune} - {section.sezione}</span>
                             {isComplete(section) ? (
                                 <button
-                                    className="btn btn-success"
+                                    className="btn btn-success col-6 col-md-4 col-lg-3"
                                     onClick={() => {
                                         setSelectedSection(section);
                                     }}
@@ -201,7 +201,7 @@ function RDLComponent({client, setError}) {
                                 </button>
                             ) : (
                                 <button
-                                    className="btn btn-primary"
+                                    className="btn btn-primary col-6 col-md-4 col-lg-3"
                                     onClick={() => {
                                         setSelectedSection(section);
                                     }}
