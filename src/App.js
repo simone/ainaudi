@@ -80,9 +80,11 @@ function App() {
                     setClient(client);
                     setUser(user.getBasicProfile());
                     setLoading(false)
+                    console.log("Token expires in", Math.floor(response.expires_in/60), "minutes");
                     setInterval(async () => {
+                        console.log("Reloading auth response");
                         const newAuthResponse = await user.reloadAuthResponse();
-                        setClient(Client(SERVER, user, newAuthResponse.id_token));
+                        setClient(Client(SERVER, newAuthResponse.id_token));
                     }, (response.expires_in - 60) * 1000);
                 }
             });
