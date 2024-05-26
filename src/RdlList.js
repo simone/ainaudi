@@ -44,16 +44,28 @@ function RdlList({client, setError}) {
     };
 
     const handleSave = (sezione, remove) => {
+        const email = emailRDL;
+        if (remove) {
+            setAssigned(assigned.filter(s => s !== sezione));
+            setUnassigned([...unassigned, [sezione[0], sezione[1], '']]);
+        } else {
+            setUnassigned(unassigned.filter(s => s !== sezione));
+            if (assigned.find(s => s === sezione)) {
+                setAssigned(assigned.map(s => s === sezione ? [sezione[0], sezione[1], email] : s));
+            } else {
+                setAssigned([...assigned, [sezione[0], sezione[1], email]]);
+            }
+        }
+        setSelected(null);
+        setEmailRDL("");
         (remove ? client.rdl.unassign({
             comune: sezione[0],
             sezione: sezione[1]
         }) : client.rdl.assign({
             comune: sezione[0],
             sezione: sezione[1],
-            email: emailRDL
+            email: email
         })).then(() => {
-            setSelected(null);
-            setEmailRDL("");
             loadSezioniData();
         });
     };
@@ -69,7 +81,7 @@ function RdlList({client, setError}) {
         }
         setFilteredUnassigned(unassigned.filter(sezione => {
             return sezione[1].toLowerCase().includes(unassignedFilter.toLowerCase());
-        }));
+        }).sort((a, b) => a[1].localeCompare(b[1]) || a[2].localeCompare(b[2]) || a[0].localeCompare(b[0])));
     }, [unassignedFilter, unassigned]);
 
     const changeAssignedFilter = (e) => {
@@ -83,7 +95,7 @@ function RdlList({client, setError}) {
         }
         setFilteredAssigned(assigned.filter(sezione => {
             return sezione[1].toLowerCase().includes(assignedFilter.toLowerCase()) || sezione[2].toLowerCase().includes(assignedFilter.toLowerCase());
-        }));
+        }).sort((a, b) => a[1].localeCompare(b[1]) || a[2].localeCompare(b[2]) || a[0].localeCompare(b[0])));
     }, [assignedFilter, assigned]);
 
     if (loading) {

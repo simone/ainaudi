@@ -3,14 +3,43 @@ runtime: nodejs18
 handlers:
   - url: /api/.*
     script: backend/server.js
+    secure: always
 
   - url: /static
     static_dir: build/static
+    http_headers:
+      Cache-Control: "max-age=31536000, public"
+
+  - url: /favicon.ico
+    static_files: build/favicon.ico
+    upload: build/favicon.ico
+    http_headers:
+      Cache-Control: "no-cache, no-store, must-revalidate"
+
+  - url: /manifest.json
+    static_files: build/manifest.json
+    upload: build/manifest.json
+    http_headers:
+      Cache-Control: "no-cache, no-store, must-revalidate"
+
+  - url: /asset-manifest.json
+    static_files: build/asset-manifest.json
+    upload: build/asset-manifest.json
+    http_headers:
+      Cache-Control: "no-cache, no-store, must-revalidate"
 
   - url: /
     static_files: build/index.html
     upload: build/index.html
+    http_headers:
+      Cache-Control: "no-cache, no-store, must-revalidate"
+      Pragma: "no-cache"
+      Expires: "0"
 
   - url: /(.*)
     static_files: build/\1
     upload: build/(.*)
+    http_headers:
+      Cache-Control: "no-cache, no-store, must-revalidate"
+      Pragma: "no-cache"
+      Expires: "0"
