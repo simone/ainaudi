@@ -6,7 +6,7 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, ChartDataLabels);
 
 
-function KpiComponent({ client }) {
+function Kpi({ client, setError }) {
     const [preferencesData, setPreferencesData] = useState({});
     const [listaData, setListaData] = useState({});
     const [percentData, setPercentData] = useState({});
@@ -42,26 +42,24 @@ function KpiComponent({ client }) {
     }, [countdown]);
 
     const loadKpiData = () => {
-        client.get({ range: `Dati!A2:AJ` })
+        client.kpi.dati()
             .then(data => {
                 const rows = data.values;
-            if (rows && rows.length > 0) {
-                processKpiData(rows);
-            }
+                if (rows && rows.length > 0) {
+                    processKpiData(rows);
+                }
             }).catch(error => {
                 console.error('Error fetching KPI data:', error);
+                setError(error.error || error.message || error.toString());
             });
     };
 
     const loadSezioniData = () => {
-        client.get({ range: 'Sezioni!A2:C'})
+        client.kpi.sezioni()
             .then(data => {
                 const sezioniRows = data.values;
                 const newMap = new Map();
-                sezioniRows.forEach(row => {
-                    const sezione = row[0];
-                    const comune = row[1];
-                    const municipio = row[2];
+                sezioniRows.forEach(({sezione, comune, municipio}) => {
                     if (comune === 'ROMA' && municipio) {
                         newMap.set(sezione, municipio);
                     }
@@ -69,6 +67,7 @@ function KpiComponent({ client }) {
                 setSezioneToMunicipio(newMap);
             }).catch(error => {
                 console.error('Error fetching Sezioni data:', error);
+                setError(error.error || error.message || error.toString());
             });
     };
 
@@ -121,11 +120,11 @@ function KpiComponent({ client }) {
         const preferences = Array(candidates.length).fill(0);
         const listaVotes = Array(lista.length).fill(0);
 
-        rows.forEach(row => {
-            row.slice(10, 25).forEach((value, index) => {
+        rows.forEach(({values}) => {
+            values.slice(7, 22).forEach((value, index) => {
                 preferences[index] += parseInt(value || 0, 10);
             });
-            row.slice(25, 36).forEach((value, index) => {
+            values.slice(22, 33).forEach((value, index) => {
                 listaVotes[index] += parseInt(value || 0, 10);
             });
         });
@@ -187,9 +186,8 @@ function KpiComponent({ client }) {
         const m5sIndex = lista.indexOf('MOVIMENTO 5 STELLE');
         const comuneVotes = new Map();
 
-        rows.forEach(row => {
-            const comune = row[0];
-            const votes = parseInt(row[25 + m5sIndex] || 0, 10);
+        rows.forEach(({comune, values}) => {
+            const votes = parseInt(values[22 + m5sIndex] || 0, 10);
             comuneVotes.set(comune, (comuneVotes.get(comune) || 0) + votes);
         });
 
@@ -208,12 +206,10 @@ function KpiComponent({ client }) {
 
         const comuneMunicipioVotes = new Map();
 
-        rows.forEach(row => {
-            const comune = row[0];
-            const sezione = row[1];
+        rows.forEach(({comune, sezione, values}) => {
             if (comune === 'ROMA' && sezioneToMunicipio.has(sezione)) {
                 const municipio = sezioneToMunicipio.get(sezione);
-                const votes = parseInt(row[25 + m5sIndex] || 0, 10);
+                const votes = parseInt(values[22 + m5sIndex] || 0, 10);
                 comuneMunicipioVotes.set(municipio, (comuneMunicipioVotes.get(municipio) || 0) + votes);
             }
         });
@@ -381,4 +377,4 @@ function KpiComponent({ client }) {
     );
 }
 
-export default KpiComponent;
+export default Kpi;

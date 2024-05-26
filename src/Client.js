@@ -1,77 +1,46 @@
-const Client = (server, user, token) => {
-    const get = ({range}) => {
-        return fetch(`${server}/api/sheets/values?range=${range}`, {
-            headers: {
-                'Authorization': token
+const fetchWithRetries = async (url, options, retries = 3, delay = 1000) => {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        })
-            .then(response => response.json())
-            .catch(error => {
-                console.error(error);
-                return {error: error.message};
-            });
+            return await response.json();
+        } catch (error) {
+            console.error(`Attempt ${i + 1} failed: ${error.message}`);
+            if (i < retries - 1) {
+                await new Promise(res => setTimeout(res, delay));
+            } else {
+                throw error;
+            }
+        }
     }
+};
 
-    const update = ({range, valueInputOption, values}) => {
-        return fetch(`${server}/api/sheets/values/update`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': token
-            },
-            body: JSON.stringify({range, valueInputOption, values})
-        })
-            .then(response => response.json())
-            .catch(error => {
-                console.error(error);
-                return {error: error.message};
-            });
-    }
-
-    const append = ({range, valueInputOption, values}) => {
-        return fetch(`${server}/api/sheets/values/append`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': token
-            },
-            body: JSON.stringify({range, valueInputOption, values})
-        })
-            .then(response => response.json())
-            .catch(error => {
-                console.error(error);
-                return {error: error.message};
-            });
-    }
-
-    const profile = user.getBasicProfile();
-    const email = profile.getEmail();
-    const fullName = profile.getName();
+const Client = (server, token) => {
 
     const permissions = async () =>
-        fetch(`${server}/api/permissions`, {
+        fetchWithRetries(`${server}/api/permissions`, {
             headers: {
                 'Authorization': token
             }
         })
-        .then(response => response.json())
-        .catch(error => {
-            console.error(error);
-            return {error: error.message};
-        });
+            .catch(error => {
+                console.error(error);
+                return {error: error.message};
+            });
 
     const sections = {
         get: async () =>
-            fetch(`${server}/api/sections`, {
+            fetchWithRetries(`${server}/api/sections`, {
                 headers: {
                     'Authorization': token
                 }
             })
-            .then(response => response.json())
-            .catch(error => {
-                console.error(error);
-                return {error: error.message};
-            }),
+                .catch(error => {
+                    console.error(error);
+                    return {error: error.message};
+                }),
         save: async ({comune, sezione, values}) =>
             fetch(`${server}/api/sections`, {
                 method: 'POST',
@@ -81,14 +50,86 @@ const Client = (server, user, token) => {
                 },
                 body: JSON.stringify({comune, sezione, values})
             })
-            .then(response => response.json())
-            .catch(error => {
+                .then(response => response.json())
+                .catch(error => {
+                    console.error(error);
+                    return {error: error.message};
+                }),
+    }
+
+    const rdl = {
+        emails: async () =>
+            fetchWithRetries(`${server}/api/rdl/emails`, {
+                headers: {
+                    'Authorization': token
+                }
+            })
+                .catch(error => {
+                    console.error(error);
+                    return {error: error.message};
+                }),
+        sections: async () =>
+            fetchWithRetries(`${server}/api/rdl/sections`, {
+                headers: {
+                    'Authorization': token
+                }
+            })
+                .catch(error => {
+                    console.error(error);
+                    return {error: error.message};
+                }),
+        assign: async ({comune, sezione, email}) =>
+            fetch(`${server}/api/rdl/assign`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token
+                },
+                body: JSON.stringify({comune, sezione, email})
+            })
+                .then(response => response.json())
+                .catch(error => {
+                    console.error(error);
+                    return {error: error.message};
+                }),
+        unassign: async ({comune, sezione}) =>
+            fetch(`${server}/api/rdl/unassign`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token
+                },
+                body: JSON.stringify({comune, sezione})
+            })
+                .then(response => response.json())
+                .catch(error => {
+                    console.error(error);
+                    return {error: error.message};
+                }),
+    }
+
+    const kpi = {
+        dati: () =>
+            fetchWithRetries(`${server}/api/kpi/dati`, {
+                headers: {
+                    'Authorization': token
+                }
+            }).catch(error => {
+                console.error(error);
+                return {error: error.message};
+            }),
+        sezioni: () =>
+            fetchWithRetries(`${server}/api/kpi/sezioni`, {
+                headers: {
+                    'Authorization': token
+                }
+            }).catch(error => {
                 console.error(error);
                 return {error: error.message};
             }),
     }
 
-    return { get, update, append, permissions, email, fullName, sections };
+    return {permissions, sections, rdl, kpi};
 }
 
 export default Client;

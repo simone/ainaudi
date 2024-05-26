@@ -2,7 +2,7 @@
 import React, {useState, useEffect} from "react";
 import SectionForm from "./SectionForm";
 
-function RDLComponent({client, setError}) {
+function SectionList({client, user, setError}) {
     const [loading, setLoading] = useState(true);
     const [sections, setSections] = useState([]);
     const [selectedSection, setSelectedSection] = useState(null);
@@ -21,7 +21,7 @@ function RDLComponent({client, setError}) {
                     rows.map(({comune, sezione, values}) => ({
                         comune,
                         sezione,
-                        email: client.email,
+                        email: user.email,
                         nElettoriMaschi: values[0],
                         nElettoriDonne: values[1],
                         schedeRicevute: values[2],
@@ -217,4 +217,4 @@ function RDLComponent({client, setError}) {
     );
 }
 
-export default RDLComponent;
+export default SectionList;

@@ -1,10 +1,10 @@
 // App.js
 import React, {useState, useEffect} from "react";
 import {gapi} from "gapi-script";
-import ReferentiComponent from "./ReferentiComponent";
-import KpiComponent from "./KpiComponent";
+import RdlList from "./RdlList";
+import Kpi from "./Kpi";
 import Client from "./Client";
-import RDLComponent from "./RDLComponent";
+import SectionList from "./SectionList";
 
 const CLIENT_ID = "GOOGLE_CLIENT_ID_PLACEHOLDER";
 const API_KEY = "GOOGLE_API_KEY_PLACEHOLDER";
@@ -13,6 +13,7 @@ const SERVER = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_AP
 
 function App() {
     const [client, setClient] = useState(null);
+    const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState(null);
@@ -56,14 +57,15 @@ function App() {
             const authInstance = gapi.auth2.getAuthInstance();
             const user = authInstance.currentUser.get();
             const response = user.getAuthResponse();
-            const client = Client(SERVER, user, response.id_token);
+            const client = Client(SERVER, response.id_token);
             client.permissions().then((permissions) => {
                 setPermissions(permissions);
                 if (!permissions.sections && !permissions.referenti && !permissions.kpi) {
                     setError("Non hai i permessi per accedere a nessuna sezione");
                     setTimeout(() => {
                         setClient(null);
-                        gapiauth2.getAuthInstance().signOut();
+                        setUser(null);
+                        gapi.auth2.getAuthInstance().signOut();
                         setError(null);
                         setLoading(false)
                     }, 1000);
@@ -76,6 +78,7 @@ function App() {
                         setActiveTab('kpi');
                     }
                     setClient(client);
+                    setUser(user.getBasicProfile());
                     setLoading(false)
                     setInterval(async () => {
                         const newAuthResponse = await user.reloadAuthResponse();
@@ -155,7 +158,7 @@ function App() {
                                     )}
                                 </ul>
                                 <div className="d-flex align-items-center">
-                                    <p className="text-light me-3 mb-0">{client.fullName}</p>
+                                    <p className="text-light me-3 mb-0">{user.getName()}</p>
                                     <button className="btn btn-danger" onClick={handleSignoutClick}>Esci</button>
                                 </div>
                             </div>
@@ -170,22 +173,26 @@ function App() {
                     <div className="tab-content">
                         {activeTab === 'sections' && permissions.sections && (
                             <div className="tab-pane active">
-                                <RDLComponent
+                                <SectionList
+                                    user={user}
                                     client={client}
+                                    setError={setError}
                                 />
                             </div>
                         )}
                         {activeTab === 'referenti' && permissions.referenti && (
                             <div className="tab-pane active">
-                                <ReferentiComponent
+                                <RdlList
                                     client={client}
+                                    setError={setError}
                                 />
                             </div>
                         )}
                         {activeTab === 'kpi' && permissions.kpi && (
                             <div className="tab-pane active">
-                                <KpiComponent
+                                <Kpi
                                     client={client}
+                                    setError={setError}
                                 />
                             </div>
                         )}
