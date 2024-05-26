@@ -1,12 +1,64 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 
 function SectionForm({lists, candidates, section, updateSection, cancel}) {
     const [formData, setFormData] = useState(section);
+    const [errors, setErrors] = useState(
+        Object.keys(section).reduce((acc, key) => {
+            acc[key] = '';
+            return acc;
+        }, {})
+    );
+
+    const validation = (field, value) => {
+        let error = '';
+        const nElettoriMaschi = parseInt(formData.nElettoriMaschi) || 0;
+        const nElettoriDonne = parseInt(formData.nElettoriDonne) || 0;
+        const totalElettori = nElettoriMaschi + nElettoriDonne;
+
+        switch (field) {
+            case "schedeAutenticate":
+                if (value > formData.schedeRicevute) {
+                    error = 'Impossibile autenticare più schede di quelle ricevute (' + value + ' > ' + formData.schedeRicevute + ')';
+                }
+                break;
+            case "schedeContestate":
+                const schedeBianche = parseInt(formData.schedeBianche) || 0;
+                const schedeNulle = parseInt(formData.schedeNulle) || 0;
+                const schedeContestate = parseInt(formData.schedeContestate) || 0;
+                const totalSchede = schedeBianche + schedeNulle + schedeContestate + lists.reduce((sum, name) => sum + (parseInt(formData[name]) || 0), 0);
+                if (totalSchede > totalElettori) {
+                    error = 'Bianche+nulle+contestate + voti di lista > elettori M e F (' + totalSchede + ' > ' + totalElettori + ')';
+                }
+                if (totalSchede < totalElettori) {
+                    error = 'Bianche+nulle+contestate + voti di lista < elettori M e F (' + totalSchede + ' < ' + totalElettori + ')';
+                }
+                break;
+            default:
+                break;
+        }
+
+        return error;
+    };
+
+    useEffect(() => {
+        const newErrors = {};
+        for (const key in formData) {
+            newErrors[key] = validation(key, formData[key]);
+        }
+        setErrors(newErrors);
+    }, [formData]);
 
     const handleChange = (e, field) => {
+        let value = e.target.value;
+        if (value !== "") {
+            if (value < 0) {
+                value = 0;
+            }
+            value = parseInt(value, 10);
+        }
         const newFormData = {
             ...formData,
-            [field]: e.target.value && parseInt(e.target.value, 10) >= 0 ? parseInt(e.target.value, 10) : ''
+            [field]: value && parseInt(value, 10) >= 0 ? parseInt(value, 10) : ''
         };
         setFormData(newFormData);
     };
@@ -22,6 +74,8 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
     const listaColors = {
         'MOVIMENTO 5 STELLE': '#FF0000',
     };
+
+    const errorsList = Object.values(errors).filter(value => value !== '');
 
     return (
         <form>
@@ -80,6 +134,7 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             value={formData.nElettoriMaschi}
                             onChange={(e) => handleChange(e, "nElettoriMaschi")}
                         />
+                        {errors['nElettoriMaschi'] && <div className="text-danger">{errors['nElettoriMaschi']}</div>}
                     </div>
                     <div className="form-group mb-3">
                         <label>N. Elettori Donne:</label>
@@ -88,6 +143,17 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             className="form-control"
                             value={formData.nElettoriDonne}
                             onChange={(e) => handleChange(e, "nElettoriDonne")}
+                        />
+                        {errors['nElettoriDonne'] && <div className="text-danger">{errors['nElettoriDonne']}</div>}
+                    </div>
+                    <div className="form-group mb-3">
+                        <label>N. Elettori Totali:</label>
+                        <input
+                            type="number"
+                            className="form-control"
+                            value={+formData.nElettoriMaschi + +formData.nElettoriDonne}
+                            readOnly
+                            style={{backgroundColor: 'lightgray'}}
                         />
                     </div>
                 </div>
@@ -105,6 +171,7 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             value={formData.schedeRicevute}
                             onChange={(e) => handleChange(e, "schedeRicevute")}
                         />
+                        {errors['schedeRicevute'] && <div className="text-danger">{errors['schedeRicevute']}</div>}
                     </div>
                     <div className="form-group mb-3">
                         <label>Schede Autenticate:</label>
@@ -114,6 +181,7 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             value={formData.schedeAutenticate}
                             onChange={(e) => handleChange(e, "schedeAutenticate")}
                         />
+                        {errors['schedeAutenticate'] && <div className="text-danger">{errors['schedeAutenticate']}</div>}
                     </div>
                     <div className="form-group mb-3">
                         <label>Schede Bianche:</label>
@@ -124,6 +192,7 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             onChange={(e) => handleChange(e, "schedeBianche")}
                             required
                         />
+                        {errors['schedeBianche'] && <div className="text-danger">{errors['schedeBianche']}</div>}
                     </div>
                     <div className="form-group mb-3">
                         <label>Schede Nulle:</label>
@@ -133,6 +202,7 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             value={formData.schedeNulle}
                             onChange={(e) => handleChange(e, "schedeNulle")}
                         />
+                        {errors['schedeNulle'] && <div className="text-danger">{errors['schedeNulle']}</div>}
                     </div>
                     <div className="form-group mb-3">
                         <label>Schede Contestate e Verbalizzate:</label>
@@ -142,6 +212,7 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             value={formData.schedeContestate}
                             onChange={(e) => handleChange(e, "schedeContestate")}
                         />
+                        {errors['schedeContestate'] && <div className="text-danger">{errors['schedeContestate']}</div>}
                     </div>
                 </div>
             </div>
@@ -160,8 +231,21 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                                 onChange={(e) => handleChange(e, name)}
                                 min="0"
                             />
+                            {errors[name] && <div className="text-danger">{errors[name]}</div>}
                         </div>
                     ))}
+                    <div className="form-group mb-3">
+                        <label>TOTALE VOTI DI PREFERENZA</label>
+                        <input
+                            type="number"
+                            className="form-control"
+                            value={candidates.reduce((sum, name) => {
+                                return sum + (parseInt(formData[name]) || 0);
+                            }, 0)}
+                            readOnly
+                            style={{backgroundColor: 'lightgray'}}
+                        />
+                    </div>
                 </div>
             </div>
             <div className="card mt-3">
@@ -184,10 +268,34 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                                 value={formData[l]}
                                 onChange={(e) => handleChange(e, l)}
                             />
+                            {errors[l] && <div className="text-danger">{errors[l]}</div>}
                         </div>
                     ))}
+                    <div className="form-group mb-3">
+                        <label>TOTALE VOTI DI LISTA</label>
+                        <input
+                            type="number"
+                            className="form-control"
+                            value={lists.reduce((sum, name) => {
+                                return sum + (parseInt(formData[name]) || 0);
+                            }, 0)}
+                            readOnly
+                            style={{backgroundColor: 'lightgray'}}
+                        />
+                    </div>
                 </div>
             </div>
+            {errorsList.length > 0 && (
+                <div className="alert alert-warning mt-3" role="alert">
+                    Incongruenze o non completezza dei dati inseriti:
+                    <ul>
+                    {errorsList.map((error, index) => (
+                        <li key={index}>{error}</li>
+                    ))}
+                    </ul>
+                    E' comunque possibile INVIARE i dati.
+                </div>
+            )}
             <div className="card">
                 <div className="card-body">
                     <div className="row mt-3">

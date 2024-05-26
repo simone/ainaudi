@@ -97,9 +97,6 @@ function Kpi({ client, setError }) {
     }
 
     const stringToColor = (string) => {
-        console.log('stringToColor', string);
-
-
         if (string === 'ROMA') {
             return '#FF0000';
         }
