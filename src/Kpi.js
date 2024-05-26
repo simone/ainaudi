@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Bar, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import chroma from 'chroma-js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, ChartDataLabels);
 
@@ -96,21 +97,54 @@ function Kpi({ client, setError }) {
     }
 
     const stringToColor = (string) => {
+        console.log('stringToColor', string);
+
+
         if (string === 'ROMA') {
             return '#FF0000';
         }
+
         let hash = 0;
         for (let i = 0; i < string.length; i++) {
             hash = string.charCodeAt(i) + ((hash << 5) - hash);
         }
-        let color = '#';
-        for (let i = 0; i < 3; i++) {
-            const value = (hash >> (i * 8)) & 0xFF;
-            color += ('00' + value.toString(16)).substr(-2);
-        }
-        return color;
+
+        const colorScale = chroma.scale(['#dbe85c', '#FF0000',]).mode('lch').colors(256);
+        const index = Math.abs(hash) % colorScale.length;
+
+        return colorScale[index];
     };
 
+    const decimalToRoman = (num) => {
+        if (typeof num !== 'number') return false;
+
+        const romanNumeralMap = [
+            { value: 1000, numeral: 'M' },
+            { value: 900, numeral: 'CM' },
+            { value: 500, numeral: 'D' },
+            { value: 400, numeral: 'CD' },
+            { value: 100, numeral: 'C' },
+            { value: 90, numeral: 'XC' },
+            { value: 50, numeral: 'L' },
+            { value: 40, numeral: 'XL' },
+            { value: 10, numeral: 'X' },
+            { value: 9, numeral: 'IX' },
+            { value: 5, numeral: 'V' },
+            { value: 4, numeral: 'IV' },
+            { value: 1, numeral: 'I' }
+        ];
+
+        let roman = '';
+
+        for (let i = 0; i < romanNumeralMap.length; i++) {
+            while (num >= romanNumeralMap[i].value) {
+                roman += romanNumeralMap[i].numeral;
+                num -= romanNumeralMap[i].value;
+            }
+        }
+
+        return roman;
+    }
 
     const processKpiData = (rows) => {
         const preferences = Array(candidates.length).fill(0);
@@ -131,7 +165,7 @@ function Kpi({ client, setError }) {
             });
         });
 
-        const sortedPreferences = preferences.map((value, index) => ({ candidate: candidates[index], value }))
+        const sortedPreferences = preferences.map((value, index) => ({ candidate: candidates[index][0], value }))
             .sort((a, b) => b.value - a.value);
 
         const sortedCandidates = sortedPreferences.map(item => item.candidate);
@@ -143,7 +177,7 @@ function Kpi({ client, setError }) {
                 {
                     label: 'Preferenze per Candidato',
                     data: sortedPreferencesData,
-                    backgroundColor: '#FFD700',
+                    backgroundColor: sortedCandidates.map(stringToColor),
                 },
             ],
         });
@@ -218,7 +252,7 @@ function Kpi({ client, setError }) {
         });
 
         const sortedComuneMunicipioData = Array.from(comuneMunicipioVotes).sort((a, b) => b[1] - a[1]);
-        const comuneMunicipioLabels = sortedComuneMunicipioData.map(item => item[0]);
+        const comuneMunicipioLabels = sortedComuneMunicipioData.map(item => `ROMA ${decimalToRoman(+item[0])}`);
         const comuneMunicipioVotesData = sortedComuneMunicipioData.map(item => item[1]);
 
         setM5sComuneMunicipioData({
