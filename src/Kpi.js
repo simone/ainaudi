@@ -8,15 +8,19 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 
 function Kpi({ client, setError }) {
     const [preferencesData, setPreferencesData] = useState({});
-    const [listaData, setListaData] = useState({});
+    const [listsData, setListaData] = useState({});
     const [percentData, setPercentData] = useState({});
     const [m5sComuneData, setM5sComuneData] = useState({});
     const [sezioneToMunicipio, setSezioneToMunicipio] = useState(new Map());
     const [m5sComuneMunicipioData, setM5sComuneMunicipioData] = useState({});
     const [countdown, setCountdown] = useState(60);
+    const [candidates, setCandidates] = useState([]);
+    const [lists, setLists] = useState([]);
 
     useEffect(() => {
         loadSezioniData();
+        loadCandidates();
+        loadLists();
         const updateCountdown = () => {
             setCountdown((prevCountdown) => {
                 if (prevCountdown > 0) {
@@ -33,7 +37,7 @@ function Kpi({ client, setError }) {
         if (sezioneToMunicipio.size > 0) {
             loadKpiData();
         }
-    }, [sezioneToMunicipio]);
+    }, [sezioneToMunicipio, candidates, lists]);
 
     useEffect(() => {
         if (countdown === 0) {
@@ -71,6 +75,26 @@ function Kpi({ client, setError }) {
             });
     };
 
+    const loadCandidates = () => {
+        client.election.candidates()
+            .then(data => {
+                setCandidates(data.values);
+            }).catch(error => {
+                console.error('Error fetching Candidates data:', error);
+                setError(error.error || error.message || error.toString());
+            });
+    }
+
+    const loadLists = () => {
+        client.election.lists()
+            .then(data => {
+                setLists(data.values);
+            }).catch(error => {
+                console.error('Error fetching Lists data:', error);
+                setError(error.error || error.message || error.toString());
+            });
+    }
+
     const stringToColor = (string) => {
         if (string === 'ROMA') {
             return '#FF0000';
@@ -89,43 +113,21 @@ function Kpi({ client, setError }) {
 
 
     const processKpiData = (rows) => {
-        const candidates = [
-            'Morace Carolina', 'Tamburrano Dario', 'Ferrara Gianluca', 'Basile Giovanna',
-            'Esposito Giusy', 'Fazio Valentina', 'Lauretti Federica', 'Pacetti Giuliano',
-            'Volpi Stefania', 'Romagnoli Sergio', 'Emiliozzi Mirella', 'Pococacio Valentina',
-            'Ceccato Emanuele', 'Alloatti Luca', 'Cecere Stefano'
-        ];
-
-        const lista = [
-            'MOVIMENTO 5 STELLE', 'FRATELLI D\'ITALIA', 'FORZA ITALIA-NOI MODERATI',
-            'LEGA SALVINI PREMIER', 'PARTITO DEMOCRATICO', 'ALLEANZA VERDI E SINISTRA',
-            'ALTERNATIVA POPOLARE', 'STATI UNITI D\'EUROPA', 'DEMOCRAZIA POPOLARE SOVRANA',
-            'PACE TERRA DIGNITA\'', 'AZIONE-SIAMO EUROPEI'
-        ];
-
-        const listaColors = {
-            'MOVIMENTO 5 STELLE': '#FF0000',
-            'FRATELLI D\'ITALIA': '#000080',
-            'FORZA ITALIA-NOI MODERATI': '#005380',
-            'LEGA SALVINI PREMIER': '#0000FF',
-            'PARTITO DEMOCRATICO': '#ff7551',
-            'ALLEANZA VERDI E SINISTRA': '#32CD32',
-            'ALTERNATIVA POPOLARE': '#00d0ff',
-            'STATI UNITI D\'EUROPA': '#800080',
-            'DEMOCRAZIA POPOLARE SOVRANA': '#7300ff',
-            'PACE TERRA DIGNITA\'': '#8B4513',
-            'AZIONE-SIAMO EUROPEI': '#ADD8E6'
-        };
-
         const preferences = Array(candidates.length).fill(0);
-        const listaVotes = Array(lista.length).fill(0);
+        const listsVotes = Array(lists.length).fill(0);
+
+        // indici delle colonne preferenze e liste
+        const fP = 7;
+        const lP = fP + candidates.length;
+        const fL = lP;
+        const lL = fL + lists.length;
 
         rows.forEach(({values}) => {
-            values.slice(7, 22).forEach((value, index) => {
+            values.slice(fP, lP).forEach((value, index) => {
                 preferences[index] += parseInt(value || 0, 10);
             });
-            values.slice(22, 33).forEach((value, index) => {
-                listaVotes[index] += parseInt(value || 0, 10);
+            values.slice(fL, lL).forEach((value, index) => {
+                listsVotes[index] += parseInt(value || 0, 10);
             });
         });
 
@@ -146,32 +148,33 @@ function Kpi({ client, setError }) {
             ],
         });
 
-        const sortedLista = listaVotes.map((value, index) => ({ lista: lista[index], value }))
+        const sortedLists = listsVotes.map((value, index) => ({ lists: lists[index], value }))
             .sort((a, b) => b.value - a.value);
 
-        const sortedListaLabels = sortedLista.map(item => item.lista);
-        const sortedListaData = sortedLista.map(item => item.value);
+        const sortedListsLabels = sortedLists.map(item => item.lists[0]);
+        const sortedListsColors = sortedLists.map(item => item.lists[1]);
+        const sortedListsData = sortedLists.map(item => item.value);
 
         setListaData({
-            labels: sortedListaLabels,
+            labels: sortedListsLabels,
             datasets: [
                 {
                     label: 'Voti di Lista',
-                    data: sortedListaData,
-                    backgroundColor: sortedListaLabels.map(label => listaColors[label]),
+                    data: sortedListsData,
+                    backgroundColor: sortedListsColors,
                 },
             ],
         });
 
-        const totalVotes = sortedLista.reduce((sum, item) => sum + item.value, 0);
-        const percentData = sortedLista.map(item => ({
-            lista: item.lista,
+        const totalVotes = sortedLists.reduce((sum, item) => sum + item.value, 0);
+        const percentData = sortedLists.map(item => ({
+            lists: item.lists[0],
             percent: ((item.value / totalVotes) * 100).toFixed(2),
         }));
 
-        const percentLabels = percentData.map(item => item.lista);
+        const percentLabels = sortedLists.map(item => item.lists[0]);
         const percentValues = percentData.map(item => parseFloat(item.percent));
-        const percentColors = percentLabels.map(label => listaColors[label]);
+        const percentColors = sortedLists.map(item => item.lists[1]);
         setPercentData({
             labels: percentLabels,
             datasets: [
@@ -183,7 +186,7 @@ function Kpi({ client, setError }) {
             ],
         });
 
-        const m5sIndex = lista.indexOf('MOVIMENTO 5 STELLE');
+        const m5sIndex = lists.indexOf('MOVIMENTO 5 STELLE');
         const comuneVotes = new Map();
 
         rows.forEach(({comune, values}) => {
@@ -273,13 +276,13 @@ function Kpi({ client, setError }) {
     const baseHeight = 100;
 
     const preferencesHeight = preferencesData.labels ? (preferencesData.labels.length * rowHeight + baseHeight) : 400;
-    const listaHeight = listaData.labels ? (listaData.labels.length * rowHeight + baseHeight) : 400;
+    const listsHeight = listsData.labels ? (listsData.labels.length * rowHeight + baseHeight) : 400;
     const comuneHeight = m5sComuneData.labels ? (m5sComuneData.labels.length * rowHeight + baseHeight) : 400;
     const municipioHeight = m5sComuneMunicipioData.labels ? (m5sComuneMunicipioData.labels.length * rowHeight + baseHeight) : 400;
 
     const progress = countdown/60 * 100;
 
-    if (!preferencesData.labels || !listaData.labels) {
+    if (!preferencesData.labels || !listsData.labels) {
         return <div className="card-body d-flex align-items-center justify-content-center"
                     style={{minHeight: '50vh'}}>
             <div className="spinner-border text-primary" role="status">
@@ -335,8 +338,8 @@ function Kpi({ client, setError }) {
                     <h2>Voti di Lista</h2>
                 </div>
                 <div className="card-body">
-                    <div style={{ height: `${listaHeight}px` }}>
-                        <Bar data={listaData} options={options} />
+                    <div style={{ height: `${listsHeight}px` }}>
+                        <Bar data={listsData} options={options} />
                     </div>
                 </div>
             </div>

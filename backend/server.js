@@ -14,6 +14,7 @@ const {sectionModule} = require('./modules/section');
 const {rdlModule} = require('./modules/rdl');
 const {kpiModule} = require('./modules/kpi');
 const {reactModule} = require("./modules/react");
+const {electionModule} = require("./modules/election");
 
 // Carica le credenziali dell'account di servizio
 const credentials = JSON.parse(fs.readFileSync(join(__dirname, 'rdl-europee-2024-dddc509900da.json')));
@@ -80,6 +81,10 @@ app.get('/api/permissions', authenticateToken, async (req, res) => {
     const permissions = await perms(email);
     console.log(200, email, permissions);
     res.status(200).json(permissions);
+});
+
+electionModule({
+    app, authenticateToken, perms, sheets, SHEET_ID
 });
 
 // api for manage sections

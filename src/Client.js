@@ -24,11 +24,10 @@ const Client = (server, token) => {
             headers: {
                 'Authorization': token
             }
-        })
-            .catch(error => {
-                console.error(error);
-                return {error: error.message};
-            });
+        }).catch(error => {
+            console.error(error);
+            return {error: error.message};
+        });
 
     const sections = {
         get: async () =>
@@ -36,11 +35,10 @@ const Client = (server, token) => {
                 headers: {
                     'Authorization': token
                 }
-            })
-                .catch(error => {
-                    console.error(error);
-                    return {error: error.message};
-                }),
+            }).catch(error => {
+                console.error(error);
+                return {error: error.message};
+            }),
         save: async ({comune, sezione, values}) =>
             fetch(`${server}/api/sections`, {
                 method: 'POST',
@@ -49,12 +47,10 @@ const Client = (server, token) => {
                     'Authorization': token
                 },
                 body: JSON.stringify({comune, sezione, values})
-            })
-                .then(response => response.json())
-                .catch(error => {
-                    console.error(error);
-                    return {error: error.message};
-                }),
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return {error: error.message};
+            }),
     }
 
     const rdl = {
@@ -63,21 +59,19 @@ const Client = (server, token) => {
                 headers: {
                     'Authorization': token
                 }
-            })
-                .catch(error => {
-                    console.error(error);
-                    return {error: error.message};
-                }),
+            }).catch(error => {
+                console.error(error);
+                return {error: error.message};
+            }),
         sections: async () =>
             fetchWithRetries(`${server}/api/rdl/sections`, {
                 headers: {
                     'Authorization': token
                 }
-            })
-                .catch(error => {
-                    console.error(error);
-                    return {error: error.message};
-                }),
+            }).catch(error => {
+                console.error(error);
+                return {error: error.message};
+            }),
         assign: async ({comune, sezione, email}) =>
             fetch(`${server}/api/rdl/assign`, {
                 method: 'POST',
@@ -86,12 +80,10 @@ const Client = (server, token) => {
                     'Authorization': token
                 },
                 body: JSON.stringify({comune, sezione, email})
-            })
-                .then(response => response.json())
-                .catch(error => {
-                    console.error(error);
-                    return {error: error.message};
-                }),
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return {error: error.message};
+            }),
         unassign: async ({comune, sezione}) =>
             fetch(`${server}/api/rdl/unassign`, {
                 method: 'POST',
@@ -100,12 +92,10 @@ const Client = (server, token) => {
                     'Authorization': token
                 },
                 body: JSON.stringify({comune, sezione})
-            })
-                .then(response => response.json())
-                .catch(error => {
-                    console.error(error);
-                    return {error: error.message};
-                }),
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return {error: error.message};
+            }),
     }
 
     const kpi = {
@@ -129,7 +119,28 @@ const Client = (server, token) => {
             }),
     }
 
-    return {permissions, sections, rdl, kpi};
+    const election = {
+        lists: async () =>
+            fetchWithRetries(`${server}/api/election/lists`, {
+                headers: {
+                    'Authorization': token
+                }
+            }).catch(error => {
+                console.error(error);
+                return {error: error.message};
+            }),
+        candidates: async () =>
+            fetchWithRetries(`${server}/api/election/candidates`, {
+                headers: {
+                    'Authorization': token
+                }
+            }).catch(error => {
+                console.error(error);
+                return {error: error.message};
+            }),
+    }
+
+    return {permissions, election, sections, rdl, kpi};
 }
 
 export default Client;
