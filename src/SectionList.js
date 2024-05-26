@@ -1,61 +1,80 @@
 // App.js
-import React, {useState, useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import SectionForm from "./SectionForm";
 
 function SectionList({client, user, setError}) {
     const [loading, setLoading] = useState(true);
     const [sections, setSections] = useState([]);
     const [selectedSection, setSelectedSection] = useState(null);
+    const [lists, setLists] = useState([]);
+    const [candidates, setCandidates] = useState([]);
 
     useEffect(() => {
         console.log("Loading data");
-        listSections();
-        setLoading(false);
+        loadLists();
+        loadCandidates();
     }, []);
+
+    const loadCandidates = () => {
+        client.election.candidates()
+            .then(data => {
+                setCandidates(data.values);
+            }).catch(error => {
+            console.error('Error fetching Candidates data:', error);
+            setError(error.error || error.message || error.toString());
+        });
+    }
+
+    const loadLists = () => {
+        client.election.lists()
+            .then(data => {
+                setLists(data.values.map(row => row[0]));
+            }).catch(error => {
+            console.error('Error fetching Lists data:', error);
+            setError(error.error || error.message || error.toString());
+        });
+    }
+
+    useEffect(() => {
+        if (lists.length > 0 && candidates.length > 0) {
+            listSections();
+        }
+    }, [lists, candidates]);
 
     const listSections = () => {
         client.sections.get().then((response) => {
             const rows = response.rows;
             if (rows && rows.length > 0) {
+                setLoading(false);
                 setSections(
-                    rows.map(({comune, sezione, values}) => ({
-                        comune,
-                        sezione,
-                        email: user.getEmail(),
-                        nElettoriMaschi: values[0] || '',
-                        nElettoriDonne: values[1] || '',
-                        schedeRicevute: values[2] || '',
-                        schedeAutenticate: values[3] || '',
-                        schedeBianche: values[4] || '',
-                        schedeNulle: values[5] || '',
-                        schedeContestate: values[6] || '',
-                        "Morace Carolina": values[7] || '',
-                        "Tamburrano Dario": values[8] || '',
-                        "Ferrara Gianluca": values[9] || '',
-                        "Basile Giovanna": values[10] || '',
-                        "Esposito Giusy": values[11] || '',
-                        "Fazio Valentina": values[12] || '',
-                        "Lauretti Federica": values[13] || '',
-                        "Pacetti Giuliano": values[14] || '',
-                        "Volpi Stefania": values[15] || '',
-                        "Romagnoli Sergio": values[16] || '',
-                        "Emiliozzi Mirella": values[17] || '',
-                        "Pococacio Valentina": values[18] || '',
-                        "Ceccato Emanuele": values[19] || '',
-                        "Alloatti Luca": values[20] || '',
-                        "Cecere Stefano": values[21] || '',
-                        "MOVIMENTO 5 STELLE": values[22] || '',
-                        "FRATELLI D'ITALIA": values[23] || '',
-                        "FORZA ITALIA-NOI MODERATI": values[24] || '',
-                        "LEGA SALVINI PREMIER": values[25] || '',
-                        "PARTITO DEMOCRATICO": values[26] || '',
-                        "ALLEANZA VERDI E SINISTRA": values[27] || '',
-                        "ALTERNATIVA POPOLARE": values[28] || '',
-                        "STATI UNITI D'EUROPA": values[29] || '',
-                        "DEMOCRAZIA POPOLARE SOVRANA": values[30] || '',
-                        "PACE TERRA DIGNITA'": values[31] || '',
-                        "AZIONE-SIAMO EUROPEI": values[32] || '',
-                    }))
+                    rows.map(({ comune, sezione, values }) => {
+                        const section = {
+                            comune,
+                            sezione,
+                            email: user.getEmail(),
+                            nElettoriMaschi: values[0] || '',
+                            nElettoriDonne: values[1] || '',
+                            schedeRicevute: values[2] || '',
+                            schedeAutenticate: values[3] || '',
+                            schedeBianche: values[4] || '',
+                            schedeNulle: values[5] || '',
+                            schedeContestate: values[6] || ''
+                        };
+
+                        // indici delle colonne preferenze e liste
+                        const fP = 7;
+                        const fL = fP + candidates.length;
+
+                        candidates.forEach((name, index) => {
+                            section[name] = values[fP + index] || '';
+                        });
+
+                        lists.forEach((name, index) => {
+                            section[name] = values[fL + index] || '';
+                        });
+
+                        return section;
+                    })
                 );
             }
         })
@@ -66,52 +85,30 @@ function SectionList({client, user, setError}) {
     };
 
     const updateSection = (newData) => {
+        const values = [
+            newData.nElettoriMaschi,
+            newData.nElettoriDonne,
+            newData.schedeRicevute,
+            newData.schedeAutenticate,
+            newData.schedeBianche,
+            newData.schedeNulle,
+            newData.schedeContestate,
+            ...candidates.map(name => newData[name] || ''),
+            ...lists.map(name => newData[name] || '')
+        ];
         client.sections.save({
             comune: newData.comune,
             sezione: newData.sezione,
-            values: [
-                newData.nElettoriMaschi,
-                newData.nElettoriDonne,
-                newData.schedeRicevute,
-                newData.schedeAutenticate,
-                newData.schedeBianche,
-                newData.schedeNulle,
-                newData.schedeContestate,
-                newData["Morace Carolina"],
-                newData["Tamburrano Dario"],
-                newData["Ferrara Gianluca"],
-                newData["Basile Giovanna"],
-                newData["Esposito Giusy"],
-                newData["Fazio Valentina"],
-                newData["Lauretti Federica"],
-                newData["Pacetti Giuliano"],
-                newData["Volpi Stefania"],
-                newData["Romagnoli Sergio"],
-                newData["Emiliozzi Mirella"],
-                newData["Pococacio Valentina"],
-                newData["Ceccato Emanuele"],
-                newData["Alloatti Luca"],
-                newData["Cecere Stefano"],
-                newData["MOVIMENTO 5 STELLE"],
-                newData["FRATELLI D'ITALIA"],
-                newData["FORZA ITALIA-NOI MODERATI"],
-                newData["LEGA SALVINI PREMIER"],
-                newData["PARTITO DEMOCRATICO"],
-                newData["ALLEANZA VERDI E SINISTRA"],
-                newData["ALTERNATIVA POPOLARE"],
-                newData["STATI UNITI D'EUROPA"],
-                newData["DEMOCRAZIA POPOLARE SOVRANA"],
-                newData["PACE TERRA DIGNITA'"],
-                newData["AZIONE-SIAMO EUROPEI"],
-            ],
-        }).then((response) => {
-            listSections();
-            setSelectedSection(null);
+            values: values,
         })
-        .catch((error) => {
-            console.error("Error updating Sheet:", error);
-            setError("Errore durante l'aggiornamento del foglio di calcolo: " + error.result.message);
-        });
+            .then((response) => {
+                listSections();
+                setSelectedSection(null);
+            })
+            .catch((error) => {
+                console.error("Error updating Sheet:", error);
+                setError("Errore durante l'aggiornamento del foglio di calcolo: " + error.result.message);
+            });
     };
 
     const isComplete = (section) => {
@@ -156,6 +153,8 @@ function SectionList({client, user, setError}) {
     if (selectedSection) {
         return (
             <SectionForm
+                lists={lists}
+                candidates={candidates}
                 section={selectedSection}
                 updateSection={updateSection}
                 cancel={() => setSelectedSection(null)}

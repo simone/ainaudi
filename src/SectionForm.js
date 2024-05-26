@@ -1,6 +1,6 @@
 import React, {useState} from "react";
 
-function SectionForm({section, updateSection, cancel}) {
+function SectionForm({lists, candidates, section, updateSection, cancel}) {
     const [formData, setFormData] = useState(section);
 
     const handleChange = (e, field) => {
@@ -150,23 +150,7 @@ function SectionForm({section, updateSection, cancel}) {
                     Preferenze
                 </div>
                 <div className="card-body">
-                    {[
-                        "Morace Carolina",
-                        "Tamburrano Dario",
-                        "Ferrara Gianluca",
-                        "Basile Giovanna",
-                        "Esposito Giusy",
-                        "Fazio Valentina",
-                        "Lauretti Federica",
-                        "Pacetti Giuliano",
-                        "Volpi Stefania",
-                        "Romagnoli Sergio",
-                        "Emiliozzi Mirella",
-                        "Pococacio Valentina",
-                        "Ceccato Emanuele",
-                        "Alloatti Luca",
-                        "Cecere Stefano",
-                    ].map((name) => (
+                    {candidates.map((name) => (
                         <div className="form-group mb-3" key={name}>
                             <label>{name}:</label>
                             <input
@@ -185,32 +169,20 @@ function SectionForm({section, updateSection, cancel}) {
                     Voti di Lista
                 </div>
                 <div className="card-body">
-                    {[
-                        "MOVIMENTO 5 STELLE",
-                        "FRATELLI D'ITALIA",
-                        "FORZA ITALIA-NOI MODERATI",
-                        "LEGA SALVINI PREMIER",
-                        "PARTITO DEMOCRATICO",
-                        "ALLEANZA VERDI E SINISTRA",
-                        "ALTERNATIVA POPOLARE",
-                        "STATI UNITI D'EUROPA",
-                        "DEMOCRAZIA POPOLARE SOVRANA",
-                        "PACE TERRA DIGNITA'",
-                        "AZIONE-SIAMO EUROPEI",
-                    ].map((lista) => (
-                        <div className="form-group mb-3" key={lista}>
+                    {lists.map((l) => (
+                        <div className="form-group mb-3" key={l}>
                             <label
                                 style={{
-                                    backgroundColor: listaColors[lista] || "white",
-                                    color: listaColors[lista] ? "white" : "black",
+                                    backgroundColor: listaColors[l] || "white",
+                                    color: listaColors[l] ? "white" : "black",
                                     padding: "5px",
                                 }}
-                            >{lista}:</label>
+                            >{l}:</label>
                             <input
                                 type="number"
                                 className="form-control"
-                                value={formData[lista]}
-                                onChange={(e) => handleChange(e, lista)}
+                                value={formData[l]}
+                                onChange={(e) => handleChange(e, l)}
                             />
                         </div>
                     ))}
