@@ -44,7 +44,7 @@ function SectionList({client, user, setError}) {
     const listSections = () => {
         client.sections.get().then((response) => {
             const rows = response.rows;
-            if (rows && rows.length > 0) {
+            if (rows) {
                 setLoading(false);
                 setSections(
                     rows.map(({ comune, sezione, values }) => {

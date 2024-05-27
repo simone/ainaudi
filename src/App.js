@@ -215,11 +215,10 @@ function App() {
                         {!loading && (
                             <>
                                 <div className="card-header bg-warning">
-                                    Autenticarsi utilizzando l'email fornita come RDL.
+                                    <p>Autenticarsi utilizzando l'email fornita come RDL.</p>
                                 </div>
-
                                 <div className="card-footer d-flex align-items-center justify-content-center"
-                                     style={{minHeight: '50vh'}}>
+                                     style={{minHeight: '20vh'}}>
                                     <div className="row w-100">
                                         <div className="col-12">
                                             <button className="btn btn-primary btn-lg w-100" onClick={handleAuthClick}>
