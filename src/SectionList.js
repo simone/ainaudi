@@ -56,14 +56,17 @@ function SectionList({client, user, setError}) {
                             nElettoriDonne: values[1] || '',
                             schedeRicevute: values[2] || '',
                             schedeAutenticate: values[3] || '',
-                            schedeBianche: values[4] || '',
-                            schedeNulle: values[5] || '',
-                            schedeContestate: values[6] || ''
+                            nVotantiMaschi: values[4] || '',
+                            nVotantiDonne: values[5] || '',
+                            schedeBianche: values[6] || '',
+                            schedeNulle: values[7] || '',
+                            schedeContestate: values[8] || ''
                         };
 
                         // indici delle colonne preferenze e liste
-                        const fP = 7;
+                        const fP = 9;
                         const fL = fP + candidates.length;
+                        const lL = fL + lists.length;
 
                         candidates.forEach((name, index) => {
                             section[name] = values[fP + index] || '';
@@ -72,6 +75,8 @@ function SectionList({client, user, setError}) {
                         lists.forEach((name, index) => {
                             section[name] = values[fL + index] || '';
                         });
+
+                        section.incongruenze = values[lL] || '';
 
                         return section;
                     })
@@ -84,17 +89,20 @@ function SectionList({client, user, setError}) {
             });
     };
 
-    const updateSection = (newData) => {
+    const updateSection = (newData, errors) => {
         const values = [
             newData.nElettoriMaschi,
             newData.nElettoriDonne,
             newData.schedeRicevute,
             newData.schedeAutenticate,
+            newData.nVotantiMaschi,
+            newData.nVotantiDonne,
             newData.schedeBianche,
             newData.schedeNulle,
             newData.schedeContestate,
             ...candidates.map(name => newData[name] || ''),
-            ...lists.map(name => newData[name] || '')
+            ...lists.map(name => newData[name] || ''),
+            errors.join(', ')
         ];
         client.sections.save({
             comune: newData.comune,
@@ -121,15 +129,23 @@ function SectionList({client, user, setError}) {
         return true;
     };
 
+    const hasErrors = (section) => {
+        return section.incongruenze !== '';
+    }
+
     const progress = (section) => {
         // Numero totale di proprietà nell'oggetto section
-        const totalProperties = Object.keys(section).length;
+        const totalProperties = Object.keys(section).length - 4;
         // Numero di proprietà valorizzate
         let filledProperties = 0;
 
         // Itera su tutte le proprietà dell'oggetto section
         for (let key in section) {
+            if (key === 'comune' || key === 'sezione' || key === 'email' || key === 'incongruenze') {
+                continue;
+            }
             if (section[key] !== null && section[key] !== undefined && section[key] !== '') {
+                console.log(key, section[key]);
                 filledProperties++;
             }
         }
@@ -189,7 +205,16 @@ function SectionList({client, user, setError}) {
                             key={index}
                         >
                             <span className="col-6 col-md-4 col-lg-3">{section.comune} - {section.sezione}</span>
-                            {isComplete(section) ? (
+                            {hasErrors(section) ? (
+                                <button
+                                    className="btn btn-warning col-6 col-md-4 col-lg-3"
+                                    onClick={() => {
+                                        setSelectedSection(section);
+                                    }}
+                                >
+                                    Apri {progress(section)}%
+                                </button>
+                            ) : isComplete(section) ? (
                                 <button
                                     className="btn btn-success col-6 col-md-4 col-lg-3"
                                     onClick={() => {
