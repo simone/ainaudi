@@ -62,6 +62,22 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
     };
 
     useEffect(() => {
+        const handleWheel = (e) => {
+            if (document.activeElement.type === "number") {
+                e.preventDefault();
+            }
+        };
+
+        // Aggiungi l'evento wheel al window
+        window.addEventListener('wheel', handleWheel, { passive: false });
+
+        // Rimuovi l'evento wheel quando il componente viene smontato
+        return () => {
+            window.removeEventListener('wheel', handleWheel);
+        };
+    }, []);
+
+    useEffect(() => {
         const newErrors = {};
         for (const key in formData) {
             newErrors[key] = validation(key, formData[key]);
@@ -88,10 +104,6 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
         newFormData.totalVotiDiPreferenza = candidates.reduce((sum, name) => sum + (parseInt(newFormData[name]) || 0), 0);
 
         setFormData(newFormData);
-    };
-
-    const handleWheel = (e) => {
-        e.preventDefault();
     };
 
     const handleSave = () => {
@@ -160,7 +172,6 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             className="form-control"
                             value={formData.nElettoriMaschi}
                             onChange={(e) => handleChange(e, "nElettoriMaschi")}
-                            onWheel={handleWheel}
                         />
                         {errors['nElettoriMaschi'] && <div className="text-danger">{errors['nElettoriMaschi']}</div>}
                     </div>
@@ -171,7 +182,6 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             className="form-control"
                             value={formData.nElettoriDonne}
                             onChange={(e) => handleChange(e, "nElettoriDonne")}
-                            onWheel={handleWheel}
                         />
                         {errors['nElettoriDonne'] && <div className="text-danger">{errors['nElettoriDonne']}</div>}
                     </div>
@@ -183,7 +193,6 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             value={formData.totalElettori}
                             readOnly
                             style={{backgroundColor: 'lightgray'}}
-                            onWheel={handleWheel}
                         />
                     </div>
                     <div className="form-group mb-3">
@@ -193,7 +202,6 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             className="form-control"
                             value={formData.schedeRicevute}
                             onChange={(e) => handleChange(e, "schedeRicevute")}
-                            onWheel={handleWheel}
                         />
                         {errors['schedeRicevute'] && <div className="text-danger">{errors['schedeRicevute']}</div>}
                     </div>
@@ -204,7 +212,6 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             className="form-control"
                             value={formData.schedeAutenticate}
                             onChange={(e) => handleChange(e, "schedeAutenticate")}
-                            onWheel={handleWheel}
                         />
                         {errors['schedeAutenticate'] && <div className="text-danger">{errors['schedeAutenticate']}</div>}
                     </div>
@@ -222,7 +229,6 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             className="form-control"
                             value={formData.nVotantiMaschi}
                             onChange={(e) => handleChange(e, "nVotantiMaschi")}
-                            onWheel={handleWheel}
                         />
                         {errors['nVotantiMaschi'] && <div className="text-danger">{errors['nVotantiMaschi']}</div>}
                     </div>
@@ -233,7 +239,6 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             className="form-control"
                             value={formData.nVotantiDonne}
                             onChange={(e) => handleChange(e, "nVotantiDonne")}
-                            onWheel={handleWheel}
                         />
                         {errors['nVotantiDonne'] && <div className="text-danger">{errors['nVotantiDonne']}</div>}
                     </div>
@@ -263,7 +268,6 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                                 className="form-control"
                                 value={formData[name]}
                                 onChange={(e) => handleChange(e, name)}
-                                onWheel={handleWheel}
                                 min="0"
                             />
                             {errors[name] && <div className="text-danger">{errors[name]}</div>}
@@ -306,7 +310,6 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                                 className="form-control"
                                 value={formData[l]}
                                 onChange={(e) => handleChange(e, l)}
-                                onWheel={handleWheel}
                             />
                             {errors[l] && <div className="text-danger">{errors[l]}</div>}
                         </div>
@@ -336,7 +339,6 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             className="form-control"
                             value={formData.schedeBianche}
                             onChange={(e) => handleChange(e, "schedeBianche")}
-                            onWheel={handleWheel}
                         />
                         {errors['schedeBianche'] && <div className="text-danger">{errors['schedeBianche']}</div>}
                     </div>
@@ -347,7 +349,6 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             className="form-control"
                             value={formData.schedeNulle}
                             onChange={(e) => handleChange(e, "schedeNulle")}
-                            onWheel={handleWheel}
                         />
                         {errors['schedeNulle'] && <div className="text-danger">{errors['schedeNulle']}</div>}
                     </div>
@@ -358,7 +359,6 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                             className="form-control"
                             value={formData.schedeContestate}
                             onChange={(e) => handleChange(e, "schedeContestate")}
-                            onWheel={handleWheel}
                         />
                         {errors['schedeContestate'] && <div className="text-danger">{errors['schedeContestate']}</div>}
                     </div>
