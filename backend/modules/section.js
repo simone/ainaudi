@@ -10,7 +10,7 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
             }
             const response = await sheets.spreadsheets.values.get({
                 spreadsheetId: SHEET_ID,
-                range: `Dati!A2:AJ`,
+                range: `Dati!A2:ZZ`,
             });
             const values = response.data.values
                 .filter((row) => row[2] === email);
@@ -37,7 +37,7 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
             }
             const response = await sheets.spreadsheets.values.get({
                 spreadsheetId: SHEET_ID,
-                range: `Dati!A2:AJ`,
+                range: `Dati!A2:C`,
             });
             const {comune, sezione, values} = req.body;
             const rows = response.data.values;
@@ -48,7 +48,7 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
             } else {
                 const response = await sheets.spreadsheets.values.update({
                     spreadsheetId: SHEET_ID,
-                    range: `Dati!D${index + 2}:AJ${index + 2}`,
+                    range: `Dati!D${index + 2}:${index + 2}`,
                     valueInputOption: "RAW",
                     resource: {values: [values]},
                 });
