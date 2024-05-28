@@ -30,8 +30,8 @@ const Client = (server, token) => {
         });
 
     const sections = {
-        get: async () =>
-            fetchWithRetries(`${server}/api/sections`, {
+        get: async ({assigned}) =>
+            fetchWithRetries(`${server}/api/sections/${assigned?'assigned':'own'}`, {
                 headers: {
                     'Authorization': token
                 }

@@ -2,9 +2,10 @@
 import React, {useEffect, useState} from "react";
 import SectionForm from "./SectionForm";
 
-function SectionList({client, user, setError}) {
+function SectionList({client, user, setError, referenti}) {
     const [loading, setLoading] = useState(true);
     const [sections, setSections] = useState([]);
+    const [assignedSections, setAssignedSections] = useState([]);
     const [selectedSection, setSelectedSection] = useState(null);
     const [lists, setLists] = useState([]);
     const [candidates, setCandidates] = useState([]);
@@ -41,52 +42,65 @@ function SectionList({client, user, setError}) {
         }
     }, [lists, candidates]);
 
+    function adaptToSections(rows) {
+        return rows.map(({comune, sezione, email, values}) => {
+            const section = {
+                comune,
+                sezione,
+                email: email,
+                nElettoriMaschi: values[0] || '',
+                nElettoriDonne: values[1] || '',
+                schedeRicevute: values[2] || '',
+                schedeAutenticate: values[3] || '',
+                nVotantiMaschi: values[4] || '',
+                nVotantiDonne: values[5] || '',
+                schedeBianche: values[6] || '',
+                schedeNulle: values[7] || '',
+                schedeContestate: values[8] || ''
+            };
+
+            // indici delle colonne preferenze e liste
+            const fP = 9;
+            const fL = fP + candidates.length;
+            const lL = fL + lists.length;
+
+            candidates.forEach((name, index) => {
+                section[name] = values[fP + index] || '';
+            });
+
+            lists.forEach((name, index) => {
+                section[name] = values[fL + index] || '';
+            });
+
+            section.incongruenze = values[lL] || '';
+
+            return section;
+        });
+    }
+
     const listSections = () => {
-        client.sections.get().then((response) => {
+        client.sections.get({assigned: false}).then((response) => {
             const rows = response.rows;
             if (rows) {
                 setLoading(false);
-                setSections(
-                    rows.map(({ comune, sezione, values }) => {
-                        const section = {
-                            comune,
-                            sezione,
-                            email: user.getEmail(),
-                            nElettoriMaschi: values[0] || '',
-                            nElettoriDonne: values[1] || '',
-                            schedeRicevute: values[2] || '',
-                            schedeAutenticate: values[3] || '',
-                            nVotantiMaschi: values[4] || '',
-                            nVotantiDonne: values[5] || '',
-                            schedeBianche: values[6] || '',
-                            schedeNulle: values[7] || '',
-                            schedeContestate: values[8] || ''
-                        };
-
-                        // indici delle colonne preferenze e liste
-                        const fP = 9;
-                        const fL = fP + candidates.length;
-                        const lL = fL + lists.length;
-
-                        candidates.forEach((name, index) => {
-                            section[name] = values[fP + index] || '';
-                        });
-
-                        lists.forEach((name, index) => {
-                            section[name] = values[fL + index] || '';
-                        });
-
-                        section.incongruenze = values[lL] || '';
-
-                        return section;
-                    })
-                );
+                setSections(adaptToSections(rows));
             }
-        })
-            .catch((error) => {
+        }).catch((error) => {
+            console.error("Error reading Sheet:", error);
+            setError("Errore durante la lettura del foglio di calcolo: " + error.result.message);
+        });
+        if (referenti) {
+            client.sections.get({assigned: true}).then((response) => {
+                const rows = response.rows;
+                if (rows) {
+                    setLoading(false);
+                    setAssignedSections(adaptToSections(rows));
+                }
+            }).catch((error) => {
                 console.error("Error reading Sheet:", error);
                 setError("Errore durante la lettura del foglio di calcolo: " + error.result.message);
             });
+        }
     };
 
     const updateSection = (newData, errors) => {
@@ -189,55 +203,103 @@ function SectionList({client, user, setError}) {
     }
 
     return (
-        <div className="card">
-            <div className="card-header bg-info">
-                Questa applicazione è destinata agli RDL del Movimento 5 Stelle e
-                serve per inviare al movimento i dati raccolti nelle sezioni. Si
-                prega di scegliere una delle sezioni assegnate e di compilare
-                tutti i campi richiesti con i numeri corretti.
+        <>
+            <div className="card">
+                <div className="card-header bg-info">
+                    Questa applicazione è destinata agli RDL del Movimento 5 Stelle e
+                    serve per inviare al movimento i dati raccolti nelle sezioni. Si
+                    prega di scegliere una delle sezioni assegnate e di compilare
+                    tutti i campi richiesti con i numeri corretti.
+                </div>
+                <div className="card-body">
+                    <h2>Scegli una sezione assegnata a te</h2>
+                    <ul className="list-group">
+                        {sections.map((section, index) => (
+                            <li
+                                className="list-group-item d-flex justify-content-between align-items-center"
+                                key={index}
+                            >
+                                <span className="col-6 col-md-4 col-lg-3">{section.comune} - {section.sezione}</span>
+                                {hasErrors(section) ? (
+                                    <button
+                                        className="btn btn-warning col-6 col-md-4 col-lg-3"
+                                        onClick={() => {
+                                            setSelectedSection(section);
+                                        }}
+                                    >
+                                        Apri {progress(section)}%
+                                    </button>
+                                ) : isComplete(section) ? (
+                                    <button
+                                        className="btn btn-success col-6 col-md-4 col-lg-3"
+                                        onClick={() => {
+                                            setSelectedSection(section);
+                                        }}
+                                    >
+                                        Completo
+                                    </button>
+                                ) : (
+                                    <button
+                                        className="btn btn-primary col-6 col-md-4 col-lg-3"
+                                        onClick={() => {
+                                            setSelectedSection(section);
+                                        }}
+                                    >
+                                        Apri {progress(section)}%
+                                    </button>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
             </div>
-            <div className="card-body">
-                <h2>Scegli una sezione assegnata a te</h2>
-                <ul className="list-group">
-                    {sections.map((section, index) => (
-                        <li
-                            className="list-group-item d-flex justify-content-between align-items-center"
-                            key={index}
-                        >
-                            <span className="col-6 col-md-4 col-lg-3">{section.comune} - {section.sezione}</span>
-                            {hasErrors(section) ? (
-                                <button
-                                    className="btn btn-warning col-6 col-md-4 col-lg-3"
-                                    onClick={() => {
-                                        setSelectedSection(section);
-                                    }}
-                                >
-                                    Apri {progress(section)}%
-                                </button>
-                            ) : isComplete(section) ? (
-                                <button
-                                    className="btn btn-success col-6 col-md-4 col-lg-3"
-                                    onClick={() => {
-                                        setSelectedSection(section);
-                                    }}
-                                >
-                                    Completo
-                                </button>
-                            ) : (
-                                <button
-                                    className="btn btn-primary col-6 col-md-4 col-lg-3"
-                                    onClick={() => {
-                                        setSelectedSection(section);
-                                    }}
-                                >
-                                    Apri {progress(section)}%
-                                </button>
-                            )}
-                        </li>
-                    ))}
-                </ul>
-            </div>
-        </div>
+            {referenti && (<div className="card">
+                <div className="card-header bg-secondary">
+                    Questa sezione è per i subdelegati che possono accedere ai dati raccolti dai propri RDL.
+                </div>
+                <div className="card-body">
+                    <h2>Apri una sezione che hai assegnato</h2>
+                    <ul className="list-group">
+                        {assignedSections.map((section, index) => (
+                            <li
+                                className="list-group-item d-flex justify-content-between align-items-center"
+                                key={index}
+                            >
+                                <span className="col-6 col-md-4 col-lg-3">{section.comune} - {section.sezione} - {section.email}</span>
+                                {hasErrors(section) ? (
+                                    <button
+                                        className="btn btn-warning col-6 col-md-4 col-lg-3"
+                                        onClick={() => {
+                                            setSelectedSection(section);
+                                        }}
+                                    >
+                                        Apri {progress(section)}%
+                                    </button>
+                                ) : isComplete(section) ? (
+                                    <button
+                                        className="btn btn-success col-6 col-md-4 col-lg-3"
+                                        onClick={() => {
+                                            setSelectedSection(section);
+                                        }}
+                                    >
+                                        Completo
+                                    </button>
+                                ) : (
+                                    <button
+                                        className="btn btn-primary col-6 col-md-4 col-lg-3"
+                                        onClick={() => {
+                                            setSelectedSection(section);
+                                        }}
+                                    >
+                                        Apri {progress(section)}%
+                                    </button>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </div>)}
+        </>
     );
 }
 

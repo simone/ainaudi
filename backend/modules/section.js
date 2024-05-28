@@ -1,23 +1,48 @@
+const {visible_sections} = require("./query");
 exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
 {
-    app.get('/api/sections', authenticateToken, async (req, res) => {
+    app.get('/api/sections/:type', authenticateToken, async (req, res) => {
+        const sectionType = req.params.type;
         const {email} = req.user;
-        const {sections} = await perms(email);
+        const {sections, referenti} = await perms(email);
         try {
-            if (!sections) {
-                res.status(403).json({error: "Forbidden"});
-                return;
+            switch (sectionType) {
+                case 'own':
+                    if (!sections) {
+                        res.status(403).json({error: "Forbidden"});
+                        return;
+                    }
+                    break;
+                case 'assigned':
+                    if (!referenti) {
+                        res.status(403).json({error: "Forbidden"});
+                        return;
+                    }
+                    break;
+                default:
+                    res.status(404).json({error: "Not found"});
+                    return;
+            }
+            const sezioni = referenti ? await visible_sections(sheets, SHEET_ID, email) : [];
+            const filter = () => {
+                if (sectionType === 'own') {
+                    return (row) => row[2] === email;
+                } else {
+                    return (row) => row[2] !== email && sezioni.some(
+                        // dati[0]/sezione[1] è il comune, dati[1]/sezione[0] è la sezione
+                        (sezione) => sezione[0] === row[0] && sezione[1] === row[1]);
+                }
             }
             const response = await sheets.spreadsheets.values.get({
                 spreadsheetId: SHEET_ID,
                 range: `Dati!A2:ZZ`,
             });
-            const values = response.data.values
-                .filter((row) => row[2] === email);
+            const values = response.data.values.filter(filter());
             res.status(response.status).json({
                 rows: values.map((row) => ({
                     comune: row[0],
                     sezione: row[1],
+                    email: row[2],
                     values: row.slice(3)
                 }))
             });

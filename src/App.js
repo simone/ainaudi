@@ -181,6 +181,7 @@ function App() {
                                         user={user}
                                         client={client}
                                         setError={setError}
+                                        referenti={permissions.referenti}
                                     />
                                 </div>
                             )}
