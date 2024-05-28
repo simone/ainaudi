@@ -159,7 +159,6 @@ function SectionList({client, user, setError, referenti}) {
                 continue;
             }
             if (section[key] !== null && section[key] !== undefined && section[key] !== '') {
-                console.log(key, section[key]);
                 filledProperties++;
             }
         }
@@ -265,7 +264,13 @@ function SectionList({client, user, setError, referenti}) {
                                 className="list-group-item d-flex justify-content-between align-items-center"
                                 key={index}
                             >
-                                <span className="col-6 col-md-4 col-lg-3">{section.comune} - {section.sezione} - {section.email}</span>
+                                <div className="col-6 col-md-8 col-lg-9 row">
+                                    <span className="col-12 col-md-4 col-lg-3">{section.comune} - {section.sezione}</span>
+                                    <span className="col-12 col-md-8 col-lg-9">
+                                        <span className="email">{section.email.split('@')[0]}</span>
+                                        <span className="email domain">@{section.email.split('@')[1]}</span>
+                                    </span>
+                                </div>
                                 {hasErrors(section) ? (
                                     <button
                                         className="btn btn-warning col-6 col-md-4 col-lg-3"

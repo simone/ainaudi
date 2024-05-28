@@ -144,9 +144,24 @@ body {
   align-items: center;
 }
 
+.email {
+  white-space: nowrap;
+  overflow-x: hidden;
+}
+
+@media (max-width: 600px) {
+  .email {
+    font-size: 12px;
+  }
+}
+
+
 @media (max-width: 480px) {
   .footer-text {
     font-size: 12px;
+  }
+  .domain {
+    display: none;
   }
 }
 
@@ -159,6 +174,12 @@ body {
 @media (max-width: 360px) {
   .footer-text {
     font-size: 8px;
+  }
+  .list-group-item span {
+    font-size: 9px;
+  }
+  .email {
+    font-size: 8px
   }
   .footer-logo {
     width: 80px;

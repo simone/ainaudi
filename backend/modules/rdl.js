@@ -1,5 +1,7 @@
+const NodeCache = require("node-cache");
+const cache = new NodeCache({ stdTTL: 60 });
 const {visible_sections} = require("./query");
-
+// Exports functions to manage the Referenti di Lista
 exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
 {
     app.get('/api/rdl/emails', authenticateToken, async (req, res) => {
@@ -10,16 +12,20 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
                 res.status(403).json({error: "Forbidden"});
                 return;
             }
+            if (cache.has(email)) {
+                res.status(200).json({emails: cache.get(email)});
+                return;
+            }
             const sezioni = await visible_sections(sheets, SHEET_ID, email); // comune, sezione
             const assigned = (await sheets.spreadsheets.values.get({
                 spreadsheetId: SHEET_ID,
                 range: "Dati!A2:C",
             })).data.values.filter((row) => sezioni.some(
-                // dati[0]/sezione[1] è il comune, dati[1]/sezione[0] è la sezione
                 (sezione) => sezione[0] === row[0] && sezione[1] === row[1] && row[2])
             );
-            const emails = new Set(assigned.map((row) => row[2]));
-            emails.add(email);
+            const emails = new Set(assigned.map((row) => row[2].toLowerCase()));
+            emails.add(email.toLowerCase());
+            cache.set(email, [...emails]);
             res.status(200).json({emails: [...emails]});
         } catch (error) {
             res.status(500).json({error: error.message});
@@ -39,14 +45,17 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
             const assigned = (await sheets.spreadsheets.values.get({
                 spreadsheetId: SHEET_ID,
                 range: "Dati!A2:C",
-            })).data.values.filter((row) => sezioni.some(
-                // dati[0]/sezione[1] è il comune, dati[1]/sezione[0] è la sezione
-                (sezione) => sezione[0] === row[0] && sezione[1] === row[1] && row[2])
-            ).sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0].localeCompare(b[0]));
+            })).data.values
+                .filter((row) => sezioni.some(
+                    // dati[0]/sezione[1] è il comune, dati[1]/sezione[0] è la sezione
+                    (sezione) => sezione[0] === row[0] && sezione[1] === row[1] && row[2])
+                )
+                .map((section) => [section[0], section[1], section[2].toLowerCase()])
+                .sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0].localeCompare(b[0], undefined, {sensitivity: 'base'}));
             const unassigned = sezioni.filter((sezione) => !assigned.some(
                 // dati[0]/sezione[1] è il comune, dati[1]/sezione[0] è la sezione
                 (row) => sezione[0] === row[0] && sezione[1] === row[1])
-            ).sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0].localeCompare(b[0]));
+            ).sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0].localeCompare(b[0], undefined, {sensitivity: 'base'}));
             res.status(200).json({
                 assigned,
                 unassigned
@@ -66,7 +75,8 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
                 return;
             }
             const sezioni = await visible_sections(sheets, SHEET_ID, emailRef); // comune, sezione
-            const {comune, sezione, email} = req.body;
+            const {comune, sezione, email: emailIn} = req.body;
+            const email = emailIn.toLowerCase();
             if (!sezioni.some((row) => row[0] === comune && row[1] === sezione)) {
                 res.status(403).json({error: "Forbidden"});
                 return

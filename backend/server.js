@@ -55,6 +55,8 @@ app.use(cors({
 }));
 app.use(express.json());
 
+const eq = (s1, s2) => s1.localeCompare(s2, undefined, { sensitivity: 'base' }) === 0;
+
 async function perms(email) {
     const cached = cache.get(email);
     if (cached) {
@@ -62,15 +64,15 @@ async function perms(email) {
         return cached;
     }
     const kpi = (await sheets.spreadsheets.values.get({spreadsheetId: SHEET_ID, range: "KPI!A2:A"}))
-        .data.values.filter((row) => row[0] === email).length > 0;
+        .data.values.filter((row) => eq(row[0], email)).length > 0;
     const referenti = (await sheets.spreadsheets.values.get({
         spreadsheetId: SHEET_ID,
         range: "Referenti!A2:A"
-    })).data.values.filter((row) => row[0] === email).length > 0;
+    })).data.values.filter((row) => eq(row[0], email)).length > 0;
     const sections = referenti || (await sheets.spreadsheets.values.get({
         spreadsheetId: SHEET_ID,
         range: "Dati!C2:C"
-    })).data.values.filter((row) => row[0] === email).length > 0;
+    })).data.values.filter((row) => eq(row[0], email)).length > 0;
     const permissions = {sections, referenti, kpi};
     cache.set(email, permissions);
     return permissions;

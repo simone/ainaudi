@@ -1,3 +1,4 @@
+// Import and export modules
 exports.kpiModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
 {
     app.get('/api/kpi/dati', authenticateToken, async (req, res) => {
