@@ -25,7 +25,10 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
                     res.status(404).json({error: "Not found"});
                     return;
             }
-            const sezioni = referenti ? await visible_sections(sheets, SHEET_ID, email) : [];
+            let sezioni = [];
+            if (referenti) {
+                sezioni = await visible_sections(sheets, SHEET_ID, email);
+            }
             const filter = () => {
                 if (sectionType === 'own') {
                     return (row) => eq(row[2], email);

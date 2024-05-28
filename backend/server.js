@@ -60,7 +60,7 @@ const eq = (s1, s2) => s1.localeCompare(s2, undefined, { sensitivity: 'base' }) 
 async function perms(email) {
     const cached = cache.get(email);
     if (cached) {
-        console.log('Cache hit', cached);
+        console.log('Cache hit', email, cached);
         return cached;
     }
     const kpi = (await sheets.spreadsheets.values.get({spreadsheetId: SHEET_ID, range: "KPI!A2:A"}))

@@ -13,6 +13,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
                 return;
             }
             if (cache.has(email)) {
+                console.log('Cache hit', email, "emails");
                 res.status(200).json({emails: cache.get(email)});
                 return;
             }
@@ -83,7 +84,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
             }
             const response = await sheets.spreadsheets.values.get({
                 spreadsheetId: SHEET_ID,
-                range: `Dati!A2:AJ`,
+                range: `Dati!A2:BZ`,
             });
             const rows = response.data.values;
             const index = rows.findIndex((row) => row[0] === comune && row[1] === sezione);
@@ -127,7 +128,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
             }
             const response = await sheets.spreadsheets.values.get({
                 spreadsheetId: SHEET_ID,
-                range: `Dati!A2:AJ`,
+                range: `Dati!A2:BZ`,
             });
             const rows = response.data.values;
             const index = rows.findIndex((row) => row[0] === comune && row[1] === sezione);

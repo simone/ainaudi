@@ -4,6 +4,7 @@ const cache = new NodeCache({ stdTTL: 60 });
 // Exports functions to query the Google Sheets
 exports.visible_sections = async (sheets, spreadsheetId, email) => {
     if (cache.has(email)) {
+        console.log('Cache hit', email, "visible_sections");
         return cache.get(email);
     }
     const eq = (s1, s2) => s1.localeCompare(s2, undefined, { sensitivity: 'base' }) === 0;
