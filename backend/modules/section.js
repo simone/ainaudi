@@ -59,7 +59,7 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
     });
     app.post('/api/sections', authenticateToken, async (req, res) => {
         const {email} = req.user;
-        const {sections} = await perms(email);
+        const {sections, referenti} = await perms(email);
         try {
             if (!sections) {
                 res.status(403).json({error: "Forbidden"});
@@ -71,7 +71,19 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
             });
             const {comune, sezione, values} = req.body;
             const rows = response.data.values;
-            const index = rows.findIndex((row) => row[0] === comune && row[1] === sezione && eq(row[2], email));
+
+            const filter = async () => {
+                if (referenti) {
+                    const sezioni = await visible_sections(sheets, SHEET_ID, email);
+                    console.log('visible_sections', sezioni, comune, sezione);
+                    return (row) => row[0] === comune && row[1] === sezione && (eq(row[2], email) || sezioni.some(
+                        (s) => s[0] === comune && s[1] === sezione
+                    ));
+                } else {
+                    return (row) => row[0] === comune && row[1] === sezione && eq(row[2], email);
+                }
+            }
+            const index = rows.findIndex(await filter());
             if (index === -1) {
                 res.status(404).json({error: "Not found"});
                 console.log(404, email, 'sections.update', comune, sezione);

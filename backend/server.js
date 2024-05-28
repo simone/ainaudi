@@ -1,4 +1,5 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const NodeCache = require('node-cache');
 const cache = new NodeCache({ stdTTL: 60 });
@@ -19,6 +20,13 @@ const {electionModule} = require("./modules/election");
 // Carica le credenziali dell'account di servizio
 const credentials = JSON.parse(fs.readFileSync(join(__dirname, 'rdl-europee-2024-dddc509900da.json')));
 const SHEET_ID = "1ZbPPXzjIiSq-1J0MjQYYjxY-ZuTwR3tDmCvcYgORabY";
+
+// Configura il rate limiting
+const limiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    message: 'Troppe richieste, riprova tra un minuto.'
+});
 
 // Configura l'autenticazione JWT
 const auth = new google.auth.GoogleAuth({
@@ -53,7 +61,9 @@ const authenticateToken = async (req, res, next) => {
 app.use(cors({
     origin: corsOrigin
 }));
+app.use('/api/', limiter);
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 const eq = (s1, s2) => s1.localeCompare(s2, undefined, { sensitivity: 'base' }) === 0;
 

@@ -1,15 +1,27 @@
-const fetchWithRetries = async (url, options, retries = 3, delay = 1000) => {
+const cache = new Map();
+
+const fetchWithCacheAndRetry = (key, ttl = 60) => async (url, options, retries = 5, delay = 1000) => {
+    const now = Date.now();
+    const cacheEntry = cache.get(key);
+
+    if (cacheEntry && (now - cacheEntry.timestamp < ttl * 1000)) {
+        console.log('Cache hit', key);
+        return cacheEntry.data;
+    }
+
     for (let i = 0; i < retries; i++) {
         try {
             const response = await fetch(url, options);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            return await response.json();
+            const data = await response.json();
+            cache.set(key, { data, timestamp: now });
+            return data;
         } catch (error) {
             console.error(`Attempt ${i + 1} failed: ${error.message}`);
             if (i < retries - 1) {
-                await new Promise(res => setTimeout(res, delay));
+                await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
             } else {
                 throw error;
             }
@@ -17,10 +29,27 @@ const fetchWithRetries = async (url, options, retries = 3, delay = 1000) => {
     }
 };
 
+const fetchAndInvalidate = (invalidateKeys) => async (url, options) => {
+    try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        // Invalidate cache
+        invalidateKeys.forEach(key => cache.delete(key));
+        return response;
+    } catch (error) {
+        console.error(`Fetch failed: ${error.message}`);
+        throw error;
+    }
+};
+
+
+
 const Client = (server, token) => {
 
     const permissions = async () =>
-        fetchWithRetries(`${server}/api/permissions`, {
+        fetchWithCacheAndRetry('permissions', 120)(`${server}/api/permissions`, {
             headers: {
                 'Authorization': token
             }
@@ -31,7 +60,7 @@ const Client = (server, token) => {
 
     const sections = {
         get: async ({assigned}) =>
-            fetchWithRetries(`${server}/api/sections/${assigned?'assigned':'own'}`, {
+            fetchWithCacheAndRetry(`${assigned?'assigned':'own'}`, 30)(`${server}/api/sections/${assigned?'assigned':'own'}`, {
                 headers: {
                     'Authorization': token
                 }
@@ -40,7 +69,7 @@ const Client = (server, token) => {
                 return {error: error.message};
             }),
         save: async ({comune, sezione, values}) =>
-            fetch(`${server}/api/sections`, {
+            fetchAndInvalidate(['assigned', 'own'])(`${server}/api/sections`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -55,7 +84,7 @@ const Client = (server, token) => {
 
     const rdl = {
         emails: async () =>
-            fetchWithRetries(`${server}/api/rdl/emails`, {
+            fetchWithCacheAndRetry('rdl.emails', 120)(`${server}/api/rdl/emails`, {
                 headers: {
                     'Authorization': token
                 }
@@ -64,7 +93,7 @@ const Client = (server, token) => {
                 return {error: error.message};
             }),
         sections: async () =>
-            fetchWithRetries(`${server}/api/rdl/sections`, {
+            fetchWithCacheAndRetry('rdl.sections', 120)(`${server}/api/rdl/sections`, {
                 headers: {
                     'Authorization': token
                 }
@@ -73,7 +102,7 @@ const Client = (server, token) => {
                 return {error: error.message};
             }),
         assign: async ({comune, sezione, email}) =>
-            fetch(`${server}/api/rdl/assign`, {
+            fetchAndInvalidate('rdl.sections')(`${server}/api/rdl/assign`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -85,7 +114,7 @@ const Client = (server, token) => {
                 return {error: error.message};
             }),
         unassign: async ({comune, sezione}) =>
-            fetch(`${server}/api/rdl/unassign`, {
+            fetchAndInvalidate('rdl.sections')(`${server}/api/rdl/unassign`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -100,7 +129,7 @@ const Client = (server, token) => {
 
     const kpi = {
         dati: () =>
-            fetchWithRetries(`${server}/api/kpi/dati`, {
+            fetchWithCacheAndRetry('kpi')(`${server}/api/kpi/dati`, {
                 headers: {
                     'Authorization': token
                 }
@@ -109,7 +138,7 @@ const Client = (server, token) => {
                 return {error: error.message};
             }),
         sezioni: () =>
-            fetchWithRetries(`${server}/api/kpi/sezioni`, {
+            fetchWithCacheAndRetry('sezioni')(`${server}/api/kpi/sezioni`, {
                 headers: {
                     'Authorization': token
                 }
@@ -121,7 +150,7 @@ const Client = (server, token) => {
 
     const election = {
         lists: async () =>
-            fetchWithRetries(`${server}/api/election/lists`, {
+            fetchWithCacheAndRetry('lists', 600)(`${server}/api/election/lists`, {
                 headers: {
                     'Authorization': token
                 }
@@ -130,7 +159,7 @@ const Client = (server, token) => {
                 return {error: error.message};
             }),
         candidates: async () =>
-            fetchWithRetries(`${server}/api/election/candidates`, {
+            fetchWithCacheAndRetry('candidates', 600)(`${server}/api/election/candidates`, {
                 headers: {
                     'Authorization': token
                 }
