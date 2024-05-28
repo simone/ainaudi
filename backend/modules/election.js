@@ -1,5 +1,5 @@
 const NodeCache = require("node-cache");
-const cache = new NodeCache({ stdTTL: 600 });
+const cache = new NodeCache({stdTTL: 600});
 
 exports.electionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
     app.get('/api/election/lists', authenticateToken, async (req, res) => {

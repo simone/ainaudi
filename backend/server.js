@@ -2,7 +2,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const NodeCache = require('node-cache');
-const cache = new NodeCache({ stdTTL: 60 });
+const cache = new NodeCache({stdTTL: 60});
 const {google} = require('googleapis');
 const fs = require('fs');
 const {OAuth2Client} = require('google-auth-library');
@@ -64,7 +64,7 @@ app.use(cors({
 }));
 app.use('/api/', limiter);
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({extended: false}));
 
 async function perms(email) {
     const cached = cache.get(email);

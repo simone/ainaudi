@@ -1,45 +1,59 @@
 runtime: nodejs18
+env: standard
+instance_class: F1
 
 handlers:
   - url: /api/.*
     script: backend/server.js
     secure: always
-
-  - url: /static
-    static_dir: build/static
+  - url: /static/(.*)
     http_headers:
-      Cache-Control: "max-age=31536000, public"
-
+      Cache-Control: 'max-age=31536000, public'
+    static_files: build/static/\1
+    upload: build/static/.*
+    secure: always
   - url: /favicon.ico
+    http_headers:
+      Cache-Control: 'no-cache, no-store, must-revalidate'
     static_files: build/favicon.ico
     upload: build/favicon.ico
-    http_headers:
-      Cache-Control: "no-cache, no-store, must-revalidate"
-
+    secure: always
   - url: /manifest.json
+    http_headers:
+      Cache-Control: 'no-cache, no-store, must-revalidate'
     static_files: build/manifest.json
     upload: build/manifest.json
-    http_headers:
-      Cache-Control: "no-cache, no-store, must-revalidate"
-
+    secure: always
   - url: /asset-manifest.json
+    http_headers:
+      Cache-Control: 'no-cache, no-store, must-revalidate'
     static_files: build/asset-manifest.json
     upload: build/asset-manifest.json
-    http_headers:
-      Cache-Control: "no-cache, no-store, must-revalidate"
-
+    secure: always
   - url: /
+    http_headers:
+      Cache-Control: 'no-cache, no-store, must-revalidate'
+      Expires: '0'
+      Pragma: no-cache
     static_files: build/index.html
     upload: build/index.html
-    http_headers:
-      Cache-Control: "no-cache, no-store, must-revalidate"
-      Pragma: "no-cache"
-      Expires: "0"
-
+    secure: always
   - url: /(.*)
+    http_headers:
+      Cache-Control: 'no-cache, no-store, must-revalidate'
+      Expires: '0'
+      Pragma: no-cache
     static_files: build/\1
     upload: build/(.*)
-    http_headers:
-      Cache-Control: "no-cache, no-store, must-revalidate"
-      Pragma: "no-cache"
-      Expires: "0"
+    secure: always
+  - url: .*
+    script: auto
+    secure: always
+
+automatic_scaling:
+  min_idle_instances: 1
+  max_idle_instances: 10
+  min_pending_latency: 30ms
+  max_pending_latency: 200ms
+  max_instances: 50
+service_account: rdl-europee-2024@appspot.gserviceaccount.com

@@ -1,6 +1,6 @@
 const NodeCache = require("node-cache");
 const {eq} = require("./tools");
-const cache = new NodeCache({ stdTTL: 60 });
+const cache = new NodeCache({stdTTL: 60});
 
 // Exports functions to query the Google Sheets
 exports.visible_sections = async (sheets, spreadsheetId, email) => {

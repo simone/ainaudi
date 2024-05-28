@@ -1,9 +1,8 @@
 const NodeCache = require("node-cache");
-const cache = new NodeCache({ stdTTL: 60 });
+const cache = new NodeCache({stdTTL: 60});
 
 // Import and export modules
-exports.kpiModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
-{
+exports.kpiModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
     app.get('/api/kpi/dati', authenticateToken, async (req, res) => {
         const {kpi} = await perms(req.user.email);
         if (!kpi) {
@@ -26,7 +25,7 @@ exports.kpiModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
                 values: row.slice(3)
             }));
             cache.set('kpi', kpi);
-            res.status(response.status).json({ values: kpi});
+            res.status(response.status).json({values: kpi});
             console.log(response.status, 'kpi.values');
         } catch (error) {
             res.status(500).json({error: error.message});

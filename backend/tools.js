@@ -8,5 +8,5 @@ exports.eq = (s1, s2) => {
         return false;
     }
     // Usa localeCompare solo se entrambe le variabili sono definite
-    return s1.localeCompare(s2, undefined, { sensitivity: 'base' }) === 0;
+    return s1.localeCompare(s2, undefined, {sensitivity: 'base'}) === 0;
 };

@@ -1,9 +1,9 @@
 const NodeCache = require("node-cache");
-const cache = new NodeCache({ stdTTL: 60 });
+const cache = new NodeCache({stdTTL: 60});
 const {visible_sections} = require("../query");
+const {taskQueue} = require("../queue");
 // Exports functions to manage the Referenti di Lista
-exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
-{
+exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
     app.get('/api/rdl/emails', authenticateToken, async (req, res) => {
         try {
             const email = req.user.email;
@@ -82,32 +82,39 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
                 res.status(403).json({error: "Forbidden"});
                 return
             }
-            const response = await sheets.spreadsheets.values.get({
-                spreadsheetId: SHEET_ID,
-                range: `Dati!A2:BZ`,
+            await taskQueue.addTask(async () => {
+                try {
+                    const response = await sheets.spreadsheets.values.get({
+                        spreadsheetId: SHEET_ID,
+                        range: `Dati!A2:BZ`,
+                    });
+                    const rows = response.data.values;
+                    const index = rows.findIndex((row) => row[0] === comune && row[1] === sezione);
+                    if (index === -1) {
+                        // append
+                        const response = await sheets.spreadsheets.values.append({
+                            spreadsheetId: SHEET_ID,
+                            range: `Dati!A2`,
+                            valueInputOption: "RAW",
+                            resource: {values: [[comune, sezione, email]]},
+                        });
+                        res.status(response.status).json({});
+                        console.log(response.status, 'rdl.assign', comune, sezione, email);
+                    } else {
+                        const response = await sheets.spreadsheets.values.update({
+                            spreadsheetId: SHEET_ID,
+                            range: `Dati!C${index + 2}`,
+                            valueInputOption: "RAW",
+                            resource: {values: [[email]]},
+                        });
+                        res.status(response.status).json({});
+                        console.log(response.status, 'rdl.assign', comune, sezione, email);
+                    }
+                } catch (error) {
+                    res.status(500).json({error: error.message});
+                    console.log(error);
+                }
             });
-            const rows = response.data.values;
-            const index = rows.findIndex((row) => row[0] === comune && row[1] === sezione);
-            if (index === -1) {
-                // append
-                const response = await sheets.spreadsheets.values.append({
-                    spreadsheetId: SHEET_ID,
-                    range: `Dati!A2`,
-                    valueInputOption: "RAW",
-                    resource: {values: [[comune, sezione, email]]},
-                });
-                res.status(response.status).json({});
-                console.log(response.status, 'rdl.assign', comune, sezione, email);
-            } else {
-                const response = await sheets.spreadsheets.values.update({
-                    spreadsheetId: SHEET_ID,
-                    range: `Dati!C${index + 2}`,
-                    valueInputOption: "RAW",
-                    resource: {values: [[email]]},
-                });
-                res.status(response.status).json({});
-                console.log(response.status, 'rdl.assign', comune, sezione, email);
-            }
         } catch (error) {
             res.status(500).json({error: error.message});
             console.log(error);
@@ -128,25 +135,32 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
                 res.status(403).json({error: "Forbidden"});
                 return
             }
-            const response = await sheets.spreadsheets.values.get({
-                spreadsheetId: SHEET_ID,
-                range: `Dati!A2:BZ`,
+            await taskQueue.addTask(async () => {
+                try {
+                    const response = await sheets.spreadsheets.values.get({
+                        spreadsheetId: SHEET_ID,
+                        range: `Dati!A2:BZ`,
+                    });
+                    const rows = response.data.values;
+                    const index = rows.findIndex((row) => row[0] === comune && row[1] === sezione);
+                    if (index === -1) {
+                        res.status(404).json({error: "Not found"});
+                        console.log(404, 'rdl.unassign', comune, sezione);
+                    } else {
+                        const response = await sheets.spreadsheets.values.update({
+                            spreadsheetId: SHEET_ID,
+                            range: `Dati!C${index + 2}`,
+                            valueInputOption: "RAW",
+                            resource: {values: [['']]},
+                        });
+                        res.status(response.status).json({});
+                        console.log(response.status, 'rdl.unassign', comune, sezione);
+                    }
+                } catch (error) {
+                    res.status(500).json({error: error.message});
+                    console.log(error);
+                }
             });
-            const rows = response.data.values;
-            const index = rows.findIndex((row) => row[0] === comune && row[1] === sezione);
-            if (index === -1) {
-                res.status(404).json({error: "Not found"});
-                console.log(404, 'rdl.unassign', comune, sezione);
-            } else {
-                const response = await sheets.spreadsheets.values.update({
-                    spreadsheetId: SHEET_ID,
-                    range: `Dati!C${index + 2}`,
-                    valueInputOption: "RAW",
-                    resource: {values: [['']]},
-                });
-                res.status(response.status).json({});
-                console.log(response.status, 'rdl.unassign', comune, sezione);
-            }
         } catch (error) {
             res.status(500).json({error: error.message});
             console.log(error);
