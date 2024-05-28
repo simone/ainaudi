@@ -1,8 +1,8 @@
-const {visible_sections} = require("./query");
+const {visible_sections} = require("../query");
+const {eq} = require("../tools");
 
 exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
 {
-    const eq = (s1, s2) => s1.localeCompare(s2, undefined, { sensitivity: 'base' }) === 0;
     app.get('/api/sections/:type', authenticateToken, async (req, res) => {
         const sectionType = req.params.type;
         const {email} = req.user;
@@ -33,7 +33,7 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
                 if (sectionType === 'own') {
                     return (row) => eq(row[2], email);
                 } else {
-                    return (row) => !eq(row[2], email) && sezioni.some(
+                    return (row) => row[2] && !eq(row[2], email) && sezioni.some(
                         // dati[0]/sezione[1] è il comune, dati[1]/sezione[0] è la sezione
                         (sezione) => sezione[0] === row[0] && sezione[1] === row[1]);
                 }
@@ -75,7 +75,6 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
             const filter = async () => {
                 if (referenti) {
                     const sezioni = await visible_sections(sheets, SHEET_ID, email);
-                    console.log('visible_sections', sezioni, comune, sezione);
                     return (row) => row[0] === comune && row[1] === sezione && (eq(row[2], email) || sezioni.some(
                         (s) => s[0] === comune && s[1] === sezione
                     ));

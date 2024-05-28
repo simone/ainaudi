@@ -1,6 +1,6 @@
 const NodeCache = require("node-cache");
 const cache = new NodeCache({ stdTTL: 60 });
-const {visible_sections} = require("./query");
+const {visible_sections} = require("../query");
 // Exports functions to manage the Referenti di Lista
 exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
 {
@@ -96,6 +96,8 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) =>
                     valueInputOption: "RAW",
                     resource: {values: [[comune, sezione, email]]},
                 });
+                res.status(response.status).json({});
+                console.log(response.status, 'rdl.assign', comune, sezione, email);
             } else {
                 const response = await sheets.spreadsheets.values.update({
                     spreadsheetId: SHEET_ID,

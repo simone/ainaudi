@@ -29,14 +29,16 @@ const fetchWithCacheAndRetry = (key, ttl = 60) => async (url, options, retries =
     }
 };
 
-const fetchAndInvalidate = (invalidateKeys) => async (url, options) => {
+const fetchAndInvalidate = (keys) => async (url, options) => {
+    if (typeof keys === 'string') {
+        keys = [keys];
+    }
     try {
         const response = await fetch(url, options);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        // Invalidate cache
-        invalidateKeys.forEach(key => cache.delete(key));
+        keys.forEach(key => cache.delete(key));
         return response;
     } catch (error) {
         console.error(`Fetch failed: ${error.message}`);

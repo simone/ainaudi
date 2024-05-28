@@ -16,6 +16,7 @@ const {rdlModule} = require('./modules/rdl');
 const {kpiModule} = require('./modules/kpi');
 const {reactModule} = require("./modules/react");
 const {electionModule} = require("./modules/election");
+const {eq} = require("./tools");
 
 // Carica le credenziali dell'account di servizio
 const credentials = JSON.parse(fs.readFileSync(join(__dirname, 'rdl-europee-2024-dddc509900da.json')));
@@ -64,8 +65,6 @@ app.use(cors({
 app.use('/api/', limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-const eq = (s1, s2) => s1.localeCompare(s2, undefined, { sensitivity: 'base' }) === 0;
 
 async function perms(email) {
     const cached = cache.get(email);
