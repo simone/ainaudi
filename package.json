@@ -35,7 +35,7 @@
     "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
     "backend": "PORT=3001 nodemon backend/server.js",
     "frontend": "react-scripts start",
-    "deploy": "npm run build && npm run install-backend && gcloud app deploy --no-cache --promote",
+    "deploy": "npm run build && npm run install-backend && gcloud app deploy --no-cache --promote --quiet",
     "install-backend": "cd backend && npm install && cd .."
   },
   "browserslist": [
