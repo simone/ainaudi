@@ -63,7 +63,7 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
 
     useEffect(() => {
         const handleWheel = (e) => {
-            if (document.activeElement.type === "number") {
+            if (document.activeElement.type === "number" && document.activeElement === e.target) {
                 e.preventDefault();
             }
         };
