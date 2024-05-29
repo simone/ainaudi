@@ -1,5 +1,23 @@
 import React, {useEffect, useState} from 'react';
 
+const HighlightedText = ({ text, filter }) => {
+    const regex = new RegExp(filter, 'gi');
+    const parts = text.split(regex);
+    const matches = text.match(regex);
+    return (
+        <span>
+      {parts.map((part, index) => (
+          <React.Fragment key={index}>
+              {part}
+              {index < parts.length - 1 && matches[index] && (
+                  <span className="yellow">{matches[index]}</span>
+              )}
+          </React.Fragment>
+      ))}
+    </span>
+    );
+};
+
 function RdlList({client, setError}) {
     const [assigned, setAssigned] = useState([]);
     const [unassigned, setUnassigned] = useState([]);
@@ -37,7 +55,7 @@ function RdlList({client, setError}) {
 
     const handleSezioneClick = (sezione) => {
         setSelected(sezione);
-        setEmailRDL(sezione[2] ? sezione[2] : "");
+        setEmailRDL(sezione[3] ? sezione[3] : "");
     };
 
     const handleEmailChange = (e) => {
@@ -48,13 +66,13 @@ function RdlList({client, setError}) {
         const email = emailRDL;
         if (remove) {
             setAssigned(assigned.filter(s => s !== sezione));
-            setUnassigned([...unassigned, [sezione[0], sezione[1], '']]);
+            setUnassigned([...unassigned, [sezione[0], sezione[1], sezione[2], '']]);
         } else {
             setUnassigned(unassigned.filter(s => s !== sezione));
             if (assigned.find(s => s === sezione)) {
-                setAssigned(assigned.map(s => s === sezione ? [sezione[0], sezione[1], email] : s));
+                setAssigned(assigned.map(s => s === sezione ? [sezione[0], sezione[1], sezione[2], email] : s));
             } else {
-                setAssigned([...assigned, [sezione[0], sezione[1], email]]);
+                setAssigned([...assigned, [sezione[0], sezione[1], sezione[2], email]]);
             }
         }
         setSelected(null);
@@ -81,7 +99,7 @@ function RdlList({client, setError}) {
             return;
         }
         setFilteredUnassigned(unassigned.filter(sezione => {
-            return sezione[1].toLowerCase().includes(unassignedFilter.toLowerCase());
+            return sezione[1].toLowerCase().includes(unassignedFilter.toLowerCase()) || sezione[2].toLowerCase().includes(unassignedFilter.toLowerCase());
         }).sort((a, b) => a[1].localeCompare(b[1]) || a[2].localeCompare(b[2]) || a[0].localeCompare(b[0])));
     }, [unassignedFilter, unassigned]);
 
@@ -95,7 +113,9 @@ function RdlList({client, setError}) {
             return;
         }
         setFilteredAssigned(assigned.filter(sezione => {
-            return sezione[1].toLowerCase().includes(assignedFilter.toLowerCase()) || sezione[2].toLowerCase().includes(assignedFilter.toLowerCase());
+            return sezione[1].toLowerCase().includes(assignedFilter.toLowerCase())
+                || sezione[2].toLowerCase().includes(assignedFilter.toLowerCase())
+                || sezione[3].toLowerCase().includes(assignedFilter.toLowerCase());
         }).sort((a, b) => a[1].localeCompare(b[1]) || a[2].localeCompare(b[2]) || a[0].localeCompare(b[0])));
     }, [assignedFilter, assigned]);
 
@@ -171,7 +191,7 @@ function RdlList({client, setError}) {
                                          }}
                                          className="list-group-item list-group-item-action flex-column align-items-start">
                                         <h5 className="mb-1">
-                                            {sezione[1]} {sezione[2]} - {sezione[0]}
+                                            <HighlightedText text={`${sezione[1]} ${sezione[2]} - ${sezione[0]}`} filter={unassignedFilter}/>
                                         </h5>
                                     </div>
                                 )}
@@ -241,10 +261,10 @@ function RdlList({client, setError}) {
                                          }}
                                          className="list-group-item list-group-item-action flex-column align-items-start">
                                         <h5 className="mb-1">
-                                            {sezione[1]} {sezione[2]} - {sezione[0]}
+                                            <HighlightedText text={`${sezione[1]} ${sezione[2]} - ${sezione[0]}`} filter={assignedFilter}/>
                                         </h5>
                                         <div className="mb-1">
-                                            {sezione.emailRDL}
+                                            <HighlightedText text={sezione[3]} filter={assignedFilter}/>
                                         </div>
                                     </div>
                                 )}

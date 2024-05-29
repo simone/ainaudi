@@ -27,7 +27,7 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
             }
             let sezioni = [];
             if (referenti) {
-                sezioni = await visible_sections(sheets, SHEET_ID, email);
+                sezioni = await visible_sections(sheets, SHEET_ID, email); // comune, sezione, indirizzo
             }
             const filter = () => {
                 if (sectionType === 'own') {
@@ -76,7 +76,7 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
 
                     const filter = async () => {
                         if (referenti) {
-                            const sezioni = await visible_sections(sheets, SHEET_ID, email);
+                            const sezioni = await visible_sections(sheets, SHEET_ID, email); // comune, sezione, indirizzo
                             return (row) => row[0] === comune && row[1] === sezione && (eq(row[2], email) || sezioni.some(
                                 (s) => s[0] === comune && s[1] === sezione
                             ));

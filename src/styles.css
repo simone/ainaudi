@@ -125,6 +125,10 @@ body {
   color: gold;
 }
 
+.yellow {
+  background-color: gold;
+}
+
 .custom-footer {
   background-color: #003366; /* Blu scuro */
   color: white;

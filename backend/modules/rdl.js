@@ -17,7 +17,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 res.status(200).json({emails: cache.get(email)});
                 return;
             }
-            const sezioni = await visible_sections(sheets, SHEET_ID, email); // comune, sezione
+            const sezioni = await visible_sections(sheets, SHEET_ID, email); // comune, sezione, indirizzo
             const assigned = (await sheets.spreadsheets.values.get({
                 spreadsheetId: SHEET_ID,
                 range: "Dati!A2:C",
@@ -42,7 +42,8 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 res.status(403).json({error: "Forbidden"});
                 return;
             }
-            const sezioni = await visible_sections(sheets, SHEET_ID, email); // comune, sezione
+            const sezioni = await visible_sections(sheets, SHEET_ID, email); // comune, sezione, indirizzo
+            const findAddress = (comune, sezione) => sezioni.find(row => comune === row[0] && sezione === row[1])[2];
             const assigned = (await sheets.spreadsheets.values.get({
                 spreadsheetId: SHEET_ID,
                 range: "Dati!A2:C",
@@ -51,7 +52,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                     // dati[0]/sezione[1] è il comune, dati[1]/sezione[0] è la sezione
                     (sezione) => sezione[0] === row[0] && sezione[1] === row[1] && row[2])
                 )
-                .map((section) => [section[0], section[1], section[2].toLowerCase()])
+                .map((section) => [section[0], section[1], findAddress(section[0], section[1]), section[2].toLowerCase()])
                 .sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0].localeCompare(b[0], undefined, {sensitivity: 'base'}));
             const unassigned = sezioni.filter((sezione) => !assigned.some(
                 // dati[0]/sezione[1] è il comune, dati[1]/sezione[0] è la sezione
@@ -75,7 +76,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 res.status(403).json({error: "Forbidden"});
                 return;
             }
-            const sezioni = await visible_sections(sheets, SHEET_ID, emailRef); // comune, sezione
+            const sezioni = await visible_sections(sheets, SHEET_ID, emailRef); // comune, sezione, indirizzo
             const {comune, sezione, email: emailIn} = req.body;
             const email = emailIn.toLowerCase();
             if (!sezioni.some((row) => row[0] === comune && row[1] === sezione)) {
@@ -129,7 +130,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 res.status(403).json({error: "Forbidden"});
                 return;
             }
-            const sezioni = await visible_sections(sheets, SHEET_ID, emailRef); // comune, sezione
+            const sezioni = await visible_sections(sheets, SHEET_ID, emailRef); // comune, sezione, indirizzo
             const {comune, sezione} = req.body;
             if (!sezioni.some((row) => row[0] === comune && row[1] === sezione)) {
                 res.status(403).json({error: "Forbidden"});
