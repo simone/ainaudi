@@ -1,6 +1,6 @@
 const {visible_sections} = require("../query");
 const {eq} = require("../tools");
-const {taskQueue} = require("../queue");
+const {cqrs} = require("../queue");
 
 exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
     app.get('/api/sections/:type', authenticateToken, async (req, res) => {
@@ -65,7 +65,7 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 res.status(403).json({error: "Forbidden"});
                 return;
             }
-            await taskQueue.addTask(async () => {
+            await cqrs.mutation(async () => {
                 try {
                     const response = await sheets.spreadsheets.values.get({
                         spreadsheetId: SHEET_ID,

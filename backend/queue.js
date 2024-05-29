@@ -1,10 +1,10 @@
-class TaskQueue {
+class MutationTaskExecutor {
     constructor() {
         this.queue = [];
         this.isProcessing = false;
     }
 
-    async addTask(task) {
+    async mutation(task) {
         this.queue.push(task);
         if (!this.isProcessing) {
             await this.processQueue();
@@ -21,4 +21,4 @@ class TaskQueue {
     }
 }
 
-exports.taskQueue = new TaskQueue();
+exports.cqrs = new MutationTaskExecutor();

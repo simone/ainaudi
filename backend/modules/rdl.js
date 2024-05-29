@@ -1,7 +1,7 @@
 const NodeCache = require("node-cache");
 const cache = new NodeCache({stdTTL: 60});
 const {visible_sections} = require("../query");
-const {taskQueue} = require("../queue");
+const {cqrs} = require("../queue");
 // Exports functions to manage the Referenti di Lista
 exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
     app.get('/api/rdl/emails', authenticateToken, async (req, res) => {
@@ -82,7 +82,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 res.status(403).json({error: "Forbidden"});
                 return
             }
-            await taskQueue.addTask(async () => {
+            await cqrs.mutation(async () => {
                 try {
                     const response = await sheets.spreadsheets.values.get({
                         spreadsheetId: SHEET_ID,
@@ -135,7 +135,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 res.status(403).json({error: "Forbidden"});
                 return
             }
-            await taskQueue.addTask(async () => {
+            await cqrs.mutation(async () => {
                 try {
                     const response = await sheets.spreadsheets.values.get({
                         spreadsheetId: SHEET_ID,
