@@ -51,7 +51,7 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                     values: row.slice(3)
                 }))
             });
-            console.log(response.status, email, 'sections');
+            console.log(response.status, email, 'sections.get', sectionType);
         } catch (error) {
             res.status(500).json({error: error.message});
             console.log(error);
@@ -65,7 +65,7 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 res.status(403).json({error: "Forbidden"});
                 return;
             }
-            await cqrs.mutation(async () => {
+            await cqrs.mutation(email, async () => {
                 try {
                     const response = await sheets.spreadsheets.values.get({
                         spreadsheetId: SHEET_ID,

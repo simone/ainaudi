@@ -19,6 +19,7 @@ function Kpi({ client, setError }) {
     const [lists, setLists] = useState([]);
 
     useEffect(() => {
+        window.scrollTo(0, 0);
         loadSezioniData();
         loadCandidates();
         loadLists();

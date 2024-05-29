@@ -11,6 +11,7 @@ function SectionList({client, user, setError, referenti}) {
     const [candidates, setCandidates] = useState([]);
 
     useEffect(() => {
+        window.scrollTo(0, 0);
         console.log("Loading data");
         loadLists();
         loadCandidates();
@@ -125,6 +126,7 @@ function SectionList({client, user, setError, referenti}) {
         })
             .then((response) => {
                 listSections();
+                window.scrollTo(0, 0);
                 setSelectedSection(null);
             })
             .catch((error) => {

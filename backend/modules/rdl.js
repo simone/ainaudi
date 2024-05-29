@@ -82,7 +82,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 res.status(403).json({error: "Forbidden"});
                 return
             }
-            await cqrs.mutation(async () => {
+            await cqrs.mutation(email, async () => {
                 try {
                     const response = await sheets.spreadsheets.values.get({
                         spreadsheetId: SHEET_ID,
@@ -135,7 +135,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 res.status(403).json({error: "Forbidden"});
                 return
             }
-            await cqrs.mutation(async () => {
+            await cqrs.mutation(email, async () => {
                 try {
                     const response = await sheets.spreadsheets.values.get({
                         spreadsheetId: SHEET_ID,

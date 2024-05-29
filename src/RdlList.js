@@ -13,6 +13,7 @@ function RdlList({client, setError}) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        window.scrollTo(0, 0);
         loadSezioniData();
         loadEmails();
     }, []);
