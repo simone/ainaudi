@@ -135,7 +135,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 res.status(403).json({error: "Forbidden"});
                 return
             }
-            await cqrs.mutation(email, async () => {
+            await cqrs.mutation("", async () => {
                 try {
                     const response = await sheets.spreadsheets.values.get({
                         spreadsheetId: SHEET_ID,
