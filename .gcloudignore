@@ -15,6 +15,7 @@
 
 # Node.js dependencies:
 node_modules/
+pdf/
 
 # Include package.json and package-lock.json
 !backend/package.json

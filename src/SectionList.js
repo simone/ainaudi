@@ -193,19 +193,17 @@ function SectionList({client, user, setError, referenti}) {
         );
     }
 
-    if (sections.length === 0) {
-        return (
-            <div className="card">
-                <div className="card-header alert alert-warning mt-3">
-                    Non hai sezioni assegnate. Contatta il Referente RDL della tua Zona.
-                </div>
-            </div>
-        );
-    }
-
     return (
         <>
-            <div className="card">
+            {sections.length === 0 && (
+                <div className="card">
+                    <div className="card-header alert alert-warning mt-3">
+                        Non hai sezioni assegnate. Contatta il Referente RDL della tua Zona.
+                    </div>
+                </div>)
+            }
+            {sections.length > 0 && (
+                <div className="card">
                 <div className="card-header bg-info">
                     Questa applicazione è destinata agli RDL del Movimento 5 Stelle e
                     serve per inviare al movimento i dati raccolti nelle sezioni. Si
@@ -254,6 +252,7 @@ function SectionList({client, user, setError, referenti}) {
                     </ul>
                 </div>
             </div>
+            )}
             {referenti && (<div className="card">
                 <div className="card-header bg-secondary">
                     Questa sezione è per i subdelegati che possono accedere ai dati raccolti dai propri RDL.

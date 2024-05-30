@@ -6,11 +6,13 @@ import Kpi from "./Kpi";
 import Client from "./Client";
 import SectionList from "./SectionList";
 import logo from './assets/logo-m5s.png';
+import GeneraModuli from "./GeneraModuli";
 
 const CLIENT_ID = "GOOGLE_CLIENT_ID_PLACEHOLDER";
 const API_KEY = "GOOGLE_API_KEY_PLACEHOLDER";
 const SCOPES = "https://www.googleapis.com/auth/userinfo.email";
-const SERVER = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_API_URL : '';
+const SERVER_API = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_API_URL : '';
+const SERVER_PDF = process.env.REACT_APP_PDF_URL;
 
 function App() {
     const [client, setClient] = useState(null);
@@ -24,10 +26,17 @@ function App() {
         referenti: false,
         kpi: false
     });
+    const [pdf, setPdf] = useState(false);
 
     useEffect(() => {
         gapi.load("client:auth2", initClient);
     }, []);
+
+    useEffect(() => {
+        if (user) {
+            setPdf(user.getEmail() === 's.federici@gmail.com')
+        }
+    }, [user])
 
     const initClient = () => {
         console.log("Initializing Google API client");
@@ -58,7 +67,7 @@ function App() {
             const authInstance = gapi.auth2.getAuthInstance();
             const user = authInstance.currentUser.get();
             const response = user.getAuthResponse();
-            const client = Client(SERVER, response.id_token);
+            const client = Client(SERVER_API, SERVER_PDF, response.id_token);
             client.permissions().then((permissions) => {
                 setPermissions(permissions);
                 if (!permissions.sections && !permissions.referenti && !permissions.kpi) {
@@ -85,7 +94,7 @@ function App() {
                     setInterval(async () => {
                         console.log("Reloading auth response");
                         const newAuthResponse = await user.reloadAuthResponse();
-                        setClient(Client(SERVER, newAuthResponse.id_token));
+                        setClient(Client(SERVER_API, SERVER_PDF, newAuthResponse.id_token));
                     }, (response.expires_in - 60) * 1000);
                 }
             });
@@ -160,6 +169,12 @@ function App() {
                                                    onClick={() => activate('kpi')} href="#">KPI</a>
                                             </li>
                                         )}
+                                        {pdf && (
+                                            <li className="nav-item">
+                                                <a className={`nav-link ${activeTab === 'pdf' ? 'active' : ''}`}
+                                                   onClick={() => activate('pdf')} href="#">Genera Moduli</a>
+                                            </li>
+                                        )}
                                     </ul>
                                     <div className="d-flex align-items-center">
                                         <p className="text-light me-3 mb-0">{user.getName()}</p>
@@ -196,6 +211,14 @@ function App() {
                             {activeTab === 'kpi' && permissions.kpi && (
                                 <div className="tab-pane active">
                                     <Kpi
+                                        client={client}
+                                        setError={setError}
+                                    />
+                                </div>
+                            )}
+                            {activeTab === 'pdf' && pdf && (
+                                <div className="tab-pane active">
+                                    <GeneraModuli
                                         client={client}
                                         setError={setError}
                                     />

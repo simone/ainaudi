@@ -48,7 +48,7 @@ const fetchAndInvalidate = (keys) => async (url, options) => {
 
 
 
-const Client = (server, token) => {
+const Client = (server, pdfServer, token) => {
 
     const permissions = async () =>
         fetchWithCacheAndRetry('permissions', 120)(`${server}/api/permissions`, {
@@ -171,7 +171,23 @@ const Client = (server, token) => {
             }),
     }
 
-    return {permissions, election, sections, rdl, kpi};
+    const pdf = {
+        generate: async (formData, type) => {
+            console.log('Generating PDF', type, formData);
+            return fetch(`${pdfServer}/api/generate/${type}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': token
+                },
+                body: formData
+            }).then(response => response.blob()).catch(error => {
+                console.error(error);
+                return {error: error.message};
+            });
+        },
+    }
+
+    return {permissions, election, sections, rdl, kpi, pdf};
 }
 
 export default Client;

@@ -55,6 +55,7 @@ const authenticateToken = async (req, res, next) => {
         req.user = ticket.getPayload();
         next();
     } catch (error) {
+        console.log("Invalid token: 403", error);
         res.sendStatus(403);
     }
 };
