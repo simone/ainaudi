@@ -1,1 +1,6 @@
-dispatch: []
+dispatch:
+  - url: "*/api/generate/*"
+    service: pdf
+  - url: "*/*"
+    service: default
+

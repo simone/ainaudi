@@ -12,7 +12,7 @@ const CLIENT_ID = "GOOGLE_CLIENT_ID_PLACEHOLDER";
 const API_KEY = "GOOGLE_API_KEY_PLACEHOLDER";
 const SCOPES = "https://www.googleapis.com/auth/userinfo.email";
 const SERVER_API = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_API_URL : '';
-const SERVER_PDF = process.env.REACT_APP_PDF_URL;
+const SERVER_PDF = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_PDF_URL : '';
 
 function App() {
     const [client, setClient] = useState(null);
@@ -51,7 +51,7 @@ function App() {
                 const authInstance = gapi.auth2.getAuthInstance();
                 authInstance.isSignedIn.listen(updateSigninStatus);
                 if (updateSigninStatus(authInstance.isSignedIn.get())) {
-                    setLoading(true);
+                    setLoading(false);
                 }
             })
             .catch((error) => {
@@ -264,7 +264,7 @@ function App() {
                 </div>
                 <div className="footer-text">
                     <p>
-                        Proprietà del MOVIMENTO 5 STELLE<br/>Realizzato dal Gruppo Territoriale ROMA XV
+                        Donato al MOVIMENTO 5 STELLE<br/>Realizzato dal Gruppo Territoriale ROMA XV
                     </p>
                 </div>
             </footer>

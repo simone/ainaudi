@@ -28,8 +28,6 @@ def generate_single_pdf_route():
         for key, value in data.items():
             if pd.isna(value):
                 data[key] = ''
-    print('list_replacements', list_replacements)
-
     return generate_individual_pdf(input_pdf, replacements, list_replacements)
 
 @app.route('/api/generate/multiple', methods=['POST'])
@@ -50,7 +48,6 @@ def generate_multiple_pdf_route():
         for key, value in data.items():
             if pd.isna(value):
                 data[key] = ''
-    print('list_replacements', list_replacements)
 
     return generate_summary_pdf(input_pdf, 6, 13, 8, replacements, list_replacements)
 

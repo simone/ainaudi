@@ -24,8 +24,11 @@ const SHEET_ID = "1ZbPPXzjIiSq-1J0MjQYYjxY-ZuTwR3tDmCvcYgORabY";
 
 // Configura il rate limiting
 const limiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 60,
+    windowMs: 120 * 1000,
+    max: 120,
+    keyGenerator: (req, res) => {
+        return req.ip;
+    },
     message: 'Troppe richieste, riprova tra un minuto.'
 });
 
@@ -60,6 +63,7 @@ const authenticateToken = async (req, res, next) => {
     }
 };
 
+app.set('trust proxy', 1);
 app.use(cors({
     origin: corsOrigin
 }));

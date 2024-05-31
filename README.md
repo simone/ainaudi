@@ -98,7 +98,7 @@ Google Cloud e creare un progetto. Una volta creato il progetto basta
 eseguire il comando:
 ```bash
 $ npm run deploy
-$ cd pdf && gcloud app deploy --service pdf && cd ..
+$ cd pdf && gcloud app deploy && cd ..
 $ gcloud app deploy dispatch.yaml
 ```
 
