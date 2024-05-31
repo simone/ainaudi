@@ -109,7 +109,10 @@ function App() {
     const handleAuthClick = () => {
         setIsMenuOpen(false);
         setLoading(true)
-        gapi.auth2.getAuthInstance().signIn().catch(error => {
+        gapi.auth2.getAuthInstance().signIn().then(response => {
+            console.log("Sign-in successful:", response);
+            updateSigninStatus(true);
+        }).catch(error => {
             console.error("Error during sign-in:", error);
             setError("Errore durante il login con Google: " + error.result.message);
             setLoading(false)
