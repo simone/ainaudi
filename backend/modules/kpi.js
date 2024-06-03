@@ -19,10 +19,12 @@ exports.kpiModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 spreadsheetId: SHEET_ID,
                 range: 'Dati!A2:BZ',
             });
-            const kpi = response.data.values.map((row) => ({
-                comune: row[0],
-                sezione: row[1],
-                values: row.slice(3)
+            const kpi = response.data.values
+                .filter((row) => row[0] && row[1])
+                .map((row) => ({
+                    comune: row[0],
+                    sezione: row[1],
+                    values: row.slice(3)
             }));
             cache.set('kpi', kpi);
             res.status(response.status).json({values: kpi});

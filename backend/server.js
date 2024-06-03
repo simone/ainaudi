@@ -89,6 +89,9 @@ async function perms(email) {
     })).data.values.filter((row) => eq(row[0], email)).length > 0;
     const permissions = {sections, referenti, kpi};
     cache.set(email, permissions);
+    if (!sections && !referenti && !kpi) {
+        console.log("La mail non ha permessi: ", email);
+    }
     return permissions;
 }
 

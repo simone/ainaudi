@@ -6,6 +6,7 @@ import Kpi from "./Kpi";
 import Client from "./Client";
 import SectionList from "./SectionList";
 import logo from './assets/logo-m5s.png';
+import info from './assets/usa-il-tuo-indirizzo.png';
 import GeneraModuli from "./GeneraModuli";
 
 const CLIENT_ID = "GOOGLE_CLIENT_ID_PLACEHOLDER";
@@ -14,11 +15,16 @@ const SCOPES = "https://www.googleapis.com/auth/userinfo.email";
 const SERVER_API = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_API_URL : '';
 const SERVER_PDF = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_PDF_URL : '';
 
+function toError(error) {
+    return error.result?.message?.toString() || error.error || error.message || error.toString()
+}
+
 function App() {
     const [client, setClient] = useState(null);
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [showGuide, setShowGuide] = useState(false);
     const [activeTab, setActiveTab] = useState(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [permissions, setPermissions] = useState({
@@ -50,13 +56,11 @@ function App() {
                 console.log("Google API client initialized");
                 const authInstance = gapi.auth2.getAuthInstance();
                 authInstance.isSignedIn.listen(updateSigninStatus);
-                if (updateSigninStatus(authInstance.isSignedIn.get())) {
-                    setLoading(false);
-                }
+                updateSigninStatus(authInstance.isSignedIn.get());
             })
             .catch((error) => {
                 console.error("Error initializing Google API client:", error);
-                setError("Errore durante l'inizializzazione del client Google: " + error.result.message);
+                setError(`Errore durante l'inizializzazione del client Google: ${toError(error)}`);
                 setLoading(false);
             });
     };
@@ -71,12 +75,11 @@ function App() {
             client.permissions().then((permissions) => {
                 setPermissions(permissions);
                 if (!permissions.sections && !permissions.referenti && !permissions.kpi) {
-                    setError("Non hai i permessi per accedere a nessuna sezione");
+                    setError(`La mail ${user.getBasicProfile().getEmail()} non ha permessi per accedere ad alcuna sezione`);
                     setTimeout(() => {
                         setClient(null);
                         setUser(null);
                         gapi.auth2.getAuthInstance().signOut();
-                        setError(null);
                         setLoading(false)
                     }, 1000);
                 } else {
@@ -109,13 +112,18 @@ function App() {
     const handleAuthClick = () => {
         setIsMenuOpen(false);
         setLoading(true)
-        gapi.auth2.getAuthInstance().signIn().then(response => {
-            console.log("Sign-in successful:", response);
-            updateSigninStatus(true);
-        }).catch(error => {
-            console.error("Error during sign-in:", error);
-            setError("Errore durante il login con Google: " + error.result.message);
-            setLoading(false)
+        setError(null)
+        gapi.auth2.getAuthInstance().signOut().then(function() {
+            gapi.auth2.getAuthInstance().signIn({
+                prompt: 'select_account'
+            }).then(response => {
+                console.log("Sign-in successful:", response);
+                setLoading(false)
+            }).catch(error => {
+                console.error("Error during sign-in:", error);
+                setError(`Errore durante il login con Google: ${toError(error)}`);
+                setLoading(false)
+            });
         });
     };
 
@@ -123,7 +131,7 @@ function App() {
         setLoading(false)
         gapi.auth2.getAuthInstance().signOut().catch(error => {
             console.error("Error during sign-out:", error);
-            setError("Errore durante il logout da Google: " + error.result.message);
+            setError(`Errore durante il logout da Google: ${toError(error)}`);
         });
     };
 
@@ -136,8 +144,12 @@ function App() {
         setIsMenuOpen(false);
     }
 
+    const toggleGuide = () => {
+        setShowGuide(!showGuide);
+    };
+
     return (
-        <div id="root">
+        <>
             <div className="main-content">
                 <nav className="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
                     <div className="container-fluid">
@@ -231,31 +243,58 @@ function App() {
                     </div>
                 ) : (
                     <div className="card">
-                        {loading && (
-                            <div className="card-body d-flex align-items-center justify-content-center"
-                                 style={{minHeight: '50vh'}}>
-                                <div className="spinner-border text-primary" role="status">
-                                    <span className="visually-hidden">Loading...</span>
+                        <div className="card-header bg-warning">
+                            <p>Autenticarsi utilizzando l'email fornita come RDL.</p>
+                        </div>
+                        <div className="card-footer d-flex align-items-center justify-content-center"
+                             style={{minHeight: '20vh'}}>
+                            <div className="row w-100">
+                                <div className="col-12">
+                                    {loading && (
+                                        <button className="btn btn-secondary btn-lg w-100" onClick={handleSignoutClick}>
+                                            Loading...
+                                        </button>
+                                    )}
+                                    {!loading && (
+                                        <button className="btn btn-primary btn-lg w-100" onClick={handleAuthClick}>
+                                            Login con Google
+                                        </button>
+                                    )}
+                                    <p className="mt-3">
+                                        <a href="#" onClick={toggleGuide}>
+                                            Non hai un account Gmail? Leggi qui.
+                                        </a>
+                                    </p>
+                                    {showGuide && (
+                                        <div className="guide mt-3 alert alert-info">
+                                            <h3>Come Registrarsi su Google Utilizzando la Propria Email</h3>
+                                            <ol>
+                                                <li>
+                                                    <a href="https://accounts.google.com/signup/v2/webcreateaccount" target="_blank" rel="noopener noreferrer">
+                                                        Accedi alla Pagina di Registrazione di Google
+                                                    </a>.
+                                                </li>
+                                                <li>Inserisci il tuo nome e cognome.</li>
+                                                <li>
+                                                    Clicca su "Utilizza il mio indirizzo email attuale invece".
+                                                    <img src={info} style={{
+                                                        width: '100%',
+                                                        margin: '1rem 0'
+                                                    }} />
+
+                                                </li>
+                                                <li>Inserisci il tuo indirizzo email attuale, crea una password e confermala.</li>
+                                                <li>Verifica il tuo indirizzo email aprendo l'email di verifica inviata da Google e cliccando sul link fornito.</li>
+                                                <li>
+                                                    Leggi e accetta i Termini di servizio e l'Informativa sulla privacy di Google, quindi clicca su "Crea account".
+                                                </li>
+                                                <li>Ora puoi utilizzare questo account per autenticarti sull'all RDL App.</li>
+                                            </ol>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        )}
-                        {!loading && (
-                            <>
-                                <div className="card-header bg-warning">
-                                    <p>Autenticarsi utilizzando l'email fornita come RDL.</p>
-                                </div>
-                                <div className="card-footer d-flex align-items-center justify-content-center"
-                                     style={{minHeight: '20vh'}}>
-                                    <div className="row w-100">
-                                        <div className="col-12">
-                                            <button className="btn btn-primary btn-lg w-100" onClick={handleAuthClick}>
-                                                Login con Google
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </>
-                        )}
+                        </div>
                     </div>
                 )}
             </div>
@@ -267,11 +306,13 @@ function App() {
                 </div>
                 <div className="footer-text">
                     <p>
-                        Donato al MOVIMENTO 5 STELLE<br/>Realizzato dal Gruppo Territoriale ROMA XV
+                        RDL App 2024<br/>
+                        Donata al MOVIMENTO 5 STELLE<br/>
+                        Realizzata dal Gruppo Territoriale ROMA XV
                     </p>
                 </div>
             </footer>
-        </div>
+        </>
     );
 }
 

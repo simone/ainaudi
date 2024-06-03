@@ -98,7 +98,7 @@ function Kpi({ client, setError }) {
     }
 
     const stringToColor = (string) => {
-        if (string === 'ROMA') {
+        if (string?.startsWith('ROMA')) {
             return '#FF0000';
         }
 
@@ -149,7 +149,7 @@ function Kpi({ client, setError }) {
         const listsVotes = Array(lists.length).fill(0);
 
         // indici delle colonne preferenze e liste
-        const fP = 7;
+        const fP = 9;
         const lP = fP + candidates.length;
         const fL = lP;
         const lL = fL + lists.length;
@@ -162,7 +162,6 @@ function Kpi({ client, setError }) {
                 listsVotes[index] += parseInt(value || 0, 10);
             });
         });
-
         const sortedPreferences = preferences.map((value, index) => ({ candidate: candidates[index][0], value }))
             .sort((a, b) => b.value - a.value);
 
@@ -222,14 +221,13 @@ function Kpi({ client, setError }) {
         const comuneVotes = new Map();
 
         rows.forEach(({comune, values}) => {
-            const votes = parseInt(values[22 + m5sIndex] || 0, 10);
+            const votes = parseInt(values[fL + m5sIndex] || 0, 10);
             comuneVotes.set(comune, (comuneVotes.get(comune) || 0) + votes);
         });
 
         const sortedComuneData = Array.from(comuneVotes).sort((a, b) => b[1] - a[1]);
         const comuneLabels = sortedComuneData.map(item => item[0]);
         const comuneVotesData = sortedComuneData.map(item => item[1]);
-
         setM5sComuneData({
             labels: comuneLabels,
             datasets: [{
@@ -242,7 +240,7 @@ function Kpi({ client, setError }) {
         const comuneMunicipioVotes = new Map();
 
         rows.forEach(({comune, sezione, values}) => {
-            if (comune === 'ROMA' && sezioneToMunicipio.has(sezione)) {
+            if (comune.startsWith('ROMA') && sezioneToMunicipio.has(sezione)) {
                 const municipio = sezioneToMunicipio.get(sezione);
                 const votes = parseInt(values[22 + m5sIndex] || 0, 10);
                 comuneMunicipioVotes.set(municipio, (comuneMunicipioVotes.get(municipio) || 0) + votes);
