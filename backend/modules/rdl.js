@@ -22,7 +22,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 spreadsheetId: SHEET_ID,
                 range: "Dati!A2:C",
             })).data.values.filter((row) => sezioni.some(
-                (sezione) => sezione[0] === row[0] && sezione[1] === row[1] && row[2])
+                (sezione) => sezione[0] === row[0] && +sezione[1] === +row[1] && row[2])
             );
             const emails = new Set(assigned.map((row) => row[2].toLowerCase()));
             emails.add(email.toLowerCase());
@@ -43,20 +43,20 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 return;
             }
             const sezioni = await visible_sections(sheets, SHEET_ID, email); // comune, sezione, indirizzo
-            const findAddress = (comune, sezione) => sezioni.find(row => comune === row[0] && sezione === row[1])[2];
+            const findAddress = (comune, sezione) => sezioni.find(row => comune === row[0] && +sezione === +row[1])[2];
             const assigned = (await sheets.spreadsheets.values.get({
                 spreadsheetId: SHEET_ID,
                 range: "Dati!A2:C",
             })).data.values
                 .filter((row) => sezioni.some(
                     // dati[0]/sezione[1] è il comune, dati[1]/sezione[0] è la sezione
-                    (sezione) => sezione[0] === row[0] && sezione[1] === row[1] && row[2])
+                    (sezione) => sezione[0] === row[0] && +sezione[1] === +row[1] && row[2])
                 )
                 .map((section) => [section[0], section[1], findAddress(section[0], section[1]), section[2].toLowerCase()])
                 .sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0].localeCompare(b[0], undefined, {sensitivity: 'base'}));
             const unassigned = sezioni.filter((sezione) => !assigned.some(
                 // dati[0]/sezione[1] è il comune, dati[1]/sezione[0] è la sezione
-                (row) => sezione[0] === row[0] && sezione[1] === row[1])
+                (row) => sezione[0] === row[0] && +sezione[1] === +row[1])
             ).sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0].localeCompare(b[0], undefined, {sensitivity: 'base'}));
             res.status(200).json({
                 assigned,
@@ -79,7 +79,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
             const sezioni = await visible_sections(sheets, SHEET_ID, emailRef); // comune, sezione, indirizzo
             const {comune, sezione, email: emailIn} = req.body;
             const email = emailIn.toLowerCase();
-            if (!sezioni.some((row) => row[0] === comune && row[1] === sezione)) {
+            if (!sezioni.some((row) => row[0] === comune && +row[1] === +sezione)) {
                 res.status(403).json({error: "Forbidden"});
                 return
             }
@@ -90,17 +90,17 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                         range: `Dati!A2:BZ`,
                     });
                     const rows = response.data.values;
-                    const index = rows.findIndex((row) => row[0] === comune && row[1] === sezione);
+                    const index = rows.findIndex((row) => row[0] === comune && +row[1] === +sezione);
                     if (index === -1) {
                         // append
                         const response = await sheets.spreadsheets.values.append({
                             spreadsheetId: SHEET_ID,
                             range: `Dati!A2`,
                             valueInputOption: "RAW",
-                            resource: {values: [[comune, sezione, email]]},
+                            resource: {values: [[comune, +sezione, email]]},
                         });
                         res.status(response.status).json({});
-                        console.log(response.status, 'rdl.assign', comune, sezione, email);
+                        console.log(response.status, 'rdl.assign', comune, +sezione, email);
                     } else {
                         const response = await sheets.spreadsheets.values.update({
                             spreadsheetId: SHEET_ID,
@@ -109,7 +109,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                             resource: {values: [[email]]},
                         });
                         res.status(response.status).json({});
-                        console.log(response.status, 'rdl.assign', comune, sezione, email);
+                        console.log(response.status, 'rdl.assign', comune, +sezione, email);
                     }
                 } catch (error) {
                     res.status(500).json({error: error.message});
@@ -132,7 +132,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
             }
             const sezioni = await visible_sections(sheets, SHEET_ID, emailRef); // comune, sezione, indirizzo
             const {comune, sezione} = req.body;
-            if (!sezioni.some((row) => row[0] === comune && row[1] === sezione)) {
+            if (!sezioni.some((row) => row[0] === comune && +row[1] === +sezione)) {
                 res.status(403).json({error: "Forbidden"});
                 return
             }
@@ -143,10 +143,10 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                         range: `Dati!A2:BZ`,
                     });
                     const rows = response.data.values;
-                    const index = rows.findIndex((row) => row[0] === comune && row[1] === sezione);
+                    const index = rows.findIndex((row) => row[0] === comune && +row[1] === +sezione);
                     if (index === -1) {
                         res.status(404).json({error: "Not found"});
-                        console.log(404, 'rdl.unassign', comune, sezione);
+                        console.log(404, 'rdl.unassign', comune, +sezione);
                     } else {
                         const response = await sheets.spreadsheets.values.update({
                             spreadsheetId: SHEET_ID,
@@ -155,7 +155,7 @@ exports.rdlModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                             resource: {values: [['']]},
                         });
                         res.status(response.status).json({});
-                        console.log(response.status, 'rdl.unassign', comune, sezione);
+                        console.log(response.status, 'rdl.unassign', comune, +sezione);
                     }
                 } catch (error) {
                     res.status(500).json({error: error.message});

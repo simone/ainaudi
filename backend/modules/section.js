@@ -35,7 +35,7 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 } else {
                     return (row) => row[2] && !eq(row[2], email) && sezioni.some(
                         // dati[0]/sezione[1] è il comune, dati[1]/sezione[0] è la sezione
-                        (sezione) => sezione[0] === row[0] && sezione[1] === row[1]);
+                        (sezione) => sezione[0] === row[0] && +sezione[1] === +row[1]);
                 }
             }
             const response = await sheets.spreadsheets.values.get({
@@ -46,7 +46,7 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
             res.status(response.status).json({
                 rows: values.map((row) => ({
                     comune: row[0],
-                    sezione: row[1],
+                    sezione:+ row[1],
                     email: row[2].toLowerCase(),
                     values: row.slice(3)
                 }))
@@ -77,17 +77,17 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                     const filter = async () => {
                         if (referenti) {
                             const sezioni = await visible_sections(sheets, SHEET_ID, email); // comune, sezione, indirizzo
-                            return (row) => row[0] === comune && row[1] === sezione && (eq(row[2], email) || sezioni.some(
-                                (s) => s[0] === comune && s[1] === sezione
+                            return (row) => row[0] === comune && +row[1] === +sezione && (eq(row[2], email) || sezioni.some(
+                                (s) => s[0] === comune && +s[1] === +sezione
                             ));
                         } else {
-                            return (row) => row[0] === comune && row[1] === sezione && eq(row[2], email);
+                            return (row) => row[0] === comune && +row[1] === +sezione && eq(row[2], email);
                         }
                     }
                     const index = rows.findIndex(await filter());
                     if (index === -1) {
                         res.status(404).json({error: "Not found"});
-                        console.log(404, email, 'sections.update', comune, sezione);
+                        console.log(404, email, 'sections.update', comune, +sezione);
                     } else {
                         const response = await sheets.spreadsheets.values.update({
                             spreadsheetId: SHEET_ID,
@@ -96,7 +96,7 @@ exports.sectionModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                             resource: {values: [values]},
                         });
                         res.status(response.status).json({});
-                        console.log(response.status, email, 'sections.update', comune, sezione);
+                        console.log(response.status, email, 'sections.update', comune, +sezione);
                     }
                 } catch (error) {
                     res.status(500).json({error: error.message});

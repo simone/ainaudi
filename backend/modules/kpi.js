@@ -23,7 +23,7 @@ exports.kpiModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
                 .filter((row) => row[0] && row[1])
                 .map((row) => ({
                     comune: row[0],
-                    sezione: row[1],
+                    sezione: +row[1],
                     values: row.slice(3)
             }));
             cache.set('kpi', kpi);
@@ -53,7 +53,7 @@ exports.kpiModule = ({app, authenticateToken, perms, sheets, SHEET_ID}) => {
             });
             const values = response.data.values.map((row) => ({
                 comune: row[1],
-                sezione: row[0],
+                sezione: +row[0],
                 municipio: row[2]
             }));
             cache.set('sezioni', values);
