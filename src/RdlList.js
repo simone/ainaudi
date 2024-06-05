@@ -28,6 +28,7 @@ function RdlList({client, setError}) {
     const [emails, setEmails] = useState([]);
     const [selected, setSelected] = useState(null);
     const [emailRDL, setEmailRDL] = useState("");
+    const [emailError, setEmailError] = useState("");
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -46,6 +47,19 @@ function RdlList({client, setError}) {
             console.error("Error fetching sezioni data:", error);
         });
     };
+
+    useEffect(() => {
+        if (emailRDL) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(emailRDL)) {
+                setEmailError("indirizzo email non valido");
+            } else {
+                setEmailError("");
+            }
+        } else {
+            setEmailError("");
+        }
+    }, [emailRDL]);
 
     const loadEmails = () => {
         client.rdl.emails().then((response) => {
@@ -158,7 +172,7 @@ function RdlList({client, setError}) {
                                             <div className="form-group">
                                                 <input
                                                     type="email"
-                                                    className="form-control"
+                                                    className={"form-control" + (emailError ? " is-invalid" : "")}
                                                     list="rdl-emails"
                                                     value={emailRDL}
                                                     onChange={handleEmailChange}
@@ -171,13 +185,19 @@ function RdlList({client, setError}) {
                                                         <option key={index} value={email}/>
                                                     ))}
                                                 </datalist>
+                                                {emailError && (
+                                                    <div className="alert alert-danger mt-2" role="alert">
+                                                        {emailError}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="card-footer">
                                             <div className="row mt-3">
                                                 <div className="col-12">
                                                     <button type="button" className="btn btn-success w-100"
-                                                            onClick={() => handleSave(selected, false)}>
+                                                            onClick={() => handleSave(selected, false)}
+                                                            disabled={!!emailError}>
                                                         Assegna
                                                     </button>
                                                 </div>
@@ -222,7 +242,7 @@ function RdlList({client, setError}) {
                                             <div className="form-group">
                                                 <input
                                                     type="email"
-                                                    className="form-control"
+                                                    className={"form-control" + (emailError ? " is-invalid" : "")}
                                                     list="rdl-emails"
                                                     value={emailRDL}
                                                     onChange={handleEmailChange}
@@ -235,6 +255,11 @@ function RdlList({client, setError}) {
                                                         <option key={index} value={email}/>
                                                     ))}
                                                 </datalist>
+                                                {emailError && (
+                                                    <div className="alert alert-danger mt-2" role="alert">
+                                                        {emailError}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="card-footer">
@@ -247,7 +272,8 @@ function RdlList({client, setError}) {
                                                 </div>
                                                 <div className="col-6">
                                                     <button type="button" className="btn btn-success w-100"
-                                                            onClick={() => handleSave(selected, false)}>
+                                                            onClick={() => handleSave(selected, false)}
+                                                            disabled={!!emailError}>
                                                         Assegna
                                                     </button>
                                                 </div>
