@@ -17,15 +17,15 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
         let error = '';
         switch (field) {
             case "schedeRicevute":
-                if (value && value < formData.totalElettori) {
+                if (value && +value < +formData.totalElettori) {
                     error = 'Il presidente deve fare la richiesta per avere le schede sufficienti a tutti gli elettori (' + value + ' < ' + formData.totalElettori + ')';
                 }
                 break;
             case "schedeAutenticate":
-                if (value && value > formData.schedeRicevute) {
+                if (value && +value > +formData.schedeRicevute) {
                     error = 'Impossibile autenticare più schede di quelle ricevute (' + value + ' > ' + formData.schedeRicevute + ')';
                 }
-                if (value && value > formData.totalElettori) {
+                if (value && +value > +formData.totalElettori) {
                     error = 'Il presidente non deve autenticare più schede del numero di elettori (' + value + ' > ' + formData.totalElettori + ')';
                 }
                 break;
@@ -34,24 +34,24 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                 const schedeNulle = parseInt(formData.schedeNulle) || 0;
                 const schedeContestate = parseInt(formData.schedeContestate) || 0;
                 const totalSchede = schedeBianche + schedeNulle + schedeContestate + formData.totalVotiDiLista;
-                if (totalSchede > formData.totalVotanti) {
+                if (totalSchede > +formData.totalVotanti) {
                     error = 'Il totale delle schede scrutinate (Bianche, Nulle, Contestate e totale voti di lista) NON DEVE ESSERE maggiore al numero dei votanti. (' + totalSchede + ' > ' + formData.totalVotanti + ')';
                 }
-                if (totalSchede < formData.totalVotanti) {
+                if (totalSchede < +formData.totalVotanti) {
                     error = 'Probabilmente mancano dei voti di lista o delle schede perché il totale delle schede scrutinate (Bianche, Nulle, Contestate e totale voti di lista) non è uguale al numero dei votanti. (' + totalSchede + ' < ' + formData.totalVotanti + ')';
                 }
                 break;
             case "totalVotiDiLista":
-                if (value > 0 && value > formData.totalVotanti) {
+                if (value > 0 && +value > +formData.totalVotanti) {
                     error = 'Il totale dei voti di lista non può essere maggiore del numero dei votanti (' + value + ' > ' + formData.totalVotanti + ')';
                 }
                 break;
             case "totalVotiDiPreferenza":
-                if (value > 0 && value > formData.totalVotanti * 3) {
+                if (value > 0 && +value > +formData.totalVotanti * 3) {
                     error = 'Visto che un elettore può votare fino a 3 candidati, il totale dei voti di preferenza non può essere maggiore del triplo del numero dei votanti (' + value + ' > ' + formData.totalVotanti * 3 + ')';
                 }
                 case "totalVotanti":
-                if (value > 0 && value > formData.totalElettori) {
+                if (value > 0 && +value > +formData.totalElettori) {
                     error = 'Il totale dei votanti non può essere maggiore del numero degli elettori (' + value + ' > ' + formData.totalElettori + ')';
                 }
             default:
