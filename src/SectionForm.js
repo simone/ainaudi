@@ -12,7 +12,7 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
     };
     const [formData, setFormData] = useState(initialState);
     const [errors, setErrors] = useState({});
-
+    const [isSaving, setIsSaving] = useState(false);
     const validation = (field, value) => {
         let error = '';
         switch (field) {
@@ -109,8 +109,34 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
     };
 
     const handleSave = () => {
+        if (isSaving) {
+            // Blocca ulteriori salvataggi
+            console.log('Salvataggio in corso...');
+            return;
+        }
+        setIsSaving(true); // Imposta il flag di salvataggio
+        if (Object.values(formData).every(value => value === '')) {
+            console.log('Tutti i campi sono vuoti, forse è stato un errore');
+            cancel();
+            return;
+        }
         updateSection(formData, errorsList);
     };
+
+    useEffect(() => {
+        // Funzione che verrà chiamata quando l'evento popstate viene attivato
+        window.history.pushState(null, null, window.location.pathname);
+        const onPopState = (event) => {
+            handleBack();
+        };
+
+        // Aggiungi il listener per l'evento popstate
+        window.addEventListener('popstate', onPopState);
+        return () => {
+            // Rimuovi il listener quando il componente viene smontato
+            window.removeEventListener('popstate', onPopState);
+        };
+    }, []);
 
     const handleBack = () => {
         cancel();
@@ -379,18 +405,34 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
             )}
             <div className="card">
                 <div className="card-body">
-                    <div className="row mt-3">
-                        <div className="col-6">
-                            <button type="button" className="btn btn-secondary w-100" onClick={handleBack}>
-                                Indietro
-                            </button>
+                    {!isSaving && (
+                        <div className="row mt-3">
+                            <div className="col-6">
+                                <button type="button" className="btn btn-secondary w-100" onClick={handleBack}>
+                                    Indietro
+                                </button>
+                            </div>
+                            <div className="col-6">
+                                <button type="button" className="btn btn-success w-100" onClick={handleSave}>
+                                    Invia dati
+                                </button>
+                            </div>
                         </div>
-                        <div className="col-6">
-                            <button type="button" className="btn btn-success w-100" onClick={handleSave}>
-                                Invia dati
-                            </button>
+                    )}
+                    {isSaving && (
+                        <div className="row mt-3">
+                            <div className="col-6">
+                                <button type="button" className="btn btn-secondary w-100" disabled={true}>
+                                    Indietro
+                                </button>
+                            </div>
+                            <div className="col-6">
+                                <button type="button" className="btn btn-success w-100" disabled={true}>
+                                    Invia dati
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
         </form>

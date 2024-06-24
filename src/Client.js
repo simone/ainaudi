@@ -1,6 +1,6 @@
 const cache = new Map();
 
-const fetchWithCacheAndRetry = (key, ttl = 60) => async (url, options, retries = 5, delay = 1000) => {
+const fetchWithCacheAndRetry = (key, ttl = 60) => async (url, options, retries = 10, delay = 1000) => {
     const now = Date.now();
     const cacheEntry = cache.get(key);
 

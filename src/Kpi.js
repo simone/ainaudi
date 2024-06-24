@@ -217,7 +217,8 @@ function Kpi({ client, setError }) {
             ],
         });
 
-        const m5sIndex = lists.indexOf('MOVIMENTO 5 STELLE');
+        let l = lists.map(item => item[0]);
+        const m5sIndex = l.indexOf('MOVIMENTO 5 STELLE');
         const comuneVotes = new Map();
 
         rows.forEach(({comune, values}) => {

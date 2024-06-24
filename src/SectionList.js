@@ -9,6 +9,10 @@ function SectionList({client, user, setError, referenti}) {
     const [selectedSection, setSelectedSection] = useState(null);
     const [lists, setLists] = useState([]);
     const [candidates, setCandidates] = useState([]);
+    const [searchText, setSearchText] = useState('');
+    const [selectedError, setSelectedError] = useState('');
+    const [filteredSections, setFilteredSections] = useState([]);
+    const [filteredAssignedSections, setFilteredAssignedSections] = useState([]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -171,6 +175,28 @@ function SectionList({client, user, setError, referenti}) {
         return Math.round(progressPercentage);
     };
 
+    function filterSection(section) {
+        let q = searchText.toLowerCase();
+        // Convert all fields to string before calling .toLowerCase()
+        const comuneString = section.comune.toString().toLowerCase();
+        const sezioneString = section.sezione.toString().toLowerCase();
+        const emailString = section.email.toString().toLowerCase();
+        const incongruenzeString = section.incongruenze.toString().toLowerCase();
+        const matchesSearchText = comuneString.includes(q)
+            || sezioneString.includes(q)
+            || emailString.includes(q);
+        const matchesError = selectedError === '' || incongruenzeString.includes(selectedError.toLowerCase());
+        return matchesSearchText && matchesError;
+    }
+
+
+    useEffect(() => {
+        setFilteredSections(sections.filter(filterSection));
+    }, [sections, searchText, selectedError]);
+
+    useEffect(() => {
+        setFilteredAssignedSections(assignedSections.filter(filterSection));
+    }, [assignedSections, searchText, selectedError]);
 
     if (loading) {
         return <div className="card-body d-flex align-items-center justify-content-center"
@@ -195,14 +221,40 @@ function SectionList({client, user, setError, referenti}) {
 
     return (
         <>
-            {sections.length === 0 && (
+            <div className="card mb-3">
+                <div className="card-body">
+                    <input
+                        type="text"
+                        className="form-control mb-2"
+                        placeholder="Cerca per comune, sezione o email"
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                    />
+                    <select
+                        className="form-control"
+                        value={selectedError}
+                        onChange={(e) => setSelectedError(e.target.value)}
+                    >
+                        <option value=""></option>
+                        <option value="Il presidente deve fare la richiesta per avere le schede sufficienti a tutti gli elettori">Richiesta schede per elettori</option>
+                        <option value="Impossibile autenticare più schede di quelle ricevute">Autenticazione schede limitata</option>
+                        <option value="Il presidente non deve autenticare più schede del numero di elettori ">Limite schede autenticabili</option>
+                        <option value="Il totale delle schede scrutinate (Bianche, Nulle, Contestate e totale voti di lista) NON DEVE ESSERE maggiore al numero dei votanti">Schede scrutinate ≤ votanti</option>
+                        <option value="Probabilmente mancano dei voti di lista o delle schede perché il totale delle schede scrutinate (Bianche, Nulle, Contestate e totale voti di lista) non è uguale al numero dei votanti">Verifica voti mancanti</option>
+                        <option value="Il totale dei voti di lista non può essere maggiore del numero dei votanti">Voti lista ≤ votanti</option>
+                        <option value="Visto che un elettore può votare fino a 3 candidati, il totale dei voti di preferenza non può essere maggiore del triplo del numero dei votanti">Preferenze ≤ 3x votanti</option>
+                        <option value="Il totale dei votanti non può essere maggiore del numero degli elettori">Votanti ≤ elettori</option>
+                    </select>
+                </div>
+            </div>
+            {filteredSections.length === 0 && (
                 <div className="card">
                     <div className="card-header alert alert-warning mt-3">
                         Non hai sezioni assegnate. Contatta il Referente RDL della tua Zona.
                     </div>
                 </div>)
             }
-            {sections.length > 0 && (
+            {filteredSections.length > 0 && (
                 <div className="card">
                 <div className="card-header bg-info">
                     Questa applicazione è destinata agli RDL del Movimento 5 Stelle e
@@ -260,7 +312,7 @@ function SectionList({client, user, setError, referenti}) {
                 <div className="card-body">
                     <h2>Apri una sezione che hai assegnato</h2>
                     <ul className="list-group">
-                        {assignedSections.map((section, index) => (
+                        {filteredAssignedSections.map((section, index) => (
                             <li
                                 className="list-group-item d-flex justify-content-between align-items-center"
                                 key={index}
