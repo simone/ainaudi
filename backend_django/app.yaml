@@ -1,0 +1,35 @@
+runtime: python311
+env: standard
+instance_class: F2
+
+entrypoint: gunicorn -b :$PORT config.wsgi:application --workers 2 --threads 4
+
+env_variables:
+  DJANGO_SETTINGS_MODULE: config.settings
+  GOOGLE_CLOUD_PROJECT: rdl-europee-2024
+  DEBUG: "false"
+  ALLOWED_HOSTS: ".appspot.com,.run.app"
+
+handlers:
+  # Static files
+  - url: /static
+    static_dir: staticfiles/
+    secure: always
+
+  # All other requests go to Django
+  - url: /.*
+    script: auto
+    secure: always
+
+# Cloud SQL connection
+beta_settings:
+  cloud_sql_instances: rdl-europee-2024:europe-west1:rdl-db
+
+# Automatic scaling
+automatic_scaling:
+  min_instances: 0
+  max_instances: 5
+  min_idle_instances: 0
+  max_idle_instances: 1
+  target_cpu_utilization: 0.65
+  target_throughput_utilization: 0.65

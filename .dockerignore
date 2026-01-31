@@ -1,0 +1,47 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build
+build/
+dist/
+
+# Python
+__pycache__
+*.py[cod]
+venv/
+.venv/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+coverage/
+.nyc_output/
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+
+# Misc
+*.md
+.DS_Store
+Thumbs.db
+
+# Backend specific (copied separately)
+backend/
+pdf/

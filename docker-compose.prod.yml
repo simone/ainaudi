@@ -1,0 +1,167 @@
+version: '3.8'
+
+# Production Docker Compose configuration with Distroless images
+# Usage: docker-compose -f docker-compose.prod.yml up -d
+
+services:
+  # PostgreSQL Database (Alpine-based for minimal size)
+  db:
+    image: postgres:15-alpine
+    container_name: rdl_postgres_prod
+    restart: always
+    user: postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-rdl_referendum}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password required}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rdl_referendum"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend_network
+    # Security: read-only root filesystem where possible
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run
+
+  # Django Backend (Distroless)
+  backend:
+    build:
+      context: ./backend_django
+      dockerfile: Dockerfile
+    container_name: rdl_backend_prod
+    restart: always
+    # Run as non-root (distroless default)
+    user: "65532:65532"
+    environment:
+      - DEBUG=False
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:?Secret key required}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-rdl_referendum}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:?Database password required}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:?Google client ID required}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:?Google client secret required}
+      - EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_USE_TLS=true
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@m5s.it}
+      - FEATURE_MAGIC_LINK=true
+      - FEATURE_AI_ASSISTANT=false
+    volumes:
+      - backend_static_prod:/app/staticfiles:rw
+      - backend_media_prod:/app/media:rw
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend_network
+      - frontend_network
+    # Security settings
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # React Frontend (nginx-unprivileged for static files)
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.prod.Dockerfile
+      args:
+        REACT_APP_API_URL: /api
+    container_name: rdl_frontend_prod
+    restart: always
+    depends_on:
+      - backend
+    networks:
+      - frontend_network
+    # Security settings
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Nginx reverse proxy (distroless nginx)
+  nginx:
+    image: nginxinc/nginx-unprivileged:alpine
+    container_name: rdl_nginx_prod
+    restart: always
+    ports:
+      - "80:8080"
+      - "443:8443"
+    volumes:
+      - ./docker/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/ssl:/etc/nginx/ssl:ro
+      - backend_static_prod:/var/www/static:ro
+      - backend_media_prod:/var/www/media:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - frontend_network
+      - backend_network
+    # Security settings
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Redis (Alpine for minimal size)
+  redis:
+    image: redis:7-alpine
+    container_name: rdl_redis_prod
+    restart: always
+    user: redis
+    volumes:
+      - redis_data_prod:/data
+    command: redis-server --appendonly yes --protected-mode yes
+    networks:
+      - backend_network
+    # Security settings
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  postgres_data_prod:
+  backend_static_prod:
+  backend_media_prod:
+  redis_data_prod:
+
+networks:
+  backend_network:
+    driver: bridge
+  frontend_network:
+    driver: bridge

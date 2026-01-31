@@ -1,0 +1,313 @@
+{% extends "admin/base_site.html" %}
+{% load static i18n %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/m5s_admin.css' %}">
+<style>
+    body.login {
+        background: linear-gradient(135deg, #004b6b 0%, #003a4f 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    #container {
+        max-width: 420px;
+        width: 100%;
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 25px rgba(0, 0, 0, 0.3);
+        overflow: visible;
+    }
+    #header {
+        background: transparent !important;
+        padding: 0 !important;
+        color: #004b6b;
+    }
+    #header h1, #header #site-name, #header #user-tools {
+        display: none !important;
+    }
+    .login-logo {
+        text-align: center;
+        padding: 30px 20px 15px;
+    }
+    .login-logo img {
+        max-width: 130px;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    .login-title {
+        text-align: center;
+        color: #004b6b;
+        font-size: 24px;
+        font-weight: 700;
+        margin: 10px 0 5px;
+    }
+    .login-subtitle {
+        text-align: center;
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 25px;
+    }
+    #content {
+        padding: 0 30px 30px !important;
+    }
+    #content-main {
+        padding: 0;
+    }
+    #content > h1 {
+        display: none;
+    }
+    .form-row {
+        margin-bottom: 18px;
+        padding: 0;
+    }
+    .form-row label {
+        color: #004b6b;
+        font-weight: 600;
+        display: block;
+        margin-bottom: 6px;
+    }
+    .form-row input[type="email"] {
+        width: 100%;
+        padding: 14px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        box-sizing: border-box;
+        background: #f9f9f9;
+        color: #333 !important;
+    }
+    .form-row input[type="email"]:focus {
+        border-color: #004b6b;
+        outline: none;
+        background: #fff;
+    }
+    .submit-row {
+        padding: 20px 0 0 !important;
+        margin: 0 !important;
+        text-align: center;
+        background: transparent !important;
+        border: none !important;
+    }
+    .submit-row input[type="submit"] {
+        background: #e30413 !important;
+        border: none !important;
+        color: #fff !important;
+        padding: 15px 30px !important;
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        border-radius: 6px !important;
+        cursor: pointer;
+        width: 100%;
+        transition: background 0.3s ease;
+    }
+    .submit-row input[type="submit"]:hover {
+        background: #c00310 !important;
+    }
+    .back-link {
+        text-align: center;
+        margin-top: 20px;
+    }
+    .back-link a {
+        color: #004b6b;
+        font-size: 14px;
+    }
+    .alt-login-section {
+        margin-top: 25px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+        text-align: center;
+    }
+    .alt-login-section p {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 15px;
+    }
+    .alt-login-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        max-width: 280px;
+        margin: 0 auto;
+        padding: 12px 20px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        transition: background 0.3s ease, box-shadow 0.3s ease;
+        box-sizing: border-box;
+    }
+    .alt-login-btn.google {
+        background: #fff;
+        color: #444 !important;
+        border: 2px solid #ddd;
+    }
+    .alt-login-btn.google:hover {
+        background: #f8f8f8;
+        border-color: #ccc;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        color: #444 !important;
+    }
+    .alt-login-btn.google svg {
+        width: 20px;
+        height: 20px;
+    }
+    #google-signin-container {
+        display: flex;
+        justify-content: center;
+    }
+    .success-message {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    .error-message {
+        background: #fff3f3;
+        color: #e30413;
+        border: 1px solid #e30413;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    .info-text {
+        color: #666;
+        font-size: 14px;
+        text-align: center;
+        margin-bottom: 20px;
+        line-height: 1.5;
+    }
+    .breadcrumbs {
+        display: none !important;
+    }
+    #nav-sidebar, .toggle-nav-sidebar {
+        display: none !important;
+    }
+    main#main {
+        margin-left: 0 !important;
+    }
+
+    /* Mobile: box a tutto schermo */
+    @media (max-width: 600px) {
+        body.login {
+            padding: 0 !important;
+            margin: 0 !important;
+            align-items: stretch !important;
+            display: block !important;
+        }
+        #container {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+            min-height: 100vh !important;
+            box-shadow: none !important;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .login-logo {
+            padding: 40px 20px 20px;
+        }
+        #content {
+            padding: 0 25px 40px !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block branding %}{% endblock %}
+
+{% block content_title %}
+<div class="login-logo">
+    <img src="{% static 'admin/img/m5s_logo.svg' %}" alt="M5S">
+</div>
+<div class="login-title">RDL 5 Stelle</div>
+<div class="login-subtitle">Area Amministrazione</div>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+{% for message in messages %}
+<div class="{% if message.tags == 'success' %}success-message{% else %}error-message{% endif %}">
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+{% if email_sent %}
+<div class="info-text">
+    <strong>Controlla la tua email!</strong><br>
+    Se l'indirizzo <strong>{{ email }}</strong> è registrato, riceverai un link di accesso.<br>
+    Il link è valido per 60 minuti.
+</div>
+<form method="post">
+    {% csrf_token %}
+    <div class="form-row">
+        <label for="email">Non hai ricevuto? Reinvia:</label>
+        <input type="email" name="email" id="email" value="{{ email }}" required autocomplete="email">
+    </div>
+    <div class="submit-row">
+        <input type="submit" value="Reinvia Magic Link">
+    </div>
+</form>
+{% else %}
+<p class="info-text">
+    Inserisci la tua email per ricevere un <strong>link di accesso</strong>.<br>
+    Non serve ricordare nessuna password: clicca il link nell'email e sei dentro!
+</p>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="form-row">
+        <label for="email">La tua email:</label>
+        <input type="email" name="email" id="email" required autofocus placeholder="tu@esempio.com" autocomplete="email">
+    </div>
+    <div class="submit-row">
+        <input type="submit" value="Invia link di accesso">
+    </div>
+</form>
+{% endif %}
+
+<div class="info-text" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee; font-size: 13px;">
+    <strong>Non sei ancora registrato?</strong><br>
+    Contatta il delegato della tua zona per richiedere l'accesso al sistema.
+</div>
+
+<script>
+(function() {
+    const emailInput = document.getElementById('email');
+    const savedEmail = localStorage.getItem('rdl_admin_email');
+
+    // Pre-fill with last used email
+    if (savedEmail && emailInput && !emailInput.value) {
+        emailInput.value = savedEmail;
+    }
+
+    // Save email on form submit
+    const form = emailInput ? emailInput.closest('form') : null;
+    if (form) {
+        form.addEventListener('submit', function() {
+            if (emailInput.value) {
+                localStorage.setItem('rdl_admin_email', emailInput.value);
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}
+
+{% block bodyclass %}login{% endblock %}

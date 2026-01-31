@@ -1,0 +1,116 @@
+"""
+AI Assistant models: RAG-based chat system.
+
+This module will contain (to be implemented in Fase 6):
+- KnowledgeSource: Knowledge base documents
+- ChatSession: User chat sessions
+- ChatMessage: Individual messages in a session
+"""
+from django.db import models
+from django.conf import settings
+from django.utils.translation import gettext_lazy as _
+
+
+class KnowledgeSource(models.Model):
+    """
+    Source document in the knowledge base.
+    """
+    class SourceType(models.TextChoices):
+        FAQ = 'FAQ', _('FAQ')
+        PROCEDURE = 'PROCEDURE', _('Procedura')
+        SLIDE = 'SLIDE', _('Slide')
+        MANUAL = 'MANUAL', _('Manuale')
+
+    title = models.CharField(_('titolo'), max_length=200)
+    source_type = models.CharField(
+        _('tipo'),
+        max_length=20,
+        choices=SourceType.choices
+    )
+    content = models.TextField(_('contenuto'))
+    # embedding = VectorField(dimensions=1536, null=True)  # Requires pgvector
+    created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('ultimo aggiornamento'), auto_now=True)
+    is_active = models.BooleanField(_('attivo'), default=True)
+
+    class Meta:
+        verbose_name = _('fonte conoscenza')
+        verbose_name_plural = _('fonti conoscenza')
+        ordering = ['source_type', 'title']
+
+    def __str__(self):
+        return f'{self.title} ({self.get_source_type_display()})'
+
+
+class ChatSession(models.Model):
+    """
+    Chat session with the AI assistant.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='chat_sessions',
+        verbose_name=_('utente')
+    )
+    context = models.CharField(
+        _('contesto'),
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text=_('es. SCRUTINY, INCIDENT')
+    )
+    sezione = models.ForeignKey(
+        'territorio.SezioneElettorale',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='chat_sessions',
+        verbose_name=_('sezione')
+    )
+    created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('ultimo aggiornamento'), auto_now=True)
+
+    class Meta:
+        verbose_name = _('sessione chat')
+        verbose_name_plural = _('sessioni chat')
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f'Chat {self.id} - {self.user.email}'
+
+
+class ChatMessage(models.Model):
+    """
+    Individual message in a chat session.
+    """
+    class Role(models.TextChoices):
+        USER = 'user', _('Utente')
+        ASSISTANT = 'assistant', _('Assistente')
+
+    session = models.ForeignKey(
+        ChatSession,
+        on_delete=models.CASCADE,
+        related_name='messages',
+        verbose_name=_('sessione')
+    )
+    role = models.CharField(
+        _('ruolo'),
+        max_length=20,
+        choices=Role.choices
+    )
+    content = models.TextField(_('contenuto'))
+    sources_cited = models.JSONField(
+        _('fonti citate'),
+        null=True,
+        blank=True,
+        help_text=_('IDs delle fonti usate nella risposta')
+    )
+    created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('messaggio chat')
+        verbose_name_plural = _('messaggi chat')
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'{self.get_role_display()}: {self.content[:50]}...'

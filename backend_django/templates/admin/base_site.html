@@ -1,0 +1,24 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | RDL 5 Stelle{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/m5s_admin.css' %}">
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+        <img src="{% static 'admin/img/m5s_logo.svg' %}" alt="M5S" style="height: 35px; vertical-align: middle; margin-right: 10px;">
+        RDL 5 Stelle
+    </a>
+</h1>
+{% endblock %}
+
+{% block welcome-msg %}
+{% if user.is_authenticated %}
+<strong>{% firstof user.display_name user.get_short_name user.email %}</strong>
+{% endif %}
+{% endblock %}

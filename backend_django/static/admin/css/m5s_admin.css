@@ -1,0 +1,233 @@
+/**
+ * M5S Brand Custom Admin Styles
+ * Colors: Red #e30413, Dark Blue #004b6b, Yellow #e9d483
+ */
+
+:root {
+    --m5s-red: #e30413;
+    --m5s-blue: #004b6b;
+    --m5s-yellow: #e9d483;
+    --m5s-blue-light: #005a82;
+    --m5s-blue-dark: #003a4f;
+}
+
+/* Header */
+#header {
+    background: var(--m5s-blue);
+}
+
+#header a:link, #header a:visited {
+    color: var(--m5s-yellow);
+}
+
+#branding h1 {
+    color: var(--m5s-yellow);
+}
+
+#branding h1 a:link, #branding h1 a:visited {
+    color: var(--m5s-yellow);
+}
+
+/* User tools */
+#user-tools {
+    color: var(--m5s-yellow);
+}
+
+#user-tools a {
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+#user-tools a:hover {
+    color: var(--m5s-yellow);
+    border-bottom-color: var(--m5s-yellow);
+}
+
+/* Navigation / Breadcrumbs */
+div.breadcrumbs {
+    background: var(--m5s-blue-light);
+    color: #fff;
+}
+
+div.breadcrumbs a {
+    color: var(--m5s-yellow);
+}
+
+/* Sidebar / Navigation */
+#nav-sidebar {
+    background: #f8f9fa;
+}
+
+.module caption, .module th {
+    background: var(--m5s-blue);
+    color: #fff;
+}
+
+/* Links */
+a:link, a:visited {
+    color: var(--m5s-blue);
+}
+
+a:hover {
+    color: var(--m5s-red);
+}
+
+/* Buttons */
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+    background: var(--m5s-blue);
+    border-color: var(--m5s-blue-dark);
+    color: #fff !important;
+}
+
+.button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover {
+    background: var(--m5s-blue-light);
+    color: #fff !important;
+}
+
+.button.default, input[type=submit].default, .submit-row input.default {
+    background: var(--m5s-red);
+    border-color: #c00310;
+}
+
+.button.default:hover, input[type=submit].default:hover, .submit-row input.default:hover {
+    background: #ff1a2b;
+}
+
+/* Delete button */
+.deletelink, .deletelink:link, .deletelink:visited {
+    color: var(--m5s-red);
+}
+
+.deletelink:hover {
+    color: #ff1a2b;
+}
+
+/* Module headers */
+.module h2, .module caption, .inline-group h2 {
+    background: var(--m5s-blue);
+    color: #fff !important;
+}
+
+.module h2 a, .module caption a, .inline-group h2 a {
+    color: #fff !important;
+}
+
+.module th a {
+    color: #fff !important;
+}
+
+/* Object tools */
+.object-tools a:link, .object-tools a:visited {
+    background: var(--m5s-blue);
+    color: #fff !important;
+}
+
+.object-tools a:hover {
+    background: var(--m5s-blue-light);
+    color: #fff !important;
+}
+
+/* Tabs */
+.changeform-tabs-item:hover a {
+    background: var(--m5s-blue-light);
+    color: #fff;
+}
+
+.changeform-tabs-item.selected a {
+    background: var(--m5s-blue);
+    color: #fff;
+}
+
+/* Calendar and date widgets */
+.calendar td a:hover, .timelist a:hover {
+    background: var(--m5s-blue);
+    color: #fff;
+}
+
+.calendar td.today a {
+    background: var(--m5s-yellow);
+    color: var(--m5s-blue);
+}
+
+/* Admin actions */
+#changelist-form .actions {
+    background: #f8f9fa;
+}
+
+/* Pagination */
+.paginator a:hover {
+    color: var(--m5s-red);
+}
+
+/* Login page specific */
+body.login {
+    background: var(--m5s-blue);
+}
+
+body.login #container {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+body.login #header {
+    background: transparent;
+    padding: 20px;
+}
+
+body.login #header h1 {
+    color: var(--m5s-blue);
+}
+
+body.login #content {
+    padding: 20px 30px 30px;
+}
+
+body.login .submit-row {
+    padding: 15px 0 0;
+}
+
+body.login .submit-row input {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+}
+
+/* Logo styling */
+.m5s-logo {
+    display: block;
+    margin: 0 auto 20px;
+    max-width: 120px;
+    height: auto;
+}
+
+#branding {
+    display: flex;
+    align-items: center;
+}
+
+#branding img {
+    height: 40px;
+    margin-right: 15px;
+}
+
+/* Selection highlight */
+::selection {
+    background: var(--m5s-yellow);
+    color: var(--m5s-blue);
+}
+
+/* Filter sidebar */
+#changelist-filter h2 {
+    background: var(--m5s-blue);
+    color: #fff;
+}
+
+#changelist-filter h3 {
+    border-bottom: 2px solid var(--m5s-blue);
+}
+
+#changelist-filter li.selected a {
+    color: var(--m5s-red);
+    font-weight: bold;
+}

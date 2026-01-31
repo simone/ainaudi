@@ -1,0 +1,350 @@
+"""
+Sections models: Section assignments and vote data collection.
+
+This module defines:
+- SectionAssignment: RDL/substitute assignments to electoral sections
+- DatiSezione: Base data collected for a section in a consultation
+- DatiScheda: Specific data for each ballot in a section
+"""
+from django.db import models
+from django.conf import settings
+from django.utils.translation import gettext_lazy as _
+
+
+class SectionAssignment(models.Model):
+    """
+    Assignment of a user (RDL or substitute) to an electoral section.
+    """
+    class Role(models.TextChoices):
+        RDL = 'RDL', _('Responsabile di Lista')
+        SUPPLENTE = 'SUPPLENTE', _('Supplente')
+
+    sezione = models.ForeignKey(
+        'territorio.SezioneElettorale',
+        on_delete=models.CASCADE,
+        related_name='assignments',
+        verbose_name=_('sezione')
+    )
+    consultazione = models.ForeignKey(
+        'elections.ConsultazioneElettorale',
+        on_delete=models.CASCADE,
+        related_name='section_assignments',
+        verbose_name=_('consultazione')
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='section_assignments',
+        verbose_name=_('utente')
+    )
+    role = models.CharField(
+        _('ruolo'),
+        max_length=20,
+        choices=Role.choices,
+        default=Role.RDL
+    )
+
+    # Audit
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assignments_made',
+        verbose_name=_('assegnato da')
+    )
+    assigned_at = models.DateTimeField(_('data assegnazione'), auto_now_add=True)
+    is_active = models.BooleanField(_('attivo'), default=True)
+    notes = models.TextField(_('note'), blank=True)
+
+    class Meta:
+        verbose_name = _('assegnazione sezione')
+        verbose_name_plural = _('assegnazioni sezioni')
+        unique_together = ['sezione', 'consultazione', 'user']
+        ordering = ['sezione__comune', 'sezione__numero']
+        indexes = [
+            models.Index(fields=['user', 'consultazione']),
+            models.Index(fields=['sezione', 'consultazione']),
+        ]
+
+    def __str__(self):
+        return f'{self.user.email} - {self.sezione} ({self.get_role_display()})'
+
+
+class DatiSezione(models.Model):
+    """
+    Base data collected for a section in a consultation.
+    Common values across all ballots for this section.
+    """
+    sezione = models.ForeignKey(
+        'territorio.SezioneElettorale',
+        on_delete=models.CASCADE,
+        related_name='dati',
+        verbose_name=_('sezione')
+    )
+    consultazione = models.ForeignKey(
+        'elections.ConsultazioneElettorale',
+        on_delete=models.CASCADE,
+        related_name='dati_sezioni',
+        verbose_name=_('consultazione')
+    )
+
+    # Turnout (common to all ballots for this section)
+    elettori_maschi = models.IntegerField(
+        _('elettori maschi'),
+        null=True,
+        blank=True
+    )
+    elettori_femmine = models.IntegerField(
+        _('elettori femmine'),
+        null=True,
+        blank=True
+    )
+    votanti_maschi = models.IntegerField(
+        _('votanti maschi'),
+        null=True,
+        blank=True
+    )
+    votanti_femmine = models.IntegerField(
+        _('votanti femmine'),
+        null=True,
+        blank=True
+    )
+
+    # Status flags
+    is_complete = models.BooleanField(
+        _('completato'),
+        default=False,
+        help_text=_('Tutti i dati inseriti')
+    )
+    is_verified = models.BooleanField(
+        _('verificato'),
+        default=False,
+        help_text=_('Dati verificati da un referente')
+    )
+    verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sezioni_verificate',
+        verbose_name=_('verificato da')
+    )
+    verified_at = models.DateTimeField(_('data verifica'), null=True, blank=True)
+
+    # Audit
+    inserito_da = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='dati_sezioni_inseriti',
+        verbose_name=_('inserito da')
+    )
+    inserito_at = models.DateTimeField(_('data inserimento'), null=True, blank=True)
+    aggiornato_at = models.DateTimeField(_('ultimo aggiornamento'), auto_now=True)
+
+    class Meta:
+        verbose_name = _('dati sezione')
+        verbose_name_plural = _('dati sezioni')
+        unique_together = ['sezione', 'consultazione']
+        ordering = ['sezione__comune', 'sezione__numero']
+
+    def __str__(self):
+        return f'Dati {self.sezione} - {self.consultazione}'
+
+    @property
+    def totale_elettori(self):
+        """Total registered voters."""
+        if self.elettori_maschi is not None and self.elettori_femmine is not None:
+            return self.elettori_maschi + self.elettori_femmine
+        return None
+
+    @property
+    def totale_votanti(self):
+        """Total voters who cast a ballot."""
+        if self.votanti_maschi is not None and self.votanti_femmine is not None:
+            return self.votanti_maschi + self.votanti_femmine
+        return None
+
+    @property
+    def affluenza_percentuale(self):
+        """Turnout percentage."""
+        elettori = self.totale_elettori
+        votanti = self.totale_votanti
+        if elettori and votanti:
+            return round((votanti / elettori) * 100, 2)
+        return None
+
+
+class DatiScheda(models.Model):
+    """
+    Specific data for each ballot in a section.
+    E.g., a section in referendum 2025 will have 5 DatiScheda (one per question).
+    """
+    dati_sezione = models.ForeignKey(
+        DatiSezione,
+        on_delete=models.CASCADE,
+        related_name='schede',
+        verbose_name=_('dati sezione')
+    )
+    scheda = models.ForeignKey(
+        'elections.SchedaElettorale',
+        on_delete=models.CASCADE,
+        related_name='dati',
+        verbose_name=_('scheda')
+    )
+
+    # Ballot counts (common to all ballot types)
+    schede_ricevute = models.IntegerField(
+        _('schede ricevute'),
+        null=True,
+        blank=True
+    )
+    schede_autenticate = models.IntegerField(
+        _('schede autenticate'),
+        null=True,
+        blank=True
+    )
+    schede_bianche = models.IntegerField(
+        _('schede bianche'),
+        null=True,
+        blank=True
+    )
+    schede_nulle = models.IntegerField(
+        _('schede nulle'),
+        null=True,
+        blank=True
+    )
+    schede_contestate = models.IntegerField(
+        _('schede contestate'),
+        null=True,
+        blank=True
+    )
+
+    # Vote data (structure depends on ballot type - see examples in plan)
+    voti = models.JSONField(
+        _('voti'),
+        null=True,
+        blank=True,
+        help_text=_('''
+Struttura voti dipende dal tipo scheda:
+- Referendum: {"si": 523, "no": 300}
+- Europee: {"liste": {"M5S": 250, "PD": 180}, "preferenze": {"FERRARA LAURA": 45}}
+- Politiche: {"uninominale": {...}, "liste": {...}}
+- Comunali: {"sindaco": {...}, "liste": {...}, "preferenze": {...}}
+        ''')
+    )
+
+    # Validation
+    errori_validazione = models.TextField(
+        _('errori validazione'),
+        null=True,
+        blank=True,
+        help_text=_('Eventuali errori di validazione rilevati')
+    )
+    is_valid = models.BooleanField(
+        _('valido'),
+        default=True,
+        help_text=_('False se ci sono errori di validazione')
+    )
+
+    # Audit
+    inserito_at = models.DateTimeField(_('data inserimento'), null=True, blank=True)
+    aggiornato_at = models.DateTimeField(_('ultimo aggiornamento'), auto_now=True)
+
+    class Meta:
+        verbose_name = _('dati scheda')
+        verbose_name_plural = _('dati schede')
+        unique_together = ['dati_sezione', 'scheda']
+        ordering = ['scheda__ordine']
+
+    def __str__(self):
+        return f'{self.dati_sezione.sezione} - {self.scheda.nome}'
+
+    @property
+    def totale_voti_validi(self):
+        """Calculate total valid votes based on ballot type."""
+        if not self.voti:
+            return None
+
+        # For referendum (SI/NO)
+        if 'si' in self.voti and 'no' in self.voti:
+            return self.voti.get('si', 0) + self.voti.get('no', 0)
+
+        # For elections with lists
+        if 'liste' in self.voti:
+            return sum(self.voti['liste'].values())
+
+        return None
+
+    def validate_data(self):
+        """
+        Validate the data for consistency.
+        Returns a list of error messages.
+        """
+        errors = []
+
+        # Check ballot counts
+        if self.schede_ricevute and self.schede_autenticate:
+            if self.schede_autenticate > self.schede_ricevute:
+                errors.append(_('Schede autenticate > schede ricevute'))
+
+        # Check vote totals
+        if self.voti and self.schede_autenticate:
+            voti_validi = self.totale_voti_validi or 0
+            bianche = self.schede_bianche or 0
+            nulle = self.schede_nulle or 0
+            contestate = self.schede_contestate or 0
+
+            totale = voti_validi + bianche + nulle + contestate
+            if totale > self.schede_autenticate:
+                errors.append(_('Totale schede > schede autenticate'))
+
+        self.errori_validazione = '\n'.join(errors) if errors else None
+        self.is_valid = len(errors) == 0
+        return errors
+
+
+class SectionDataHistory(models.Model):
+    """
+    History of changes to section data for audit purposes.
+    """
+    dati_sezione = models.ForeignKey(
+        DatiSezione,
+        on_delete=models.CASCADE,
+        related_name='history',
+        verbose_name=_('dati sezione')
+    )
+    dati_scheda = models.ForeignKey(
+        DatiScheda,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='history',
+        verbose_name=_('dati scheda')
+    )
+
+    # What changed
+    campo = models.CharField(_('campo modificato'), max_length=100)
+    valore_precedente = models.TextField(_('valore precedente'), null=True, blank=True)
+    valore_nuovo = models.TextField(_('valore nuovo'), null=True, blank=True)
+
+    # Who and when
+    modificato_da = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='modifiche_dati',
+        verbose_name=_('modificato da')
+    )
+    modificato_at = models.DateTimeField(_('data modifica'), auto_now_add=True)
+    ip_address = models.GenericIPAddressField(_('indirizzo IP'), null=True, blank=True)
+
+    class Meta:
+        verbose_name = _('storico dati sezione')
+        verbose_name_plural = _('storico dati sezioni')
+        ordering = ['-modificato_at']
+
+    def __str__(self):
+        return f'{self.dati_sezione.sezione} - {self.campo} ({self.modificato_at})'

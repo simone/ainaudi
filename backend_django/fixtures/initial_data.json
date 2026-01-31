@@ -1,0 +1,1432 @@
+[
+  {
+    "model": "territorio.regione",
+    "pk": 1,
+    "fields": {
+      "codice_istat": "01",
+      "nome": "Piemonte",
+      "statuto_speciale": false
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 2,
+    "fields": {
+      "codice_istat": "02",
+      "nome": "Valle d'Aosta",
+      "statuto_speciale": true
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 3,
+    "fields": {
+      "codice_istat": "03",
+      "nome": "Lombardia",
+      "statuto_speciale": false
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 4,
+    "fields": {
+      "codice_istat": "04",
+      "nome": "Trentino-Alto Adige",
+      "statuto_speciale": true
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 5,
+    "fields": {
+      "codice_istat": "05",
+      "nome": "Veneto",
+      "statuto_speciale": false
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 6,
+    "fields": {
+      "codice_istat": "06",
+      "nome": "Friuli-Venezia Giulia",
+      "statuto_speciale": true
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 7,
+    "fields": {
+      "codice_istat": "07",
+      "nome": "Liguria",
+      "statuto_speciale": false
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 8,
+    "fields": {
+      "codice_istat": "08",
+      "nome": "Emilia-Romagna",
+      "statuto_speciale": false
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 9,
+    "fields": {
+      "codice_istat": "09",
+      "nome": "Toscana",
+      "statuto_speciale": false
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 10,
+    "fields": {
+      "codice_istat": "10",
+      "nome": "Umbria",
+      "statuto_speciale": false
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 11,
+    "fields": {
+      "codice_istat": "11",
+      "nome": "Marche",
+      "statuto_speciale": false
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 12,
+    "fields": {
+      "codice_istat": "12",
+      "nome": "Lazio",
+      "statuto_speciale": false
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 13,
+    "fields": {
+      "codice_istat": "13",
+      "nome": "Abruzzo",
+      "statuto_speciale": false
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 14,
+    "fields": {
+      "codice_istat": "14",
+      "nome": "Molise",
+      "statuto_speciale": false
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 15,
+    "fields": {
+      "codice_istat": "15",
+      "nome": "Campania",
+      "statuto_speciale": false
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 16,
+    "fields": {
+      "codice_istat": "16",
+      "nome": "Puglia",
+      "statuto_speciale": false
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 17,
+    "fields": {
+      "codice_istat": "17",
+      "nome": "Basilicata",
+      "statuto_speciale": false
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 18,
+    "fields": {
+      "codice_istat": "18",
+      "nome": "Calabria",
+      "statuto_speciale": false
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 19,
+    "fields": {
+      "codice_istat": "19",
+      "nome": "Sicilia",
+      "statuto_speciale": true
+    }
+  },
+  {
+    "model": "territorio.regione",
+    "pk": 20,
+    "fields": {
+      "codice_istat": "20",
+      "nome": "Sardegna",
+      "statuto_speciale": true
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 1,
+    "fields": {
+      "regione": 1,
+      "codice_istat": "001",
+      "sigla": "TO",
+      "nome": "Torino",
+      "is_citta_metropolitana": true
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 2,
+    "fields": {
+      "regione": 1,
+      "codice_istat": "002",
+      "sigla": "VC",
+      "nome": "Vercelli",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 3,
+    "fields": {
+      "regione": 1,
+      "codice_istat": "003",
+      "sigla": "NO",
+      "nome": "Novara",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 4,
+    "fields": {
+      "regione": 1,
+      "codice_istat": "004",
+      "sigla": "CN",
+      "nome": "Cuneo",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 5,
+    "fields": {
+      "regione": 1,
+      "codice_istat": "005",
+      "sigla": "AT",
+      "nome": "Asti",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 6,
+    "fields": {
+      "regione": 1,
+      "codice_istat": "006",
+      "sigla": "AL",
+      "nome": "Alessandria",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 7,
+    "fields": {
+      "regione": 1,
+      "codice_istat": "096",
+      "sigla": "BI",
+      "nome": "Biella",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 8,
+    "fields": {
+      "regione": 1,
+      "codice_istat": "103",
+      "sigla": "VB",
+      "nome": "Verbano-Cusio-Ossola",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 9,
+    "fields": {
+      "regione": 2,
+      "codice_istat": "007",
+      "sigla": "AO",
+      "nome": "Aosta",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 10,
+    "fields": {
+      "regione": 3,
+      "codice_istat": "012",
+      "sigla": "VA",
+      "nome": "Varese",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 11,
+    "fields": {
+      "regione": 3,
+      "codice_istat": "013",
+      "sigla": "CO",
+      "nome": "Como",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 12,
+    "fields": {
+      "regione": 3,
+      "codice_istat": "014",
+      "sigla": "SO",
+      "nome": "Sondrio",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 13,
+    "fields": {
+      "regione": 3,
+      "codice_istat": "015",
+      "sigla": "MI",
+      "nome": "Milano",
+      "is_citta_metropolitana": true
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 14,
+    "fields": {
+      "regione": 3,
+      "codice_istat": "016",
+      "sigla": "BG",
+      "nome": "Bergamo",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 15,
+    "fields": {
+      "regione": 3,
+      "codice_istat": "017",
+      "sigla": "BS",
+      "nome": "Brescia",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 16,
+    "fields": {
+      "regione": 3,
+      "codice_istat": "018",
+      "sigla": "PV",
+      "nome": "Pavia",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 17,
+    "fields": {
+      "regione": 3,
+      "codice_istat": "019",
+      "sigla": "CR",
+      "nome": "Cremona",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 18,
+    "fields": {
+      "regione": 3,
+      "codice_istat": "020",
+      "sigla": "MN",
+      "nome": "Mantova",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 19,
+    "fields": {
+      "regione": 3,
+      "codice_istat": "097",
+      "sigla": "LC",
+      "nome": "Lecco",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 20,
+    "fields": {
+      "regione": 3,
+      "codice_istat": "098",
+      "sigla": "LO",
+      "nome": "Lodi",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 21,
+    "fields": {
+      "regione": 3,
+      "codice_istat": "108",
+      "sigla": "MB",
+      "nome": "Monza e della Brianza",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 22,
+    "fields": {
+      "regione": 4,
+      "codice_istat": "021",
+      "sigla": "BZ",
+      "nome": "Bolzano",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 23,
+    "fields": {
+      "regione": 4,
+      "codice_istat": "022",
+      "sigla": "TN",
+      "nome": "Trento",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 24,
+    "fields": {
+      "regione": 5,
+      "codice_istat": "023",
+      "sigla": "VR",
+      "nome": "Verona",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 25,
+    "fields": {
+      "regione": 5,
+      "codice_istat": "024",
+      "sigla": "VI",
+      "nome": "Vicenza",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 26,
+    "fields": {
+      "regione": 5,
+      "codice_istat": "025",
+      "sigla": "BL",
+      "nome": "Belluno",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 27,
+    "fields": {
+      "regione": 5,
+      "codice_istat": "026",
+      "sigla": "TV",
+      "nome": "Treviso",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 28,
+    "fields": {
+      "regione": 5,
+      "codice_istat": "027",
+      "sigla": "VE",
+      "nome": "Venezia",
+      "is_citta_metropolitana": true
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 29,
+    "fields": {
+      "regione": 5,
+      "codice_istat": "028",
+      "sigla": "PD",
+      "nome": "Padova",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 30,
+    "fields": {
+      "regione": 5,
+      "codice_istat": "029",
+      "sigla": "RO",
+      "nome": "Rovigo",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 31,
+    "fields": {
+      "regione": 6,
+      "codice_istat": "030",
+      "sigla": "UD",
+      "nome": "Udine",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 32,
+    "fields": {
+      "regione": 6,
+      "codice_istat": "031",
+      "sigla": "GO",
+      "nome": "Gorizia",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 33,
+    "fields": {
+      "regione": 6,
+      "codice_istat": "032",
+      "sigla": "TS",
+      "nome": "Trieste",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 34,
+    "fields": {
+      "regione": 6,
+      "codice_istat": "093",
+      "sigla": "PN",
+      "nome": "Pordenone",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 35,
+    "fields": {
+      "regione": 7,
+      "codice_istat": "008",
+      "sigla": "IM",
+      "nome": "Imperia",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 36,
+    "fields": {
+      "regione": 7,
+      "codice_istat": "009",
+      "sigla": "SV",
+      "nome": "Savona",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 37,
+    "fields": {
+      "regione": 7,
+      "codice_istat": "010",
+      "sigla": "GE",
+      "nome": "Genova",
+      "is_citta_metropolitana": true
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 38,
+    "fields": {
+      "regione": 7,
+      "codice_istat": "011",
+      "sigla": "SP",
+      "nome": "La Spezia",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 39,
+    "fields": {
+      "regione": 8,
+      "codice_istat": "033",
+      "sigla": "PC",
+      "nome": "Piacenza",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 40,
+    "fields": {
+      "regione": 8,
+      "codice_istat": "034",
+      "sigla": "PR",
+      "nome": "Parma",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 41,
+    "fields": {
+      "regione": 8,
+      "codice_istat": "035",
+      "sigla": "RE",
+      "nome": "Reggio nell'Emilia",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 42,
+    "fields": {
+      "regione": 8,
+      "codice_istat": "036",
+      "sigla": "MO",
+      "nome": "Modena",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 43,
+    "fields": {
+      "regione": 8,
+      "codice_istat": "037",
+      "sigla": "BO",
+      "nome": "Bologna",
+      "is_citta_metropolitana": true
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 44,
+    "fields": {
+      "regione": 8,
+      "codice_istat": "038",
+      "sigla": "FE",
+      "nome": "Ferrara",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 45,
+    "fields": {
+      "regione": 8,
+      "codice_istat": "039",
+      "sigla": "RA",
+      "nome": "Ravenna",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 46,
+    "fields": {
+      "regione": 8,
+      "codice_istat": "040",
+      "sigla": "FC",
+      "nome": "Forlì-Cesena",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 47,
+    "fields": {
+      "regione": 8,
+      "codice_istat": "099",
+      "sigla": "RN",
+      "nome": "Rimini",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 48,
+    "fields": {
+      "regione": 9,
+      "codice_istat": "045",
+      "sigla": "MS",
+      "nome": "Massa-Carrara",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 49,
+    "fields": {
+      "regione": 9,
+      "codice_istat": "046",
+      "sigla": "LU",
+      "nome": "Lucca",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 50,
+    "fields": {
+      "regione": 9,
+      "codice_istat": "047",
+      "sigla": "PT",
+      "nome": "Pistoia",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 51,
+    "fields": {
+      "regione": 9,
+      "codice_istat": "048",
+      "sigla": "FI",
+      "nome": "Firenze",
+      "is_citta_metropolitana": true
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 52,
+    "fields": {
+      "regione": 9,
+      "codice_istat": "049",
+      "sigla": "LI",
+      "nome": "Livorno",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 53,
+    "fields": {
+      "regione": 9,
+      "codice_istat": "050",
+      "sigla": "PI",
+      "nome": "Pisa",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 54,
+    "fields": {
+      "regione": 9,
+      "codice_istat": "051",
+      "sigla": "AR",
+      "nome": "Arezzo",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 55,
+    "fields": {
+      "regione": 9,
+      "codice_istat": "052",
+      "sigla": "SI",
+      "nome": "Siena",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 56,
+    "fields": {
+      "regione": 9,
+      "codice_istat": "053",
+      "sigla": "GR",
+      "nome": "Grosseto",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 57,
+    "fields": {
+      "regione": 9,
+      "codice_istat": "100",
+      "sigla": "PO",
+      "nome": "Prato",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 58,
+    "fields": {
+      "regione": 10,
+      "codice_istat": "054",
+      "sigla": "PG",
+      "nome": "Perugia",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 59,
+    "fields": {
+      "regione": 10,
+      "codice_istat": "055",
+      "sigla": "TR",
+      "nome": "Terni",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 60,
+    "fields": {
+      "regione": 11,
+      "codice_istat": "041",
+      "sigla": "PU",
+      "nome": "Pesaro e Urbino",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 61,
+    "fields": {
+      "regione": 11,
+      "codice_istat": "042",
+      "sigla": "AN",
+      "nome": "Ancona",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 62,
+    "fields": {
+      "regione": 11,
+      "codice_istat": "043",
+      "sigla": "MC",
+      "nome": "Macerata",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 63,
+    "fields": {
+      "regione": 11,
+      "codice_istat": "044",
+      "sigla": "AP",
+      "nome": "Ascoli Piceno",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 64,
+    "fields": {
+      "regione": 11,
+      "codice_istat": "109",
+      "sigla": "FM",
+      "nome": "Fermo",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 65,
+    "fields": {
+      "regione": 12,
+      "codice_istat": "056",
+      "sigla": "VT",
+      "nome": "Viterbo",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 66,
+    "fields": {
+      "regione": 12,
+      "codice_istat": "057",
+      "sigla": "RI",
+      "nome": "Rieti",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 67,
+    "fields": {
+      "regione": 12,
+      "codice_istat": "058",
+      "sigla": "RM",
+      "nome": "Roma",
+      "is_citta_metropolitana": true
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 68,
+    "fields": {
+      "regione": 12,
+      "codice_istat": "059",
+      "sigla": "LT",
+      "nome": "Latina",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 69,
+    "fields": {
+      "regione": 12,
+      "codice_istat": "060",
+      "sigla": "FR",
+      "nome": "Frosinone",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 70,
+    "fields": {
+      "regione": 13,
+      "codice_istat": "066",
+      "sigla": "AQ",
+      "nome": "L'Aquila",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 71,
+    "fields": {
+      "regione": 13,
+      "codice_istat": "067",
+      "sigla": "TE",
+      "nome": "Teramo",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 72,
+    "fields": {
+      "regione": 13,
+      "codice_istat": "068",
+      "sigla": "PE",
+      "nome": "Pescara",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 73,
+    "fields": {
+      "regione": 13,
+      "codice_istat": "069",
+      "sigla": "CH",
+      "nome": "Chieti",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 74,
+    "fields": {
+      "regione": 14,
+      "codice_istat": "070",
+      "sigla": "CB",
+      "nome": "Campobasso",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 75,
+    "fields": {
+      "regione": 14,
+      "codice_istat": "094",
+      "sigla": "IS",
+      "nome": "Isernia",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 76,
+    "fields": {
+      "regione": 15,
+      "codice_istat": "061",
+      "sigla": "CE",
+      "nome": "Caserta",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 77,
+    "fields": {
+      "regione": 15,
+      "codice_istat": "062",
+      "sigla": "BN",
+      "nome": "Benevento",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 78,
+    "fields": {
+      "regione": 15,
+      "codice_istat": "063",
+      "sigla": "NA",
+      "nome": "Napoli",
+      "is_citta_metropolitana": true
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 79,
+    "fields": {
+      "regione": 15,
+      "codice_istat": "064",
+      "sigla": "AV",
+      "nome": "Avellino",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 80,
+    "fields": {
+      "regione": 15,
+      "codice_istat": "065",
+      "sigla": "SA",
+      "nome": "Salerno",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 81,
+    "fields": {
+      "regione": 16,
+      "codice_istat": "071",
+      "sigla": "FG",
+      "nome": "Foggia",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 82,
+    "fields": {
+      "regione": 16,
+      "codice_istat": "072",
+      "sigla": "BA",
+      "nome": "Bari",
+      "is_citta_metropolitana": true
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 83,
+    "fields": {
+      "regione": 16,
+      "codice_istat": "073",
+      "sigla": "TA",
+      "nome": "Taranto",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 84,
+    "fields": {
+      "regione": 16,
+      "codice_istat": "074",
+      "sigla": "BR",
+      "nome": "Brindisi",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 85,
+    "fields": {
+      "regione": 16,
+      "codice_istat": "075",
+      "sigla": "LE",
+      "nome": "Lecce",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 86,
+    "fields": {
+      "regione": 16,
+      "codice_istat": "110",
+      "sigla": "BT",
+      "nome": "Barletta-Andria-Trani",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 87,
+    "fields": {
+      "regione": 17,
+      "codice_istat": "076",
+      "sigla": "PZ",
+      "nome": "Potenza",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 88,
+    "fields": {
+      "regione": 17,
+      "codice_istat": "077",
+      "sigla": "MT",
+      "nome": "Matera",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 89,
+    "fields": {
+      "regione": 18,
+      "codice_istat": "078",
+      "sigla": "CS",
+      "nome": "Cosenza",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 90,
+    "fields": {
+      "regione": 18,
+      "codice_istat": "079",
+      "sigla": "CZ",
+      "nome": "Catanzaro",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 91,
+    "fields": {
+      "regione": 18,
+      "codice_istat": "080",
+      "sigla": "RC",
+      "nome": "Reggio di Calabria",
+      "is_citta_metropolitana": true
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 92,
+    "fields": {
+      "regione": 18,
+      "codice_istat": "101",
+      "sigla": "KR",
+      "nome": "Crotone",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 93,
+    "fields": {
+      "regione": 18,
+      "codice_istat": "102",
+      "sigla": "VV",
+      "nome": "Vibo Valentia",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 94,
+    "fields": {
+      "regione": 19,
+      "codice_istat": "081",
+      "sigla": "TP",
+      "nome": "Trapani",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 95,
+    "fields": {
+      "regione": 19,
+      "codice_istat": "082",
+      "sigla": "PA",
+      "nome": "Palermo",
+      "is_citta_metropolitana": true
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 96,
+    "fields": {
+      "regione": 19,
+      "codice_istat": "083",
+      "sigla": "ME",
+      "nome": "Messina",
+      "is_citta_metropolitana": true
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 97,
+    "fields": {
+      "regione": 19,
+      "codice_istat": "084",
+      "sigla": "AG",
+      "nome": "Agrigento",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 98,
+    "fields": {
+      "regione": 19,
+      "codice_istat": "085",
+      "sigla": "CL",
+      "nome": "Caltanissetta",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 99,
+    "fields": {
+      "regione": 19,
+      "codice_istat": "086",
+      "sigla": "EN",
+      "nome": "Enna",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 100,
+    "fields": {
+      "regione": 19,
+      "codice_istat": "087",
+      "sigla": "CT",
+      "nome": "Catania",
+      "is_citta_metropolitana": true
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 101,
+    "fields": {
+      "regione": 19,
+      "codice_istat": "088",
+      "sigla": "RG",
+      "nome": "Ragusa",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 102,
+    "fields": {
+      "regione": 19,
+      "codice_istat": "089",
+      "sigla": "SR",
+      "nome": "Siracusa",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 103,
+    "fields": {
+      "regione": 20,
+      "codice_istat": "090",
+      "sigla": "SS",
+      "nome": "Sassari",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 104,
+    "fields": {
+      "regione": 20,
+      "codice_istat": "091",
+      "sigla": "NU",
+      "nome": "Nuoro",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 105,
+    "fields": {
+      "regione": 20,
+      "codice_istat": "092",
+      "sigla": "CA",
+      "nome": "Cagliari",
+      "is_citta_metropolitana": true
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 106,
+    "fields": {
+      "regione": 20,
+      "codice_istat": "095",
+      "sigla": "OR",
+      "nome": "Oristano",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "territorio.provincia",
+    "pk": 107,
+    "fields": {
+      "regione": 20,
+      "codice_istat": "111",
+      "sigla": "SU",
+      "nome": "Sud Sardegna",
+      "is_citta_metropolitana": false
+    }
+  },
+  {
+    "model": "elections.consultazioneelettorale",
+    "pk": 1,
+    "fields": {
+      "nome": "Referendum Costituzionale Giustizia 2026",
+      "data_inizio": "2026-03-22",
+      "data_fine": "2026-03-23",
+      "is_attiva": true,
+      "descrizione": "Referendum popolare confermativo della legge costituzionale 'Norme in materia di ordinamento giurisdizionale e di istituzione della Corte disciplinare'. Pubblicato in Gazzetta Ufficiale n. 253 del 30 ottobre 2025. Il referendum riguarda la separazione delle carriere tra magistrati giudicanti e requirenti, con modifiche agli articoli 87, 102, 104, 105, 106, 107, 110 della Costituzione. Referendum confermativo ex art. 138 Cost.: NON richiede quorum. Orari: domenica 7-23, lunedì 7-15."
+    }
+  },
+  {
+    "model": "elections.tipoelezione",
+    "pk": 1,
+    "fields": {
+      "consultazione": 1,
+      "tipo": "REFERENDUM",
+      "ambito_nazionale": true,
+      "regione": null
+    }
+  },
+  {
+    "model": "elections.schedaelettorale",
+    "pk": 1,
+    "fields": {
+      "tipo_elezione": 1,
+      "nome": "Referendum Costituzionale - Separazione Carriere Magistratura",
+      "colore": "azzurro",
+      "ordine": 1,
+      "testo_quesito": "Approvate il testo della legge costituzionale concernente «Norme in materia di ordinamento giurisdizionale e di istituzione della Corte disciplinare» approvato dal Parlamento e pubblicato nella Gazzetta Ufficiale della Repubblica italiana – Serie generale – n. 253 del 30 ottobre 2025?",
+      "schema_voti": {
+        "tipo": "si_no",
+        "opzioni": ["SI", "NO"],
+        "descrizione": "Referendum confermativo art. 138 Cost. - Nessun quorum richiesto",
+        "articoli_modificati": [87, 102, 104, 105, 106, 107, 110]
+      }
+    }
+  },
+  {
+    "model": "elections.circoscrizioneeuropee",
+    "pk": 1,
+    "fields": {
+      "codice": "NORD_OVEST"
+    }
+  },
+  {
+    "model": "elections.circoscrizioneeuropee",
+    "pk": 2,
+    "fields": {
+      "codice": "NORD_EST"
+    }
+  },
+  {
+    "model": "elections.circoscrizioneeuropee",
+    "pk": 3,
+    "fields": {
+      "codice": "CENTRO"
+    }
+  },
+  {
+    "model": "elections.circoscrizioneeuropee",
+    "pk": 4,
+    "fields": {
+      "codice": "SUD"
+    }
+  },
+  {
+    "model": "elections.circoscrizioneeuropee",
+    "pk": 5,
+    "fields": {
+      "codice": "ISOLE"
+    }
+  }
+]

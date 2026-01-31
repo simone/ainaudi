@@ -1,0 +1,10 @@
+{% extends "admin/base_site.html" %}
+{% load static i18n %}
+
+{% block content %}
+<meta http-equiv="refresh" content="0;url={% url 'admin_magic_link_request' %}">
+<script>window.location.href = "{% url 'admin_magic_link_request' %}";</script>
+<p>Reindirizzamento in corso... <a href="{% url 'admin_magic_link_request' %}">Clicca qui</a> se non vieni reindirizzato.</p>
+{% endblock %}
+
+{% block bodyclass %}login{% endblock %}

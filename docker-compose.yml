@@ -1,0 +1,117 @@
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: rdl_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: rdl_referendum
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rdl_referendum"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Django Backend
+  backend:
+    build:
+      context: ./backend_django
+      dockerfile: Dockerfile.dev
+    container_name: rdl_backend
+    restart: unless-stopped
+    environment:
+      - DEBUG=True
+      - DJANGO_SECRET_KEY=dev-secret-key-change-in-production
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=rdl_referendum
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - FRONTEND_URL=http://localhost:3000
+      - GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID_PLACEHOLDER
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+      - FEATURE_MAGIC_LINK=true
+      - FEATURE_AI_ASSISTANT=false
+    volumes:
+      - ./backend_django:/app
+      - backend_static:/app/staticfiles
+    ports:
+      - "3001:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "
+        python manage.py collectstatic --noinput &&
+        python manage.py migrate --noinput &&
+        python manage.py runserver 0.0.0.0:8000
+      "
+
+  # React Frontend (development)
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    container_name: rdl_frontend
+    restart: unless-stopped
+    environment:
+      - REACT_APP_API_URL=http://localhost:3001
+      - CHOKIDAR_USEPOLLING=true
+      - WDS_SOCKET_PORT=0
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    stdin_open: true
+    tty: true
+
+  # Redis (for caching and Celery - optional)
+  redis:
+    image: redis:7-alpine
+    container_name: rdl_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Adminer - Database management UI
+  adminer:
+    image: adminer:latest
+    container_name: rdl_adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      - ADMINER_DEFAULT_SERVER=db
+
+volumes:
+  postgres_data:
+  backend_static:
+  redis_data:
+
+networks:
+  default:
+    name: rdl_network
