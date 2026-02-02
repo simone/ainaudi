@@ -11,9 +11,176 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
 
+class RdlRegistration(models.Model):
+    """
+    Registration of an RDL (Responsabile Di Lista).
+
+    Supports two flows:
+    1. Self-registration: user requests to become RDL, status=PENDING until approved
+    2. Import by delegate: created directly with status=APPROVED
+
+    Once approved, RDL can be assigned to sections via SectionAssignment.
+    """
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', _('In attesa di approvazione')
+        APPROVED = 'APPROVED', _('Approvato')
+        REJECTED = 'REJECTED', _('Rifiutato')
+
+    # Contact info (email is the key identifier)
+    email = models.EmailField(_('email'), db_index=True)
+    nome = models.CharField(_('nome'), max_length=100)
+    cognome = models.CharField(_('cognome'), max_length=100)
+    telefono = models.CharField(_('recapito telefonico'), max_length=20)
+
+    # Personal data (required)
+    comune_nascita = models.CharField(_('comune di nascita'), max_length=100)
+    data_nascita = models.DateField(_('data di nascita'))
+
+    # Residence (required)
+    comune_residenza = models.CharField(_('residente nel comune di'), max_length=100)
+    indirizzo_residenza = models.CharField(_('indirizzo di residenza'), max_length=255)
+
+    # Assignment preferences
+    seggio_preferenza = models.CharField(
+        _('seggio/plesso di preferenza'),
+        max_length=255,
+        blank=True,
+        help_text=_('Dove fare il Rappresentante di Lista')
+    )
+
+    # Scope (where they can operate)
+    comune = models.ForeignKey(
+        'territorio.Comune',
+        on_delete=models.CASCADE,
+        related_name='rdl_registrations',
+        verbose_name=_('comune operativo')
+    )
+    municipio = models.ForeignKey(
+        'territorio.Municipio',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='rdl_registrations',
+        verbose_name=_('municipio di appartenenza'),
+        help_text=_('Per grandi città con municipi')
+    )
+
+    # Status
+    status = models.CharField(
+        _('stato'),
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING
+    )
+
+    # Link to user (created when approved or when user logs in)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='rdl_registrations',
+        verbose_name=_('utente')
+    )
+
+    # Audit
+    requested_at = models.DateTimeField(_('data richiesta'), auto_now_add=True)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='rdl_approvals',
+        verbose_name=_('approvato da')
+    )
+    approved_at = models.DateTimeField(_('data approvazione'), null=True, blank=True)
+    rejection_reason = models.TextField(_('motivo rifiuto'), blank=True)
+    notes = models.TextField(_('note'), blank=True)
+
+    # Source of registration
+    source = models.CharField(
+        _('origine'),
+        max_length=20,
+        choices=[
+            ('SELF', 'Auto-registrazione'),
+            ('IMPORT', 'Import CSV'),
+            ('MANUAL', 'Inserimento manuale'),
+        ],
+        default='SELF'
+    )
+
+    class Meta:
+        verbose_name = _('registrazione RDL')
+        verbose_name_plural = _('registrazioni RDL')
+        ordering = ['-requested_at']
+        indexes = [
+            models.Index(fields=['email']),
+            models.Index(fields=['status']),
+            models.Index(fields=['comune', 'status']),
+        ]
+        # No unique constraint - allow multiple registrations from same person
+
+    def __str__(self):
+        return f'{self.cognome} {self.nome} ({self.email}) - {self.comune}'
+
+    @property
+    def full_name(self):
+        return f'{self.nome} {self.cognome}'
+
+    def approve(self, approved_by):
+        """Approve this registration and create/link user."""
+        from django.utils import timezone
+        from core.models import User, RoleAssignment
+
+        self.status = self.Status.APPROVED
+        self.approved_by = approved_by
+        self.approved_at = timezone.now()
+
+        # Find or create user
+        user, created = User.objects.get_or_create(
+            email=self.email.lower(),
+            defaults={
+                'display_name': self.full_name,
+                'first_name': self.nome,
+                'last_name': self.cognome,
+            }
+        )
+        self.user = user
+
+        # Create RDL role assignment
+        RoleAssignment.objects.get_or_create(
+            user=user,
+            role='RDL',
+            defaults={
+                'assigned_by': approved_by,
+                'is_active': True,
+            }
+        )
+
+        self.save()
+        return user
+
+    def reject(self, rejected_by, reason=''):
+        """Reject this registration."""
+        from django.utils import timezone
+
+        self.status = self.Status.REJECTED
+        self.approved_by = rejected_by  # Store who rejected
+        self.approved_at = timezone.now()
+        self.rejection_reason = reason
+        self.save()
+
+
 class SectionAssignment(models.Model):
     """
     Assignment of a user (RDL or substitute) to an electoral section.
+
+    This is the MAPPATURA (operational assignment):
+    - Links RdlRegistration to SezioneElettorale
+    - Freely modifiable
+    - No formal document generated
+
+    For formal designation (DesignazioneRDL), see delegations app.
     """
     class Role(models.TextChoices):
         RDL = 'RDL', _('Responsabile di Lista')
@@ -31,11 +198,24 @@ class SectionAssignment(models.Model):
         related_name='section_assignments',
         verbose_name=_('consultazione')
     )
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+    # Primary FK - la fonte di verità per l'RDL assegnato
+    rdl_registration = models.ForeignKey(
+        'RdlRegistration',
         on_delete=models.CASCADE,
         related_name='section_assignments',
-        verbose_name=_('utente')
+        verbose_name=_('registrazione RDL'),
+        help_text=_('RDL dal pool approvati - cancellando l\'RDL si cancella l\'assegnazione')
+    )
+
+    # Legacy - mantenuto per compatibilità, derivato da rdl_registration.user
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='section_assignments',
+        verbose_name=_('utente (legacy)'),
+        help_text=_('Derivato da rdl_registration.user')
     )
     role = models.CharField(
         _('ruolo'),
@@ -54,17 +234,27 @@ class SectionAssignment(models.Model):
         verbose_name=_('assegnato da')
     )
     assigned_at = models.DateTimeField(_('data assegnazione'), auto_now_add=True)
-    is_active = models.BooleanField(_('attivo'), default=True)
     notes = models.TextField(_('note'), blank=True)
 
     class Meta:
         verbose_name = _('assegnazione sezione')
         verbose_name_plural = _('assegnazioni sezioni')
-        unique_together = ['sezione', 'consultazione', 'user']
         ordering = ['sezione__comune', 'sezione__numero']
         indexes = [
-            models.Index(fields=['user', 'consultazione']),
+            models.Index(fields=['rdl_registration', 'consultazione']),
             models.Index(fields=['sezione', 'consultazione']),
+        ]
+        constraints = [
+            # Un RDL può essere assegnato una sola volta per sezione/consultazione
+            models.UniqueConstraint(
+                fields=['sezione', 'consultazione', 'rdl_registration'],
+                name='unique_assignment_per_rdl'
+            ),
+            # Una sezione può avere un solo effettivo e un solo supplente
+            models.UniqueConstraint(
+                fields=['sezione', 'consultazione', 'role'],
+                name='unique_role_per_sezione'
+            ),
         ]
 
     def __str__(self):

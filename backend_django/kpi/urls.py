@@ -1,17 +1,11 @@
 """
 KPI URL configuration.
+Only exposes endpoints needed by the frontend.
 """
 from django.urls import path
-from .views import (
-    KPIDashboardView,
-    KPITurnoutView,
-    KPISectionStatusView,
-    KPIIncidentsView,
-)
+from .views import KPIDatiView, KPISezioniView
 
 urlpatterns = [
-    path('dashboard/', KPIDashboardView.as_view(), name='kpi-dashboard'),
-    path('turnout/', KPITurnoutView.as_view(), name='kpi-turnout'),
-    path('sections/', KPISectionStatusView.as_view(), name='kpi-sections'),
-    path('incidents/', KPIIncidentsView.as_view(), name='kpi-incidents'),
+    path('dati', KPIDatiView.as_view(), name='kpi-dati'),
+    path('sezioni', KPISezioniView.as_view(), name='kpi-sezioni'),
 ]

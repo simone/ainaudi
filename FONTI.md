@@ -1,166 +1,128 @@
-# Fonti Dati - RDL Referendum App
+# Fonti e Riferimenti Normativi
 
-Documentazione delle fonti ufficiali utilizzate per i dati dell'applicazione.
+## Rappresentanti di Lista - Normativa
 
----
+### Fonti Ufficiali
+- [Ministero dell'Interno - Pubblicazione Politiche 2018](https://dait.interno.gov.it/documenti/pubb_04_politiche_ed.2018.pdf)
+- [Ministero dell'Interno - Pubblicazione Amministrative 2025](https://dait.interno.gov.it/documenti/pubb-01-amministrative-ed-aprile-2025.pdf)
+- [FAQ Elezioni Amministrative - DAIT](https://dait.interno.gov.it/elezioni/faq/faq-elezioni-amministrative-2023)
 
-## 1. Territorio Italiano
+### Guide e Vademecum
+- [Manuale del Rappresentante di Lista - Fratelli d'Italia](https://www.fratelli-italia.it/wp-content/uploads/2016/05/MANUALE_RAPPRESENTANTE_LISTA_rev.pdf)
+- [Vademecum Rappresentanti di Lista - Azione](https://www.azione.it/wp-content/uploads/2024/04/Vademecum-Rappresentanti-di-Lista.docx.pdf)
 
-### Fonte Ufficiale ISTAT
-- **ISTAT - Codici statistici unità amministrative**: https://www.istat.it/classificazione/codici-dei-comuni-delle-province-e-delle-regioni/
-  - Elenco ufficiale comuni, province, regioni
-  - Aggiornato al 1 gennaio 2026
-  - 7.896 comuni (dal 22 gennaio 2024)
+### Wikipedia
+- [Rappresentante di lista - Wikipedia](https://it.wikipedia.org/wiki/Rappresentante_di_lista)
 
-- **ISTAT CSV Comuni**: https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.csv
-  - Download diretto CSV con tutti i comuni italiani
-  - Colonne: codice regione, provincia, comune, denominazione, sigla, CAP, ecc.
+## Terminologia per Tipo di Consultazione
 
-- **ISTAT XLS Comuni**: https://www4.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.xls
-  - Stesso contenuto in formato Excel
+### Rappresentante al Seggio
+Il termine ufficiale è sempre **"Rappresentante di Lista"** per tutte le consultazioni, inclusi i referendum (nonostante non ci siano liste). Ogni seggio può avere 2 rappresentanti per lista/comitato: un **Effettivo** e un **Supplente**.
 
-### Codici ISTAT Regioni
+### Catena di Nomina
 
-| Codice | Regione | Statuto |
-|--------|---------|---------|
-| 01 | Piemonte | Ordinario |
-| 02 | Valle d'Aosta | Speciale |
-| 03 | Lombardia | Ordinario |
-| 04 | Trentino-Alto Adige | Speciale |
-| 05 | Veneto | Ordinario |
-| 06 | Friuli-Venezia Giulia | Speciale |
-| 07 | Liguria | Ordinario |
-| 08 | Emilia-Romagna | Ordinario |
-| 09 | Toscana | Ordinario |
-| 10 | Umbria | Ordinario |
-| 11 | Marche | Ordinario |
-| 12 | Lazio | Ordinario |
-| 13 | Abruzzo | Ordinario |
-| 14 | Molise | Ordinario |
-| 15 | Campania | Ordinario |
-| 16 | Puglia | Ordinario |
-| 17 | Basilicata | Ordinario |
-| 18 | Calabria | Ordinario |
-| 19 | Sicilia | Speciale |
-| 20 | Sardegna | Speciale |
+| Consultazione | Chi nomina | Figura intermedia | Al seggio |
+|--------------|-----------|-------------------|-----------|
+| **Elezioni (tutte)** | Partito/Lista → Delegato di Lista | Sub-Delegato (mandato notarile) | Rappresentante di Lista |
+| **Referendum** | Comitato Promotore → Promotore/Delegato | Sub-Delegato (ammesso) | Rappresentante di Lista |
 
-### Altre Fonti Territoriali
-- **ADM (Agenzia Dogane e Monopoli)**: https://www.adm.gov.it/portale/documents/20182/900944/Codici+ISTAT+delle+regioni.pdf
-- **DAIT (Dipartimento Affari Interni)**: https://dait.interno.gov.it/documenti/decreto-fl-24-06-2021-2-all-a.pdf
-- **INAIL Open Data Province**: https://dati.inail.it/portale/it/dataset/infortuni-sul-lavoro/tipologiche/province-italiane.html
-- **Garda Informatica DB Comuni**: https://www.gardainformatica.it/database-comuni-italiani
-- **ANUSCA Codici ISTAT**: https://www.anusca.it/flex/cm/pages/ServeBLOB.php/L/IT/IDPagina/3999
-- **Wikipedia Codice ISTAT**: https://it.wikipedia.org/wiki/Codice_ISTAT
+### Referendum - Chi può nominare rappresentanti
+1. **I promotori** di ciascun referendum (direttamente o tramite delegati con mandato notarile)
+2. **I partiti parlamentari** (presenti in Parlamento nazionale o con eletti al Parlamento europeo)
 
-### Note sui Codici
-- I codici ISTAT usano un criterio geografico (nord-sud)
-- I codici Agenzia delle Entrate usano un criterio alfabetico
-- Dal 2015 le Città Metropolitane hanno codici 2xx (es. 201 Torino, 215 Roma)
-- La Sardegna avrà nuovi assetti territoriali dal 1 gennaio 2026
+Il "Delegato" deve avere mandato autenticato da notaio conferito dal promotore o dal presidente/segretario del partito (livello provinciale o superiore).
 
----
+**Nota**: I sub-delegati sono ammessi nei referendum, ma NON nelle elezioni amministrative.
 
-## 2. Sistema Elettorale Italiano
+### Fonti Terminologia
+- [Comune di Cesate - Referendum 2025](https://comune.cesate.mi.it/novita/notizia/referendum-8-e-9-giugno-2025-designare-i-rappresentanti-di-lista/)
+- [Comune di Bari - Designazioni Referendum](https://www.comune.bari.it/web/servizi-demografici/2025-06-designazioni-rappresentanti-partiti-gruppi-politici-promotori-referendum-nei-seggi-elettorali)
+- [Money.it - Rappresentanti di lista](https://www.money.it/rappresentati-lista-elezioni-dove-votano-requisiti-cosa-fanno)
+- [CGIL - Rappresentante di lista referendum 2025](https://www.cgil.it/referendum/referendum-lavoro-2025/rappresentante-di-lista-referendum-2025-registrazione-fuori-sede-a6160q83)
 
-### Normativa di Riferimento
-- **Costituzione della Repubblica Italiana**
-  - Art. 48: Diritto di voto
-  - Art. 56-57: Elezione Camera e Senato
-  - Art. 75: Referendum abrogativo
-  - Art. 138: Referendum costituzionale confermativo
+## Punti Chiave sulla Delega
 
-- **Testo Unico Elezioni (D.P.R. 361/1957)**
-  - https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:1957-03-30;361
+1. **Validità temporale**: Le deleghe sono valide per una singola consultazione elettorale
+2. **Termini presentazione**: Entro il giovedì precedente l'elezione (D.L. 77/2021)
+3. **Forma**: Scritta con firma autenticata, oppure PEC con firma digitale
+4. **Catena di deleghe**: Per elezioni sovra-comunali sono possibili sub-deleghe (tutte con firme autenticate)
+5. **Requisiti**: Il rappresentante deve essere elettore (vedi requisiti per tipo elezione)
 
-- **Legge elettorale Rosatellum (L. 165/2017)**
-  - Sistema misto proporzionale-uninominale
+## Requisiti RDL per Tipo di Consultazione
 
-### Circoscrizioni Europee
-5 macro-circoscrizioni per le elezioni del Parlamento Europeo:
-1. **Italia Nord-Occidentale**: Piemonte, Valle d'Aosta, Lombardia, Liguria
-2. **Italia Nord-Orientale**: Trentino-AA, Veneto, Friuli-VG, Emilia-Romagna
-3. **Italia Centrale**: Toscana, Umbria, Marche, Lazio
-4. **Italia Meridionale**: Abruzzo, Molise, Campania, Puglia, Basilicata, Calabria
-5. **Italia Insulare**: Sicilia, Sardegna
+Il rappresentante di lista deve essere iscritto nelle liste elettorali del territorio interessato dalla votazione. I requisiti variano in base al tipo di consultazione:
 
----
+| Tipo Consultazione | Requisito Elettore | Note |
+|-------------------|-------------------|------|
+| **Comunali** | Stesso Comune | Deve essere iscritto nelle liste elettorali del comune dove si vota |
+| **Regionali** | Stessa Regione | Elettore di un qualsiasi comune della regione |
+| **Politiche Camera** | Stessa Circoscrizione | Elettore di un comune della stessa circoscrizione elettorale (26 circoscrizioni) |
+| **Politiche Senato** | Stessa Regione | Elettore di un comune della stessa circoscrizione regionale (20 circoscrizioni) |
+| **Europee** | Stessa Circoscrizione | Elettore di un comune della stessa circoscrizione europea (5 circoscrizioni) |
+| **Referendum** | Qualsiasi Comune | Elettore di qualsiasi comune italiano |
 
-## 3. Referendum Giustizia 2026
+### Circoscrizioni Europee (5)
 
-### Date e Orari
-- **Date**: 22-23 marzo 2026
-- **Orari**: Domenica 7:00-23:00, Lunedì 7:00-15:00
+| Circoscrizione | Regioni |
+|---------------|---------|
+| Nord-Occidentale | Piemonte, Valle d'Aosta, Liguria, Lombardia |
+| Nord-Orientale | Veneto, Trentino-Alto Adige, Friuli-Venezia Giulia, Emilia-Romagna |
+| Centrale | Toscana, Umbria, Marche, Lazio |
+| Meridionale | Abruzzo, Molise, Campania, Puglia, Basilicata, Calabria |
+| Insulare | Sicilia, Sardegna |
 
-### Tipo
-- **Referendum confermativo costituzionale** (art. 138 Cost.)
-- **NON richiede quorum**: valido indipendentemente dall'affluenza
+### Incompatibilità
 
-### Quesito Ufficiale
-> "Approvate il testo della legge costituzionale concernente «Norme in materia di ordinamento giurisdizionale e di istituzione della Corte disciplinare» approvato dal Parlamento e pubblicato nella Gazzetta Ufficiale della Repubblica italiana – Serie generale – n. 253 del 30 ottobre 2025?"
-
-### Articoli Costituzionali Modificati
-- Art. 87 (Presidente della Repubblica)
-- Art. 102 (Funzione giurisdizionale)
-- Art. 104 (CSM)
-- Art. 105 (Attribuzioni CSM)
-- Art. 106 (Nomina magistrati)
-- Art. 107 (Inamovibilità magistrati)
-- Art. 110 (Ministro della giustizia)
+Non possono svolgere funzioni di rappresentante di lista:
+- Appartenenti alle Forze di Polizia
+- (Non c'è incompatibilità tra candidato e rappresentante di lista)
 
 ### Fonti
-- **Geopop**: https://www.geopop.it/il-referendum-sulla-giustizia-del-22-e-23-marzo-non-avra-il-quorum-cosa-significa-e-come-funzionera-il-voto/
-- **Prefettura Venezia**: https://prefettura.interno.gov.it/it/prefetture/venezia/notizie/referendum-giustizia-vota-22-e-23-marzo
-- **Pagella Politica**: https://pagellapolitica.it/articoli/testo-quesito-referendum-costituzionale-giustizia-separazione-carriere-magistrati
-- **Ministero Giustizia**: https://firmereferendum.giustizia.it/referendum/open/dettaglio-open/5400034
-- **Questione Giustizia**: https://www.questionegiustizia.it/articolo/data-referendum
-- **Avvocato Ticozzi**: https://www.avvocatoticozzi.it/it/blog/414/referendum-giustizia-2026-separazione-carriere
+- [Rappresentante di lista - Wikipedia](https://it.wikipedia.org/wiki/Rappresentante_di_lista)
+- [FAQ Elezioni Europee 2024 - DAIT](https://dait.interno.gov.it/elezioni/faq/faq-elezioni-europee-2024)
+- [Vademecum RDL - Azione](https://www.azione.it/wp-content/uploads/2024/04/Vademecum-Rappresentanti-di-Lista.docx.pdf)
 
-### Quesiti Abrogativi (storici, per riferimento)
-- **Sistema Penale**: https://www.sistemapenale.it/it/scheda/referendum-giustizia-guida-lettura-quesiti
-- **Istituto Sike**: https://www.istitutosike.com/wp/referendum-sulla-giustizia-breve-guida-ai-quesiti/
+## Dati Territoriali
 
----
+### ISTAT - Comuni Italiani
+- [Elenco Comuni ISTAT](https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.csv)
+- [Codici delle unità amministrative](https://www.istat.it/classificazione/codici-dei-comuni-delle-province-e-delle-regioni/)
 
-## 4. Autenticazione e Sicurezza
+### Statistiche
+- 20 Regioni
+- 107 Province / Città Metropolitane
+- 7.896 Comuni (Gennaio 2024)
 
-### Google OAuth 2.0
-- **Google Identity Services**: https://developers.google.com/identity
-- **OAuth 2.0 per Web Server**: https://developers.google.com/identity/protocols/oauth2/web-server
+### Municipi / Circoscrizioni
+- [Circoscrizione di decentramento comunale - Wikipedia](https://it.wikipedia.org/wiki/Circoscrizione_di_decentramento_comunale)
+- [Art. 17 TUEL - Circoscrizioni](https://www.brocardi.it/testo-unico-enti-locali/parte-i/titolo-ii/capo-i/art17.html)
+- [Municipi di Roma - Wikipedia](https://it.wikipedia.org/wiki/Municipi_di_Roma)
 
-### Django Allauth
-- **Documentazione**: https://docs.allauth.org/
-- **Provider Google**: https://docs.allauth.org/en/latest/socialaccount/providers/google.html
+**Normativa (TUEL art. 17):**
+- Comuni > 250.000 abitanti: obbligatorio
+- Comuni 100.000-250.000: facoltativo
+- Popolazione media circoscrizione: min 30.000 abitanti
 
-### Magic Link
-- **Django Signing**: https://docs.djangoproject.com/en/5.0/topics/signing/
-- **Best Practices**: pattern comune per auth passwordless
+**Città con circoscrizioni attive (125 totali):**
 
----
-
-## 5. PDF Generation
-
-### PyMuPDF (fitz)
-- **Documentazione**: https://pymupdf.readthedocs.io/
-- **GitHub**: https://github.com/pymupdf/PyMuPDF
-
-### Template Delega
-- Modelli Ministero dell'Interno per deleghe RDL
-
----
-
-## 6. Deployment
-
-### Google App Engine
-- **Django su GAE**: https://cloud.google.com/python/django/appengine
-- **Cloud SQL**: https://cloud.google.com/sql/docs/postgres
-
-### Docker
-- **Distroless Images**: https://github.com/GoogleContainerTools/distroless
-- **Python Distroless**: gcr.io/distroless/python3-debian12
+| Città | Provincia | N. | Denominazione |
+|-------|-----------|---:|---------------|
+| Roma | RM | 15 | Municipio |
+| Trento | TN | 12 | Circoscrizione |
+| Napoli | NA | 10 | Municipalità |
+| Milano | MI | 9 | Municipio |
+| Genova | GE | 9 | Municipio |
+| Torino | TO | 8 | Circoscrizione |
+| Palermo | PA | 8 | Circoscrizione |
+| Verona | VR | 8 | Circoscrizione |
+| Trieste | TS | 7 | Circoscrizione |
+| Bologna | BO | 6 | Quartiere |
+| Venezia | VE | 6 | Municipalità |
+| Catania | CT | 6 | Circoscrizione |
+| Messina | ME | 6 | Circoscrizione |
+| Bari | BA | 5 | Municipio |
+| Firenze | FI | 5 | Quartiere |
+| Bolzano | BZ | 5 | Quartiere |
 
 ---
-
-## Ultima Verifica
-
-**Data**: 31 gennaio 2026
-**Versione App**: 2.0 (Django)
+*Ultimo aggiornamento: Febbraio 2026*

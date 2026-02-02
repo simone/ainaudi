@@ -11,6 +11,15 @@ from core.admin_views import (
     AdminMagicLinkRequestView,
     AdminMagicLinkVerifyView,
 )
+from core.views import PermissionsView
+from sections.views import (
+    RdlEmailsView,
+    RdlSectionsView,
+    RdlAssignView,
+    RdlUnassignView,
+)
+from sections.urls import rdl_registration_urlpatterns, mappatura_urlpatterns
+from elections.views import ElectionListsView, ElectionCandidatesView
 
 urlpatterns = [
     # Root redirect to admin
@@ -26,17 +35,32 @@ urlpatterns = [
     # Custom auth endpoints (Google OAuth, Magic Link) - no signup, no password login
     path('api/auth/', include('core.urls')),
 
-    # API endpoints
-    path('api/territorio/', include('territorio.urls')),
+    # Permissions endpoint
+    path('api/permissions', PermissionsView.as_view(), name='permissions'),
+
+    # RDL assignment endpoints
+    path('api/rdl/emails', RdlEmailsView.as_view(), name='rdl-emails'),
+    path('api/rdl/sections', RdlSectionsView.as_view(), name='rdl-sections'),
+    path('api/rdl/assign', RdlAssignView.as_view(), name='rdl-assign'),
+    path('api/rdl/unassign', RdlUnassignView.as_view(), name='rdl-unassign'),
+
+    # RDL registration endpoints
+    path('api/rdl/', include(rdl_registration_urlpatterns)),
+
+    # Mappatura endpoints (operational RDL-to-section assignment)
+    path('api/mappatura/', include(mappatura_urlpatterns)),
+
+    # Election endpoints (singular 'election' for frontend compatibility)
+    path('api/election/lists', ElectionListsView.as_view(), name='election-lists'),
+    path('api/election/candidates', ElectionCandidatesView.as_view(), name='election-candidates'),
+
+    # API endpoints used by frontend
     path('api/elections/', include('elections.urls')),
     path('api/sections/', include('sections.urls')),
-    path('api/delegations/', include('delegations.urls')),
-    path('api/incidents/', include('incidents.urls')),
-    path('api/documents/', include('documents.urls')),
     path('api/kpi/', include('kpi.urls')),
-
-    # AI Assistant (feature-flagged)
-    path('api/ai/', include('ai_assistant.urls')),
+    path('api/risorse/', include('resources.urls')),
+    path('api/deleghe/', include('delegations.urls')),
+    path('api/territorio/', include('territorio.urls')),
 ]
 
 # Serve media files in development
@@ -46,4 +70,8 @@ if settings.DEBUG:
 # Admin site customization
 admin.site.site_header = 'RDL 5 Stelle'
 admin.site.site_title = 'RDL 5 Stelle'
-admin.site.index_title = 'Gestione Referendum'
+admin.site.index_title = 'RDL 5 Stelle'
+
+# Cleanup admin: remove unused models (Sites, Social accounts, etc.)
+# Must be imported AFTER admin.site.urls is included
+from config import admin_cleanup  # noqa: F401, E402

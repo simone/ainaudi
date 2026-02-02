@@ -1,24 +1,14 @@
 """
 Elections URL configuration.
-Territory endpoints are in territorio/urls.py.
+Only exposes endpoints needed by the frontend.
 """
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from django.urls import path
 from .views import (
-    ConsultazioneElettoraleViewSet,
-    TipoElezioneViewSet,
-    SchedaElettoraleViewSet,
-    ListaElettoraleViewSet,
-    CandidatoViewSet,
+    ConsultazioneAttivaView,
+    ElectionListsView,
+    ElectionCandidatesView,
 )
 
-router = DefaultRouter()
-router.register(r'consultazioni', ConsultazioneElettoraleViewSet, basename='consultazione')
-router.register(r'tipi', TipoElezioneViewSet, basename='tipo-elezione')
-router.register(r'schede', SchedaElettoraleViewSet, basename='scheda')
-router.register(r'liste', ListaElettoraleViewSet, basename='lista')
-router.register(r'candidati', CandidatoViewSet, basename='candidato')
-
 urlpatterns = [
-    path('', include(router.urls)),
+    path('consultazioni/attiva/', ConsultazioneAttivaView.as_view(), name='consultazione-attiva'),
 ]

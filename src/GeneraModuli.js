@@ -97,8 +97,8 @@ const GeneraModuli = ({client, setError}) => {
     };
 
     return (
-        <div className="container mt-5">
-            <h2>Tool per le preparazione dei moduli per le nomine RDL individuali e cumulative</h2>
+        <>
+            <h4>Genera Moduli Nomine RDL</h4>
             <p className="alert alert-secondary">
                 A norma di legge i dati del subdelegato li deve inserire chi autentica la sua firma,
                 possono quindi essere lasciati in bianco.
@@ -152,8 +152,7 @@ const GeneraModuli = ({client, setError}) => {
                         disabled={loading}>{loading ? 'Generazione in corso...' : 'Genera Riepilogativo'}</button>
             </form>
             {formError && <p className="text-danger mt-3">{formError}</p>}
-            <br/>
-        </div>
+        </>
     );
 };
 

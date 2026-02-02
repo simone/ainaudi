@@ -51,7 +51,7 @@ INSTALLED_APPS = [
 
     # Third-party apps
     'rest_framework',
-    'rest_framework.authtoken',
+    # 'rest_framework.authtoken',  # Removed: using JWT, not token auth
     'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     'delegations.apps.DelegationsConfig',
     'incidents.apps.IncidentsConfig',
     'documents.apps.DocumentsConfig',
+    'resources.apps.ResourcesConfig',
     'kpi.apps.KpiConfig',
     'ai_assistant.apps.AiAssistantConfig',
 ]
@@ -241,6 +242,7 @@ REST_AUTH = {
     'JWT_AUTH_REFRESH_COOKIE': 'rdl-refresh',
     'JWT_AUTH_HTTPONLY': True,
     'SESSION_LOGIN': False,
+    'TOKEN_MODEL': None,  # Disable token auth, using JWT only
 }
 
 
@@ -330,6 +332,16 @@ LOGGING = {
         'django': {
             'handlers': ['console'],
             'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        'delegations.signals': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'sections.signals': {
+            'handlers': ['console'],
+            'level': 'INFO',
             'propagate': False,
         },
     },

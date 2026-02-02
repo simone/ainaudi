@@ -1,118 +1,104 @@
 """
 Views for elections API endpoints.
+Only exposes endpoints needed by the frontend.
 """
-from rest_framework import viewsets, permissions
-from rest_framework.decorators import action
+from rest_framework.views import APIView
 from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import permissions
 
 from .models import (
-    ConsultazioneElettorale, TipoElezione, SchedaElettorale,
-    ListaElettorale, Candidato,
-)
-from .serializers import (
-    ConsultazioneElettoraleSerializer, ConsultazioneElettoraleDetailSerializer,
-    TipoElezioneSerializer, TipoElezioneDetailSerializer,
-    SchedaElettoraleSerializer, SchedaElettoraleDetailSerializer,
-    ListaElettoraleSerializer, ListaElettoraleListSerializer,
-    CandidatoSerializer, CandidatoListSerializer,
+    ConsultazioneElettorale, ListaElettorale, Candidato,
 )
 
 
-class ConsultazioneElettoraleViewSet(viewsets.ReadOnlyModelViewSet):
+def get_consultazione_attiva():
+    """Get the currently active consultation."""
+    return ConsultazioneElettorale.objects.filter(is_attiva=True).first()
+
+
+class ConsultazioneAttivaView(APIView):
     """
-    ViewSet for ConsultazioneElettorale (read-only).
+    Get the currently active electoral consultation.
 
-    GET /api/elections/consultazioni/
-    GET /api/elections/consultazioni/{id}/
     GET /api/elections/consultazioni/attiva/
     """
-    queryset = ConsultazioneElettorale.objects.prefetch_related('tipi_elezione').all()
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ['is_attiva']
-    search_fields = ['nome']
 
-    def get_serializer_class(self):
-        if self.action == 'retrieve' or self.action == 'attiva':
-            return ConsultazioneElettoraleDetailSerializer
-        return ConsultazioneElettoraleSerializer
-
-    @action(detail=False, methods=['get'])
-    def attiva(self, request):
-        """Get the currently active electoral consultation."""
-        consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
+    def get(self, request):
+        consultazione = get_consultazione_attiva()
         if not consultazione:
-            return Response({'detail': 'Nessuna consultazione attiva'}, status=404)
-        serializer = ConsultazioneElettoraleDetailSerializer(consultazione)
-        return Response(serializer.data)
+            return Response({})
+
+        # Get schede for this consultation
+        schede = []
+        for tipo in consultazione.tipi_elezione.all():
+            for scheda in tipo.schede.all():
+                schede.append({
+                    'id': scheda.id,
+                    'nome': scheda.nome,
+                    'colore': scheda.colore,
+                    'tipo': tipo.tipo,
+                    'testo_quesito': scheda.testo_quesito,
+                    'schema_voti': scheda.schema_voti,
+                })
+
+        return Response({
+            'id': consultazione.id,
+            'nome': consultazione.nome,
+            'data_inizio': consultazione.data_inizio,
+            'data_fine': consultazione.data_fine,
+            'descrizione': consultazione.descrizione,
+            'schede': schede,
+        })
 
 
-class TipoElezioneViewSet(viewsets.ReadOnlyModelViewSet):
+class ElectionListsView(APIView):
     """
-    ViewSet for TipoElezione (read-only).
+    Get electoral lists for the active consultation.
 
-    GET /api/elections/tipi/
-    GET /api/elections/tipi/{id}/
+    GET /api/election/lists
+
+    Returns format expected by frontend: {values: [[nome1], [nome2], ...]}
     """
-    queryset = TipoElezione.objects.select_related('consultazione', 'regione').prefetch_related('schede').all()
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ['consultazione', 'tipo', 'ambito_nazionale', 'regione']
 
-    def get_serializer_class(self):
-        if self.action == 'retrieve':
-            return TipoElezioneDetailSerializer
-        return TipoElezioneSerializer
+    def get(self, request):
+        consultazione = get_consultazione_attiva()
+        if not consultazione:
+            return Response({'values': []})
+
+        # Get all lists for this consultation
+        liste = ListaElettorale.objects.filter(
+            scheda__tipo_elezione__consultazione=consultazione
+        ).order_by('ordine_scheda').values_list('nome', flat=True)
+
+        # Format expected by frontend: [[nome1], [nome2], ...]
+        values = [[nome] for nome in liste]
+
+        return Response({'values': values})
 
 
-class SchedaElettoraleViewSet(viewsets.ReadOnlyModelViewSet):
+class ElectionCandidatesView(APIView):
     """
-    ViewSet for SchedaElettorale (read-only).
+    Get candidates for the active consultation.
 
-    GET /api/elections/schede/
-    GET /api/elections/schede/{id}/
+    GET /api/election/candidates
+
+    Returns format expected by frontend: {values: [nome1, nome2, ...]}
     """
-    queryset = SchedaElettorale.objects.select_related('tipo_elezione').prefetch_related('liste', 'candidati_uninominali').all()
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ['tipo_elezione', 'tipo_elezione__tipo']
-    search_fields = ['nome']
 
-    def get_serializer_class(self):
-        if self.action == 'retrieve':
-            return SchedaElettoraleDetailSerializer
-        return SchedaElettoraleSerializer
+    def get(self, request):
+        consultazione = get_consultazione_attiva()
+        if not consultazione:
+            return Response({'values': []})
 
+        # Get all candidates for this consultation
+        candidati = Candidato.objects.filter(
+            lista__scheda__tipo_elezione__consultazione=consultazione
+        ).order_by('lista', 'posizione_lista')
 
-class ListaElettoraleViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    ViewSet for ListaElettorale (read-only).
+        # Format expected by frontend: array of names
+        values = [f"{c.cognome} {c.nome}" for c in candidati]
 
-    GET /api/elections/liste/
-    GET /api/elections/liste/{id}/
-    """
-    queryset = ListaElettorale.objects.select_related('scheda', 'coalizione').prefetch_related('candidati').all()
-    permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ['scheda', 'coalizione']
-    search_fields = ['nome', 'nome_breve']
-
-    def get_serializer_class(self):
-        if self.action == 'list':
-            return ListaElettoraleListSerializer
-        return ListaElettoraleSerializer
-
-
-class CandidatoViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    ViewSet for Candidato (read-only).
-
-    GET /api/elections/candidati/
-    GET /api/elections/candidati/{id}/
-    """
-    queryset = Candidato.objects.select_related('lista', 'scheda').all()
-    permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ['lista', 'scheda', 'is_sindaco', 'is_presidente']
-    search_fields = ['nome', 'cognome']
-
-    def get_serializer_class(self):
-        if self.action == 'list':
-            return CandidatoListSerializer
-        return CandidatoSerializer
+        return Response({'values': values})

@@ -11,8 +11,8 @@ class SectionAssignmentSerializer(serializers.ModelSerializer):
     sezione_numero = serializers.IntegerField(source='sezione.numero', read_only=True)
     sezione_comune = serializers.CharField(source='sezione.comune.nome', read_only=True)
     sezione_indirizzo = serializers.CharField(source='sezione.indirizzo', read_only=True)
-    user_email = serializers.EmailField(source='user.email', read_only=True)
-    user_display_name = serializers.CharField(source='user.display_name', read_only=True)
+    rdl_email = serializers.EmailField(source='rdl_registration.email', read_only=True)
+    rdl_nome = serializers.SerializerMethodField()
     role_display = serializers.CharField(source='get_role_display', read_only=True)
     assigned_by_email = serializers.EmailField(source='assigned_by.email', read_only=True)
 
@@ -20,11 +20,16 @@ class SectionAssignmentSerializer(serializers.ModelSerializer):
         model = SectionAssignment
         fields = [
             'id', 'sezione', 'sezione_numero', 'sezione_comune', 'sezione_indirizzo',
-            'consultazione', 'user', 'user_email', 'user_display_name',
+            'consultazione', 'rdl_registration', 'rdl_email', 'rdl_nome',
             'role', 'role_display', 'assigned_by', 'assigned_by_email',
-            'assigned_at', 'is_active', 'notes'
+            'assigned_at', 'notes'
         ]
         read_only_fields = ['id', 'assigned_at', 'assigned_by']
+
+    def get_rdl_nome(self, obj):
+        if obj.rdl_registration:
+            return f"{obj.rdl_registration.cognome} {obj.rdl_registration.nome}"
+        return None
 
 
 class SectionAssignmentCreateSerializer(serializers.ModelSerializer):
@@ -32,10 +37,13 @@ class SectionAssignmentCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SectionAssignment
-        fields = ['sezione', 'consultazione', 'user', 'role', 'notes']
+        fields = ['sezione', 'consultazione', 'rdl_registration', 'role', 'notes']
 
     def create(self, validated_data):
         validated_data['assigned_by'] = self.context['request'].user
+        # Set user from rdl_registration
+        if validated_data.get('rdl_registration') and validated_data['rdl_registration'].user:
+            validated_data['user'] = validated_data['rdl_registration'].user
         return super().create(validated_data)
 
 

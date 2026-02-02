@@ -1,4 +1,5 @@
 import React, {useEffect, useState} from 'react';
+import EmailAutocomplete from './EmailAutocomplete';
 
 const HighlightedText = ({ text, filter }) => {
     const regex = new RegExp(filter, 'gi');
@@ -72,10 +73,6 @@ function RdlList({client, setError}) {
         setEmailRDL(sezione[3] ? sezione[3] : "");
     };
 
-    const handleEmailChange = (e) => {
-        setEmailRDL(e.target.value);
-    };
-
     const handleSave = (sezione, remove) => {
         const email = emailRDL;
         if (remove) {
@@ -134,12 +131,14 @@ function RdlList({client, setError}) {
     }, [assignedFilter, assigned]);
 
     if (loading) {
-        return <div className="card-body d-flex align-items-center justify-content-center"
-                    style={{minHeight: '50vh'}}>
-            <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading...</span>
+        return (
+            <div className="loading-container" role="status" aria-live="polite">
+                <div className="spinner-border text-primary">
+                    <span className="visually-hidden">Caricamento in corso...</span>
+                </div>
+                <p className="loading-text">Caricamento assegnazioni RDL...</p>
             </div>
-        </div>;
+        );
     }
 
     return (
@@ -155,10 +154,12 @@ function RdlList({client, setError}) {
                     <div className="card-header bg-secondary">
                         Sezioni Non Assegnate
                     </div>
-                    <input type="search"
+                    <input
+                           type="search"
                            className="form-control"
                            placeholder="Filtra tramite sezione..."
                            onChange={changeUnassignedFilter}
+                           aria-label="Filtra sezioni non assegnate"
                     />
                     <div className="list-group">
                         {filteredUnassigned.map((sezione, index) => (
@@ -170,21 +171,14 @@ function RdlList({client, setError}) {
                                         </div>
                                         <div className="card-body">
                                             <div className="form-group">
-                                                <input
-                                                    type="email"
-                                                    className={"form-control" + (emailError ? " is-invalid" : "")}
-                                                    list="rdl-emails"
+                                                <EmailAutocomplete
                                                     value={emailRDL}
-                                                    onChange={handleEmailChange}
+                                                    onChange={setEmailRDL}
+                                                    emails={emails}
+                                                    placeholder="Cerca email RDL..."
+                                                    className={emailError ? "is-invalid" : ""}
                                                     required
-                                                    name="nope"
-                                                    autoComplete="off"
                                                 />
-                                                <datalist id="rdl-emails">
-                                                    {emails.map((email, index) => (
-                                                        <option key={index} value={email}/>
-                                                    ))}
-                                                </datalist>
                                                 {emailError && (
                                                     <div className="alert alert-danger mt-2" role="alert">
                                                         {emailError}
@@ -197,7 +191,7 @@ function RdlList({client, setError}) {
                                                 <div className="col-12">
                                                     <button type="button" className="btn btn-success w-100"
                                                             onClick={() => handleSave(selected, false)}
-                                                            disabled={!!emailError}>
+                                                            disabled={!!emailError || !emailRDL}>
                                                         Assegna
                                                     </button>
                                                 </div>
@@ -225,10 +219,12 @@ function RdlList({client, setError}) {
                     <div className="card-header">
                         Sezioni Assegnate
                     </div>
-                    <input type="search"
+                    <input
+                           type="search"
                            className="form-control"
                            placeholder="Filtra tramite sezione o RDL..."
                            onChange={changeAssignedFilter}
+                           aria-label="Filtra sezioni assegnate"
                     />
                     <div className="list-group">
                         {filteredAssigned.map((sezione, index) => (
@@ -240,21 +236,14 @@ function RdlList({client, setError}) {
                                         </div>
                                         <div className="card-body">
                                             <div className="form-group">
-                                                <input
-                                                    type="email"
-                                                    className={"form-control" + (emailError ? " is-invalid" : "")}
-                                                    list="rdl-emails"
+                                                <EmailAutocomplete
                                                     value={emailRDL}
-                                                    onChange={handleEmailChange}
+                                                    onChange={setEmailRDL}
+                                                    emails={emails}
+                                                    placeholder="Cerca email RDL..."
+                                                    className={emailError ? "is-invalid" : ""}
                                                     required
-                                                    name="nope"
-                                                    autoComplete="off"
                                                 />
-                                                <datalist id="rdl-emails">
-                                                    {emails.map((email, index) => (
-                                                        <option key={index} value={email}/>
-                                                    ))}
-                                                </datalist>
                                                 {emailError && (
                                                     <div className="alert alert-danger mt-2" role="alert">
                                                         {emailError}
@@ -273,7 +262,7 @@ function RdlList({client, setError}) {
                                                 <div className="col-6">
                                                     <button type="button" className="btn btn-success w-100"
                                                             onClick={() => handleSave(selected, false)}
-                                                            disabled={!!emailError}>
+                                                            disabled={!!emailError || !emailRDL}>
                                                         Assegna
                                                     </button>
                                                 </div>

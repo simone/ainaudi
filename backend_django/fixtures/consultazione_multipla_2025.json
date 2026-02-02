@@ -1,0 +1,248 @@
+[
+    {
+        "model": "elections.consultazioneelettorale",
+        "pk": 2,
+        "fields": {
+            "nome": "Elezioni 17 Giugno 2025",
+            "data_inizio": "2025-06-17",
+            "data_fine": "2025-06-17",
+            "is_attiva": false,
+            "descrizione": "Consultazione elettorale multipla: Referendum abrogativi, Elezioni Politiche (Camera suppletiva), Elezioni Europee, Elezioni Comunali in vari comuni."
+        }
+    },
+    {
+        "model": "elections.tipoelezione",
+        "pk": 10,
+        "fields": {
+            "consultazione": 2,
+            "tipo": "REFERENDUM",
+            "ambito_nazionale": true,
+            "regione": null
+        }
+    },
+    {
+        "model": "elections.tipoelezione",
+        "pk": 11,
+        "fields": {
+            "consultazione": 2,
+            "tipo": "POLITICHE_CAMERA",
+            "ambito_nazionale": true,
+            "regione": null
+        }
+    },
+    {
+        "model": "elections.tipoelezione",
+        "pk": 12,
+        "fields": {
+            "consultazione": 2,
+            "tipo": "EUROPEE",
+            "ambito_nazionale": true,
+            "regione": null
+        }
+    },
+    {
+        "model": "elections.tipoelezione",
+        "pk": 13,
+        "fields": {
+            "consultazione": 2,
+            "tipo": "COMUNALI",
+            "ambito_nazionale": false,
+            "regione": null
+        }
+    },
+    {
+        "model": "elections.schedaelettorale",
+        "pk": 20,
+        "fields": {
+            "tipo_elezione": 10,
+            "nome": "Quesito 1 - Cittadinanza",
+            "colore": "verde chiaro",
+            "ordine": 1,
+            "testo_quesito": "Volete voi che sia abrogata la legge 5 febbraio 1992, n. 91, recante \"Nuove norme sulla cittadinanza\", nel testo risultante dalle modificazioni e integrazioni successive, limitatamente all'articolo 9, comma 1, lettera b), limitatamente alle parole \"adottato da cittadino italiano\" e alle parole \", in entrambi i casi, \"?",
+            "schema_voti": {"tipo": "si_no"}
+        }
+    },
+    {
+        "model": "elections.schedaelettorale",
+        "pk": 21,
+        "fields": {
+            "tipo_elezione": 10,
+            "nome": "Quesito 2 - Lavoro",
+            "colore": "arancione",
+            "ordine": 2,
+            "testo_quesito": "Volete voi che sia abrogato il decreto legislativo 15 giugno 2015, n. 81, recante \"Disciplina organica dei contratti di lavoro e revisione della normativa in tema di mansioni\"?",
+            "schema_voti": {"tipo": "si_no"}
+        }
+    },
+    {
+        "model": "elections.schedaelettorale",
+        "pk": 22,
+        "fields": {
+            "tipo_elezione": 10,
+            "nome": "Quesito 3 - Giustizia",
+            "colore": "giallo",
+            "ordine": 3,
+            "testo_quesito": "Volete voi che sia abrogata la legge 24 marzo 1958, n. 195, recante \"Norme sulla costituzione e sul funzionamento del Consiglio superiore della Magistratura\"?",
+            "schema_voti": {"tipo": "si_no"}
+        }
+    },
+    {
+        "model": "elections.schedaelettorale",
+        "pk": 23,
+        "fields": {
+            "tipo_elezione": 10,
+            "nome": "Quesito 4 - Autonomia",
+            "colore": "celeste",
+            "ordine": 4,
+            "testo_quesito": "Volete voi che sia abrogata la legge 26 giugno 2024, n. 86, recante \"Disposizioni per l'attuazione dell'autonomia differenziata delle Regioni a statuto ordinario\"?",
+            "schema_voti": {"tipo": "si_no"}
+        }
+    },
+    {
+        "model": "elections.schedaelettorale",
+        "pk": 24,
+        "fields": {
+            "tipo_elezione": 10,
+            "nome": "Quesito 5 - Ambiente",
+            "colore": "viola",
+            "ordine": 5,
+            "testo_quesito": "Volete voi che sia abrogato il decreto-legge 31 maggio 2021, n. 77, convertito, con modificazioni, dalla legge 29 luglio 2021, n. 108?",
+            "schema_voti": {"tipo": "si_no"}
+        }
+    },
+    {
+        "model": "elections.schedaelettorale",
+        "pk": 30,
+        "fields": {
+            "tipo_elezione": 11,
+            "nome": "Camera dei Deputati - Suppletiva",
+            "colore": "rosa",
+            "ordine": 1,
+            "testo_quesito": null,
+            "schema_voti": {"tipo": "liste_candidati", "uninominale": true, "plurinominale": false}
+        }
+    },
+    {
+        "model": "elections.schedaelettorale",
+        "pk": 40,
+        "fields": {
+            "tipo_elezione": 12,
+            "nome": "Parlamento Europeo",
+            "colore": "grigio",
+            "ordine": 1,
+            "testo_quesito": null,
+            "schema_voti": {"tipo": "liste_preferenze", "max_preferenze": 3}
+        }
+    },
+    {
+        "model": "elections.schedaelettorale",
+        "pk": 50,
+        "fields": {
+            "tipo_elezione": 13,
+            "nome": "Consiglio Comunale e Sindaco",
+            "colore": "bianco",
+            "ordine": 1,
+            "testo_quesito": null,
+            "schema_voti": {"tipo": "sindaco_liste", "preferenze": 2, "ballottaggio": true}
+        }
+    },
+    {
+        "model": "elections.listaelettorale",
+        "pk": 100,
+        "fields": {
+            "scheda": 40,
+            "nome": "MOVIMENTO 5 STELLE",
+            "nome_breve": "M5S",
+            "ordine_scheda": 1,
+            "coalizione": null
+        }
+    },
+    {
+        "model": "elections.listaelettorale",
+        "pk": 101,
+        "fields": {
+            "scheda": 40,
+            "nome": "PARTITO DEMOCRATICO",
+            "nome_breve": "PD",
+            "ordine_scheda": 2,
+            "coalizione": null
+        }
+    },
+    {
+        "model": "elections.listaelettorale",
+        "pk": 102,
+        "fields": {
+            "scheda": 40,
+            "nome": "FRATELLI D'ITALIA",
+            "nome_breve": "FDI",
+            "ordine_scheda": 3,
+            "coalizione": null
+        }
+    },
+    {
+        "model": "elections.listaelettorale",
+        "pk": 103,
+        "fields": {
+            "scheda": 40,
+            "nome": "LEGA",
+            "nome_breve": "LEGA",
+            "ordine_scheda": 4,
+            "coalizione": null
+        }
+    },
+    {
+        "model": "elections.listaelettorale",
+        "pk": 104,
+        "fields": {
+            "scheda": 40,
+            "nome": "FORZA ITALIA",
+            "nome_breve": "FI",
+            "ordine_scheda": 5,
+            "coalizione": null
+        }
+    },
+    {
+        "model": "elections.listaelettorale",
+        "pk": 105,
+        "fields": {
+            "scheda": 40,
+            "nome": "ALLEANZA VERDI SINISTRA",
+            "nome_breve": "AVS",
+            "ordine_scheda": 6,
+            "coalizione": null
+        }
+    },
+    {
+        "model": "elections.listaelettorale",
+        "pk": 110,
+        "fields": {
+            "scheda": 30,
+            "nome": "MOVIMENTO 5 STELLE",
+            "nome_breve": "M5S",
+            "ordine_scheda": 1,
+            "coalizione": null
+        }
+    },
+    {
+        "model": "elections.listaelettorale",
+        "pk": 111,
+        "fields": {
+            "scheda": 30,
+            "nome": "PARTITO DEMOCRATICO",
+            "nome_breve": "PD",
+            "ordine_scheda": 2,
+            "coalizione": null
+        }
+    },
+    {
+        "model": "elections.listaelettorale",
+        "pk": 112,
+        "fields": {
+            "scheda": 30,
+            "nome": "FRATELLI D'ITALIA",
+            "nome_breve": "FDI",
+            "ordine_scheda": 3,
+            "coalizione": null
+        }
+    }
+]

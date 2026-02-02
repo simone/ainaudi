@@ -95,18 +95,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Adminer - Database management UI
-  adminer:
-    image: adminer:latest
-    container_name: rdl_adminer
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    depends_on:
-      - db
-    environment:
-      - ADMINER_DEFAULT_SERVER=db
-
 volumes:
   postgres_data:
   backend_static:

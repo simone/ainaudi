@@ -1,7 +1,7 @@
 {
-  "short_name": "RDL Europee 2024",
-  "name": "RDL Europee 2024",
-  "start_url": "https://rdl-europee-2024.ew.r.appspot.com",
+  "short_name": "RDL 5 Stelle",
+  "name": "RDL 5 Stelle",
+  "start_url": ".",
   "display": "standalone",
   "theme_color": "#000000",
   "background_color": "#ffffff"

@@ -4,71 +4,193 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-RDL (Responsabile Di Lista) is an election data collection web application for Movimento 5 Stelle during the 2024 European elections. It collects voting data from electoral sections, manages user assignments, displays KPI dashboards, and generates PDF nomination forms.
+RDL (Responsabile Di Lista) is an election data collection system for Movimento 5 Stelle. It manages the Italian electoral delegation hierarchy (Delegato → SubDelegato → RDL), collects voting data from electoral sections, handles RDL registrations/approvals, displays KPI dashboards, and generates PDF nomination forms.
 
 ## Development Commands
 
 ```bash
-# Install all dependencies
-npm install
-cd backend && npm install && cd ..
-cd pdf && pip install -r requirements.txt && cd ..
+# Install dependencies
+npm install                           # Frontend dependencies
+cd backend_django && pip install -r requirements.txt  # Django dependencies
 
-# Run all services (backend:3001, pdf:8000, frontend:3000)
-npm run dev
+# Run services (development)
+npm run frontend                      # React dev server (port 3000)
+cd backend_django && python manage.py runserver 3001  # Django API (port 3001)
 
-# Individual services
-npm run frontend    # React dev server
-npm run backend     # Node.js API server with nodemon
-npm run pdf         # Python Flask PDF server
+# Docker development (recommended)
+docker-compose up                     # All services (frontend:3000, backend:3001, postgres:5432)
 
-# Production build and deploy
-npm run build       # Build React for production
-npm run deploy      # Deploy frontend + backend to GAE
-cd pdf && gcloud app deploy && cd ..  # Deploy PDF service
-gcloud app deploy dispatch.yaml       # Deploy routing rules
+# Django migrations
+cd backend_django
+python manage.py makemigrations
+python manage.py migrate
 
 # Tests
-npm test            # Run React tests (jest/jsdom)
+npm test                              # React tests (jest)
+cd backend_django && python manage.py test  # Django tests
+
+# Production build
+npm run build                         # Build React for production
+docker-compose -f docker-compose.prod.yml up  # Production deployment
 ```
 
 ## Architecture
 
-**Three-service microservices architecture deployed on Google App Engine:**
+**Django + React full-stack application:**
 
-1. **React Frontend** (`src/`) - Single-page app with Google OAuth authentication
-2. **Node.js Backend** (`backend/`) - Express API server that queries Google Sheets as database
-3. **Python PDF Service** (`pdf/`) - Flask server using PyMuPDF for PDF generation
+```
+React Frontend (src/)
+       ↓
+    Nginx
+       ↓
+Django REST API (backend_django/)
+       ↓
+PostgreSQL / Redis
+```
 
-**Data Flow:**
-- Frontend authenticates via Google OAuth2, sends ID token in Authorization header
-- Backend verifies tokens and reads/writes to Google Sheets (ID: `1ZbPPXzjIiSq-1J0MjQYYjxY-ZuTwR3tDmCvcYgORabY`)
-- PDF generation requests go to Python service via `/api/generate/*` routes
-- Both backend services independently verify Google OAuth tokens
+### Backend Django Apps (`backend_django/`)
 
-**Key Backend Modules** (`backend/modules/`):
-- `section.js` - Electoral section CRUD operations
-- `rdl.js` - User assignment management
-- `kpi.js` - Data aggregation for dashboards
-- `election.js` - Candidate/list data
+| App | Purpose |
+|-----|---------|
+| `core` | User model (email-based), IdentityProviderLink, RoleAssignment, AuditLog |
+| `territorio` | Italian hierarchy: Regione → Provincia → Comune → Municipio → SezioneElettorale |
+| `elections` | ConsultazioneElettorale, TipoElezione, SchedaElettorale, ListaElettorale, Candidato |
+| `delegations` | DelegatoDiLista, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti |
+| `sections` | RdlRegistration, SectionAssignment, DatiSezione, DatiScheda |
+| `incidents` | Incident reporting during elections |
+| `documents` | PDF template generation |
+| `resources` | Educational materials for RDLs |
+| `kpi` | Dashboard data aggregation |
 
-**Caching:**
-- Client-side: Map-based cache in `Client.js`
-- Server-side: NodeCache with 60s TTL for data, 120s for permissions
-- Rate limiting: 120 requests per 120 seconds per IP
+### Delegation Hierarchy
 
-**Permission Model:** Three levels (sections, referenti, kpi) determined by Google Sheets row matching user email.
+```
+PARTITO (M5S)
+    ↓ nomina
+DELEGATO DI LISTA (deputati, senatori, consiglieri regionali)
+    ↓ sub-delega (firma autenticata)
+SUB-DELEGATO (per territorio: comuni/municipi)
+    ↓ designa
+RDL (Effettivo + Supplente) per sezione elettorale
+```
+
+**SubDelega types:**
+- `FIRMA_AUTENTICATA`: Can designate RDLs directly
+- `MAPPATURA`: Creates drafts (stato=BOZZA), Delegato must approve
+
+**SubDelega territory (hierarchy, from broader to specific):**
+- `regioni`: Access to all sections in the region
+- `province`: Access to all sections in the province
+- `comuni`: Access to all sections in the municipality
+- `municipi`: Access only to specified districts (Rome only)
+
+### Multi-Election Consultations
+
+When a consultation includes multiple election types (e.g., Referendum + Europee + Comunali):
+
+```
+ConsultazioneElettorale: "Elezioni 17 Giugno 2025"
+    ├── TipoElezione: REFERENDUM (nazionale) → 5 SchedaElettorale
+    ├── TipoElezione: EUROPEE (nazionale) → 1 SchedaElettorale
+    ├── TipoElezione: POLITICHE_CAMERA (suppletiva) → 1 SchedaElettorale
+    └── TipoElezione: COMUNALI (specifici comuni) → 1 SchedaElettorale
+```
+
+**Unified delegation model:**
+- **One Delega** covers all election types in the consultation
+- **One SubDelega** covers all election types in the consultation
+- **One Mappatura** (SectionAssignment) per RDL per section
+- **Document generation** produces N documents (one per TipoElezione)
+
+This simplifies administration while generating legally-required separate documents.
+
+### Frontend Components (`src/`)
+
+| Component | Purpose |
+|-----------|---------|
+| `App.js` | Main router, auth context, navigation |
+| `AuthContext.js` | JWT management, Google OAuth, Magic Link |
+| `Client.js` | API client with caching |
+| `GestioneDeleghe.js` | Delegation chain management |
+| `GestioneRdl.js` | RDL registration approvals |
+| `GestioneSezioni.js` | Electoral section CRUD |
+| `SectionForm.js` | Voting data entry form |
+| `Kpi.js` | Dashboard charts |
+
+### Authentication
+
+Three authentication flows:
+1. **Google OAuth2**: `POST /api/auth/google/` with ID token
+2. **Magic Link**: Request via `POST /api/auth/magic-link/`, verify via `POST /api/auth/magic-link/verify/`
+3. **M5S SSO**: (feature flagged, not active)
+
+JWT tokens: Access (1h) + Refresh (7d) stored in localStorage.
+
+### Role-Based Permissions
+
+| Role | Capabilities |
+|------|--------------|
+| `ADMIN` | Full system access |
+| `DELEGATE` | Create sub-deleghe, designate RDLs directly |
+| `SUBDELEGATE` | Designate RDLs or prepare mappature (based on tipo_delega) |
+| `RDL` | Enter section voting data |
+| `KPI_VIEWER` | View dashboards |
 
 ## Environment Variables
 
-Development `.env`:
-```
+```bash
+# Django
+DJANGO_SECRET_KEY=
+DEBUG=True
+DB_HOST=localhost
+DB_NAME=rdl_db
+DB_USER=rdl_user
+DB_PASSWORD=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+EMAIL_HOST=smtp.gmail.com
+EMAIL_HOST_USER=
+EMAIL_HOST_PASSWORD=
+FRONTEND_URL=http://localhost:3000
+
+# React
 REACT_APP_API_URL=http://localhost:3001
-REACT_APP_PDF_URL=http://localhost:8000
 ```
+
+## Key API Endpoints
+
+```
+# Auth
+POST /api/auth/google/                  - Google OAuth
+POST /api/auth/magic-link/              - Request magic link
+POST /api/auth/magic-link/verify/       - Verify magic link
+
+# Delegations
+GET  /api/deleghe/mia-catena/           - User's delegation chain
+GET  /api/deleghe/sub-deleghe/          - List sub-deleghe
+POST /api/deleghe/sub-deleghe/          - Create sub-delega
+GET  /api/deleghe/designazioni/         - List designazioni RDL
+POST /api/deleghe/designazioni/         - Create designazione
+
+# RDL Management
+GET  /api/rdl/registrations             - List RDL registrations
+POST /api/rdl/registrations/{id}/approve - Approve registration
+
+# Territory
+GET  /api/territorio/regioni/           - Regions
+GET  /api/territorio/province/?regione= - Provinces (cascading filter)
+GET  /api/territorio/comuni/?provincia= - Municipalities
+```
+
+## Signals (Auto-provisioning)
+
+When entities are created/updated, signals in `delegations/signals.py` and `sections/signals.py` automatically:
+- Create User accounts based on email
+- Assign appropriate roles (DELEGATE, SUBDELEGATE, RDL)
+- Link users to domain entities
 
 ## Deployment
 
-- **Main service** (Node.js 18): `app.yaml` - serves React build + API
-- **PDF service** (Python 3.9): `pdf/app.yaml` - handles `/api/generate/*`
-- **Routing**: `dispatch.yaml` directs traffic between services
+- **Development**: `docker-compose.yml` (PostgreSQL 15, Django, React, Redis, Adminer)
+- **Production**: `docker-compose.prod.yml` (distroless images, Nginx, non-root users, read-only filesystems)
+- **Legacy GAE**: `app.yaml`, `dispatch.yaml` (Node.js backend - deprecated)

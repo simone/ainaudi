@@ -9,6 +9,7 @@ function SectionList({client, user, setError, referenti}) {
     const [selectedSection, setSelectedSection] = useState(null);
     const [lists, setLists] = useState([]);
     const [candidates, setCandidates] = useState([]);
+    const [dataLoaded, setDataLoaded] = useState(false); // Track if lists/candidates loaded
     const [searchText, setSearchText] = useState('');
     const [selectedError, setSelectedError] = useState('');
     const [filteredSections, setFilteredSections] = useState([]);
@@ -17,35 +18,43 @@ function SectionList({client, user, setError, referenti}) {
     useEffect(() => {
         window.scrollTo(0, 0);
         console.log("Loading data");
-        loadLists();
-        loadCandidates();
+        // Load lists and candidates in parallel, then mark as loaded
+        Promise.all([loadLists(), loadCandidates()])
+            .then(() => {
+                setDataLoaded(true);
+            });
     }, []);
 
     const loadCandidates = () => {
-        client.election.candidates()
+        return client.election.candidates()
             .then(data => {
-                setCandidates(data.values);
+                setCandidates(Array.isArray(data.values) ? data.values : []);
             }).catch(error => {
             console.error('Error fetching Candidates data:', error);
-            setError(error.error || error.message || error.toString());
+            // Don't block on error - referendum may not have candidates
+            setCandidates([]);
         });
     }
 
     const loadLists = () => {
-        client.election.lists()
+        return client.election.lists()
             .then(data => {
-                setLists(data.values.map(row => row[0]));
+                const values = Array.isArray(data.values) ? data.values : [];
+                setLists(values.map(row => row[0]));
             }).catch(error => {
             console.error('Error fetching Lists data:', error);
-            setError(error.error || error.message || error.toString());
+            // Don't block on error - referendum may not have lists
+            setLists([]);
         });
     }
 
     useEffect(() => {
-        if (lists.length > 0 && candidates.length > 0) {
+        // Load sections once lists/candidates data is loaded
+        // For referendum: lists and candidates may be empty, that's OK
+        if (dataLoaded) {
             listSections();
         }
-    }, [lists, candidates]);
+    }, [dataLoaded]);
 
     function adaptToSections(rows) {
         return rows.map(({comune, sezione, email, values}) => {
@@ -199,12 +208,14 @@ function SectionList({client, user, setError, referenti}) {
     }, [assignedSections, searchText, selectedError]);
 
     if (loading) {
-        return <div className="card-body d-flex align-items-center justify-content-center"
-                    style={{minHeight: '50vh'}}>
-            <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading...</span>
+        return (
+            <div className="loading-container" role="status" aria-live="polite">
+                <div className="spinner-border text-primary">
+                    <span className="visually-hidden">Caricamento in corso...</span>
+                </div>
+                <p className="loading-text">Caricamento sezioni...</p>
             </div>
-        </div>;
+        );
     }
 
     if (selectedSection) {
@@ -223,17 +234,23 @@ function SectionList({client, user, setError, referenti}) {
         <>
             <div className="card mb-3">
                 <div className="card-body">
+                    <label htmlFor="search-sections" className="visually-hidden">Cerca sezioni</label>
                     <input
-                        type="text"
+                        id="search-sections"
+                        type="search"
                         className="form-control mb-2"
                         placeholder="Cerca per comune, sezione o email"
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
+                        aria-label="Cerca per comune, sezione o email"
                     />
+                    <label htmlFor="filter-errors" className="visually-hidden">Filtra per tipo di errore</label>
                     <select
-                        className="form-control"
+                        id="filter-errors"
+                        className="form-select"
                         value={selectedError}
                         onChange={(e) => setSelectedError(e.target.value)}
+                        aria-label="Filtra per tipo di errore"
                     >
                         <option value=""></option>
                         <option value="Il presidente deve fare la richiesta per avere le schede sufficienti a tutti gli elettori">Richiesta schede per elettori</option>

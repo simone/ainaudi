@@ -46,9 +46,22 @@ class CircoscrizioneEuropeeSerializer(serializers.ModelSerializer):
 # =============================================================================
 
 class ConsultazioneElettoraleSerializer(serializers.ModelSerializer):
+    tipo = serializers.SerializerMethodField()
+    tipo_display = serializers.SerializerMethodField()
+
     class Meta:
         model = ConsultazioneElettorale
-        fields = ['id', 'nome', 'data_inizio', 'data_fine', 'is_attiva', 'descrizione']
+        fields = ['id', 'nome', 'data_inizio', 'data_fine', 'is_attiva', 'descrizione', 'tipo', 'tipo_display']
+
+    def get_tipo(self, obj):
+        """Restituisce il tipo principale della consultazione."""
+        tipo_elezione = obj.tipi_elezione.first()
+        return tipo_elezione.tipo if tipo_elezione else None
+
+    def get_tipo_display(self, obj):
+        """Restituisce il display del tipo principale."""
+        tipo_elezione = obj.tipi_elezione.first()
+        return tipo_elezione.get_tipo_display() if tipo_elezione else None
 
 
 class TipoElezioneSerializer(serializers.ModelSerializer):

@@ -1,0 +1,539 @@
+[
+  {
+    "model": "territorio.comune",
+    "pk": 1,
+    "fields": {
+      "provincia": 67,
+      "codice_istat": "058091",
+      "codice_catastale": "H501",
+      "nome": "Roma",
+      "popolazione": 2860009,
+      "cap": "00100"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 100,
+    "fields": {
+      "email": "linda.meleo@example.com",
+      "display_name": "Linda Meleo",
+      "first_name": "Linda",
+      "last_name": "Meleo",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 101,
+    "fields": {
+      "email": "alessandra.quintieri@gmail.com",
+      "display_name": "Alessandra Quintieri",
+      "first_name": "Alessandra",
+      "last_name": "Quintieri",
+      "phone_number": "3357542575",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 102,
+    "fields": {
+      "email": "avvficcaglia@gmail.com",
+      "display_name": "Micaela Ficcaglia",
+      "first_name": "Micaela",
+      "last_name": "Ficcaglia",
+      "phone_number": "3348210043",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 103,
+    "fields": {
+      "email": "dadomani07@gmail.com",
+      "display_name": "Dario Quattromani",
+      "first_name": "Dario",
+      "last_name": "Quattromani",
+      "phone_number": "393498650934",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 104,
+    "fields": {
+      "email": "mancusolucia3@gmail.com",
+      "display_name": "Lucia Mancuso",
+      "first_name": "Lucia",
+      "last_name": "Mancuso",
+      "phone_number": "3291928432",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 105,
+    "fields": {
+      "email": "francesco.castracane@gmail.com",
+      "display_name": "Francesco Castracane",
+      "first_name": "Francesco",
+      "last_name": "Castracane",
+      "phone_number": "3397722146",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 106,
+    "fields": {
+      "email": "ritafulco1968@gmail.com",
+      "display_name": "Rita Fulco",
+      "first_name": "Rita",
+      "last_name": "Fulco",
+      "phone_number": "3385612407",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 107,
+    "fields": {
+      "email": "marinariccardi961@gmail.com",
+      "display_name": "Marina Riccardi",
+      "first_name": "Marina",
+      "last_name": "Riccardi",
+      "phone_number": "3482753681",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 108,
+    "fields": {
+      "email": "elvira.laccisaglia@live.it",
+      "display_name": "Elvira Laccisaglia",
+      "first_name": "Elvira",
+      "last_name": "Laccisaglia",
+      "phone_number": "3388934056",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 109,
+    "fields": {
+      "email": "luca_caviglioli@yahoo.it",
+      "display_name": "Luca Caviglioli",
+      "first_name": "Luca",
+      "last_name": "Caviglioli",
+      "phone_number": "3398028787",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 110,
+    "fields": {
+      "email": "germanapaoletti@libero.it",
+      "display_name": "Germana Paoletti",
+      "first_name": "Germana",
+      "last_name": "Paoletti",
+      "phone_number": "3409367250",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 111,
+    "fields": {
+      "email": "daniela.angelici@yahoo.it",
+      "display_name": "Daniela Angelici",
+      "first_name": "Daniela",
+      "last_name": "Angelici",
+      "phone_number": "3405971316",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 112,
+    "fields": {
+      "email": "dipalma.roberto@gmail.com",
+      "display_name": "Roberto Di Palma",
+      "first_name": "Roberto",
+      "last_name": "Di Palma",
+      "phone_number": "3483844944",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 113,
+    "fields": {
+      "email": "andrea.vidili@gmail.com",
+      "display_name": "Andrea Vidili",
+      "first_name": "Andrea",
+      "last_name": "Vidili",
+      "phone_number": "3479523976",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 114,
+    "fields": {
+      "email": "danielapietracci@gmail.com",
+      "display_name": "Daniela Pietracci",
+      "first_name": "Daniela",
+      "last_name": "Pietracci",
+      "phone_number": "3314092910",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 3,
+    "fields": {
+      "email": "s.federici@gmail.com",
+      "display_name": "Simone Federici",
+      "first_name": "Simone",
+      "last_name": "Federici",
+      "phone_number": "3921378324",
+      "is_active": true,
+      "is_staff": true,
+      "is_superuser": true,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 116,
+    "fields": {
+      "email": "daniele.bischetti@example.com",
+      "display_name": "Daniele Bischetti",
+      "first_name": "Daniele",
+      "last_name": "Bischetti",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 1,
+    "fields": {
+      "user": 100,
+      "role": "DELEGATE",
+      "scope_type": "comune",
+      "scope_value": "Roma",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Delegata Roma",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 2,
+    "fields": {
+      "user": 101,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio I",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio I",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 3,
+    "fields": {
+      "user": 102,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio II",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio II",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 4,
+    "fields": {
+      "user": 103,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio III",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio III",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 5,
+    "fields": {
+      "user": 104,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio IV",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio IV",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 6,
+    "fields": {
+      "user": 105,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio V",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio V",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 7,
+    "fields": {
+      "user": 106,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio VI",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio VI",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 8,
+    "fields": {
+      "user": 107,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio VII",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio VII",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 9,
+    "fields": {
+      "user": 108,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio VIII",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio VIII",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 10,
+    "fields": {
+      "user": 109,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio IX",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio IX",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 11,
+    "fields": {
+      "user": 110,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio X",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio X",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 12,
+    "fields": {
+      "user": 111,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio XI",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio XI",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 13,
+    "fields": {
+      "user": 112,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio XII",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio XII",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 14,
+    "fields": {
+      "user": 113,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio XIII",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio XIII",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 15,
+    "fields": {
+      "user": 114,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio XIV",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio XIV",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 16,
+    "fields": {
+      "user": 3,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio XV",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio XV",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "pk": 17,
+    "fields": {
+      "user": 116,
+      "role": "SUBDELEGATE",
+      "scope_type": "municipio",
+      "scope_value": "Municipio XVI",
+      "scope_comune": 1,
+      "is_active": true,
+      "notes": "Sub-delegato Municipio XVI",
+      "assigned_at": "2025-01-01T00:00:00Z"
+    }
+  }
+]

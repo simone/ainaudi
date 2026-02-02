@@ -4,6 +4,7 @@ Views for territorio API endpoints.
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.exceptions import NotFound
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Regione, Provincia, Comune, SezioneElettorale
@@ -52,18 +53,39 @@ class ComuneViewSet(viewsets.ReadOnlyModelViewSet):
     ViewSet for Comune (read-only).
 
     GET /api/territorio/comuni/
-    GET /api/territorio/comuni/{id}/
+    GET /api/territorio/comuni/{id}/      (accepts numeric ID or comune name)
     GET /api/territorio/comuni/{id}/sezioni/
     """
     queryset = Comune.objects.select_related('provincia', 'provincia__regione').prefetch_related('municipi').all()
     permission_classes = [permissions.IsAuthenticated]
     filterset_fields = ['provincia', 'provincia__regione']
     search_fields = ['nome', 'codice_istat', 'codice_catastale']
+    # Allow both numeric IDs and names in URL
+    lookup_value_regex = '[^/]+'
 
     def get_serializer_class(self):
         if self.action == 'list':
             return ComuneListSerializer
         return ComuneSerializer
+
+    def get_object(self):
+        """Override to accept both numeric ID and comune name."""
+        lookup_value = self.kwargs.get(self.lookup_field)
+
+        # Try numeric ID first
+        try:
+            pk = int(lookup_value)
+            return self.queryset.get(pk=pk)
+        except (ValueError, TypeError):
+            pass
+        except Comune.DoesNotExist:
+            raise NotFound(f'Comune con ID {lookup_value} non trovato')
+
+        # Try by name (case-insensitive)
+        try:
+            return self.queryset.get(nome__iexact=lookup_value)
+        except Comune.DoesNotExist:
+            raise NotFound(f'Comune "{lookup_value}" non trovato')
 
     @action(detail=True, methods=['get'])
     def sezioni(self, request, pk=None):

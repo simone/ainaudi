@@ -283,78 +283,124 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
                     </div>
                 </div>
             </div>
-            <div className="card mt-3">
-                <div className="card-header">
-                    Preferenze
-                </div>
-                <div className="card-body">
-                    {candidates.map((name) => (
-                        <div className="form-group mb-3" key={name}>
-                            <label>{name}:</label>
+            {/* Sezione Preferenze - solo se ci sono candidati (elezioni) */}
+            {candidates.length > 0 && (
+                <div className="card mt-3">
+                    <div className="card-header">
+                        Preferenze
+                    </div>
+                    <div className="card-body">
+                        {candidates.map((name) => (
+                            <div className="form-group mb-3" key={name}>
+                                <label>{name}:</label>
+                                <input
+                                    type="number"
+                                    className="form-control"
+                                    value={formData[name]}
+                                    onChange={(e) => handleChange(e, name)}
+                                    min="0"
+                                />
+                                {errors[name] && <div className="text-danger">{errors[name]}</div>}
+                            </div>
+                        ))}
+                        <div className="form-group mb-3">
+                            <label>TOTALE VOTI DI PREFERENZA</label>
                             <input
                                 type="number"
                                 className="form-control"
-                                value={formData[name]}
-                                onChange={(e) => handleChange(e, name)}
+                                value={formData.totalVotiDiPreferenza}
+                                readOnly
+                                style={{backgroundColor: 'lightgray'}}
+                            />
+                            {errors['totalVotiDiPreferenza'] && <div className="text-danger">{errors['totalVotiDiPreferenza']}</div>}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Sezione Voti di Lista - solo se ci sono liste (elezioni) */}
+            {lists.length > 0 && (
+                <div className="card mt-3">
+                    <div className="card-header">
+                        Voti di Lista
+                    </div>
+                    <div className="card-body">
+                        {lists.map((l) => (
+                            <div className="form-group mb-3" key={l}>
+                                <label>{l}:</label>
+                                {l === "MOVIMENTO 5 STELLE" && (
+                                    <small className="text-muted" style={{
+                                        paddingLeft: '.5em',
+                                    }}>
+                                        <i className="fas fa-star yellow-star"></i>
+                                        <i className="fas fa-star yellow-star"></i>
+                                        <i className="fas fa-star yellow-star"></i>
+                                        <i className="fas fa-star yellow-star"></i>
+                                        <i className="fas fa-star yellow-star"></i>
+                                    </small>
+                                )}
+                                <input
+                                    type="number"
+                                    className="form-control"
+                                    value={formData[l]}
+                                    onChange={(e) => handleChange(e, l)}
+                                />
+                                {errors[l] && <div className="text-danger">{errors[l]}</div>}
+                            </div>
+                        ))}
+                        <div className="form-group mb-3">
+                            <label>TOTALE VOTI DI LISTA</label>
+                            <input
+                                type="number"
+                                className="form-control"
+                                value={formData.totalVotiDiLista}
+                                readOnly
+                                style={{backgroundColor: 'lightgray'}}
+                            />
+                            {errors['totalVotiDiLista'] && <div className="text-danger">{errors['totalVotiDiLista']}</div>}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Sezione Voti Referendum - solo se NON ci sono liste/candidati */}
+            {lists.length === 0 && candidates.length === 0 && (
+                <div className="card mt-3">
+                    <div className="card-header bg-primary text-white">
+                        Voti Referendum
+                    </div>
+                    <div className="card-body">
+                        <div className="form-group mb-3">
+                            <label>Voti <strong>SI</strong>:</label>
+                            <input
+                                type="number"
+                                className="form-control"
+                                value={formData.votiSi || ''}
+                                onChange={(e) => handleChange(e, "votiSi")}
                                 min="0"
                             />
-                            {errors[name] && <div className="text-danger">{errors[name]}</div>}
                         </div>
-                    ))}
-                    <div className="form-group mb-3">
-                        <label>TOTALE VOTI DI PREFERENZA</label>
-                        <input
-                            type="number"
-                            className="form-control"
-                            value={formData.totalVotiDiPreferenza}
-                            readOnly
-                            style={{backgroundColor: 'lightgray'}}
-                        />
-                        {errors['totalVotiDiPreferenza'] && <div className="text-danger">{errors['totalVotiDiPreferenza']}</div>}
-                    </div>
-                </div>
-            </div>
-            <div className="card mt-3">
-                <div className="card-header">
-                    Voti di Lista
-                </div>
-                <div className="card-body">
-                    {lists.map((l) => (
-                        <div className="form-group mb-3" key={l}>
-                            <label>{l}:</label>
-                            {l === "MOVIMENTO 5 STELLE" && (
-                                <small className="text-muted" style={{
-                                    paddingLeft: '.5em',
-                                }}>
-                                    <i className="fas fa-star yellow-star"></i>
-                                    <i className="fas fa-star yellow-star"></i>
-                                    <i className="fas fa-star yellow-star"></i>
-                                    <i className="fas fa-star yellow-star"></i>
-                                    <i className="fas fa-star yellow-star"></i>
-                                </small>
-                            )}
+                        <div className="form-group mb-3">
+                            <label>Voti <strong>NO</strong>:</label>
                             <input
                                 type="number"
                                 className="form-control"
-                                value={formData[l]}
-                                onChange={(e) => handleChange(e, l)}
+                                value={formData.votiNo || ''}
+                                onChange={(e) => handleChange(e, "votiNo")}
+                                min="0"
                             />
-                            {errors[l] && <div className="text-danger">{errors[l]}</div>}
                         </div>
-                    ))}
-                    <div className="form-group mb-3">
-                        <label>TOTALE VOTI DI LISTA</label>
-                        <input
-                            type="number"
-                            className="form-control"
-                            value={formData.totalVotiDiLista}
-                            readOnly
-                            style={{backgroundColor: 'lightgray'}}
-                        />
-                        {errors['totalVotiDiLista'] && <div className="text-danger">{errors['totalVotiDiLista']}</div>}
+                        <div className="form-group mb-3">
+                            <label>TOTALE VOTI VALIDI</label>
+                            <input
+                                type="number"
+                                className="form-control"
+                                value={(parseInt(formData.votiSi) || 0) + (parseInt(formData.votiNo) || 0)}
+                                readOnly
+                                style={{backgroundColor: 'lightgray'}}
+                            />
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
             <div className="card mt-3">
                 <div className="card-header">
                     Schede

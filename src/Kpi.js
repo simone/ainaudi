@@ -7,7 +7,7 @@ import chroma from 'chroma-js';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, ChartDataLabels);
 
 
-function Kpi({ client, setError }) {
+function Kpi({ client, setError, consultazione }) {
     const [preferencesData, setPreferencesData] = useState({});
     const [listsData, setListaData] = useState({});
     const [percentData, setPercentData] = useState({});
@@ -17,6 +17,10 @@ function Kpi({ client, setError }) {
     const [countdown, setCountdown] = useState(60);
     const [candidates, setCandidates] = useState([]);
     const [lists, setLists] = useState([]);
+
+    // Determina se è un referendum
+    const isReferendum = consultazione?.tipo === 'REFERENDUM' ||
+        consultazione?.nome?.toLowerCase().includes('referendum');
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -51,7 +55,7 @@ function Kpi({ client, setError }) {
         client.kpi.dati()
             .then(data => {
                 const rows = data.values;
-                if (rows && rows.length > 0) {
+                if (Array.isArray(rows) && rows.length > 0) {
                     processKpiData(rows);
                 }
             }).catch(error => {
@@ -65,11 +69,13 @@ function Kpi({ client, setError }) {
             .then(data => {
                 const sezioniRows = data.values;
                 const newMap = new Map();
-                sezioniRows.forEach(({sezione, comune, municipio}) => {
-                    if (comune === 'ROMA' && municipio) {
-                        newMap.set(sezione, municipio);
-                    }
-                });
+                if (Array.isArray(sezioniRows)) {
+                    sezioniRows.forEach(({sezione, comune, municipio}) => {
+                        if (comune === 'ROMA' && municipio) {
+                            newMap.set(sezione, municipio);
+                        }
+                    });
+                }
                 setSezioneToMunicipio(newMap);
             }).catch(error => {
                 console.error('Error fetching Sezioni data:', error);
@@ -80,7 +86,7 @@ function Kpi({ client, setError }) {
     const loadCandidates = () => {
         client.election.candidates()
             .then(data => {
-                setCandidates(data.values);
+                setCandidates(Array.isArray(data.values) ? data.values : []);
             }).catch(error => {
                 console.error('Error fetching Candidates data:', error);
                 setError(error.error || error.message || error.toString());
@@ -90,7 +96,7 @@ function Kpi({ client, setError }) {
     const loadLists = () => {
         client.election.lists()
             .then(data => {
-                setLists(data.values);
+                setLists(Array.isArray(data.values) ? data.values : []);
             }).catch(error => {
                 console.error('Error fetching Lists data:', error);
                 setError(error.error || error.message || error.toString());
@@ -314,21 +320,25 @@ function Kpi({ client, setError }) {
     const progress = countdown/60 * 100;
 
     if (!preferencesData.labels || !listsData.labels) {
-        return <div className="card-body d-flex align-items-center justify-content-center"
-                    style={{minHeight: '50vh'}}>
-            <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading...</span>
+        return (
+            <div className="loading-container" role="status" aria-live="polite">
+                <div className="spinner-border text-primary">
+                    <span className="visually-hidden">Caricamento in corso...</span>
+                </div>
+                <p className="loading-text">Caricamento dati KPI...</p>
             </div>
-        </div>;
+        );
     }
 
     return (
         <>
             <div className="card">
                 <div className="card-header bg-info">
-                    Visualizza i grafici delle performance elettorali nella sezione KPI. Analizza i
-                    dati per le preferenze dei candidati e i voti di lista per valutare l'andamento
-                    elettorale.
+                    {isReferendum ? (
+                        <>Visualizza i risultati del referendum in tempo reale. Analizza i voti SI e NO per sezione e territorio.</>
+                    ) : (
+                        <>Visualizza i grafici delle performance elettorali nella sezione KPI. Analizza i dati per le preferenze dei candidati e i voti di lista per valutare l'andamento elettorale.</>
+                    )}
                 </div>
             </div>
             <div className="small" style={{
@@ -353,60 +363,77 @@ function Kpi({ client, setError }) {
                 Prossimo aggiornamento in: {countdown} secondi
             </div>
 
-            <div className="card mb-3">
-                <div className="card-header">
-                    <h2>Preferenze per Candidato</h2>
+            {/* Grafici specifici per REFERENDUM */}
+            {isReferendum && (
+                <div className="alert alert-info mb-3">
+                    <h5><i className="fas fa-chart-pie me-2"></i>Dashboard Referendum</h5>
+                    <p className="mb-0">
+                        I grafici SI/NO saranno disponibili quando inizierà lo scrutinio e verranno inseriti i primi dati.
+                    </p>
                 </div>
-                <div className="card-body">
-                    <div style={{ height: `${preferencesHeight}px` }}>
-                        <Bar data={preferencesData} options={options} />
-                    </div>
-                </div>
-            </div>
+            )}
 
-            <div className="card mb-3">
-                <div className="card-header">
-                    <h2>Voti di Lista</h2>
-                </div>
-                <div className="card-body">
-                    <div style={{ height: `${listsHeight}px` }}>
-                        <Bar data={listsData} options={options} />
+            {/* Grafici specifici per ELEZIONI (con candidati e liste) */}
+            {!isReferendum && candidates.length > 0 && (
+                <div className="card mb-3">
+                    <div className="card-header">
+                        <h2>Preferenze per Candidato</h2>
+                    </div>
+                    <div className="card-body">
+                        <div style={{ height: `${preferencesHeight}px` }}>
+                            <Bar data={preferencesData} options={options} />
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
-            <div className="card mb-3">
-                <div className="card-header">
-                    <h2>Percentuali di Lista</h2>
-                </div>
-                <div className="card-body">
-                    <div style={{ height: '400px' }}>
-                        <Pie data={percentData} options={pieOptions} />
+            {!isReferendum && lists.length > 0 && (
+                <>
+                    <div className="card mb-3">
+                        <div className="card-header">
+                            <h2>Voti di Lista</h2>
+                        </div>
+                        <div className="card-body">
+                            <div style={{ height: `${listsHeight}px` }}>
+                                <Bar data={listsData} options={options} />
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <div className="card mb-3">
-                <div className="card-header">
-                    <h2>Voti M5S per Comune</h2>
-                </div>
-                <div className="card-body">
-                    <div style={{ height: `${comuneHeight}px` }}>
-                        <Bar data={m5sComuneData} options={options} />
+                    <div className="card mb-3">
+                        <div className="card-header">
+                            <h2>Percentuali di Lista</h2>
+                        </div>
+                        <div className="card-body">
+                            <div style={{ height: '400px' }}>
+                                <Pie data={percentData} options={pieOptions} />
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <div className="card mb-3">
-                <div className="card-header">
-                    <h2>Voti M5S su ROMA per Municipio</h2>
-                </div>
-                <div className="card-body">
-                    <div style={{ height: `${municipioHeight}px` }}>
-                        <Bar data={m5sComuneMunicipioData} options={options} />
+                    <div className="card mb-3">
+                        <div className="card-header">
+                            <h2>Voti M5S per Comune</h2>
+                        </div>
+                        <div className="card-body">
+                            <div style={{ height: `${comuneHeight}px` }}>
+                                <Bar data={m5sComuneData} options={options} />
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+
+                    <div className="card mb-3">
+                        <div className="card-header">
+                            <h2>Voti M5S su ROMA per Municipio</h2>
+                        </div>
+                        <div className="card-body">
+                            <div style={{ height: `${municipioHeight}px` }}>
+                                <Bar data={m5sComuneMunicipioData} options={options} />
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
         </>
     );
 }

@@ -1,343 +1,653 @@
 """
-Delegations models: Hierarchical delegation management.
+Sistema di Deleghe Elettorali - Modello Django
 
-This module defines:
-- DelegationRelationship: Principal-delegate relationships
-- FreezeBatch: Snapshot of delegation state at a point in time
-- ProxyDelegationDocument: PDF documents for delegation
+Gerarchia delle deleghe secondo la normativa italiana (DPR 361/1957 Art. 25):
+
+    PARTITO (M5S)
+        ↓ nomina (atto formale del partito)
+    DELEGATO DI LISTA (deputati, senatori, consiglieri regionali)
+        ↓ sub-delega (con firma autenticata)
+    SUB-DELEGATO (per territorio specifico: comuni/municipi)
+        ↓ designa
+    RDL (Responsabile Di Lista) - Effettivo + Supplente
+
+Note:
+- Un Delegato può sub-delegare a più Sub-delegati (uno per territorio)
+- Un Sub-delegato può ricevere deleghe da più Delegati (es. Camera + Senato)
+- La catena delle deleghe viene allegata nel PDF di designazione RDL
 """
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
 
-class DelegationRelationship(models.Model):
-    """
-    Relationship between a principal (delegator) and a delegate.
-    Supports hierarchical delegation: DELEGATE > SUBDELEGATE > RDL
-    """
-    class RelationshipType(models.TextChoices):
-        ADMIN_TO_DELEGATE = 'ADMIN_TO_DELEGATE', _('Admin → Delegato')
-        DELEGATE_TO_SUBDELEGATE = 'DELEGATE_TO_SUBDELEGATE', _('Delegato → Sub-delegato')
-        SUBDELEGATE_TO_RDL = 'SUBDELEGATE_TO_RDL', _('Sub-delegato → RDL')
-        DIRECT_TO_RDL = 'DIRECT_TO_RDL', _('Diretto → RDL')
+# =============================================================================
+# DELEGATO DI LISTA (nominato dal Partito)
+# =============================================================================
 
+class DelegatoDiLista(models.Model):
+    """
+    Delegato di Lista nominato dal Partito.
+    Sono eletti: deputati, senatori, consiglieri regionali, eurodeputati.
+    Ricevono la delega dal partito per una specifica consultazione elettorale.
+    """
+    class Carica(models.TextChoices):
+        DEPUTATO = 'DEPUTATO', _('Deputato')
+        SENATORE = 'SENATORE', _('Senatore')
+        CONSIGLIERE_REGIONALE = 'CONSIGLIERE_REGIONALE', _('Consigliere Regionale')
+        CONSIGLIERE_COMUNALE = 'CONSIGLIERE_COMUNALE', _('Consigliere Comunale')
+        EURODEPUTATO = 'EURODEPUTATO', _('Europarlamentare')
+
+    # Consultazione elettorale di riferimento
     consultazione = models.ForeignKey(
         'elections.ConsultazioneElettorale',
         on_delete=models.CASCADE,
-        related_name='delegation_relationships',
+        related_name='delegati_lista',
         verbose_name=_('consultazione')
     )
-    principal = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='delegations_given',
-        verbose_name=_('delegante'),
-        help_text=_('Chi conferisce la delega')
-    )
-    delegate = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='delegations_received',
-        verbose_name=_('delegato'),
-        help_text=_('Chi riceve la delega')
-    )
-    relationship_type = models.CharField(
-        _('tipo relazione'),
-        max_length=30,
-        choices=RelationshipType.choices
+
+    # Dati anagrafici (come da documento di nomina)
+    cognome = models.CharField(_('cognome'), max_length=100)
+    nome = models.CharField(_('nome'), max_length=100)
+    luogo_nascita = models.CharField(_('luogo di nascita'), max_length=100)
+    data_nascita = models.DateField(_('data di nascita'))
+
+    # Carica elettiva
+    carica = models.CharField(_('carica'), max_length=30, choices=Carica.choices)
+    circoscrizione = models.CharField(
+        _('circoscrizione (testo)'),
+        max_length=100,
+        blank=True,
+        help_text=_('Campo descrittivo, usare i campi territorio per i permessi')
     )
 
-    # Scope: what the delegate can do
-    scope_regione = models.ForeignKey(
+    # Territorio di competenza (determina quali sezioni può vedere)
+    # Il delegato può operare su uno o più di questi livelli
+    territorio_regioni = models.ManyToManyField(
         'territorio.Regione',
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
-        related_name='delegation_relationships',
-        verbose_name=_('regione')
+        related_name='delegati_lista',
+        verbose_name=_('regioni'),
+        help_text=_('Regioni di competenza')
     )
-    scope_provincia = models.ForeignKey(
+    territorio_province = models.ManyToManyField(
         'territorio.Provincia',
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
-        related_name='delegation_relationships',
-        verbose_name=_('provincia')
+        related_name='delegati_lista',
+        verbose_name=_('province'),
+        help_text=_('Province di competenza')
     )
-    scope_comune = models.ForeignKey(
+    territorio_comuni = models.ManyToManyField(
         'territorio.Comune',
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
-        related_name='delegation_relationships',
-        verbose_name=_('comune')
+        related_name='delegati_lista',
+        verbose_name=_('comuni'),
+        help_text=_('Comuni di competenza')
     )
-    scope_municipio = models.ForeignKey(
-        'territorio.Municipio',
-        on_delete=models.SET_NULL,
-        null=True,
+    territorio_municipi = models.JSONField(
+        _('municipi'),
+        default=list,
         blank=True,
-        related_name='delegation_relationships',
-        verbose_name=_('municipio')
+        help_text=_('Lista di numeri di municipio (solo per Roma)')
     )
 
-    # Validity period
-    valid_from = models.DateTimeField(
-        _('valido da'),
-        help_text=_('Data inizio validità')
+    # Documento di nomina dal Partito
+    data_nomina = models.DateField(_('data nomina'))
+    numero_protocollo_nomina = models.CharField(
+        _('numero protocollo'),
+        max_length=50,
+        blank=True
     )
-    valid_to = models.DateTimeField(
-        _('valido fino a'),
-        null=True,
-        blank=True,
-        help_text=_('Data fine validità (opzionale)')
+    documento_nomina = models.FileField(
+        _('documento nomina'),
+        upload_to='deleghe/nomine_partito/',
+        null=True, blank=True,
+        help_text=_('PDF della nomina dal Partito')
     )
-    is_active = models.BooleanField(_('attiva'), default=True)
+
+    # Contatti
+    email = models.EmailField(_('email'), blank=True)
+    telefono = models.CharField(_('telefono'), max_length=20, blank=True)
+
+    # Account utente (opzionale, per accesso all'app)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='deleghe_lista',
+        verbose_name=_('account utente')
+    )
 
     # Audit
     created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('data modifica'), auto_now=True)
+
+    class Meta:
+        verbose_name = _('Delegato di Lista')
+        verbose_name_plural = _('Delegati di Lista')
+        ordering = ['consultazione', 'cognome', 'nome']
+        unique_together = ['consultazione', 'cognome', 'nome', 'data_nascita']
+
+    def __str__(self):
+        return f"{self.get_carica_display()} {self.cognome} {self.nome}"
+
+    @property
+    def nome_completo(self):
+        return f"{self.cognome} {self.nome}"
+
+
+# =============================================================================
+# SUB-DELEGA (dal Delegato di Lista al Sub-Delegato)
+# =============================================================================
+
+class SubDelega(models.Model):
+    """
+    Sub-delega: autorizzazione dal Delegato di Lista a un Sub-Delegato
+    per operare su un territorio specifico (comuni e/o municipi).
+
+    Tipi di sub-delega:
+    - FIRMA_AUTENTICATA: Sub-Delegato può designare RDL direttamente (firma autenticata)
+    - MAPPATURA: Sub-Delegato prepara bozze di designazione, il Delegato approva e firma
+    """
+
+    class TipoDelega(models.TextChoices):
+        FIRMA_AUTENTICATA = 'FIRMA_AUTENTICATA', _('Con firma autenticata (può designare RDL)')
+        MAPPATURA = 'MAPPATURA', _('Solo mappatura sezioni (Delegato firma)')
+
+    # Chi delega
+    delegato = models.ForeignKey(
+        DelegatoDiLista,
+        on_delete=models.CASCADE,
+        related_name='sub_deleghe',
+        verbose_name=_('delegato')
+    )
+
+    # Dati anagrafici del Sub-Delegato (come da documento)
+    cognome = models.CharField(_('cognome'), max_length=100)
+    nome = models.CharField(_('nome'), max_length=100)
+    luogo_nascita = models.CharField(_('luogo di nascita'), max_length=100)
+    data_nascita = models.DateField(_('data di nascita'))
+    domicilio = models.CharField(
+        _('domicilio'),
+        max_length=255,
+        help_text=_('Indirizzo completo di residenza/domicilio')
+    )
+
+    # Documento di identità
+    tipo_documento = models.CharField(
+        _('tipo documento'),
+        max_length=50,
+        help_text=_("es. Carta d'identità, Patente")
+    )
+    numero_documento = models.CharField(_('numero documento'), max_length=50)
+
+    # Territorio di competenza (dal più ampio al più specifico)
+    regioni = models.ManyToManyField(
+        'territorio.Regione',
+        blank=True,
+        related_name='sub_deleghe',
+        verbose_name=_('regioni'),
+        help_text=_('Regioni di competenza')
+    )
+    province = models.ManyToManyField(
+        'territorio.Provincia',
+        blank=True,
+        related_name='sub_deleghe',
+        verbose_name=_('province'),
+        help_text=_('Province di competenza')
+    )
+    comuni = models.ManyToManyField(
+        'territorio.Comune',
+        blank=True,
+        related_name='sub_deleghe',
+        verbose_name=_('comuni'),
+        help_text=_('Comuni di competenza')
+    )
+    municipi = models.JSONField(
+        _('municipi'),
+        default=list,
+        blank=True,
+        help_text=_('Lista di numeri di municipio (solo per Roma)')
+    )
+
+    # Dati della sub-delega
+    data_delega = models.DateField(_('data delega'))
+    numero_protocollo = models.CharField(_('numero protocollo'), max_length=50, blank=True)
+
+    # Autenticazione firma
+    firma_autenticata = models.BooleanField(_('firma autenticata'), default=False)
+    data_autenticazione = models.DateField(_('data autenticazione'), null=True, blank=True)
+    autenticatore = models.CharField(
+        _('autenticatore'),
+        max_length=255,
+        blank=True,
+        help_text=_('Chi ha autenticato la firma (es. Segretario Comunale, Notaio)')
+    )
+
+    # Documento di sub-delega
+    documento_delega = models.FileField(
+        _('documento delega'),
+        upload_to='deleghe/sub_deleghe/',
+        null=True, blank=True,
+        help_text=_('PDF della sub-delega firmata e autenticata')
+    )
+
+    # Contatti
+    email = models.EmailField(_('email'))
+    telefono = models.CharField(_('telefono'), max_length=20, blank=True)
+
+    # Account utente (per accesso all'app)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='sub_deleghe_ricevute',
+        verbose_name=_('account utente')
+    )
+
+    # Tipo di delega
+    tipo_delega = models.CharField(
+        _('tipo delega'),
+        max_length=20,
+        choices=TipoDelega.choices,
+        default=TipoDelega.MAPPATURA,
+        help_text=_('Determina se il Sub-Delegato può designare direttamente o solo preparare mappature')
+    )
+
+    # Stato
+    is_attiva = models.BooleanField(_('attiva'), default=True)
+    revocata_il = models.DateField(_('revocata il'), null=True, blank=True)
+    motivo_revoca = models.TextField(_('motivo revoca'), blank=True)
+
+    # Audit
+    created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('data modifica'), auto_now=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
-        blank=True,
-        related_name='delegations_created',
+        related_name='sub_deleghe_create',
         verbose_name=_('creato da')
     )
-    revoked_at = models.DateTimeField(_('data revoca'), null=True, blank=True)
-    revoked_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='delegations_revoked',
-        verbose_name=_('revocato da')
-    )
-    notes = models.TextField(_('note'), blank=True)
 
     class Meta:
-        verbose_name = _('relazione di delega')
-        verbose_name_plural = _('relazioni di delega')
-        ordering = ['-created_at']
-        indexes = [
-            models.Index(fields=['principal', 'consultazione']),
-            models.Index(fields=['delegate', 'consultazione']),
-            models.Index(fields=['relationship_type', 'is_active']),
+        verbose_name = _('Sub-Delega')
+        verbose_name_plural = _('Sub-Deleghe')
+        ordering = ['delegato', 'cognome', 'nome']
+
+    def __str__(self):
+        return f"Sub-delega a {self.cognome} {self.nome} da {self.delegato}"
+
+    @property
+    def nome_completo(self):
+        return f"{self.cognome} {self.nome}"
+
+    @property
+    def consultazione(self):
+        """Consultazione ereditata dal Delegato"""
+        return self.delegato.consultazione
+
+    @property
+    def puo_designare_direttamente(self):
+        """True se può designare RDL direttamente (firma autenticata)"""
+        return self.tipo_delega == self.TipoDelega.FIRMA_AUTENTICATA and self.firma_autenticata
+
+    @property
+    def solo_mappatura(self):
+        """True se può solo preparare mappature (il Delegato deve approvare)"""
+        return self.tipo_delega == self.TipoDelega.MAPPATURA
+
+    def get_catena_deleghe(self):
+        """
+        Restituisce la catena delle deleghe per questo Sub-Delegato.
+        Usata per generare il PDF con la catena allegata.
+        """
+        return {
+            'partito': 'MOVIMENTO 5 STELLE',
+            'delegato': {
+                'cognome': self.delegato.cognome,
+                'nome': self.delegato.nome,
+                'carica': self.delegato.get_carica_display(),
+                'circoscrizione': self.delegato.circoscrizione,
+                'data_nomina': self.delegato.data_nomina,
+            },
+            'sub_delegato': {
+                'cognome': self.cognome,
+                'nome': self.nome,
+                'luogo_nascita': self.luogo_nascita,
+                'data_nascita': self.data_nascita,
+                'domicilio': self.domicilio,
+                'data_delega': self.data_delega,
+            },
+            'territorio': {
+                'regioni': list(self.regioni.values_list('nome', flat=True)),
+                'province': list(self.province.values_list('nome', flat=True)),
+                'comuni': list(self.comuni.values_list('nome', flat=True)),
+                'municipi': self.municipi,
+            }
+        }
+
+
+# =============================================================================
+# DESIGNAZIONE RDL (dal Delegato o Sub-Delegato al Rappresentante di Lista)
+# =============================================================================
+
+class DesignazioneRDL(models.Model):
+    """
+    Designazione di un RDL (Responsabile Di Lista) per una sezione elettorale.
+    Ogni sezione ha un RDL Effettivo e un RDL Supplente.
+
+    La designazione può essere fatta:
+    - Direttamente dal Delegato di Lista (delegato è valorizzato, sub_delega è null)
+    - Dal Sub-Delegato con firma autenticata (sub_delega è valorizzato, stato=CONFERMATA)
+    - Dal Sub-Delegato solo mappatura (sub_delega è valorizzato, stato=BOZZA fino ad approvazione Delegato)
+    """
+    class Ruolo(models.TextChoices):
+        EFFETTIVO = 'EFFETTIVO', _('Effettivo')
+        SUPPLENTE = 'SUPPLENTE', _('Supplente')
+
+    class Stato(models.TextChoices):
+        BOZZA = 'BOZZA', _('Bozza (in attesa approvazione Delegato)')
+        CONFERMATA = 'CONFERMATA', _('Confermata')
+        REVOCATA = 'REVOCATA', _('Revocata')
+
+    # Chi designa - UNO dei due deve essere valorizzato
+    delegato = models.ForeignKey(
+        DelegatoDiLista,
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='designazioni_rdl_dirette',
+        verbose_name=_('delegato'),
+        help_text=_('Se la designazione è fatta direttamente dal Delegato')
+    )
+    sub_delega = models.ForeignKey(
+        SubDelega,
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='designazioni_rdl',
+        verbose_name=_('sub-delega'),
+        help_text=_('Se la designazione è fatta dal Sub-Delegato')
+    )
+
+    # Sezione elettorale
+    sezione = models.ForeignKey(
+        'territorio.SezioneElettorale',
+        on_delete=models.CASCADE,
+        related_name='designazioni_rdl',
+        verbose_name=_('sezione')
+    )
+
+    # Ruolo
+    ruolo = models.CharField(_('ruolo'), max_length=10, choices=Ruolo.choices)
+
+    # Dati anagrafici RDL
+    cognome = models.CharField(_('cognome'), max_length=100)
+    nome = models.CharField(_('nome'), max_length=100)
+    luogo_nascita = models.CharField(_('luogo di nascita'), max_length=100, blank=True)
+    data_nascita = models.DateField(_('data di nascita'), null=True, blank=True)
+    domicilio = models.CharField(_('domicilio'), max_length=255, blank=True)
+
+    # Contatti
+    email = models.EmailField(_('email'))
+    telefono = models.CharField(_('telefono'), max_length=20, blank=True)
+
+    # Account utente (per accesso all'app e inserimento dati)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='designazioni_rdl',
+        verbose_name=_('account utente')
+    )
+
+    # Documento di designazione generato
+    documento_designazione = models.FileField(
+        _('documento designazione'),
+        upload_to='deleghe/designazioni_rdl/',
+        null=True, blank=True,
+        help_text=_('PDF della designazione con catena deleghe')
+    )
+    data_generazione_documento = models.DateTimeField(
+        _('data generazione documento'),
+        null=True, blank=True
+    )
+
+    # Stato della designazione
+    stato = models.CharField(
+        _('stato'),
+        max_length=15,
+        choices=Stato.choices,
+        default=Stato.CONFERMATA,
+        help_text=_('BOZZA = mappatura in attesa di approvazione del Delegato')
+    )
+    data_designazione = models.DateField(_('data designazione'), auto_now_add=True)
+    is_attiva = models.BooleanField(_('attiva'), default=True)
+
+    # Approvazione (per designazioni BOZZA approvate dal Delegato)
+    approvata_da = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='designazioni_approvate',
+        verbose_name=_('approvata da'),
+        help_text=_('Delegato che ha approvato la bozza')
+    )
+    data_approvazione = models.DateTimeField(_('data approvazione'), null=True, blank=True)
+
+    # Revoca
+    revocata_il = models.DateField(_('revocata il'), null=True, blank=True)
+    motivo_revoca = models.TextField(_('motivo revoca'), blank=True)
+
+    # Audit
+    created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('data modifica'), auto_now=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='designazioni_create',
+        verbose_name=_('creato da')
+    )
+
+    class Meta:
+        verbose_name = _('Designazione RDL')
+        verbose_name_plural = _('Designazioni RDL')
+        ordering = ['sezione', 'ruolo']
+        constraints = [
+            # Una sola designazione attiva e confermata per sezione/ruolo
+            models.UniqueConstraint(
+                fields=['sezione', 'ruolo'],
+                condition=models.Q(is_attiva=True, stato='CONFERMATA'),
+                name='unique_rdl_confermato_per_sezione_ruolo'
+            ),
+            # Almeno uno tra delegato e sub_delega deve essere valorizzato
+            models.CheckConstraint(
+                check=models.Q(delegato__isnull=False) | models.Q(sub_delega__isnull=False),
+                name='designazione_ha_delegante'
+            ),
         ]
 
     def __str__(self):
-        return f'{self.principal.email} → {self.delegate.email} ({self.get_relationship_type_display()})'
+        stato_label = f" [{self.get_stato_display()}]" if self.stato != self.Stato.CONFERMATA else ""
+        return f"RDL {self.ruolo} {self.cognome} {self.nome} - Sez. {self.sezione}{stato_label}"
 
     @property
-    def scope_description(self):
-        """Human-readable description of the scope."""
-        if self.scope_municipio:
-            return f'{self.scope_municipio}'
-        if self.scope_comune:
-            return f'{self.scope_comune}'
-        if self.scope_provincia:
-            return f'{self.scope_provincia}'
-        if self.scope_regione:
-            return f'{self.scope_regione}'
-        return _('Nazionale')
+    def nome_completo(self):
+        return f"{self.cognome} {self.nome}"
+
+    @property
+    def is_bozza(self):
+        """True se è una bozza in attesa di approvazione"""
+        return self.stato == self.Stato.BOZZA
+
+    @property
+    def is_confermata(self):
+        """True se è confermata (designazione valida)"""
+        return self.stato == self.Stato.CONFERMATA and self.is_attiva
+
+    def approva(self, user):
+        """
+        Approva una designazione in bozza (chiamato dal Delegato).
+        Passa lo stato da BOZZA a CONFERMATA.
+        """
+        from django.utils import timezone
+
+        if self.stato != self.Stato.BOZZA:
+            raise ValueError("Solo le bozze possono essere approvate")
+
+        self.stato = self.Stato.CONFERMATA
+        self.approvata_da = user
+        self.data_approvazione = timezone.now()
+        self.save(update_fields=['stato', 'approvata_da', 'data_approvazione', 'updated_at'])
+
+    def rifiuta(self, user, motivo=''):
+        """
+        Rifiuta una designazione in bozza.
+        """
+        if self.stato != self.Stato.BOZZA:
+            raise ValueError("Solo le bozze possono essere rifiutate")
+
+        self.is_attiva = False
+        self.motivo_revoca = motivo
+        self.save(update_fields=['is_attiva', 'motivo_revoca', 'updated_at'])
+
+    @property
+    def consultazione(self):
+        """Consultazione ereditata dalla catena"""
+        if self.delegato:
+            return self.delegato.consultazione
+        elif self.sub_delega:
+            return self.sub_delega.consultazione
+        return None
+
+    @property
+    def designante(self):
+        """Restituisce chi ha fatto la designazione (Delegato o Sub-Delegato)"""
+        if self.sub_delega:
+            return self.sub_delega
+        return self.delegato
+
+    @property
+    def designante_nome(self):
+        """Nome di chi ha fatto la designazione"""
+        if self.sub_delega:
+            return f"Sub-Delegato {self.sub_delega.nome_completo}"
+        elif self.delegato:
+            return f"{self.delegato.get_carica_display()} {self.delegato.nome_completo}"
+        return "N/D"
+
+    def get_catena_deleghe_completa(self):
+        """
+        Restituisce la catena completa delle deleghe per questa designazione.
+
+        Due possibili catene:
+        1. Partito → Delegato → RDL (designazione diretta)
+        2. Partito → Delegato → Sub-Delegato → RDL (designazione tramite sub-delega)
+
+        Usata per generare il PDF.
+        """
+        rdl_data = {
+            'cognome': self.cognome,
+            'nome': self.nome,
+            'luogo_nascita': self.luogo_nascita,
+            'data_nascita': self.data_nascita,
+            'domicilio': self.domicilio,
+            'ruolo': self.get_ruolo_display(),
+            'sezione': {
+                'numero': self.sezione.numero,
+                'comune': str(self.sezione.comune),
+                'indirizzo': self.sezione.indirizzo,
+            }
+        }
+
+        if self.sub_delega:
+            # Catena completa: Partito → Delegato → Sub-Delegato → RDL
+            catena = self.sub_delega.get_catena_deleghe()
+            catena['rdl'] = rdl_data
+        else:
+            # Catena diretta: Partito → Delegato → RDL
+            catena = {
+                'partito': 'MOVIMENTO 5 STELLE',
+                'delegato': {
+                    'cognome': self.delegato.cognome,
+                    'nome': self.delegato.nome,
+                    'carica': self.delegato.get_carica_display(),
+                    'circoscrizione': self.delegato.circoscrizione,
+                    'data_nomina': self.delegato.data_nomina,
+                },
+                'sub_delegato': None,  # Nessun sub-delegato
+                'rdl': rdl_data,
+            }
+
+        return catena
 
 
-class FreezeBatch(models.Model):
+# =============================================================================
+# BATCH GENERAZIONE DOCUMENTI
+# =============================================================================
+
+class BatchGenerazioneDocumenti(models.Model):
     """
-    Snapshot of delegation state at a point in time.
-    Used to "freeze" the current state before generating official documents.
+    Batch per generare documenti di designazione RDL in blocco.
+    Utile per stampare tutte le designazioni di un territorio.
     """
-    class Status(models.TextChoices):
-        DRAFT = 'DRAFT', _('Bozza')
-        FROZEN = 'FROZEN', _('Congelato')
-        APPROVED = 'APPROVED', _('Approvato')
-        SENT = 'SENT', _('Inviato')
+    class Tipo(models.TextChoices):
+        INDIVIDUALE = 'INDIVIDUALE', _('Moduli Individuali')
+        RIEPILOGATIVO = 'RIEPILOGATIVO', _('Modulo Riepilogativo')
 
-    consultazione = models.ForeignKey(
-        'elections.ConsultazioneElettorale',
+    class Stato(models.TextChoices):
+        BOZZA = 'BOZZA', _('Bozza')
+        GENERATO = 'GENERATO', _('Generato')
+        INVIATO = 'INVIATO', _('Inviato')
+
+    sub_delega = models.ForeignKey(
+        SubDelega,
         on_delete=models.CASCADE,
-        related_name='freeze_batches',
-        verbose_name=_('consultazione')
+        related_name='batch_documenti',
+        verbose_name=_('sub-delega')
     )
-    name = models.CharField(
-        _('nome'),
-        max_length=100,
-        help_text=_('es. "Freeze Roma 15/05/2025"')
-    )
-    description = models.TextField(_('descrizione'), blank=True)
-    status = models.CharField(
+
+    tipo = models.CharField(_('tipo'), max_length=20, choices=Tipo.choices)
+    stato = models.CharField(
         _('stato'),
         max_length=20,
-        choices=Status.choices,
-        default=Status.DRAFT
+        choices=Stato.choices,
+        default=Stato.BOZZA
     )
 
-    # Scope (what this batch covers)
-    scope_regione = models.ForeignKey(
-        'territorio.Regione',
-        on_delete=models.SET_NULL,
-        null=True,
+    # Filtri per le designazioni da includere
+    solo_sezioni = models.JSONField(
+        _('solo sezioni'),
+        default=list,
         blank=True,
-        related_name='freeze_batches',
-        verbose_name=_('regione')
-    )
-    scope_provincia = models.ForeignKey(
-        'territorio.Provincia',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='freeze_batches',
-        verbose_name=_('provincia')
-    )
-    scope_comune = models.ForeignKey(
-        'territorio.Comune',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='freeze_batches',
-        verbose_name=_('comune')
+        help_text=_('Lista di ID sezioni da includere (vuoto = tutte)')
     )
 
-    # Snapshot data
-    snapshot_data = models.JSONField(
-        _('dati snapshot'),
-        default=dict,
-        help_text=_('Stato congelato delle deleghe e assegnazioni')
+    # Documento generato
+    documento = models.FileField(
+        _('documento'),
+        upload_to='deleghe/batch/',
+        null=True, blank=True
     )
-    frozen_at = models.DateTimeField(_('data congelamento'), null=True, blank=True)
+    data_generazione = models.DateTimeField(_('data generazione'), null=True, blank=True)
+
+    # Conteggi
+    n_designazioni = models.IntegerField(_('numero designazioni'), default=0)
+    n_pagine = models.IntegerField(_('numero pagine'), default=0)
 
     # Audit
+    created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
-        related_name='freeze_batches_created',
         verbose_name=_('creato da')
     )
-    created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
-    approved_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='freeze_batches_approved',
-        verbose_name=_('approvato da')
-    )
-    approved_at = models.DateTimeField(_('data approvazione'), null=True, blank=True)
 
     class Meta:
-        verbose_name = _('batch congelamento')
-        verbose_name_plural = _('batch congelamenti')
+        verbose_name = _('Batch Generazione Documenti')
+        verbose_name_plural = _('Batch Generazione Documenti')
         ordering = ['-created_at']
 
     def __str__(self):
-        return f'{self.name} ({self.get_status_display()})'
-
-    @property
-    def scope_description(self):
-        """Human-readable description of the scope."""
-        if self.scope_comune:
-            return f'{self.scope_comune}'
-        if self.scope_provincia:
-            return f'{self.scope_provincia}'
-        if self.scope_regione:
-            return f'{self.scope_regione}'
-        return _('Nazionale')
-
-
-class ProxyDelegationDocument(models.Model):
-    """
-    PDF document generated for proxy delegation.
-    Can be individual (one person) or summary (multiple people).
-    """
-    class DocumentType(models.TextChoices):
-        INDIVIDUALE = 'INDIVIDUALE', _('Individuale')
-        RIEPILOGATIVO = 'RIEPILOGATIVO', _('Riepilogativo')
-
-    class Status(models.TextChoices):
-        DRAFT = 'DRAFT', _('Bozza')
-        READY = 'READY', _('Pronto')
-        APPROVED = 'APPROVED', _('Approvato')
-        SENT = 'SENT', _('Inviato')
-
-    freeze_batch = models.ForeignKey(
-        FreezeBatch,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='documents',
-        verbose_name=_('batch')
-    )
-    delegation = models.ForeignKey(
-        DelegationRelationship,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='documents',
-        verbose_name=_('delega'),
-        help_text=_('Per documenti individuali')
-    )
-
-    document_type = models.CharField(
-        _('tipo documento'),
-        max_length=20,
-        choices=DocumentType.choices
-    )
-    status = models.CharField(
-        _('stato'),
-        max_length=20,
-        choices=Status.choices,
-        default=Status.DRAFT
-    )
-
-    # PDF storage
-    pdf_file = models.FileField(
-        _('file PDF'),
-        upload_to='deleghe/%Y/%m/',
-        null=True,
-        blank=True
-    )
-    pdf_url = models.URLField(
-        _('URL PDF'),
-        null=True,
-        blank=True,
-        help_text=_('URL su Cloud Storage')
-    )
-
-    # Template data (for regeneration)
-    template_data = models.JSONField(
-        _('dati template'),
-        null=True,
-        blank=True,
-        help_text=_('Dati usati per generare il PDF')
-    )
-
-    # Audit
-    generated_at = models.DateTimeField(_('data generazione'), null=True, blank=True)
-    generated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='documents_generated',
-        verbose_name=_('generato da')
-    )
-    approved_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='documents_approved',
-        verbose_name=_('approvato da')
-    )
-    approved_at = models.DateTimeField(_('data approvazione'), null=True, blank=True)
-    sent_at = models.DateTimeField(_('data invio'), null=True, blank=True)
-
-    class Meta:
-        verbose_name = _('documento delega')
-        verbose_name_plural = _('documenti delega')
-        ordering = ['-generated_at']
-
-    def __str__(self):
-        return f'{self.get_document_type_display()} - {self.get_status_display()}'
+        return f"Batch {self.tipo} - {self.sub_delega} ({self.stato})"

@@ -1,0 +1,17 @@
+[
+  {"model": "territorio.municipio", "pk": 1, "fields": {"comune": 1, "numero": 1, "nome": "Municipio I"}},
+  {"model": "territorio.municipio", "pk": 2, "fields": {"comune": 1, "numero": 2, "nome": "Municipio II"}},
+  {"model": "territorio.municipio", "pk": 3, "fields": {"comune": 1, "numero": 3, "nome": "Municipio III"}},
+  {"model": "territorio.municipio", "pk": 4, "fields": {"comune": 1, "numero": 4, "nome": "Municipio IV"}},
+  {"model": "territorio.municipio", "pk": 5, "fields": {"comune": 1, "numero": 5, "nome": "Municipio V"}},
+  {"model": "territorio.municipio", "pk": 6, "fields": {"comune": 1, "numero": 6, "nome": "Municipio VI"}},
+  {"model": "territorio.municipio", "pk": 7, "fields": {"comune": 1, "numero": 7, "nome": "Municipio VII"}},
+  {"model": "territorio.municipio", "pk": 8, "fields": {"comune": 1, "numero": 8, "nome": "Municipio VIII"}},
+  {"model": "territorio.municipio", "pk": 9, "fields": {"comune": 1, "numero": 9, "nome": "Municipio IX"}},
+  {"model": "territorio.municipio", "pk": 10, "fields": {"comune": 1, "numero": 10, "nome": "Municipio X"}},
+  {"model": "territorio.municipio", "pk": 11, "fields": {"comune": 1, "numero": 11, "nome": "Municipio XI"}},
+  {"model": "territorio.municipio", "pk": 12, "fields": {"comune": 1, "numero": 12, "nome": "Municipio XII"}},
+  {"model": "territorio.municipio", "pk": 13, "fields": {"comune": 1, "numero": 13, "nome": "Municipio XIII"}},
+  {"model": "territorio.municipio", "pk": 14, "fields": {"comune": 1, "numero": 14, "nome": "Municipio XIV"}},
+  {"model": "territorio.municipio", "pk": 15, "fields": {"comune": 1, "numero": 15, "nome": "Municipio XV"}}
+]

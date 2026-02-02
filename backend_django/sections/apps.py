@@ -5,3 +5,7 @@ class SectionsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'sections'
     verbose_name = 'Sezioni e Dati Elettorali'
+
+    def ready(self):
+        """Import signals for RDL registration provisioning."""
+        from . import signals  # noqa: F401

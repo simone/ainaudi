@@ -1,291 +1,589 @@
 """
 Views for delegations API endpoints.
+
+Gerarchia: PARTITO -> DELEGATO DI LISTA -> SUB-DELEGATO -> RDL
 """
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, views, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.utils import timezone
 from django.db.models import Q
-from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import DelegationRelationship, FreezeBatch, ProxyDelegationDocument
+from elections.models import ConsultazioneElettorale
+from territorio.models import SezioneElettorale
+from .models import DelegatoDiLista, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti
 from .serializers import (
-    DelegationRelationshipSerializer, DelegationRelationshipCreateSerializer,
-    FreezeBatchSerializer, FreezeBatchCreateSerializer, FreezeBatchListSerializer,
-    ProxyDelegationDocumentSerializer,
+    DelegatoDiListaSerializer,
+    SubDelegaSerializer, SubDelegaCreateSerializer,
+    DesignazioneRDLSerializer, DesignazioneRDLCreateSerializer, DesignazioneRDLListSerializer,
+    BatchGenerazioneDocumentiSerializer,
+    MiaCatenaSerializer, SezioneDisponibileSerializer,
+    RdlRegistrationForMappatura, MappaturaCreaSerializer,
+    ConfermaDesignazioneSerializer, RifiutaDesignazioneSerializer,
 )
 
 
-class DelegationRelationshipViewSet(viewsets.ModelViewSet):
+class MiaCatenaView(views.APIView):
     """
-    ViewSet for DelegationRelationship.
+    GET /api/deleghe/mia-catena/
 
-    GET /api/delegations/ - List all delegations
-    GET /api/delegations/my-delegations/ - List delegations I've given
-    GET /api/delegations/my-received/ - List delegations I've received
-    POST /api/delegations/ - Create delegation
-    POST /api/delegations/{id}/revoke/ - Revoke delegation
+    Restituisce la catena deleghe dell'utente loggato:
+    - Se e' Delegato di Lista
+    - Se e' Sub-Delegato (e da chi)
+    - Le sub-deleghe che ha fatto (se Delegato)
+    - Le designazioni RDL che ha fatto (se Sub-Delegato)
+    - Le designazioni RDL che ha ricevuto (se RDL)
     """
-    queryset = DelegationRelationship.objects.select_related(
-        'consultazione', 'principal', 'delegate', 'created_by', 'revoked_by',
-        'scope_regione', 'scope_provincia', 'scope_comune', 'scope_municipio'
-    ).all()
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = [
-        'consultazione', 'principal', 'delegate',
-        'relationship_type', 'is_active',
-        'scope_regione', 'scope_provincia', 'scope_comune'
-    ]
-    search_fields = ['principal__email', 'delegate__email', 'notes']
+
+    def get(self, request):
+        user = request.user
+        consultazione_id = request.query_params.get('consultazione')
+        consultazione = None
+
+        if consultazione_id:
+            try:
+                consultazione = ConsultazioneElettorale.objects.get(id=consultazione_id)
+            except ConsultazioneElettorale.DoesNotExist:
+                pass
+
+        result = {
+            'is_delegato': False,
+            'is_sub_delegato': False,
+            'is_rdl': False,
+            'deleghe_lista': [],
+            'sub_deleghe_ricevute': [],
+            'sub_deleghe_fatte': [],
+            'designazioni_fatte': [],
+            'designazioni_ricevute': [],
+        }
+
+        # Delegato di Lista?
+        deleghe_lista = DelegatoDiLista.objects.filter(user=user)
+        if consultazione:
+            deleghe_lista = deleghe_lista.filter(consultazione=consultazione)
+        if deleghe_lista.exists():
+            result['is_delegato'] = True
+            result['deleghe_lista'] = DelegatoDiListaSerializer(deleghe_lista, many=True).data
+            # Sub-deleghe fatte come Delegato
+            for dl in deleghe_lista:
+                sub_deleghe = dl.sub_deleghe.filter(is_attiva=True)
+                result['sub_deleghe_fatte'].extend(
+                    SubDelegaSerializer(sub_deleghe, many=True).data
+                )
+                # Designazioni fatte DIRETTAMENTE come Delegato (senza sub-delega)
+                designazioni_dirette = dl.designazioni_rdl_dirette.filter(is_attiva=True)
+                result['designazioni_fatte'].extend(
+                    DesignazioneRDLListSerializer(designazioni_dirette, many=True).data
+                )
+
+        # Sub-Delegato?
+        sub_deleghe = SubDelega.objects.filter(user=user, is_attiva=True)
+        if consultazione:
+            sub_deleghe = sub_deleghe.filter(delegato__consultazione=consultazione)
+        if sub_deleghe.exists():
+            result['is_sub_delegato'] = True
+            result['sub_deleghe_ricevute'] = SubDelegaSerializer(sub_deleghe, many=True).data
+            # Designazioni fatte come Sub-Delegato
+            for sd in sub_deleghe:
+                designazioni = sd.designazioni_rdl.filter(is_attiva=True)
+                result['designazioni_fatte'].extend(
+                    DesignazioneRDLListSerializer(designazioni, many=True).data
+                )
+
+        # RDL?
+        designazioni_ricevute = DesignazioneRDL.objects.filter(user=user, is_attiva=True)
+        if consultazione:
+            designazioni_ricevute = designazioni_ricevute.filter(
+                sub_delega__delegato__consultazione=consultazione
+            )
+        if designazioni_ricevute.exists():
+            result['is_rdl'] = True
+            result['designazioni_ricevute'] = DesignazioneRDLSerializer(
+                designazioni_ricevute, many=True
+            ).data
+
+        return Response(result)
+
+
+class SubDelegaViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet per le Sub-Deleghe.
+
+    GET /api/deleghe/sub-deleghe/ - Lista sub-deleghe (filtrate per consultazione)
+    GET /api/deleghe/sub-deleghe/{id}/ - Dettaglio sub-delega
+    POST /api/deleghe/sub-deleghe/ - Crea sub-delega (solo Delegato)
+    DELETE /api/deleghe/sub-deleghe/{id}/ - Revoca sub-delega
+    """
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action == 'create':
-            return DelegationRelationshipCreateSerializer
-        return DelegationRelationshipSerializer
+            return SubDelegaCreateSerializer
+        return SubDelegaSerializer
 
-    @action(detail=False, methods=['get'])
-    def my_delegations(self, request):
-        """Get delegations given by current user."""
-        delegations = self.queryset.filter(
-            principal=request.user,
-            is_active=True
-        )
-        serializer = DelegationRelationshipSerializer(delegations, many=True)
-        return Response(serializer.data)
+    def get_queryset(self):
+        user = self.request.user
+        consultazione_id = self.request.query_params.get('consultazione')
 
-    @action(detail=False, methods=['get'])
-    def my_received(self, request):
-        """Get delegations received by current user."""
-        delegations = self.queryset.filter(
-            delegate=request.user,
-            is_active=True
-        )
-        serializer = DelegationRelationshipSerializer(delegations, many=True)
-        return Response(serializer.data)
+        # Un utente vede:
+        # 1. Le sub-deleghe che ha ricevuto
+        # 2. Le sub-deleghe che ha creato (come Delegato)
+        qs = SubDelega.objects.filter(
+            Q(user=user) | Q(delegato__user=user) | Q(created_by=user)
+        ).select_related('delegato', 'delegato__consultazione', 'user', 'created_by')
 
-    @action(detail=False, methods=['get'])
-    def tree(self, request):
-        """Get hierarchical tree of all delegations."""
-        consultazione_id = request.query_params.get('consultazione')
-        if not consultazione_id:
+        if consultazione_id:
+            qs = qs.filter(delegato__consultazione_id=consultazione_id)
+
+        return qs.distinct()
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        """Revoca invece di cancellare."""
+        instance = self.get_object()
+
+        # Verifica che l'utente possa revocare
+        if instance.delegato.user != request.user and instance.created_by != request.user:
             return Response(
-                {'error': 'consultazione parameter required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Build delegation tree
-        delegations = self.queryset.filter(
-            consultazione_id=consultazione_id,
-            is_active=True
-        )
-
-        # Find root nodes (those who are principals but not delegates)
-        delegate_ids = set(delegations.values_list('delegate_id', flat=True))
-        principal_ids = set(delegations.values_list('principal_id', flat=True))
-        root_ids = principal_ids - delegate_ids
-
-        def build_subtree(user_id):
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-            user = User.objects.get(id=user_id)
-
-            children_delegations = delegations.filter(principal_id=user_id)
-            children = [
-                build_subtree(d.delegate_id)
-                for d in children_delegations
-            ]
-
-            return {
-                'id': user.id,
-                'email': user.email,
-                'display_name': user.display_name or user.email,
-                'role': children_delegations.first().get_relationship_type_display() if children_delegations.exists() else 'Root',
-                'scope': children_delegations.first().scope_description if children_delegations.exists() else 'Nazionale',
-                'children': children,
-            }
-
-        tree = [build_subtree(root_id) for root_id in root_ids]
-        return Response(tree)
-
-    @action(detail=True, methods=['post'])
-    def revoke(self, request, pk=None):
-        """Revoke a delegation."""
-        delegation = self.get_object()
-
-        # Check if user can revoke (must be principal or admin)
-        if delegation.principal != request.user and not request.user.is_staff:
-            return Response(
-                {'error': 'Non autorizzato a revocare questa delega'},
+                {'error': 'Non hai i permessi per revocare questa sub-delega'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        delegation.is_active = False
-        delegation.revoked_at = timezone.now()
-        delegation.revoked_by = request.user
-        delegation.save()
+        from django.utils import timezone
+        instance.is_attiva = False
+        instance.revocata_il = timezone.now().date()
+        instance.motivo_revoca = request.data.get('motivo', 'Revocata dall\'utente')
+        instance.save()
 
-        serializer = DelegationRelationshipSerializer(delegation)
-        return Response(serializer.data)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class FreezeBatchViewSet(viewsets.ModelViewSet):
+class DesignazioneRDLViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for FreezeBatch.
+    ViewSet per le Designazioni RDL.
 
-    GET /api/delegations/batches/ - List all batches
-    POST /api/delegations/batches/ - Create batch
-    POST /api/delegations/batches/{id}/freeze/ - Freeze batch
-    POST /api/delegations/batches/{id}/approve/ - Approve batch
+    GET /api/deleghe/designazioni/ - Lista designazioni (filtrate per consultazione)
+    GET /api/deleghe/designazioni/{id}/ - Dettaglio designazione
+    POST /api/deleghe/designazioni/ - Crea designazione (solo Sub-Delegato)
+    DELETE /api/deleghe/designazioni/{id}/ - Revoca designazione
+    GET /api/deleghe/designazioni/sezioni_disponibili/ - Sezioni disponibili per designazione
     """
-    queryset = FreezeBatch.objects.select_related(
-        'consultazione', 'created_by', 'approved_by',
-        'scope_regione', 'scope_provincia', 'scope_comune'
-    ).prefetch_related('documents').all()
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = [
-        'consultazione', 'status',
-        'scope_regione', 'scope_provincia', 'scope_comune'
-    ]
-    search_fields = ['name', 'description']
 
     def get_serializer_class(self):
         if self.action == 'create':
-            return FreezeBatchCreateSerializer
+            return DesignazioneRDLCreateSerializer
         if self.action == 'list':
-            return FreezeBatchListSerializer
-        return FreezeBatchSerializer
+            return DesignazioneRDLListSerializer
+        return DesignazioneRDLSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        consultazione_id = self.request.query_params.get('consultazione')
+
+        # Un utente vede:
+        # 1. Le designazioni che ha ricevuto (come RDL)
+        # 2. Le designazioni che ha fatto (come Sub-Delegato)
+        # 3. Le designazioni che ha fatto direttamente (come Delegato)
+        # 4. Le designazioni fatte dai suoi Sub-Delegati (come Delegato)
+        qs = DesignazioneRDL.objects.filter(
+            Q(user=user) |
+            Q(sub_delega__user=user) |
+            Q(delegato__user=user) |
+            Q(sub_delega__delegato__user=user)  # Delegato vede bozze dei suoi sub
+        ).select_related(
+            'delegato', 'sub_delega', 'sub_delega__delegato',
+            'sezione', 'sezione__comune', 'sezione__municipio', 'user'
+        )
+
+        if consultazione_id:
+            qs = qs.filter(
+                Q(delegato__consultazione_id=consultazione_id) |
+                Q(sub_delega__delegato__consultazione_id=consultazione_id)
+            )
+
+        return qs.distinct()
+
+    def destroy(self, request, *args, **kwargs):
+        """Revoca invece di cancellare."""
+        instance = self.get_object()
+
+        # Verifica che l'utente possa revocare (delegato o sub-delegato)
+        can_revoke = False
+        if instance.delegato and instance.delegato.user == request.user:
+            can_revoke = True
+        if instance.sub_delega and instance.sub_delega.user == request.user:
+            can_revoke = True
+
+        if not can_revoke:
+            return Response(
+                {'error': 'Non hai i permessi per revocare questa designazione'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        from django.utils import timezone
+        instance.is_attiva = False
+        instance.revocata_il = timezone.now().date()
+        instance.motivo_revoca = request.data.get('motivo', 'Revocata dall\'utente')
+        instance.save()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=['get'])
+    def sezioni_disponibili(self, request):
+        """
+        GET /api/deleghe/designazioni/sezioni_disponibili/
+
+        Restituisce le sezioni disponibili per la designazione RDL.
+        Filtrate in base al territorio di competenza del Sub-Delegato.
+        """
+        user = request.user
+        consultazione_id = request.query_params.get('consultazione')
+
+        # Trova le sub-deleghe dell'utente
+        sub_deleghe = SubDelega.objects.filter(user=user, is_attiva=True)
+        if consultazione_id:
+            sub_deleghe = sub_deleghe.filter(delegato__consultazione_id=consultazione_id)
+
+        if not sub_deleghe.exists():
+            return Response([])
+
+        # Raccogli tutti i comuni e municipi di competenza
+        comuni_ids = set()
+        municipi = set()
+        for sd in sub_deleghe:
+            comuni_ids.update(sd.comuni.values_list('id', flat=True))
+            if sd.municipi:
+                municipi.update(sd.municipi)
+
+        # Filtra le sezioni
+        sezioni = SezioneElettorale.objects.filter(
+            Q(comune_id__in=comuni_ids) | Q(municipio__in=list(municipi))
+        ).select_related('comune')
+
+        # Per ogni sezione, verifica se ha gia' effettivo/supplente
+        result = []
+        for sez in sezioni:
+            designazioni = DesignazioneRDL.objects.filter(sezione=sez, is_attiva=True)
+            ha_effettivo = designazioni.filter(ruolo='EFFETTIVO').exists()
+            ha_supplente = designazioni.filter(ruolo='SUPPLENTE').exists()
+
+            result.append({
+                'id': sez.id,
+                'numero': sez.numero,
+                'comune_nome': sez.comune.nome,
+                'municipio': sez.municipio.numero if sez.municipio else None,
+                'indirizzo': sez.indirizzo or '',
+                'ha_effettivo': ha_effettivo,
+                'ha_supplente': ha_supplente,
+            })
+
+        return Response(SezioneDisponibileSerializer(result, many=True).data)
+
+    @action(detail=False, methods=['get'])
+    def rdl_disponibili(self, request):
+        """
+        GET /api/deleghe/designazioni/rdl_disponibili/
+
+        Restituisce gli RDL approvati disponibili per la mappatura.
+        Filtrati in base al territorio di competenza dell'utente.
+        """
+        from sections.models import RdlRegistration
+
+        user = request.user
+        comune_id = request.query_params.get('comune')
+        municipio_id = request.query_params.get('municipio')
+
+        # Trova il territorio di competenza dell'utente
+        sub_deleghe = SubDelega.objects.filter(user=user, is_attiva=True)
+        delegati = DelegatoDiLista.objects.filter(user=user)
+
+        comuni_ids = set()
+        municipi_ids = set()
+
+        for sd in sub_deleghe:
+            comuni_ids.update(sd.comuni.values_list('id', flat=True))
+            if sd.municipi:
+                municipi_ids.update(sd.municipi)
+
+        # Se è delegato, vede tutto il suo territorio (circoscrizione)
+        # Per ora permettiamo a delegati di vedere tutti gli RDL
+        is_delegato = delegati.exists()
+
+        # Filtra gli RDL approvati
+        qs = RdlRegistration.objects.filter(status='APPROVED').select_related('comune', 'municipio')
+
+        if not is_delegato:
+            # Sub-delegato: filtra per territorio di competenza
+            if comuni_ids or municipi_ids:
+                qs = qs.filter(
+                    Q(comune_id__in=comuni_ids) | Q(municipio_id__in=municipi_ids)
+                )
+            else:
+                return Response([])
+
+        # Filtri aggiuntivi
+        if comune_id:
+            qs = qs.filter(comune_id=comune_id)
+        if municipio_id:
+            qs = qs.filter(municipio_id=municipio_id)
+
+        # Per ogni RDL, aggiungi info sulle designazioni esistenti
+        result = []
+        for reg in qs:
+            # Cerca designazioni esistenti per questo RDL (per email)
+            designazioni = DesignazioneRDL.objects.filter(
+                email=reg.email,
+                is_attiva=True
+            ).exclude(stato='REVOCATA')
+
+            eff = designazioni.filter(ruolo='EFFETTIVO').first()
+            sup = designazioni.filter(ruolo='SUPPLENTE').first()
+
+            result.append({
+                'id': reg.id,
+                'nome': reg.nome,
+                'cognome': reg.cognome,
+                'email': reg.email,
+                'telefono': reg.telefono,
+                'comune_nascita': reg.comune_nascita,
+                'data_nascita': reg.data_nascita,
+                'comune_residenza': reg.comune_residenza,
+                'indirizzo_residenza': reg.indirizzo_residenza,
+                'comune': {'id': reg.comune.id, 'nome': reg.comune.nome},
+                'municipio': {'id': reg.municipio.id, 'nome': reg.municipio.nome} if reg.municipio else None,
+                'seggio_preferenza': reg.seggio_preferenza,
+                'designazione_effettivo_id': eff.id if eff else None,
+                'designazione_supplente_id': sup.id if sup else None,
+            })
+
+        return Response(result)
+
+    @action(detail=False, methods=['post'])
+    def mappatura(self, request):
+        """
+        POST /api/deleghe/designazioni/mappatura/
+
+        Crea una nuova designazione (mappatura RDL -> Sezione).
+        Se l'utente ha firma autenticata, la designazione è CONFERMATA.
+        Altrimenti è in stato BOZZA e richiede conferma.
+        """
+        serializer = MappaturaCreaSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        designazione = serializer.save()
+        return Response(
+            DesignazioneRDLSerializer(designazione).data,
+            status=status.HTTP_201_CREATED
+        )
+
+    @action(detail=False, methods=['get'])
+    def bozze_da_confermare(self, request):
+        """
+        GET /api/deleghe/designazioni/bozze_da_confermare/
+
+        Restituisce le designazioni in stato BOZZA nel territorio di competenza.
+        Solo per utenti con firma autenticata (Delegati o Sub con firma).
+        """
+        user = request.user
+        consultazione_id = request.query_params.get('consultazione')
+        comune_id = request.query_params.get('comune')
+        municipio_id = request.query_params.get('municipio')
+
+        # Verifica che l'utente possa confermare (delegato o sub con firma)
+        delegati = DelegatoDiLista.objects.filter(user=user)
+        sub_deleghe_firma = SubDelega.objects.filter(
+            user=user,
+            is_attiva=True,
+            tipo_delega='FIRMA_AUTENTICATA'
+        )
+
+        if not delegati.exists() and not sub_deleghe_firma.exists():
+            return Response(
+                {'error': 'Non hai i permessi per confermare designazioni'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Raccogli il territorio di competenza
+        comuni_ids = set()
+        municipi = set()
+
+        for sd in sub_deleghe_firma:
+            comuni_ids.update(sd.comuni.values_list('id', flat=True))
+            if sd.municipi:
+                municipi.update(sd.municipi)
+
+        # Se è delegato, vede le bozze create dalle sue sub-deleghe
+        sub_deleghe_ids = set()
+        for dl in delegati:
+            sub_deleghe_ids.update(dl.sub_deleghe.filter(is_attiva=True).values_list('id', flat=True))
+            if consultazione_id:
+                # Filtra per consultazione
+                pass
+
+        # Query delle bozze
+        qs = DesignazioneRDL.objects.filter(
+            stato='BOZZA',
+            is_attiva=True
+        ).select_related(
+            'sezione', 'sezione__comune', 'sub_delega', 'delegato'
+        )
+
+        # Filtra per territorio
+        if comuni_ids or municipi:
+            qs = qs.filter(
+                Q(sezione__comune_id__in=comuni_ids) |
+                Q(sezione__municipio__in=list(municipi))
+            )
+
+        # Filtra per sub-deleghe del delegato
+        if sub_deleghe_ids:
+            qs = qs.filter(sub_delega_id__in=sub_deleghe_ids) | qs
+
+        # Filtri aggiuntivi
+        if comune_id:
+            qs = qs.filter(sezione__comune_id=comune_id)
+        if municipio_id:
+            qs = qs.filter(sezione__municipio=municipio_id)
+
+        qs = qs.distinct()
+
+        return Response(DesignazioneRDLListSerializer(qs, many=True).data)
 
     @action(detail=True, methods=['post'])
-    def freeze(self, request, pk=None):
-        """Freeze the batch, creating a snapshot of current state."""
-        batch = self.get_object()
+    def conferma(self, request, pk=None):
+        """
+        POST /api/deleghe/designazioni/{id}/conferma/
 
-        if batch.status != FreezeBatch.Status.DRAFT:
+        Conferma una designazione in stato BOZZA.
+        Solo per utenti con firma autenticata.
+        """
+        designazione = self.get_object()
+
+        if designazione.stato != 'BOZZA':
             return Response(
-                {'error': 'Batch non in stato bozza'},
+                {'error': 'Solo le designazioni in BOZZA possono essere confermate'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Build snapshot data
-        from sections.models import SectionAssignment
+        # Verifica permessi (delegato o sub con firma nel territorio)
+        user = request.user
+        has_permission = False
 
-        # Get delegations in scope
-        delegations_qs = DelegationRelationship.objects.filter(
-            consultazione=batch.consultazione,
-            is_active=True
-        )
-        if batch.scope_comune:
-            delegations_qs = delegations_qs.filter(scope_comune=batch.scope_comune)
-        elif batch.scope_provincia:
-            delegations_qs = delegations_qs.filter(scope_provincia=batch.scope_provincia)
-        elif batch.scope_regione:
-            delegations_qs = delegations_qs.filter(scope_regione=batch.scope_regione)
+        # È il delegato della catena?
+        if designazione.sub_delega and designazione.sub_delega.delegato.user == user:
+            has_permission = True
 
-        # Get assignments in scope
-        assignments_qs = SectionAssignment.objects.filter(
-            consultazione=batch.consultazione,
-            is_active=True
-        )
-        if batch.scope_comune:
-            assignments_qs = assignments_qs.filter(sezione__comune=batch.scope_comune)
-        elif batch.scope_provincia:
-            assignments_qs = assignments_qs.filter(sezione__comune__provincia=batch.scope_provincia)
-        elif batch.scope_regione:
-            assignments_qs = assignments_qs.filter(sezione__comune__provincia__regione=batch.scope_regione)
+        # È un sub-delegato con firma nello stesso territorio?
+        if not has_permission:
+            sub_deleghe_firma = SubDelega.objects.filter(
+                user=user,
+                is_attiva=True,
+                tipo_delega='FIRMA_AUTENTICATA'
+            )
+            for sd in sub_deleghe_firma:
+                if designazione.sezione.comune in sd.comuni.all():
+                    has_permission = True
+                    break
+                if sd.municipi and designazione.sezione.municipio_id in sd.municipi:
+                    has_permission = True
+                    break
 
-        # Create snapshot
-        snapshot = {
-            'frozen_at': timezone.now().isoformat(),
-            'delegations': list(delegations_qs.values(
-                'id', 'principal__email', 'delegate__email',
-                'relationship_type', 'scope_comune__nome', 'scope_provincia__nome'
-            )),
-            'assignments': list(assignments_qs.values(
-                'id', 'user__email', 'sezione__numero', 'sezione__comune__nome', 'role'
-            )),
-            'counts': {
-                'delegations': delegations_qs.count(),
-                'assignments': assignments_qs.count(),
-            }
-        }
+        if not has_permission:
+            return Response(
+                {'error': 'Non hai i permessi per confermare questa designazione'},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
-        batch.snapshot_data = snapshot
-        batch.frozen_at = timezone.now()
-        batch.status = FreezeBatch.Status.FROZEN
-        batch.save()
+        # Conferma
+        designazione.approva(user)
 
-        serializer = FreezeBatchSerializer(batch)
-        return Response(serializer.data)
+        return Response(DesignazioneRDLSerializer(designazione).data)
 
     @action(detail=True, methods=['post'])
-    def approve(self, request, pk=None):
-        """Approve a frozen batch."""
-        batch = self.get_object()
+    def rifiuta(self, request, pk=None):
+        """
+        POST /api/deleghe/designazioni/{id}/rifiuta/
 
-        if batch.status != FreezeBatch.Status.FROZEN:
+        Rifiuta (revoca) una designazione in stato BOZZA.
+        """
+        designazione = self.get_object()
+
+        if designazione.stato != 'BOZZA':
             return Response(
-                {'error': 'Batch non in stato congelato'},
+                {'error': 'Solo le designazioni in BOZZA possono essere rifiutate'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        batch.status = FreezeBatch.Status.APPROVED
-        batch.approved_by = request.user
-        batch.approved_at = timezone.now()
-        batch.save()
+        # Verifica permessi (stessi di conferma)
+        user = request.user
+        has_permission = False
 
-        serializer = FreezeBatchSerializer(batch)
-        return Response(serializer.data)
+        if designazione.sub_delega and designazione.sub_delega.delegato.user == user:
+            has_permission = True
+
+        if not has_permission:
+            sub_deleghe_firma = SubDelega.objects.filter(
+                user=user,
+                is_attiva=True,
+                tipo_delega='FIRMA_AUTENTICATA'
+            )
+            for sd in sub_deleghe_firma:
+                if designazione.sezione.comune in sd.comuni.all():
+                    has_permission = True
+                    break
+                if sd.municipi and designazione.sezione.municipio_id in sd.municipi:
+                    has_permission = True
+                    break
+
+        if not has_permission:
+            return Response(
+                {'error': 'Non hai i permessi per rifiutare questa designazione'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = RifiutaDesignazioneSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        motivo = serializer.validated_data.get('motivo', '')
+
+        designazione.rifiuta(user, motivo)
+
+        return Response(DesignazioneRDLSerializer(designazione).data)
 
 
-class ProxyDelegationDocumentViewSet(viewsets.ModelViewSet):
+class BatchGenerazioneDocumentiViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for ProxyDelegationDocument.
+    ViewSet per la generazione batch di documenti.
 
-    GET /api/delegations/documents/ - List all documents
-    GET /api/delegations/documents/{id}/ - Get document detail
-    POST /api/delegations/documents/{id}/approve/ - Approve document
-    POST /api/delegations/documents/{id}/send/ - Mark as sent
+    GET /api/deleghe/batch/ - Lista batch
+    POST /api/deleghe/batch/ - Crea batch
+    POST /api/deleghe/batch/{id}/genera/ - Genera i documenti del batch
     """
-    queryset = ProxyDelegationDocument.objects.select_related(
-        'freeze_batch', 'delegation', 'generated_by', 'approved_by'
-    ).all()
-    serializer_class = ProxyDelegationDocumentSerializer
+    serializer_class = BatchGenerazioneDocumentiSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ['freeze_batch', 'delegation', 'document_type', 'status']
+
+    def get_queryset(self):
+        user = self.request.user
+        return BatchGenerazioneDocumenti.objects.filter(
+            Q(sub_delega__user=user) | Q(created_by=user)
+        ).select_related('sub_delega', 'created_by')
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
 
     @action(detail=True, methods=['post'])
-    def approve(self, request, pk=None):
-        """Approve a document."""
-        document = self.get_object()
+    def genera(self, request, pk=None):
+        """
+        POST /api/deleghe/batch/{id}/genera/
 
-        if document.status != ProxyDelegationDocument.Status.READY:
-            return Response(
-                {'error': 'Documento non in stato pronto'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        Genera i documenti PDF per il batch.
+        """
+        batch = self.get_object()
 
-        document.status = ProxyDelegationDocument.Status.APPROVED
-        document.approved_by = request.user
-        document.approved_at = timezone.now()
-        document.save()
-
-        serializer = ProxyDelegationDocumentSerializer(document)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['post'])
-    def send(self, request, pk=None):
-        """Mark document as sent."""
-        document = self.get_object()
-
-        if document.status != ProxyDelegationDocument.Status.APPROVED:
-            return Response(
-                {'error': 'Documento non approvato'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        document.status = ProxyDelegationDocument.Status.SENT
-        document.sent_at = timezone.now()
-        document.save()
-
-        serializer = ProxyDelegationDocumentSerializer(document)
-        return Response(serializer.data)
+        # Qui andrebbe la logica di generazione PDF
+        # Per ora restituiamo un placeholder
+        return Response({
+            'status': 'in_progress',
+            'message': 'Generazione documenti avviata'
+        })
