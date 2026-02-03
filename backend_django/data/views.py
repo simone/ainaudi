@@ -327,10 +327,10 @@ class SectionsOwnView(APIView):
 
         # Get user's section assignments for the active consultation
         assignments = SectionAssignment.objects.filter(
-            user=request.user,
+            rdl_registration__email=request.user.email,
             consultazione=consultazione,
         ).select_related(
-            'sezione', 'sezione__comune'
+            'sezione', 'sezione__comune', 'rdl_registration'
         )
 
         rows = []
@@ -409,7 +409,7 @@ class SectionsAssignedView(APIView):
             assignment = SectionAssignment.objects.filter(
                 sezione=sezione,
                 consultazione=consultazione,
-            ).select_related('user').first()
+            ).select_related('rdl_registration').first()
 
             # Get or create DatiSezione
             dati_sezione = DatiSezione.objects.prefetch_related('schede').filter(
@@ -426,7 +426,7 @@ class SectionsAssignedView(APIView):
             rows.append({
                 'comune': sezione.comune.nome,
                 'sezione': sezione.numero,
-                'email': assignment.user.email if assignment else '',
+                'email': assignment.email if assignment else '',
                 'values': values,
             })
 
@@ -663,10 +663,10 @@ class RdlSectionsView(APIView):
             assignment = SectionAssignment.objects.filter(
                 sezione=sezione,
                 consultazione=consultazione,
-            ).select_related('user').first()
+            ).select_related('rdl_registration').first()
 
             municipio_str = f"Municipio {sezione.municipio.numero}" if sezione.municipio else ""
-            email = assignment.user.email if assignment else ""
+            email = assignment.email if assignment else ""
 
             # Format: [comune, sezione_numero, municipio, email] - matches frontend expectation
             row = [sezione.comune.nome, sezione.numero, municipio_str, email]
@@ -718,10 +718,29 @@ class RdlAssignView(APIView):
         except (Comune.DoesNotExist, SezioneElettorale.DoesNotExist):
             return Response({'error': 'Sezione non trovata'}, status=404)
 
-        # Find or create the user
-        user, created = User.objects.get_or_create(
+        # Find or create the user (for role assignment)
+        user, user_created = User.objects.get_or_create(
             email=email.lower(),
             defaults={'display_name': email.split('@')[0]}
+        )
+
+        # Find or create RdlRegistration for this email/comune
+        from campaign.models import RdlRegistration
+        rdl_reg, reg_created = RdlRegistration.objects.get_or_create(
+            email=email.lower(),
+            comune=comune,
+            defaults={
+                'nome': email.split('@')[0],
+                'cognome': '',
+                'telefono': '',
+                'comune_nascita': comune.nome,
+                'data_nascita': '1970-01-01',
+                'comune_residenza': comune.nome,
+                'indirizzo_residenza': '',
+                'consultazione': consultazione,
+                'status': 'APPROVED',
+                'source': 'MANUAL',
+            }
         )
 
         # Delete existing assignments
@@ -734,7 +753,7 @@ class RdlAssignView(APIView):
         assignment = SectionAssignment.objects.create(
             sezione=sezione,
             consultazione=consultazione,
-            user=user,
+            rdl_registration=rdl_reg,
             role=SectionAssignment.Role.RDL,
             assigned_by=request.user,
         )
@@ -754,7 +773,7 @@ class RdlAssignView(APIView):
             'success': True,
             'comune': sezione.comune.nome,
             'sezione': sezione.numero,
-            'email': user.email
+            'email': email.lower()
         })
 
 
@@ -1013,7 +1032,7 @@ class RdlRegistrationSelfView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        from .models import RdlRegistration
+        from campaign.models import RdlRegistration
         from datetime import datetime
 
         email = request.data.get('email', '').lower().strip()
@@ -1115,7 +1134,7 @@ class RdlRegistrationListView(APIView):
 
     def get(self, request):
         from core.models import RoleAssignment
-        from .models import RdlRegistration
+        from campaign.models import RdlRegistration
 
         # Check permission
         user_roles = RoleAssignment.objects.filter(
@@ -1179,7 +1198,7 @@ class RdlRegistrationListView(APIView):
             registrations_filter
         ).select_related(
             'comune', 'comune__provincia', 'comune__provincia__regione',
-            'municipio', 'user', 'approved_by'
+            'municipio'
         ).order_by('-requested_at')
 
         result = []
@@ -1230,7 +1249,7 @@ class RdlRegistrationApproveView(APIView):
 
     def post(self, request, pk, action):
         from core.models import RoleAssignment
-        from .models import RdlRegistration
+        from campaign.models import RdlRegistration
 
         # Get registration
         try:
@@ -1339,7 +1358,7 @@ class RdlRegistrationEditView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def put(self, request, pk):
-        from .models import RdlRegistration
+        from campaign.models import RdlRegistration
         from datetime import datetime
 
         try:
@@ -1399,7 +1418,7 @@ class RdlRegistrationEditView(APIView):
         })
 
     def delete(self, request, pk):
-        from .models import RdlRegistration
+        from campaign.models import RdlRegistration
 
         try:
             registration = RdlRegistration.objects.select_related(
@@ -1481,7 +1500,7 @@ class RdlRegistrationImportView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
-        from .models import RdlRegistration
+        from campaign.models import RdlRegistration
         from datetime import datetime
 
         if 'file' not in request.FILES:
@@ -1920,7 +1939,7 @@ class MappaturaSezioniView(APIView):
         assignments = SectionAssignment.objects.filter(
             sezione_id__in=sezioni_ids,
             consultazione=consultazione,
-        ).select_related('user', 'rdl_registration')
+        ).select_related('rdl_registration')
 
         # Get RDL registrations for territory check
         rdl_reg_ids = [a.rdl_registration_id for a in assignments if a.rdl_registration_id]
@@ -1955,11 +1974,15 @@ class MappaturaSezioniView(APIView):
                         if rdl_reg.comune_id != sez.comune_id:
                             territorio_mismatch = True
 
+            # Get user info from rdl_registration
+            rdl_reg = rdl_registrations.get(a.rdl_registration_id)
+            user_email = rdl_reg.email if rdl_reg else ''
+            user_nome = f"{rdl_reg.nome} {rdl_reg.cognome}" if rdl_reg else user_email.split('@')[0] if user_email else ''
+
             assignment_map[a.sezione_id][a.role] = {
                 'assignment_id': a.id,
-                'user_id': a.user_id,
-                'user_email': a.user.email,
-                'user_nome': a.user.display_name or a.user.email.split('@')[0],
+                'user_email': user_email,
+                'user_nome': user_nome,
                 'rdl_registration_id': a.rdl_registration_id,
                 'territorio_mismatch': territorio_mismatch,
             }
@@ -2187,7 +2210,7 @@ class MappaturaRdlView(APIView):
             filters &= scope_filter
 
         rdl_registrations = RdlRegistration.objects.filter(filters).select_related(
-            'comune', 'municipio', 'user'
+            'comune', 'municipio'
         ).order_by('cognome', 'nome')
 
         # Get all assignments for these RDL
@@ -2233,7 +2256,6 @@ class MappaturaRdlView(APIView):
             assignments_data = assignment_map.get(reg.id, {'effettivo': [], 'supplente': []})
             result.append({
                 'rdl_registration_id': reg.id,
-                'user_id': reg.user_id,
                 'email': reg.email,
                 'nome': reg.nome,
                 'cognome': reg.cognome,
@@ -2334,7 +2356,7 @@ class MappaturaAssegnaView(APIView):
 
         # Get RDL registration
         try:
-            rdl_reg = RdlRegistration.objects.select_related('user', 'comune', 'municipio').get(
+            rdl_reg = RdlRegistration.objects.select_related('comune', 'municipio').get(
                 pk=rdl_registration_id,
                 status='APPROVED'
             )
@@ -2356,20 +2378,15 @@ class MappaturaAssegnaView(APIView):
                          f'ma la sezione appartiene al comune di {sezione.comune.nome}'
             }, status=400)
 
-        # Get or create user from registration
-        if rdl_reg.user:
-            user = rdl_reg.user
-        else:
-            user, _ = User.objects.get_or_create(
-                email=rdl_reg.email.lower(),
-                defaults={
-                    'display_name': f"{rdl_reg.nome} {rdl_reg.cognome}",
-                    'first_name': rdl_reg.nome,
-                    'last_name': rdl_reg.cognome,
-                }
-            )
-            rdl_reg.user = user
-            rdl_reg.save(update_fields=['user'])
+        # Get or create user from registration email
+        user, _ = User.objects.get_or_create(
+            email=rdl_reg.email.lower(),
+            defaults={
+                'display_name': f"{rdl_reg.nome} {rdl_reg.cognome}",
+                'first_name': rdl_reg.nome,
+                'last_name': rdl_reg.cognome,
+            }
+        )
 
         # Delete existing assignment for this role on this sezione
         SectionAssignment.objects.filter(
@@ -2471,28 +2488,23 @@ class MappaturaAssegnaBulkView(APIView):
 
         # Get RDL registration
         try:
-            rdl_reg = RdlRegistration.objects.select_related('user').get(
+            rdl_reg = RdlRegistration.objects.select_related('comune', 'municipio').get(
                 pk=rdl_registration_id,
                 status='APPROVED'
             )
         except RdlRegistration.DoesNotExist:
             return Response({'error': 'RDL registration non trovata o non approvata'}, status=404)
 
-        # Get or create user
-        if rdl_reg.user:
-            user = rdl_reg.user
-        else:
-            from core.models import User
-            user, _ = User.objects.get_or_create(
-                email=rdl_reg.email.lower(),
-                defaults={
-                    'display_name': f"{rdl_reg.nome} {rdl_reg.cognome}",
-                    'first_name': rdl_reg.nome,
-                    'last_name': rdl_reg.cognome,
-                }
-            )
-            rdl_reg.user = user
-            rdl_reg.save(update_fields=['user'])
+        # Get or create user from email
+        from core.models import User
+        user, _ = User.objects.get_or_create(
+            email=rdl_reg.email.lower(),
+            defaults={
+                'display_name': f"{rdl_reg.nome} {rdl_reg.cognome}",
+                'first_name': rdl_reg.nome,
+                'last_name': rdl_reg.cognome,
+            }
+        )
 
         # Get sezioni
         sezioni = SezioneElettorale.objects.filter(pk__in=sezioni_ids, is_attiva=True)

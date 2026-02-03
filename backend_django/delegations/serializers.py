@@ -354,7 +354,7 @@ class MappaturaCreaSerializer(serializers.Serializer):
 
         # Trova la sub_delega dell'utente per questo territorio
         sub_delega = SubDelega.objects.filter(
-            user=user,
+            email=user.email,
             is_attiva=True
         ).filter(
             models.Q(comuni=sezione.comune) |
@@ -364,7 +364,7 @@ class MappaturaCreaSerializer(serializers.Serializer):
         # Se non è sub-delegato, cerca se è delegato
         delegato = None
         if not sub_delega:
-            delegato = DelegatoDiLista.objects.filter(user=user).first()
+            delegato = DelegatoDiLista.objects.filter(email=user.email).first()
 
         # Determina lo stato in base al tipo_delega
         if sub_delega and sub_delega.puo_designare_direttamente:

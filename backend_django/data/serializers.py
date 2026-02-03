@@ -41,9 +41,6 @@ class SectionAssignmentCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data['assigned_by'] = self.context['request'].user
-        # Set user from rdl_registration
-        if validated_data.get('rdl_registration') and validated_data['rdl_registration'].user:
-            validated_data['user'] = validated_data['rdl_registration'].user
         return super().create(validated_data)
 
 

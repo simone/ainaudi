@@ -126,7 +126,7 @@ class CampagnaListCreateView(APIView):
             )
 
         queryset = queryset.select_related(
-            'consultazione', 'delegato', 'sub_delega', 'created_by'
+            'consultazione', 'delegato', 'sub_delega'
         ).prefetch_related(
             'territorio_regioni', 'territorio_province', 'territorio_comuni'
         ).distinct().order_by('-data_apertura')

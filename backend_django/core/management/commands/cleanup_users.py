@@ -148,21 +148,21 @@ class Command(BaseCommand):
         from data.models import SectionAssignment
 
         # Check delegation chain
-        if DelegatoDiLista.objects.filter(user=user).exists():
+        if DelegatoDiLista.objects.filter(email=user.email).exists():
             return True
 
-        if SubDelega.objects.filter(user=user).exists():
+        if SubDelega.objects.filter(email=user.email).exists():
             return True
 
-        if DesignazioneRDL.objects.filter(user=user).exists():
+        if DesignazioneRDL.objects.filter(email=user.email).exists():
             return True
 
         # Check RDL registrations
-        if RdlRegistration.objects.filter(user=user).exists():
+        if RdlRegistration.objects.filter(email=user.email).exists():
             return True
 
         # Check section assignments
-        if SectionAssignment.objects.filter(user=user).exists():
+        if SectionAssignment.objects.filter(rdl_registration__email=user.email).exists():
             return True
 
         # Check role assignments

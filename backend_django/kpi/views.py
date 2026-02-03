@@ -102,7 +102,7 @@ class KPISezioniView(APIView):
                 sezione=sezione,
                 consultazione=consultazione,
                 is_active=True
-            ).select_related('user').first()
+            ).select_related('rdl_registration').first()
 
             # Get dati
             dati = DatiSezione.objects.filter(
@@ -114,7 +114,7 @@ class KPISezioniView(APIView):
                 'comune': sezione.comune.nome,
                 'sezione': sezione.numero,
                 'municipio': f"Municipio {sezione.municipio.numero}" if sezione.municipio else None,
-                'email': assignment.user.email if assignment else None,
+                'email': assignment.rdl_registration.email if assignment and assignment.rdl_registration else None,
                 'is_complete': dati.is_complete if dati else False,
                 'elettori_maschi': dati.elettori_maschi if dati else None,
                 'elettori_femmine': dati.elettori_femmine if dati else None,

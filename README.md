@@ -1,14 +1,13 @@
-# RDL Application #
-Donata al Movimento 5 Stelle
+# AInaudi - Gestione Elettorale #
 
-da parte di Simone Federici (s.federici@gmail.com)
+Ad uso gratuito per il Movimento 5 Stelle
 
-appartenente el Gruppo Territoriale XV Municipio di Roma
+© Simone Federici (s.federici@gmail.com)
 
 
 # Introduzione
-Questa applicazione è destinata agli RDL del Movimento 5 Stelle e
-serve per inviare al movimento i dati raccolti nelle sezioni. Si
+AInaudi è un sistema di gestione elettorale per la raccolta dati nelle sezioni.
+Serve per inviare al movimento i dati raccolti nelle sezioni. Si
 prega di scegliere una delle sezioni assegnate e di compilare
 tutti i campi richiesti con i numeri corretti.
 

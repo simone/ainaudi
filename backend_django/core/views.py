@@ -68,11 +68,11 @@ class MagicLinkRequestView(APIView):
         # Send email
         try:
             send_mail(
-                subject='Accesso RDL 5 Stelle',
+                subject='Accesso AInaudi',
                 message=f'''
 Ciao,
 
-Clicca sul seguente link per accedere a RDL 5 Stelle:
+Clicca sul seguente link per accedere a AInaudi:
 
 {magic_link}
 
@@ -80,7 +80,7 @@ Il link è valido per {settings.MAGIC_LINK_TOKEN_EXPIRY // 60} minuti.
 
 Se non hai richiesto questo link, ignora questa email.
 
-Movimento 5 Stelle
+AInaudi - Gestione Elettorale
                 '''.strip(),
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],
@@ -320,19 +320,19 @@ class PermissionsView(APIView):
 
         # Check delegation chain for permissions
         # 1. Is user a Delegato di Lista?
-        deleghe_lista = DelegatoDiLista.objects.filter(user=user)
+        deleghe_lista = DelegatoDiLista.objects.filter(email=user.email)
         if consultazione_id:
             deleghe_lista = deleghe_lista.filter(consultazione_id=consultazione_id)
         is_delegato = deleghe_lista.exists()
 
         # 2. Is user a Sub-Delegato?
-        sub_deleghe = SubDelega.objects.filter(user=user, is_attiva=True)
+        sub_deleghe = SubDelega.objects.filter(email=user.email, is_attiva=True)
         if consultazione_id:
             sub_deleghe = sub_deleghe.filter(delegato__consultazione_id=consultazione_id)
         is_sub_delegato = sub_deleghe.exists()
 
         # 3. Is user an RDL?
-        designazioni = DesignazioneRDL.objects.filter(user=user, is_attiva=True)
+        designazioni = DesignazioneRDL.objects.filter(email=user.email, is_attiva=True)
         if consultazione_id:
             designazioni = designazioni.filter(
                 Q(delegato__consultazione_id=consultazione_id) |

@@ -73,9 +73,9 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Admin site customization
-admin.site.site_header = 'RDL 5 Stelle'
-admin.site.site_title = 'RDL 5 Stelle'
-admin.site.index_title = 'RDL 5 Stelle'
+admin.site.site_header = 'AInaudi'
+admin.site.site_title = 'AInaudi'
+admin.site.index_title = 'AInaudi - Gestione Elettorale'
 
 # Cleanup admin: remove unused models (Sites, Social accounts, etc.)
 # Must be imported AFTER admin.site.urls is included

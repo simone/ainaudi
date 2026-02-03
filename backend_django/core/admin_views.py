@@ -57,11 +57,11 @@ class AdminMagicLinkRequestView(View):
         # Send email
         try:
             send_mail(
-                subject='Accesso Admin RDL 5 Stelle',
+                subject='Accesso Admin AInaudi',
                 message=f'''
 Ciao {user.display_name or user.email},
 
-Clicca sul seguente link per accedere all'area amministrazione di RDL 5 Stelle:
+Clicca sul seguente link per accedere all'area amministrazione di AInaudi:
 
 {magic_link}
 
@@ -69,12 +69,12 @@ Il link è valido per {settings.MAGIC_LINK_TOKEN_EXPIRY // 60} minuti.
 
 Se non hai richiesto questo link, ignora questa email.
 
-Movimento 5 Stelle
+AInaudi - Gestione Elettorale
                 '''.strip(),
                 html_message=f'''
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
     <div style="background: #004b6b; padding: 20px; text-align: center;">
-        <h1 style="color: #e9d483; margin: 0;">RDL 5 Stelle</h1>
+        <h1 style="color: #e9d483; margin: 0;">AInaudi</h1>
     </div>
     <div style="padding: 30px; background: #f9f9f9;">
         <p>Ciao <strong>{user.display_name or user.email}</strong>,</p>
@@ -92,7 +92,7 @@ Movimento 5 Stelle
         </p>
     </div>
     <div style="background: #004b6b; padding: 15px; text-align: center;">
-        <p style="color: #e9d483; margin: 0; font-size: 12px;">Movimento 5 Stelle</p>
+        <p style="color: #e9d483; margin: 0; font-size: 12px;">AInaudi - Gestione Elettorale</p>
     </div>
 </div>
                 '''.strip(),

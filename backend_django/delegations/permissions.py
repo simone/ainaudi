@@ -25,17 +25,17 @@ def get_user_delegation_roles(user, consultazione_id=None):
         }
     """
     # Delegato di Lista?
-    deleghe_lista = DelegatoDiLista.objects.filter(user=user)
+    deleghe_lista = DelegatoDiLista.objects.filter(email=user.email)
     if consultazione_id:
         deleghe_lista = deleghe_lista.filter(consultazione_id=consultazione_id)
 
     # Sub-Delegato?
-    sub_deleghe = SubDelega.objects.filter(user=user, is_attiva=True)
+    sub_deleghe = SubDelega.objects.filter(email=user.email, is_attiva=True)
     if consultazione_id:
         sub_deleghe = sub_deleghe.filter(delegato__consultazione_id=consultazione_id)
 
     # RDL?
-    designazioni = DesignazioneRDL.objects.filter(user=user, is_attiva=True)
+    designazioni = DesignazioneRDL.objects.filter(email=user.email, is_attiva=True)
     if consultazione_id:
         designazioni = designazioni.filter(
             Q(delegato__consultazione_id=consultazione_id) |
@@ -152,7 +152,7 @@ def get_sezioni_for_rdl(user, consultazione_id=None):
         list[int]: Lista di sezione IDs
     """
     designazioni = DesignazioneRDL.objects.filter(
-        user=user,
+        email=user.email,
         is_attiva=True
     )
     if consultazione_id:
@@ -228,7 +228,7 @@ def can_enter_section_data(user, sezione, consultazione_id=None):
     # RDL può inserire solo nella sua sezione
     if roles['is_rdl']:
         return DesignazioneRDL.objects.filter(
-            user=user,
+            email=user.email,
             sezione=sezione,
             is_attiva=True
         ).exists()

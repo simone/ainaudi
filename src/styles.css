@@ -1,16 +1,16 @@
 /* ==========================================================================
-   RDL 5 Stelle - Styles
+   AInaudi - Styles
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
    CSS Variables - Sistema colori semantico
    -------------------------------------------------------------------------- */
 :root {
-  /* Colori primari M5S */
+  /* Colori primari AInaudi */
   --color-primary: #007bff;
   --color-primary-dark: #0056b3;
-  --color-m5s-blue: #003366;
-  --color-m5s-gold: #e9d483;
+  --color-ainaudi-blue: #003366;
+  --color-ainaudi-gold: #e9d483;
 
   /* Colori semantici */
   --color-success: #198754;
@@ -273,7 +273,7 @@ small.text-muted {
 }
 
 .navbar-brand .stars {
-  color: var(--color-m5s-gold);
+  color: var(--color-ainaudi-gold);
 }
 
 .navbar .nav-link {
@@ -331,7 +331,7 @@ small.text-muted {
    Footer
    -------------------------------------------------------------------------- */
 .custom-footer {
-  background-color: var(--color-m5s-blue);
+  background-color: var(--color-ainaudi-blue);
   color: white;
   padding: var(--spacing-lg);
   display: flex;

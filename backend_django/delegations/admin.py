@@ -89,8 +89,8 @@ class DelegatoDiListaAdmin(admin.ModelAdmin):
     n_sub_deleghe.short_description = _('Sub-deleghe')
 
     def has_user(self, obj):
-        user = obj.user
-        if user and user.pk:
+        from core.models import User
+        if obj.email and User.objects.filter(email=obj.email).exists():
             return format_html('<span class="text-success">Si</span>')
         return format_html('<span class="text-muted">No</span>')
     has_user.short_description = _('Account')

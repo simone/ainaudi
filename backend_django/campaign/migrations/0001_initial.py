@@ -154,7 +154,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "territory_comuni",
+                    "territorio_comuni",
                     models.ManyToManyField(
                         blank=True,
                         help_text="Comuni dove è possibile registrarsi",
@@ -164,7 +164,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "territory_province",
+                    "territorio_province",
                     models.ManyToManyField(
                         blank=True,
                         help_text="Province dove è possibile registrarsi",
@@ -174,7 +174,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "territory_regioni",
+                    "territorio_regioni",
                     models.ManyToManyField(
                         blank=True,
                         help_text="Regioni dove è possibile registrarsi",

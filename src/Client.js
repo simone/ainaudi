@@ -179,18 +179,18 @@ const Client = (server, pdfServer, token) => {
     }
 
     const election = {
-        // Lista tutte le consultazioni per lo switcher
-        consultazioni: async () =>
-            fetch(`${server}/api/elections/consultazioni/`, {
+        // List all elections for switcher
+        list: async () =>
+            fetch(`${server}/api/elections/`, {
                 headers: { 'Authorization': authHeader }
             }).then(response => response.json()).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
 
-        // Ottiene la consultazione attiva (prima nel futuro o in corso)
-        consultazioneAttiva: async () =>
-            fetchWithCacheAndRetry('consultazione_attiva', 300)(`${server}/api/elections/consultazioni/attiva/`, {
+        // Get active election (first future or current)
+        active: async () =>
+            fetchWithCacheAndRetry('election_active', 300)(`${server}/api/elections/active/`, {
                 headers: {
                     'Authorization': authHeader
                 }
@@ -199,27 +199,27 @@ const Client = (server, pdfServer, token) => {
                 return {error: error.message};
             }),
 
-        // Ottiene una consultazione specifica per ID
-        consultazione: async (id) =>
-            fetch(`${server}/api/elections/consultazioni/${id}/`, {
+        // Get specific election by ID
+        get: async (id) =>
+            fetch(`${server}/api/elections/${id}/`, {
                 headers: { 'Authorization': authHeader }
             }).then(response => response.json()).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
 
-        // Ottiene una scheda elettorale specifica
-        scheda: async (id) =>
-            fetch(`${server}/api/elections/schede/${id}/`, {
+        // Get specific ballot
+        ballot: async (id) =>
+            fetch(`${server}/api/elections/ballots/${id}/`, {
                 headers: { 'Authorization': authHeader }
             }).then(response => response.json()).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
 
-        // Aggiorna una scheda elettorale
-        updateScheda: async (id, data) =>
-            fetch(`${server}/api/elections/schede/${id}/`, {
+        // Update a ballot
+        updateBallot: async (id, data) =>
+            fetch(`${server}/api/elections/ballots/${id}/`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -378,8 +378,8 @@ const Client = (server, pdfServer, token) => {
         // Ottiene la catena deleghe dell'utente loggato
         miaCatena: async (consultazioneId) => {
             const url = consultazioneId
-                ? `${server}/api/deleghe/mia-catena/?consultazione=${consultazioneId}`
-                : `${server}/api/deleghe/mia-catena/`;
+                ? `${server}/api/delegations/mia-catena/?consultazione=${consultazioneId}`
+                : `${server}/api/delegations/mia-catena/`;
             return fetch(url, {
                 headers: { 'Authorization': authHeader }
             }).then(response => response.json()).catch(error => {
@@ -392,8 +392,8 @@ const Client = (server, pdfServer, token) => {
         subDeleghe: {
             list: async (consultazioneId) => {
                 const url = consultazioneId
-                    ? `${server}/api/deleghe/sub-deleghe/?consultazione=${consultazioneId}`
-                    : `${server}/api/deleghe/sub-deleghe/`;
+                    ? `${server}/api/delegations/sub-deleghe/?consultazione=${consultazioneId}`
+                    : `${server}/api/delegations/sub-deleghe/`;
                 return fetch(url, {
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
@@ -403,7 +403,7 @@ const Client = (server, pdfServer, token) => {
             },
 
             get: async (id) =>
-                fetch(`${server}/api/deleghe/sub-deleghe/${id}/`, {
+                fetch(`${server}/api/delegations/sub-deleghe/${id}/`, {
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
                     console.error(error);
@@ -411,7 +411,7 @@ const Client = (server, pdfServer, token) => {
                 }),
 
             create: async (data) =>
-                fetch(`${server}/api/deleghe/sub-deleghe/`, {
+                fetch(`${server}/api/delegations/sub-deleghe/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -424,7 +424,7 @@ const Client = (server, pdfServer, token) => {
                 }),
 
             revoke: async (id) =>
-                fetch(`${server}/api/deleghe/sub-deleghe/${id}/`, {
+                fetch(`${server}/api/delegations/sub-deleghe/${id}/`, {
                     method: 'DELETE',
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.ok ? {} : response.json()).catch(error => {
@@ -437,8 +437,8 @@ const Client = (server, pdfServer, token) => {
         designazioni: {
             list: async (consultazioneId) => {
                 const url = consultazioneId
-                    ? `${server}/api/deleghe/designazioni/?consultazione=${consultazioneId}`
-                    : `${server}/api/deleghe/designazioni/`;
+                    ? `${server}/api/delegations/designazioni/?consultazione=${consultazioneId}`
+                    : `${server}/api/delegations/designazioni/`;
                 return fetch(url, {
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
@@ -448,7 +448,7 @@ const Client = (server, pdfServer, token) => {
             },
 
             create: async (data) =>
-                fetch(`${server}/api/deleghe/designazioni/`, {
+                fetch(`${server}/api/delegations/designazioni/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -461,7 +461,7 @@ const Client = (server, pdfServer, token) => {
                 }),
 
             revoke: async (id) =>
-                fetch(`${server}/api/deleghe/designazioni/${id}/`, {
+                fetch(`${server}/api/delegations/designazioni/${id}/`, {
                     method: 'DELETE',
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.ok ? {} : response.json()).catch(error => {
@@ -474,7 +474,7 @@ const Client = (server, pdfServer, token) => {
                 if (filters.comune) params.append('comune', filters.comune);
                 if (filters.municipio) params.append('municipio', filters.municipio);
                 const queryString = params.toString();
-                return fetch(`${server}/api/deleghe/designazioni/sezioni_disponibili/${queryString ? `?${queryString}` : ''}`, {
+                return fetch(`${server}/api/delegations/designazioni/sezioni_disponibili/${queryString ? `?${queryString}` : ''}`, {
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
                     console.error(error);
@@ -488,7 +488,7 @@ const Client = (server, pdfServer, token) => {
                 if (filters.comune) params.append('comune', filters.comune);
                 if (filters.municipio) params.append('municipio', filters.municipio);
                 const queryString = params.toString();
-                return fetch(`${server}/api/deleghe/designazioni/rdl_disponibili/${queryString ? `?${queryString}` : ''}`, {
+                return fetch(`${server}/api/delegations/designazioni/rdl_disponibili/${queryString ? `?${queryString}` : ''}`, {
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
                     console.error(error);
@@ -498,7 +498,7 @@ const Client = (server, pdfServer, token) => {
 
             // Crea mappatura (RDL -> Sezione)
             mappatura: async (rdlRegistrationId, sezioneId, ruolo) =>
-                fetch(`${server}/api/deleghe/designazioni/mappatura/`, {
+                fetch(`${server}/api/delegations/designazioni/mappatura/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -520,7 +520,7 @@ const Client = (server, pdfServer, token) => {
                 if (filters.comune) params.append('comune', filters.comune);
                 if (filters.municipio) params.append('municipio', filters.municipio);
                 const queryString = params.toString();
-                return fetch(`${server}/api/deleghe/designazioni/bozze_da_confermare/${queryString ? `?${queryString}` : ''}`, {
+                return fetch(`${server}/api/delegations/designazioni/bozze_da_confermare/${queryString ? `?${queryString}` : ''}`, {
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
                     console.error(error);
@@ -530,7 +530,7 @@ const Client = (server, pdfServer, token) => {
 
             // Conferma una bozza
             conferma: async (id) =>
-                fetch(`${server}/api/deleghe/designazioni/${id}/conferma/`, {
+                fetch(`${server}/api/delegations/designazioni/${id}/conferma/`, {
                     method: 'POST',
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
@@ -540,7 +540,7 @@ const Client = (server, pdfServer, token) => {
 
             // Rifiuta una bozza
             rifiuta: async (id, motivo = '') =>
-                fetch(`${server}/api/deleghe/designazioni/${id}/rifiuta/`, {
+                fetch(`${server}/api/delegations/designazioni/${id}/rifiuta/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -557,8 +557,8 @@ const Client = (server, pdfServer, token) => {
         campagne: {
             list: async (consultazioneId) => {
                 const url = consultazioneId
-                    ? `${server}/api/deleghe/campagne/?consultazione=${consultazioneId}`
-                    : `${server}/api/deleghe/campagne/`;
+                    ? `${server}/api/delegations/campagne/?consultazione=${consultazioneId}`
+                    : `${server}/api/delegations/campagne/`;
                 return fetch(url, {
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
@@ -568,7 +568,7 @@ const Client = (server, pdfServer, token) => {
             },
 
             get: async (id) =>
-                fetch(`${server}/api/deleghe/campagne/${id}/`, {
+                fetch(`${server}/api/delegations/campagne/${id}/`, {
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
                     console.error(error);
@@ -576,7 +576,7 @@ const Client = (server, pdfServer, token) => {
                 }),
 
             create: async (data) =>
-                fetch(`${server}/api/deleghe/campagne/`, {
+                fetch(`${server}/api/delegations/campagne/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -589,7 +589,7 @@ const Client = (server, pdfServer, token) => {
                 }),
 
             update: async (id, data) =>
-                fetch(`${server}/api/deleghe/campagne/${id}/`, {
+                fetch(`${server}/api/delegations/campagne/${id}/`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -602,7 +602,7 @@ const Client = (server, pdfServer, token) => {
                 }),
 
             delete: async (id) =>
-                fetch(`${server}/api/deleghe/campagne/${id}/`, {
+                fetch(`${server}/api/delegations/campagne/${id}/`, {
                     method: 'DELETE',
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.ok ? {} : response.json()).catch(error => {
@@ -612,7 +612,7 @@ const Client = (server, pdfServer, token) => {
 
             // Attiva una campagna
             attiva: async (id) =>
-                fetch(`${server}/api/deleghe/campagne/${id}/attiva/`, {
+                fetch(`${server}/api/delegations/campagne/${id}/attiva/`, {
                     method: 'POST',
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
@@ -622,7 +622,7 @@ const Client = (server, pdfServer, token) => {
 
             // Chiude una campagna
             chiudi: async (id) =>
-                fetch(`${server}/api/deleghe/campagne/${id}/chiudi/`, {
+                fetch(`${server}/api/delegations/campagne/${id}/chiudi/`, {
                     method: 'POST',
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
@@ -700,7 +700,7 @@ const Client = (server, pdfServer, token) => {
 
     const territorio = {
         regioni: async () =>
-            fetch(`${server}/api/territorio/regioni/`, {
+            fetch(`${server}/api/territory/regioni/`, {
                 headers: { 'Authorization': authHeader }
             }).then(response => response.json()).catch(error => {
                 console.error(error);
@@ -709,7 +709,7 @@ const Client = (server, pdfServer, token) => {
 
         province: async (regioneId) => {
             const params = regioneId ? `?regione=${regioneId}` : '';
-            return fetch(`${server}/api/territorio/province/${params}`, {
+            return fetch(`${server}/api/territory/province/${params}`, {
                 headers: { 'Authorization': authHeader }
             }).then(response => response.json()).catch(error => {
                 console.error(error);
@@ -719,7 +719,7 @@ const Client = (server, pdfServer, token) => {
 
         comuni: async (provinciaId) => {
             const params = provinciaId ? `?provincia=${provinciaId}` : '';
-            return fetch(`${server}/api/territorio/comuni/${params}`, {
+            return fetch(`${server}/api/territory/comuni/${params}`, {
                 headers: { 'Authorization': authHeader }
             }).then(response => response.json()).catch(error => {
                 console.error(error);
@@ -728,7 +728,7 @@ const Client = (server, pdfServer, token) => {
         },
 
         municipi: async (comuneId) =>
-            fetch(`${server}/api/territorio/comuni/${comuneId}/`, {
+            fetch(`${server}/api/territory/comuni/${comuneId}/`, {
                 headers: { 'Authorization': authHeader }
             }).then(response => response.json()).catch(error => {
                 console.error(error);
@@ -748,7 +748,7 @@ const Client = (server, pdfServer, token) => {
             if (filters.filter_status) params.append('filter_status', filters.filter_status);
             const queryString = params.toString();
             return fetchWithCacheAndRetry(`mappatura.sezioni.${queryString}`, 30)(
-                `${server}/api/mappatura/sezioni/${queryString ? `?${queryString}` : ''}`,
+                `${server}/api/mapping/sezioni/${queryString ? `?${queryString}` : ''}`,
                 { headers: { 'Authorization': authHeader } }
             ).catch(error => {
                 console.error(error);
@@ -765,7 +765,7 @@ const Client = (server, pdfServer, token) => {
             if (filters.search) params.append('search', filters.search);
             const queryString = params.toString();
             return fetchWithCacheAndRetry(`mappatura.rdl.${queryString}`, 30)(
-                `${server}/api/mappatura/rdl/${queryString ? `?${queryString}` : ''}`,
+                `${server}/api/mapping/rdl/${queryString ? `?${queryString}` : ''}`,
                 { headers: { 'Authorization': authHeader } }
             ).catch(error => {
                 console.error(error);
@@ -778,7 +778,7 @@ const Client = (server, pdfServer, token) => {
             fetchAndInvalidate([
                 'mappatura.sezioni.',
                 'mappatura.rdl.'
-            ])(`${server}/api/mappatura/assegna/`, {
+            ])(`${server}/api/mapping/assegna/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -799,7 +799,7 @@ const Client = (server, pdfServer, token) => {
             fetchAndInvalidate([
                 'mappatura.sezioni.',
                 'mappatura.rdl.'
-            ])(`${server}/api/mappatura/assegna/${assignmentId}/`, {
+            ])(`${server}/api/mapping/assegna/${assignmentId}/`, {
                 method: 'DELETE',
                 headers: { 'Authorization': authHeader }
             }).then(response => response.json()).catch(error => {
@@ -812,7 +812,7 @@ const Client = (server, pdfServer, token) => {
             fetchAndInvalidate([
                 'mappatura.sezioni.',
                 'mappatura.rdl.'
-            ])(`${server}/api/mappatura/assegna-bulk/`, {
+            ])(`${server}/api/mapping/assegna-bulk/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

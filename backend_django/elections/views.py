@@ -176,8 +176,8 @@ class SchedaElettoraleDetailView(APIView):
         if not request.user.is_superuser:
             # Check delegation chain for permissions
             from delegations.models import DelegatoDiLista, SubDelega
-            is_delegato = DelegatoDiLista.objects.filter(user=request.user).exists()
-            is_sub_delegato = SubDelega.objects.filter(user=request.user, is_attiva=True).exists()
+            is_delegato = DelegatoDiLista.objects.filter(email=request.user.email).exists()
+            is_sub_delegato = SubDelega.objects.filter(email=request.user.email, is_attiva=True).exists()
             if not is_delegato and not is_sub_delegato:
                 return Response({'error': 'Non hai i permessi per modificare le schede'}, status=403)
 

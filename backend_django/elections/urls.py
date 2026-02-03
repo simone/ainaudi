@@ -13,8 +13,8 @@ from .views import (
 )
 
 urlpatterns = [
-    path('consultazioni/', ConsultazioniListView.as_view(), name='consultazioni-list'),
-    path('consultazioni/attiva/', ConsultazioneAttivaView.as_view(), name='consultazione-attiva'),
-    path('consultazioni/<int:pk>/', ConsultazioneDetailView.as_view(), name='consultazione-detail'),
-    path('schede/<int:pk>/', SchedaElettoraleDetailView.as_view(), name='scheda-detail'),
+    path('', ConsultazioniListView.as_view(), name='elections-list'),
+    path('active/', ConsultazioneAttivaView.as_view(), name='election-active'),
+    path('<int:pk>/', ConsultazioneDetailView.as_view(), name='election-detail'),
+    path('ballots/<int:pk>/', SchedaElettoraleDetailView.as_view(), name='ballot-detail'),
 ]

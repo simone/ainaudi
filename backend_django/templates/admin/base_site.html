@@ -1,18 +1,18 @@
 {% extends "admin/base.html" %}
 {% load static %}
 
-{% block title %}{{ title }} | RDL 5 Stelle{% endblock %}
+{% block title %}{{ title }} | AInaudi{% endblock %}
 
 {% block extrastyle %}
 {{ block.super }}
-<link rel="stylesheet" type="text/css" href="{% static 'admin/css/m5s_admin.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/ainaudi_admin.css' %}">
 {% endblock %}
 
 {% block branding %}
 <h1 id="site-name">
     <a href="{% url 'admin:index' %}">
-        <img src="{% static 'admin/img/m5s_logo.svg' %}" alt="M5S" style="height: 35px; vertical-align: middle; margin-right: 10px;">
-        RDL 5 Stelle
+        <img src="{% static 'admin/img/ainaudi_logo.svg' %}" alt="AInaudi" style="height: 35px; vertical-align: middle; margin-right: 10px;">
+        AInaudi
     </a>
 </h1>
 {% endblock %}

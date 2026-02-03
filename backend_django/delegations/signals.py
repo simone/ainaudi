@@ -147,7 +147,6 @@ def cache_pre_save_email(model_name, instance):
             old_instance = instance.__class__.objects.get(pk=instance.pk)
             _pre_save_cache[key] = {
                 'email': getattr(old_instance, 'email', None),
-                'user_id': old_instance.user_id if hasattr(old_instance, 'user') else None,
             }
         except instance.__class__.DoesNotExist:
             pass
@@ -164,21 +163,16 @@ def handle_email_change(instance, model_name, role, old_data, scope_type=None, s
     Handle email change on an entity.
 
     When email changes:
-    1. Unlink old user (set instance.user = None for old user)
-    2. Create/get new user with new email
-    3. Link new user to instance
-    4. Assign role to new user
-    5. Optionally remove role from old user if no other entities linked
+    1. Create/get new user with new email
+    2. Assign role to new user
+    3. Optionally remove role from old user if no other entities linked
     """
     old_email = old_data.get('email') if old_data else None
     new_email = instance.email
 
     if not new_email:
-        # Email cleared - just unlink
-        if instance.user:
-            logger.info(f"{model_name} {instance.pk}: email cleared, unlinking user")
-            instance.user = None
-            instance.save(update_fields=['user'])
+        # Email cleared - nothing to provision
+        logger.info(f"{model_name} {instance.pk}: email cleared")
         return None, False
 
     new_email = new_email.lower().strip()
@@ -186,7 +180,8 @@ def handle_email_change(instance, model_name, role, old_data, scope_type=None, s
 
     # No change
     if old_email == new_email:
-        return instance.user, False
+        user = User.objects.filter(email=new_email).first()
+        return user, False
 
     logger.info(f"{model_name} {instance.pk}: email changed from {old_email} to {new_email}")
 
@@ -205,10 +200,6 @@ def handle_email_change(instance, model_name, role, old_data, scope_type=None, s
     if not user:
         logger.error(f"Failed to provision user for {model_name} {instance.pk}")
         return None, False
-
-    # Link new user to instance
-    instance.user = user
-    instance.save(update_fields=['user'])
 
     # Assign role to new user
     ensure_role_assigned(
@@ -287,11 +278,6 @@ def provision_delegato_user(sender, instance, created, **kwargs):
             logger.error(f"Failed to provision user for DelegatoDiLista {instance.id}")
             return
 
-        # Link user to DelegatoDiLista
-        if not instance.user:
-            instance.user = user
-            instance.save(update_fields=['user'])
-
         # Assign DELEGATE role
         ensure_role_assigned(
             user=user,
@@ -342,7 +328,9 @@ def provision_delegato_user(sender, instance, created, **kwargs):
                 )
         else:
             # No email change - just update user data if needed
-            update_user_data(instance.user, instance)
+            user = User.objects.filter(email=instance.email).first()
+            if user:
+                update_user_data(user, instance)
 
 
 # =============================================================================
@@ -388,11 +376,6 @@ def provision_subdelegato_user(sender, instance, created, **kwargs):
         if not user:
             logger.error(f"Failed to provision user for SubDelega {instance.id}")
             return
-
-        # Link user to SubDelega
-        if not instance.user:
-            instance.user = user
-            instance.save(update_fields=['user'])
 
         # Assign SUBDELEGATE role
         ensure_role_assigned(
@@ -443,7 +426,9 @@ def provision_subdelegato_user(sender, instance, created, **kwargs):
                 )
         else:
             # No email change - just update user data if needed
-            update_user_data(instance.user, instance)
+            user = User.objects.filter(email=instance.email).first()
+            if user:
+                update_user_data(user, instance)
 
 
 # =============================================================================
@@ -495,11 +480,6 @@ def provision_rdl_user(sender, instance, created, **kwargs):
         if not user:
             logger.error(f"Failed to provision user for DesignazioneRDL {instance.id}")
             return
-
-        # Link user to DesignazioneRDL
-        if not instance.user:
-            instance.user = user
-            instance.save(update_fields=['user'])
 
         # Assign RDL role with section scope
         ensure_role_assigned(
@@ -556,4 +536,6 @@ def provision_rdl_user(sender, instance, created, **kwargs):
                 )
         else:
             # No email change - just update user data if needed
-            update_user_data(instance.user, instance)
+            user = User.objects.filter(email=instance.email).first()
+            if user:
+                update_user_data(user, instance)

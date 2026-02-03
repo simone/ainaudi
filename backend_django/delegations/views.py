@@ -58,7 +58,7 @@ class MiaCatenaView(views.APIView):
         }
 
         # Delegato di Lista?
-        deleghe_lista = DelegatoDiLista.objects.filter(user=user)
+        deleghe_lista = DelegatoDiLista.objects.filter(email=user.email)
         if consultazione:
             deleghe_lista = deleghe_lista.filter(consultazione=consultazione)
         if deleghe_lista.exists():
@@ -77,7 +77,7 @@ class MiaCatenaView(views.APIView):
                 )
 
         # Sub-Delegato?
-        sub_deleghe = SubDelega.objects.filter(user=user, is_attiva=True)
+        sub_deleghe = SubDelega.objects.filter(email=user.email, is_attiva=True)
         if consultazione:
             sub_deleghe = sub_deleghe.filter(delegato__consultazione=consultazione)
         if sub_deleghe.exists():
@@ -91,7 +91,7 @@ class MiaCatenaView(views.APIView):
                 )
 
         # RDL?
-        designazioni_ricevute = DesignazioneRDL.objects.filter(user=user, is_attiva=True)
+        designazioni_ricevute = DesignazioneRDL.objects.filter(email=user.email, is_attiva=True)
         if consultazione:
             designazioni_ricevute = designazioni_ricevute.filter(
                 sub_delega__delegato__consultazione=consultazione
@@ -126,11 +126,12 @@ class SubDelegaViewSet(viewsets.ModelViewSet):
         consultazione_id = self.request.query_params.get('consultazione')
 
         # Un utente vede:
-        # 1. Le sub-deleghe che ha ricevuto
-        # 2. Le sub-deleghe che ha creato (come Delegato)
+        # 1. Le sub-deleghe che ha ricevuto (email)
+        # 2. Le sub-deleghe che ha creato (created_by_email)
+        # 3. Le sub-deleghe del delegato associato alla sua email
         qs = SubDelega.objects.filter(
-            Q(user=user) | Q(delegato__user=user) | Q(created_by=user)
-        ).select_related('delegato', 'delegato__consultazione', 'user', 'created_by')
+            Q(email=user.email) | Q(delegato__email=user.email) | Q(created_by_email=user.email)
+        ).select_related('delegato', 'delegato__consultazione')
 
         if consultazione_id:
             qs = qs.filter(delegato__consultazione_id=consultazione_id)
@@ -145,7 +146,7 @@ class SubDelegaViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
 
         # Verifica che l'utente possa revocare
-        if instance.delegato.user != request.user and instance.created_by != request.user:
+        if instance.delegato.email != request.user.email and instance.created_by != request.user:
             return Response(
                 {'error': 'Non hai i permessi per revocare questa sub-delega'},
                 status=status.HTTP_403_FORBIDDEN
@@ -189,13 +190,13 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         # 3. Le designazioni che ha fatto direttamente (come Delegato)
         # 4. Le designazioni fatte dai suoi Sub-Delegati (come Delegato)
         qs = DesignazioneRDL.objects.filter(
-            Q(user=user) |
-            Q(sub_delega__user=user) |
-            Q(delegato__user=user) |
-            Q(sub_delega__delegato__user=user)  # Delegato vede bozze dei suoi sub
+            Q(email=user.email) |
+            Q(sub_delega__email=user.email) |
+            Q(delegato__email=user.email) |
+            Q(sub_delega__delegato__email=user.email)  # Delegato vede bozze dei suoi sub
         ).select_related(
             'delegato', 'sub_delega', 'sub_delega__delegato',
-            'sezione', 'sezione__comune', 'sezione__municipio', 'user'
+            'sezione', 'sezione__comune', 'sezione__municipio'
         )
 
         if consultazione_id:
@@ -212,9 +213,9 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
 
         # Verifica che l'utente possa revocare (delegato o sub-delegato)
         can_revoke = False
-        if instance.delegato and instance.delegato.user == request.user:
+        if instance.delegato and instance.delegato.email == request.user.email:
             can_revoke = True
-        if instance.sub_delega and instance.sub_delega.user == request.user:
+        if instance.sub_delega and instance.sub_delega.email == request.user.email:
             can_revoke = True
 
         if not can_revoke:
@@ -243,7 +244,7 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         consultazione_id = request.query_params.get('consultazione')
 
         # Trova le sub-deleghe dell'utente
-        sub_deleghe = SubDelega.objects.filter(user=user, is_attiva=True)
+        sub_deleghe = SubDelega.objects.filter(email=user.email, is_attiva=True)
         if consultazione_id:
             sub_deleghe = sub_deleghe.filter(delegato__consultazione_id=consultazione_id)
 
@@ -297,8 +298,8 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         municipio_id = request.query_params.get('municipio')
 
         # Trova il territorio di competenza dell'utente
-        sub_deleghe = SubDelega.objects.filter(user=user, is_attiva=True)
-        delegati = DelegatoDiLista.objects.filter(user=user)
+        sub_deleghe = SubDelega.objects.filter(email=user.email, is_attiva=True)
+        delegati = DelegatoDiLista.objects.filter(email=user.email)
 
         comuni_ids = set()
         municipi_ids = set()
@@ -392,9 +393,9 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         municipio_id = request.query_params.get('municipio')
 
         # Verifica che l'utente possa confermare (delegato o sub con firma)
-        delegati = DelegatoDiLista.objects.filter(user=user)
+        delegati = DelegatoDiLista.objects.filter(email=user.email)
         sub_deleghe_firma = SubDelega.objects.filter(
-            user=user,
+            email=user.email,
             is_attiva=True,
             tipo_delega='FIRMA_AUTENTICATA'
         )
@@ -472,13 +473,13 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         has_permission = False
 
         # È il delegato della catena?
-        if designazione.sub_delega and designazione.sub_delega.delegato.user == user:
+        if designazione.sub_delega and designazione.sub_delega.delegato.email == user.email:
             has_permission = True
 
         # È un sub-delegato con firma nello stesso territorio?
         if not has_permission:
             sub_deleghe_firma = SubDelega.objects.filter(
-                user=user,
+                email=user.email,
                 is_attiva=True,
                 tipo_delega='FIRMA_AUTENTICATA'
             )
@@ -520,12 +521,12 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         user = request.user
         has_permission = False
 
-        if designazione.sub_delega and designazione.sub_delega.delegato.user == user:
+        if designazione.sub_delega and designazione.sub_delega.delegato.email == user.email:
             has_permission = True
 
         if not has_permission:
             sub_deleghe_firma = SubDelega.objects.filter(
-                user=user,
+                email=user.email,
                 is_attiva=True,
                 tipo_delega='FIRMA_AUTENTICATA'
             )
@@ -566,11 +567,11 @@ class BatchGenerazioneDocumentiViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         return BatchGenerazioneDocumenti.objects.filter(
-            Q(sub_delega__user=user) | Q(created_by=user)
-        ).select_related('sub_delega', 'created_by')
+            Q(sub_delega__email=user.email) | Q(created_by_email=user.email)
+        ).select_related('sub_delega')
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        serializer.save(created_by_email=self.request.user.email)
 
     @action(detail=True, methods=['post'])
     def genera(self, request, pk=None):

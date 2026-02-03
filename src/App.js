@@ -130,14 +130,14 @@ function AppContent() {
     useEffect(() => {
         if (client && isAuthenticated) {
             // Carica la lista delle consultazioni
-            client.election.consultazioni().then(data => {
+            client.election.list().then(data => {
                 if (!data.error && Array.isArray(data)) {
                     setConsultazioni(data);
                 }
             }).catch(() => {});
 
             // Carica la consultazione attiva (prima nel futuro o in corso)
-            client.election.consultazioneAttiva().then(data => {
+            client.election.active().then(data => {
                 if (!data.error && data.id) {
                     setConsultazione(data);
                 }
@@ -156,7 +156,7 @@ function AppContent() {
         }
 
         try {
-            const data = await client.election.consultazione(id);
+            const data = await client.election.get(id);
             if (!data.error && data.id) {
                 setConsultazione(data);
                 clearCache(); // Invalida la cache per ricaricare i dati
@@ -324,7 +324,7 @@ function AppContent() {
                 <nav className="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
                     <div className="container-fluid">
                         <a className="navbar-brand" href="#" onClick={(e) => { e.preventDefault(); activate('dashboard'); }}>
-                            RDL 5 Stelle <span style={{color: '#e9d483'}}>★★★★★</span>
+                            AInaudi
                         </a>
                         {isAuthenticated && client && (
                             <>
@@ -777,7 +777,7 @@ function AppContent() {
                                                 <span className="text-muted">Controlla la posta di: <strong>{magicLinkEmail}</strong></span>
                                             </li>
                                             <li className="mb-2">
-                                                <strong>Cerca l'email da "RDL 5 Stelle"</strong><br/>
+                                                <strong>Cerca l'email da "AInaudi"</strong><br/>
                                                 <span className="text-muted">Oggetto: "Il tuo link di accesso"</span>
                                             </li>
                                             <li className="mb-2">
@@ -937,9 +937,9 @@ function AppContent() {
                 </div>
                 <div className="footer-text">
                     <p>
-                        RDL 5 Stelle<br/>
-                        Donata al MOVIMENTO 5 STELLE<br/>
-                        da Simone Federici GT Roma XV
+                        <strong>AInaudi</strong><br/>
+                        Ad uso gratuito per il Movimento 5 Stelle<br/>
+                        © Simone Federici
                     </p>
                 </div>
             </footer>

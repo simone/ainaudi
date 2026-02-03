@@ -80,7 +80,7 @@ function SchedaElettorale({ scheda, client, onClose, onUpdate }) {
                 }
             }
 
-            const result = await client.election.updateScheda(scheda.id, dataToSave);
+            const result = await client.election.updateBallot(scheda.id, dataToSave);
 
             if (result.error) {
                 setError(result.error);

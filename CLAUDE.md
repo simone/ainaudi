@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-RDL (Responsabile Di Lista) is an election data collection system for Movimento 5 Stelle. It manages the Italian electoral delegation hierarchy (Delegato → SubDelegato → RDL), collects voting data from electoral sections, handles RDL registrations/approvals, displays KPI dashboards, and generates PDF nomination forms.
+AInaudi is an election data collection system (© Simone Federici, free for Movimento 5 Stelle). It manages the Italian electoral delegation hierarchy (Delegato → SubDelegato → RDL), collects voting data from electoral sections, handles RDL registrations/approvals, displays KPI dashboards, and generates PDF nomination forms.
 
 ## Development Commands
 
@@ -192,20 +192,35 @@ POST /api/auth/magic-link/request/      - Request magic link
 POST /api/auth/magic-link/verify/       - Verify magic link
 
 # Delegations
-GET  /api/deleghe/mia-catena/           - User's delegation chain
-GET  /api/deleghe/sub-deleghe/          - List sub-deleghe
-POST /api/deleghe/sub-deleghe/          - Create sub-delega
-GET  /api/deleghe/designazioni/         - List designazioni RDL
-POST /api/deleghe/designazioni/         - Create designazione
+GET  /api/delegations/my-chain/         - User's delegation chain
+GET  /api/delegations/sub-delegations/  - List sub-delegations
+POST /api/delegations/sub-delegations/  - Create sub-delegation
+GET  /api/delegations/designations/     - List RDL designations
+POST /api/delegations/designations/     - Create designation
 
 # RDL Management
 GET  /api/rdl/registrations             - List RDL registrations
 POST /api/rdl/registrations/{id}/approve - Approve registration
 
 # Territory
-GET  /api/territorio/regioni/           - Regions
-GET  /api/territorio/province/?regione= - Provinces (cascading filter)
-GET  /api/territorio/comuni/?provincia= - Municipalities
+GET  /api/territory/regions/            - Regions
+GET  /api/territory/provinces/?region=  - Provinces (cascading filter)
+GET  /api/territory/municipalities/?province= - Municipalities
+
+# Elections
+GET  /api/elections/                    - List elections
+GET  /api/elections/active/             - Get active election
+GET  /api/elections/{id}/               - Election detail
+GET  /api/elections/ballots/{id}/       - Ballot detail
+
+# KPI
+GET  /api/kpi/data                      - KPI data
+GET  /api/kpi/stations                  - KPI by station
+
+# Mapping (RDL-to-station assignments)
+GET  /api/mapping/stations/             - Available stations
+GET  /api/mapping/poll-watchers/        - Available poll watchers
+POST /api/mapping/assign/               - Assign poll watcher to station
 ```
 
 ## Signals (Auto-provisioning)
