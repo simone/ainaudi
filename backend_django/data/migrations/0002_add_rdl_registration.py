@@ -8,8 +8,8 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("sections", "0001_initial"),
-        ("territorio", "0001_initial"),
+        ("data", "0001_initial"),
+        ("territory", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -99,7 +99,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="rdl_registrations",
-                        to="territorio.comune",
+                        to="territory.comune",
                         verbose_name="comune",
                     ),
                 ),
@@ -111,7 +111,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="rdl_registrations",
-                        to="territorio.municipio",
+                        to="territory.municipio",
                         verbose_name="municipio",
                     ),
                 ),

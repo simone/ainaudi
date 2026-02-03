@@ -145,7 +145,7 @@ class Command(BaseCommand):
         """Check if user has any links to domain entities."""
         from delegations.models import DelegatoDiLista, SubDelega, DesignazioneRDL
         from campaign.models import RdlRegistration
-        from sections.models import SectionAssignment
+        from data.models import SectionAssignment
 
         # Check delegation chain
         if DelegatoDiLista.objects.filter(user=user).exists():

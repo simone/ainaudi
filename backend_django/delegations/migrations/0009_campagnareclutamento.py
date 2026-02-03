@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ('delegations', '0008_subdelega_regioni_province'),
         ('elections', '0001_initial'),
-        ('territorio', '0001_initial'),
+        ('territory', '0001_initial'),
     ]
 
     operations = [
@@ -34,9 +34,9 @@ class Migration(migrations.Migration):
                 ('created_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='campagne_create', to=settings.AUTH_USER_MODEL, verbose_name='creato da')),
                 ('delegato', models.ForeignKey(blank=True, help_text='Delegato che ha creato la campagna', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='campagne_reclutamento', to='delegations.delegatodilista', verbose_name='delegato')),
                 ('sub_delega', models.ForeignKey(blank=True, help_text='Sub-delegato che ha creato la campagna', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='campagne_reclutamento', to='delegations.subdelega', verbose_name='sub-delega')),
-                ('territorio_comuni', models.ManyToManyField(blank=True, help_text='Comuni dove è possibile registrarsi', related_name='campagne_reclutamento', to='territorio.comune', verbose_name='comuni')),
-                ('territorio_province', models.ManyToManyField(blank=True, help_text='Province dove è possibile registrarsi', related_name='campagne_reclutamento', to='territorio.provincia', verbose_name='province')),
-                ('territorio_regioni', models.ManyToManyField(blank=True, help_text='Regioni dove è possibile registrarsi', related_name='campagne_reclutamento', to='territorio.regione', verbose_name='regioni')),
+                ('territorio_comuni', models.ManyToManyField(blank=True, help_text='Comuni dove è possibile registrarsi', related_name='campagne_reclutamento', to='territory.comune', verbose_name='comuni')),
+                ('territorio_province', models.ManyToManyField(blank=True, help_text='Province dove è possibile registrarsi', related_name='campagne_reclutamento', to='territory.provincia', verbose_name='province')),
+                ('territorio_regioni', models.ManyToManyField(blank=True, help_text='Regioni dove è possibile registrarsi', related_name='campagne_reclutamento', to='territory.regione', verbose_name='regioni')),
             ],
             options={
                 'verbose_name': 'Campagna di Reclutamento',

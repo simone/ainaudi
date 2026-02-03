@@ -325,7 +325,7 @@ class MappaturaCreaSerializer(serializers.Serializer):
         return value
 
     def validate_sezione_id(self, value):
-        from territorio.models import SezioneElettorale
+        from territory.models import SezioneElettorale
         try:
             SezioneElettorale.objects.get(id=value)
         except SezioneElettorale.DoesNotExist:
@@ -346,7 +346,7 @@ class MappaturaCreaSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        from territorio.models import SezioneElettorale
+        from territory.models import SezioneElettorale
 
         reg = RdlRegistration.objects.get(id=validated_data['rdl_registration_id'])
         sezione = SezioneElettorale.objects.get(id=validated_data['sezione_id'])
@@ -544,7 +544,7 @@ class CampagnaRegistrazioneSerializer(serializers.Serializer):
     municipio = serializers.IntegerField(required=False, allow_null=True)
 
     def validate_comune_id(self, value):
-        from territorio.models import Comune
+        from territory.models import Comune
         try:
             Comune.objects.get(id=value)
         except Comune.DoesNotExist:
@@ -563,7 +563,7 @@ class CampagnaRegistrazioneSerializer(serializers.Serializer):
             raise serializers.ValidationError("Posti esauriti")
 
         # Verify comune is within campaign territory
-        from territorio.models import Comune
+        from territory.models import Comune
         comune = Comune.objects.get(id=data['comune_id'])
         comuni_disponibili = campagna.get_comuni_disponibili()
         if not comuni_disponibili.filter(id=comune.id).exists():
@@ -574,7 +574,7 @@ class CampagnaRegistrazioneSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        from territorio.models import Comune, Municipio
+        from territory.models import Comune, Municipio
 
         campagna = self.context['campagna']
         comune = Comune.objects.get(id=validated_data['comune_id'])

@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("territorio", "0001_initial"),
+        ("territory", "0001_initial"),
     ]
 
     operations = [
@@ -144,7 +144,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="chat_sessions",
-                        to="territorio.sezioneelettorale",
+                        to="territory.sezioneelettorale",
                         verbose_name="sezione",
                     ),
                 ),

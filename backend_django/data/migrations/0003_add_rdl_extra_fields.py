@@ -7,8 +7,8 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("sections", "0002_add_rdl_registration"),
-        ("territorio", "0001_initial"),
+        ("data", "0002_add_rdl_registration"),
+        ("territory", "0001_initial"),
     ]
 
     operations = [
@@ -60,7 +60,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="rdl_registrations",
-                to="territorio.comune",
+                to="territory.comune",
                 verbose_name="comune operativo",
             ),
         ),
@@ -73,7 +73,7 @@ class Migration(migrations.Migration):
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="rdl_registrations",
-                to="territorio.municipio",
+                to="territory.municipio",
                 verbose_name="municipio di appartenenza",
             ),
         ),

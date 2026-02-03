@@ -7,7 +7,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('delegations', '0007_add_tipo_delega_and_stato'),
-        ('territorio', '0001_initial'),
+        ('territory', '0001_initial'),
     ]
 
     operations = [
@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 help_text='Regioni di competenza',
                 related_name='sub_deleghe',
-                to='territorio.regione',
+                to='territory.regione',
                 verbose_name='regioni'
             ),
         ),
@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 help_text='Province di competenza',
                 related_name='sub_deleghe',
-                to='territorio.provincia',
+                to='territory.provincia',
                 verbose_name='province'
             ),
         ),

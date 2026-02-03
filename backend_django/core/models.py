@@ -188,7 +188,7 @@ class RoleAssignment(models.Model):
 
     # Foreign keys to territory (optional, for referential integrity)
     scope_regione = models.ForeignKey(
-        'territorio.Regione',
+        'territory.Regione',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -196,7 +196,7 @@ class RoleAssignment(models.Model):
         verbose_name=_('regione')
     )
     scope_provincia = models.ForeignKey(
-        'territorio.Provincia',
+        'territory.Provincia',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -204,7 +204,7 @@ class RoleAssignment(models.Model):
         verbose_name=_('provincia')
     )
     scope_comune = models.ForeignKey(
-        'territorio.Comune',
+        'territory.Comune',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

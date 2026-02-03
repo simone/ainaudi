@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("sections", "0003_add_rdl_extra_fields"),
+        ("data", "0003_add_rdl_extra_fields"),
     ]
 
     operations = [

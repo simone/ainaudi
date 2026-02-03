@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("elections", "0001_initial"),
-        ("territorio", "0001_initial"),
+        ("territory", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -164,7 +164,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="incidents",
-                        to="territorio.sezioneelettorale",
+                        to="territory.sezioneelettorale",
                         verbose_name="sezione",
                     ),
                 ),

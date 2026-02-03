@@ -13,7 +13,7 @@ Usage:
 """
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from territorio.models import Comune, Municipio
+from territory.models import Comune, Municipio
 
 
 # Cities with their municipalities

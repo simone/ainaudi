@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('sections', '0007_fix_assignment_fk_to_rdl'),
+        ('data', '0007_fix_assignment_fk_to_rdl'),
         ('elections', '0001_initial'),
         ('delegations', '0009_campagnareclutamento'),
     ]

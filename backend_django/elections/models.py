@@ -7,13 +7,13 @@ This module defines:
 - Partition bindings: ElectionPartitionBinding, BallotActivation, CandidatePartitionEligibility
 
 Territory models (Regione, Provincia, Comune, etc.) and Territorial Partitions
-(TerritorialPartitionSet, TerritorialPartitionUnit) are in the 'territorio' app.
+(TerritorialPartitionSet, TerritorialPartitionUnit) are in the 'territory' app.
 """
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-# Import territory models from territorio app
-from territorio.models import Regione, Comune
+# Import territory models from territory app
+from territory.models import Regione, Comune
 
 
 # =============================================================================
@@ -343,7 +343,7 @@ class ElectionPartitionBinding(models.Model):
         verbose_name=_('consultazione')
     )
     partition_set = models.ForeignKey(
-        'territorio.TerritorialPartitionSet',
+        'territory.TerritorialPartitionSet',
         on_delete=models.CASCADE,
         related_name='election_bindings',
         verbose_name=_('set partizioni')
@@ -378,7 +378,7 @@ class BallotActivation(models.Model):
         verbose_name=_('scheda')
     )
     partition_unit = models.ForeignKey(
-        'territorio.TerritorialPartitionUnit',
+        'territory.TerritorialPartitionUnit',
         on_delete=models.CASCADE,
         related_name='ballot_activations',
         verbose_name=_('unità partizione')
@@ -415,7 +415,7 @@ class CandidatePartitionEligibility(models.Model):
         verbose_name=_('candidato')
     )
     partition_unit = models.ForeignKey(
-        'territorio.TerritorialPartitionUnit',
+        'territory.TerritorialPartitionUnit',
         on_delete=models.CASCADE,
         related_name='candidate_eligibilities',
         verbose_name=_('unità partizione')

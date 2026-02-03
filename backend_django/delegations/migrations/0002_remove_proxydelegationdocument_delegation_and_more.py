@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("delegations", "0001_initial"),
         ("elections", "0001_initial"),
-        ("territorio", "0001_initial"),
+        ("territory", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -278,7 +278,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         help_text="Comuni di competenza",
                         related_name="sub_deleghe",
-                        to="territorio.comune",
+                        to="territory.comune",
                         verbose_name="comuni",
                     ),
                 ),
@@ -415,7 +415,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="designazioni_rdl",
-                        to="territorio.sezioneelettorale",
+                        to="territory.sezioneelettorale",
                         verbose_name="sezione",
                     ),
                 ),

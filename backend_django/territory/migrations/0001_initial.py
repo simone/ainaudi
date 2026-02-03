@@ -171,7 +171,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="municipi",
-                        to="territorio.comune",
+                        to="territory.comune",
                         verbose_name="comune",
                     ),
                 ),
@@ -189,7 +189,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="comuni",
-                to="territorio.provincia",
+                to="territory.provincia",
                 verbose_name="provincia",
             ),
         ),
@@ -199,7 +199,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="province",
-                to="territorio.regione",
+                to="territory.regione",
                 verbose_name="regione",
             ),
         ),
@@ -277,7 +277,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="sezioni",
-                        to="territorio.comune",
+                        to="territory.comune",
                         verbose_name="comune",
                     ),
                 ),
@@ -288,7 +288,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="sezioni",
-                        to="territorio.municipio",
+                        to="territory.municipio",
                         verbose_name="municipio",
                     ),
                 ),

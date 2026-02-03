@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("auth", "0012_alter_user_first_name_max_length"),
-        ("territorio", "0001_initial"),
+        ("territory", "0001_initial"),
     ]
 
     operations = [
@@ -411,7 +411,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="role_assignments",
-                        to="territorio.comune",
+                        to="territory.comune",
                         verbose_name="comune",
                     ),
                 ),
@@ -422,7 +422,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="role_assignments",
-                        to="territorio.provincia",
+                        to="territory.provincia",
                         verbose_name="provincia",
                     ),
                 ),
@@ -433,7 +433,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="role_assignments",
-                        to="territorio.regione",
+                        to="territory.regione",
                         verbose_name="regione",
                     ),
                 ),

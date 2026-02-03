@@ -227,7 +227,7 @@ backend_django/
 │   ├── views.py                      # Auth views (Magic Link)
 │   └── permissions.py                # Custom permissions
 │
-├── territorio/                       # "Territorio"
+├── territory/                        # "Territorio"
 │   ├── models.py                     # Regione, Provincia, Comune, Municipio
 │   │                                 # SezioneElettorale, TerritorialPartition*
 │   └── views.py                      # Endpoints con filtri cascade
@@ -248,7 +248,7 @@ backend_django/
 │   ├── models.py                     # CampagnaReclutamento, RdlRegistration
 │   └── views.py                      # API campagne pubbliche
 │
-├── sections/                         # "Raccolta Dati"
+├── data/                             # "Raccolta Dati"
 │   ├── models.py                     # SectionAssignment, DatiSezione
 │   │                                 # DatiScheda, SectionDataHistory
 │   ├── signals.py                    # Auto-creazione ruoli RDL
@@ -280,11 +280,11 @@ backend_django/
 | App | Verbose Name | Modelli Principali | Funzione |
 |-----|--------------|-------------------|----------|
 | **core** | Utenti e Autenticazione | User, RoleAssignment, AuditLog | Autenticazione Magic Link, RBAC, audit trail |
-| **territorio** | Territorio | Regione, Provincia, Comune, Municipio, SezioneElettorale, TerritorialPartition* | Gerarchia amministrativa italiana e partizioni elettorali |
+| **territory** | Territorio | Regione, Provincia, Comune, Municipio, SezioneElettorale, TerritorialPartition* | Gerarchia amministrativa italiana e partizioni elettorali |
 | **elections** | Consultazioni elettorali | ConsultazioneElettorale, TipoElezione, SchedaElettorale, ListaElettorale, Candidato | Gestione consultazioni, schede, liste e candidati |
 | **delegations** | Deleghe | DelegatoDiLista, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti | Catena completa delle deleghe |
 | **campaign** | Campagne e Registrazioni | CampagnaReclutamento, RdlRegistration | Reclutamento RDL via campagne pubbliche |
-| **sections** | Raccolta Dati | SectionAssignment, DatiSezione, DatiScheda, SectionDataHistory | Mappatura RDL e raccolta voti |
+| **data** | Raccolta Dati | SectionAssignment, DatiSezione, DatiScheda, SectionDataHistory | Mappatura RDL e raccolta voti |
 | **incidents** | Segnalazioni | IncidentReport, IncidentComment, IncidentAttachment | Gestione problemi durante le elezioni |
 | **documents** | Documenti e PDF | Template, GeneratedDocument | Generazione automatica PDF deleghe |
 | **resources** | Risorse (Documenti e FAQ) | CategoriaDocumento, Documento, CategoriaFAQ, FAQ | Materiali formativi per RDL |
@@ -1141,7 +1141,6 @@ docker-compose up
 # - backend: http://localhost:3001
 # - postgres: localhost:5432
 # - redis: localhost:6379
-# - adminer: http://localhost:8080
 ```
 
 ### 10.2 Produzione (Google Cloud)

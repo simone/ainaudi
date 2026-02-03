@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("territorio", "0001_initial"),
+        ("territory", "0001_initial"),
     ]
 
     operations = [
@@ -107,7 +107,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="sub_units",
-                        to="territorio.territorialpartitionunit",
+                        to="territory.territorialpartitionunit",
                         verbose_name="unità padre",
                     ),
                 ),
@@ -116,7 +116,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="units",
-                        to="territorio.territorialpartitionset",
+                        to="territory.territorialpartitionset",
                         verbose_name="set partizioni",
                     ),
                 ),
@@ -147,7 +147,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="partition_memberships",
-                        to="territorio.comune",
+                        to="territory.comune",
                         verbose_name="comune",
                     ),
                 ),
@@ -158,7 +158,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="partition_memberships",
-                        to="territorio.provincia",
+                        to="territory.provincia",
                         verbose_name="provincia",
                     ),
                 ),
@@ -169,7 +169,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="partition_memberships",
-                        to="territorio.regione",
+                        to="territory.regione",
                         verbose_name="regione",
                     ),
                 ),
@@ -178,7 +178,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="memberships",
-                        to="territorio.territorialpartitionunit",
+                        to="territory.territorialpartitionunit",
                         verbose_name="unità partizione",
                     ),
                 ),

@@ -7,7 +7,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("delegations", "0005_remove_consigliere_capitolino"),
-        ("territorio", "0001_initial"),
+        ("territory", "0001_initial"),
     ]
 
     operations = [
@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 help_text="Comuni di competenza",
                 related_name="delegati_lista",
-                to="territorio.comune",
+                to="territory.comune",
                 verbose_name="comuni",
             ),
         ),
@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 help_text="Province di competenza",
                 related_name="delegati_lista",
-                to="territorio.provincia",
+                to="territory.provincia",
                 verbose_name="province",
             ),
         ),
@@ -50,7 +50,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 help_text="Regioni di competenza",
                 related_name="delegati_lista",
-                to="territorio.regione",
+                to="territory.regione",
                 verbose_name="regioni",
             ),
         ),

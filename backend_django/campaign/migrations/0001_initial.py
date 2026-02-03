@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("delegations", "0010_remove_user_fk_use_email"),
         ("elections", "0003_add_partition_bindings_remove_old_circumscriptions"),
-        ("territorio", "0002_add_territorial_partitions"),
+        ("territory", "0002_add_territorial_partitions"),
     ]
 
     operations = [
@@ -154,32 +154,32 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "territorio_comuni",
+                    "territory_comuni",
                     models.ManyToManyField(
                         blank=True,
                         help_text="Comuni dove è possibile registrarsi",
                         related_name="campagne_reclutamento",
-                        to="territorio.comune",
+                        to="territory.comune",
                         verbose_name="comuni",
                     ),
                 ),
                 (
-                    "territorio_province",
+                    "territory_province",
                     models.ManyToManyField(
                         blank=True,
                         help_text="Province dove è possibile registrarsi",
                         related_name="campagne_reclutamento",
-                        to="territorio.provincia",
+                        to="territory.provincia",
                         verbose_name="province",
                     ),
                 ),
                 (
-                    "territorio_regioni",
+                    "territory_regioni",
                     models.ManyToManyField(
                         blank=True,
                         help_text="Regioni dove è possibile registrarsi",
                         related_name="campagne_reclutamento",
-                        to="territorio.regione",
+                        to="territory.regione",
                         verbose_name="regioni",
                     ),
                 ),
@@ -306,7 +306,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="rdl_registrations",
-                        to="territorio.comune",
+                        to="territory.comune",
                         verbose_name="comune operativo",
                     ),
                 ),
@@ -330,7 +330,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="rdl_registrations",
-                        to="territorio.municipio",
+                        to="territory.municipio",
                         verbose_name="municipio di appartenenza",
                     ),
                 ),

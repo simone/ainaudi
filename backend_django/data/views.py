@@ -15,7 +15,7 @@ from django.db import transaction
 from .models import SectionAssignment, DatiSezione, DatiScheda
 from campaign.models import RdlRegistration
 from elections.models import ConsultazioneElettorale
-from territorio.models import SezioneElettorale, Comune, Municipio
+from territory.models import SezioneElettorale, Comune, Municipio
 
 
 def get_consultazione_attiva():
@@ -2099,7 +2099,7 @@ class MappaturaSezioniView(APIView):
 
                     # Se ha municipi ma nessun comune esplicito, aggiungi i comuni che li contengono
                     if not sub_delega.comuni.exists():
-                        from territorio.models import Municipio
+                        from territory.models import Municipio
                         municipi_comuni = Municipio.objects.filter(
                             numero__in=sub_delega.municipi
                         ).values_list('comune_id', 'comune__nome').distinct()

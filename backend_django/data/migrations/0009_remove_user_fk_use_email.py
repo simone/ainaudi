@@ -7,8 +7,8 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("elections", "0003_add_partition_bindings_remove_old_circumscriptions"),
-        ("sections", "0008_rdlregistration_campagna_consultazione"),
-        ("territorio", "0002_add_territorial_partitions"),
+        ("data", "0008_rdlregistration_campagna_consultazione"),
+        ("territory", "0002_add_territorial_partitions"),
     ]
 
     operations = [

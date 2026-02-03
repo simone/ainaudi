@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from django.db.models import Q
 
 from elections.models import ConsultazioneElettorale
-from territorio.models import SezioneElettorale
+from territory.models import SezioneElettorale
 from .models import DelegatoDiLista, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti
 from .serializers import (
     DelegatoDiListaSerializer,

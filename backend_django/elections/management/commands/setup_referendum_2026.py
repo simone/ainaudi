@@ -18,7 +18,7 @@ Sources:
 """
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from territorio.models import (
+from territory.models import (
     Regione, Provincia,
     TerritorialPartitionSet, TerritorialPartitionUnit, TerritorialPartitionMembership
 )

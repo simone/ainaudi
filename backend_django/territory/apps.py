@@ -1,7 +1,7 @@
 from django.apps import AppConfig
 
 
-class TerritorioConfig(AppConfig):
+class TerritoryConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'territorio'
+    name = 'territory'
     verbose_name = 'Territorio'

@@ -46,7 +46,6 @@ case "$1" in
         echo "  Frontend:  http://localhost:3000"
         echo "  Backend:   http://localhost:3001"
         echo "  Admin:     http://localhost:3001/admin/"
-        echo "  Adminer:   http://localhost:8080"
         ;;
     down)
         echo -e "${YELLOW}Stopping all services...${NC}"

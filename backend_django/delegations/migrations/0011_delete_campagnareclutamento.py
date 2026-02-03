@@ -7,7 +7,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("delegations", "0010_remove_user_fk_use_email"),
-        ("sections", "0010_alter_sectionassignment_rdl_registration_and_more"),
+        ("data", "0010_alter_sectionassignment_rdl_registration_and_more"),
     ]
 
     operations = [

@@ -9,8 +9,8 @@ from django.db.models import Sum
 from django.db.models.functions import Coalesce
 
 from elections.models import ConsultazioneElettorale
-from territorio.models import SezioneElettorale
-from sections.models import SectionAssignment, DatiSezione
+from territory.models import SezioneElettorale
+from data.models import SectionAssignment, DatiSezione
 
 
 def get_consultazione_attiva():

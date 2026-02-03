@@ -1,11 +1,11 @@
 """
 Serializers for elections models.
-Territory serializers are in territorio/serializers.py.
-Partition serializers are in territorio/serializers.py.
+Territory serializers are in territory/serializers.py.
+Partition serializers are in territory/serializers.py.
 """
 from rest_framework import serializers
-from territorio.models import Regione
-from territorio.serializers import RegioneSerializer
+from territory.models import Regione
+from territory.serializers import RegioneSerializer
 from .models import (
     ConsultazioneElettorale, TipoElezione, SchedaElettorale,
     ListaElettorale, Candidato,

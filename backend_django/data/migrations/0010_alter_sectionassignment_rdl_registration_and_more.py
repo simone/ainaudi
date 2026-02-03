@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("campaign", "0001_initial"),
-        ("sections", "0009_remove_user_fk_use_email"),
+        ("data", "0009_remove_user_fk_use_email"),
     ]
 
     operations = [

@@ -13,7 +13,7 @@ Oppure:
 import json
 from django.core.management import call_command
 from elections.models import ConsultazioneElettorale, TipoElezione, SchedaElettorale
-from territorio.models import Comune, Regione
+from territory.models import Comune, Regione
 
 # Prima carica la fixture base
 print("Caricamento fixture base...")

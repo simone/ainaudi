@@ -65,21 +65,21 @@ class DelegatoDiLista(models.Model):
     # Territorio di competenza (determina quali sezioni può vedere)
     # Il delegato può operare su uno o più di questi livelli
     territorio_regioni = models.ManyToManyField(
-        'territorio.Regione',
+        'territory.Regione',
         blank=True,
         related_name='delegati_lista',
         verbose_name=_('regioni'),
         help_text=_('Regioni di competenza')
     )
     territorio_province = models.ManyToManyField(
-        'territorio.Provincia',
+        'territory.Provincia',
         blank=True,
         related_name='delegati_lista',
         verbose_name=_('province'),
         help_text=_('Province di competenza')
     )
     territorio_comuni = models.ManyToManyField(
-        'territorio.Comune',
+        'territory.Comune',
         blank=True,
         related_name='delegati_lista',
         verbose_name=_('comuni'),
@@ -180,21 +180,21 @@ class SubDelega(models.Model):
 
     # Territorio di competenza (dal più ampio al più specifico)
     regioni = models.ManyToManyField(
-        'territorio.Regione',
+        'territory.Regione',
         blank=True,
         related_name='sub_deleghe',
         verbose_name=_('regioni'),
         help_text=_('Regioni di competenza')
     )
     province = models.ManyToManyField(
-        'territorio.Provincia',
+        'territory.Provincia',
         blank=True,
         related_name='sub_deleghe',
         verbose_name=_('province'),
         help_text=_('Province di competenza')
     )
     comuni = models.ManyToManyField(
-        'territorio.Comune',
+        'territory.Comune',
         blank=True,
         related_name='sub_deleghe',
         verbose_name=_('comuni'),
@@ -363,7 +363,7 @@ class DesignazioneRDL(models.Model):
 
     # Sezione elettorale
     sezione = models.ForeignKey(
-        'territorio.SezioneElettorale',
+        'territory.SezioneElettorale',
         on_delete=models.CASCADE,
         related_name='designazioni_rdl',
         verbose_name=_('sezione')

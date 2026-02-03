@@ -1,9 +1,9 @@
 from django.apps import AppConfig
 
 
-class SectionsConfig(AppConfig):
+class DataConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'sections'
+    name = 'data'
     verbose_name = 'Raccolta Dati'
 
     def ready(self):

@@ -12,13 +12,13 @@ from core.admin_views import (
     AdminMagicLinkVerifyView,
 )
 from core.views import PermissionsView
-from sections.views import (
+from data.views import (
     RdlEmailsView,
     RdlSectionsView,
     RdlAssignView,
     RdlUnassignView,
 )
-from sections.urls import rdl_registration_urlpatterns, mappatura_urlpatterns
+from data.urls import rdl_registration_urlpatterns, mappatura_urlpatterns
 from elections.views import ElectionListsView, ElectionCandidatesView
 from delegations.views_campagna import CampagnaPublicView, CampagnaRegistraView
 
@@ -48,8 +48,8 @@ urlpatterns = [
     # RDL registration endpoints
     path('api/rdl/', include(rdl_registration_urlpatterns)),
 
-    # Mappatura endpoints (operational RDL-to-section assignment)
-    path('api/mappatura/', include(mappatura_urlpatterns)),
+    # Mapping endpoints (operational RDL-to-station assignment)
+    path('api/mapping/', include(mappatura_urlpatterns)),
 
     # Election endpoints (singular 'election' for frontend compatibility)
     path('api/election/lists', ElectionListsView.as_view(), name='election-lists'),
@@ -57,15 +57,15 @@ urlpatterns = [
 
     # API endpoints used by frontend
     path('api/elections/', include('elections.urls')),
-    path('api/sections/', include('sections.urls')),
+    path('api/sections/', include('data.urls')),
     path('api/kpi/', include('kpi.urls')),
-    path('api/risorse/', include('resources.urls')),
-    path('api/deleghe/', include('delegations.urls')),
-    path('api/territorio/', include('territorio.urls')),
+    path('api/resources/', include('resources.urls')),
+    path('api/delegations/', include('delegations.urls')),
+    path('api/territory/', include('territory.urls')),
 
     # Public campaign endpoints (no auth required)
-    path('api/campagna/<slug:slug>/', CampagnaPublicView.as_view(), name='campagna-public'),
-    path('api/campagna/<slug:slug>/registra/', CampagnaRegistraView.as_view(), name='campagna-registra'),
+    path('api/campaigns/<slug:slug>/', CampagnaPublicView.as_view(), name='campaign-public'),
+    path('api/campaigns/<slug:slug>/register/', CampagnaRegistraView.as_view(), name='campaign-register'),
 ]
 
 # Serve media files in development

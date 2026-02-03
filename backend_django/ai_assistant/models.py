@@ -56,7 +56,7 @@ class ChatSession(models.Model):
         help_text=_('es. SCRUTINY, INCIDENT')
     )
     sezione = models.ForeignKey(
-        'territorio.SezioneElettorale',
+        'territory.SezioneElettorale',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

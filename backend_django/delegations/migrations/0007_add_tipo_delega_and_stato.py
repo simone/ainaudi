@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("delegations", "0006_add_territorio_delegato"),
-        ("territorio", "0001_initial"),
+        ("territory", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

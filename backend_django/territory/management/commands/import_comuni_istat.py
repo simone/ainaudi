@@ -13,7 +13,7 @@ import io
 import requests
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from territorio.models import Regione, Provincia, Comune
+from territory.models import Regione, Provincia, Comune
 
 
 # ISTAT CSV URL (updated periodically by ISTAT)

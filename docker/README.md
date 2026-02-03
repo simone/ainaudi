@@ -28,7 +28,6 @@ docker-compose exec backend python manage.py createsuperuser
 | Frontend | http://localhost:3000 | React dev server |
 | Backend | http://localhost:3001 | Django API |
 | Admin | http://localhost:3001/admin/ | Django Admin |
-| Adminer | http://localhost:8080 | Database UI |
 | PostgreSQL | localhost:5432 | Database |
 | Redis | localhost:6379 | Cache |
 
@@ -144,15 +143,6 @@ GOOGLE_CLIENT_SECRET=your-client-secret
 - **Backend**: Le modifiche in `backend_django/` sono automaticamente rilevate
 
 ## Database
-
-### Accesso via Adminer
-
-1. Vai a http://localhost:8080
-2. Sistema: PostgreSQL
-3. Server: db
-4. Username: postgres
-5. Password: postgres
-6. Database: rdl_referendum
 
 ### Accesso via CLI
 

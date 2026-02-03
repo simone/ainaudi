@@ -67,21 +67,21 @@ class CampagnaReclutamento(models.Model):
 
     # Territorio di competenza
     territorio_regioni = models.ManyToManyField(
-        'territorio.Regione',
+        'territory.Regione',
         blank=True,
         related_name='campagne_reclutamento',
         verbose_name=_('regioni'),
         help_text=_('Regioni dove è possibile registrarsi')
     )
     territorio_province = models.ManyToManyField(
-        'territorio.Provincia',
+        'territory.Provincia',
         blank=True,
         related_name='campagne_reclutamento',
         verbose_name=_('province'),
         help_text=_('Province dove è possibile registrarsi')
     )
     territorio_comuni = models.ManyToManyField(
-        'territorio.Comune',
+        'territory.Comune',
         blank=True,
         related_name='campagne_reclutamento',
         verbose_name=_('comuni'),
@@ -183,7 +183,7 @@ class CampagnaReclutamento(models.Model):
         Restituisce i comuni dove è possibile registrarsi.
         Logica: se specificati comuni, usa quelli; altrimenti province; altrimenti regioni.
         """
-        from territorio.models import Comune
+        from territory.models import Comune
 
         if self.territorio_comuni.exists():
             return self.territorio_comuni.all()
@@ -241,13 +241,13 @@ class RdlRegistration(models.Model):
 
     # Scope (where they can operate)
     comune = models.ForeignKey(
-        'territorio.Comune',
+        'territory.Comune',
         on_delete=models.CASCADE,
         related_name='rdl_registrations',
         verbose_name=_('comune operativo')
     )
     municipio = models.ForeignKey(
-        'territorio.Municipio',
+        'territory.Municipio',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

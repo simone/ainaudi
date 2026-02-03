@@ -44,7 +44,7 @@ class IncidentReport(models.Model):
         verbose_name=_('consultazione')
     )
     sezione = models.ForeignKey(
-        'territorio.SezioneElettorale',
+        'territory.SezioneElettorale',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

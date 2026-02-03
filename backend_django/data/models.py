@@ -28,7 +28,7 @@ class SectionAssignment(models.Model):
         SUPPLENTE = 'SUPPLENTE', _('Supplente')
 
     sezione = models.ForeignKey(
-        'territorio.SezioneElettorale',
+        'territory.SezioneElettorale',
         on_delete=models.CASCADE,
         related_name='assignments',
         verbose_name=_('sezione')
@@ -101,7 +101,7 @@ class DatiSezione(models.Model):
     Common values across all ballots for this section.
     """
     sezione = models.ForeignKey(
-        'territorio.SezioneElettorale',
+        'territory.SezioneElettorale',
         on_delete=models.CASCADE,
         related_name='dati',
         verbose_name=_('sezione')

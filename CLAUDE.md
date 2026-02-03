@@ -53,14 +53,16 @@ PostgreSQL / Redis
 | App | Purpose |
 |-----|---------|
 | `core` | User model (email-based), RoleAssignment, AuditLog |
-| `territorio` | Italian hierarchy: Regione → Provincia → Comune → Municipio → SezioneElettorale + Partizioni territoriali (circoscrizioni, collegi) |
+| `territory` | Italian hierarchy: Regione → Provincia → Comune → Municipio → SezioneElettorale + Partizioni territoriali (circoscrizioni, collegi) |
 | `elections` | ConsultazioneElettorale, TipoElezione, SchedaElettorale, ListaElettorale, Candidato + Binding partizioni |
 | `delegations` | DelegatoDiLista, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti |
-| `sections` | RdlRegistration, SectionAssignment, DatiSezione, DatiScheda |
+| `campaign` | CampagnaReclutamento, RdlRegistration |
+| `data` | SectionAssignment, DatiSezione, DatiScheda, SectionDataHistory |
 | `incidents` | Incident reporting during elections |
 | `documents` | PDF template generation |
 | `resources` | Educational materials for RDLs |
 | `kpi` | Dashboard data aggregation |
+| `ai_assistant` | Chatbot support for users |
 
 ### Territorial Partitions (Circoscrizioni, Collegi)
 
@@ -215,6 +217,6 @@ When entities are created/updated, signals in `delegations/signals.py` and `sect
 
 ## Deployment
 
-- **Development**: `docker-compose.yml` (PostgreSQL 15, Django, React, Redis, Adminer)
+- **Development**: `docker-compose.yml` (PostgreSQL 15, Django, React, Redis)
 - **Production**: `docker-compose.prod.yml` (distroless images, Nginx, non-root users, read-only filesystems)
 - **Legacy GAE**: `app.yaml`, `dispatch.yaml` (Node.js backend - deprecated)

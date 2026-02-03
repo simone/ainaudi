@@ -11,7 +11,7 @@ def cleanup_orphan_assignments(apps, schema_editor):
     These are assignments where the RDL was deleted but the assignment remained.
     Also remove inactive assignments since we're removing the is_active field.
     """
-    SectionAssignment = apps.get_model('sections', 'SectionAssignment')
+    SectionAssignment = apps.get_model('data', 'SectionAssignment')
 
     # Remove orphans (no rdl_registration)
     orphans = SectionAssignment.objects.filter(rdl_registration__isnull=True)
@@ -36,7 +36,7 @@ def noop(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('sections', '0006_add_rdl_registration_to_assignment'),
+        ('data', '0006_add_rdl_registration_to_assignment'),
     ]
 
     operations = [
@@ -56,7 +56,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name='section_assignments',
-                to='sections.rdlregistration',
+                to='campaign.rdlregistration',
                 verbose_name='registrazione RDL',
                 help_text='RDL dal pool approvati - cancellando l\'RDL si cancella l\'assegnazione'
             ),

@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("territorio", "0001_initial"),
+        ("territory", "0001_initial"),
     ]
 
     operations = [
@@ -139,7 +139,7 @@ class Migration(migrations.Migration):
                     "regioni",
                     models.ManyToManyField(
                         related_name="circoscrizioni_camera",
-                        to="territorio.regione",
+                        to="territory.regione",
                         verbose_name="regioni",
                     ),
                 ),
@@ -181,7 +181,7 @@ class Migration(migrations.Migration):
                     "regioni",
                     models.ManyToManyField(
                         related_name="circoscrizioni_europee",
-                        to="territorio.regione",
+                        to="territory.regione",
                         verbose_name="regioni",
                     ),
                 ),
@@ -209,7 +209,7 @@ class Migration(migrations.Migration):
                     models.OneToOneField(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="circoscrizione_senato",
-                        to="territorio.regione",
+                        to="territory.regione",
                         verbose_name="regione",
                     ),
                 ),
@@ -413,7 +413,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         help_text="Per comunali (lista comuni che votano)",
                         related_name="tipi_elezione",
-                        to="territorio.comune",
+                        to="territory.comune",
                         verbose_name="comuni",
                     ),
                 ),
@@ -434,7 +434,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="tipi_elezione",
-                        to="territorio.regione",
+                        to="territory.regione",
                         verbose_name="regione",
                     ),
                 ),

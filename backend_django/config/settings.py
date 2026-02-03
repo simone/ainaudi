@@ -63,9 +63,9 @@ INSTALLED_APPS = [
 
     # Project apps
     'core.apps.CoreConfig',
-    'territorio.apps.TerritorioConfig',
+    'territory.apps.TerritoryConfig',
     'elections.apps.ElectionsConfig',
-    'sections.apps.SectionsConfig',
+    'data.apps.DataConfig',
     'delegations.apps.DelegationsConfig',
     'campaign.apps.CampaignConfig',
     'incidents.apps.IncidentsConfig',
@@ -328,7 +328,7 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
-        'sections.signals': {
+        'data.signals': {
             'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,

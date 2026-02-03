@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("elections", "0002_schedaelettorale_turno"),
-        ("territorio", "0002_add_territorial_partitions"),
+        ("territory", "0002_add_territorial_partitions"),
     ]
 
     operations = [
@@ -55,7 +55,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="ballot_activations",
-                        to="territorio.territorialpartitionunit",
+                        to="territory.territorialpartitionunit",
                         verbose_name="unità partizione",
                     ),
                 ),
@@ -122,7 +122,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="candidate_eligibilities",
-                        to="territorio.territorialpartitionunit",
+                        to="territory.territorialpartitionunit",
                         verbose_name="unità partizione",
                     ),
                 ),
@@ -160,7 +160,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="election_bindings",
-                        to="territorio.territorialpartitionset",
+                        to="territory.territorialpartitionset",
                         verbose_name="set partizioni",
                     ),
                 ),

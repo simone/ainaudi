@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("sections", "0005_required_personal_data"),
+        ("data", "0005_required_personal_data"),
     ]
 
     operations = [
@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="section_assignments",
-                to="sections.rdlregistration",
+                to="campaign.rdlregistration",
                 verbose_name="registrazione RDL",
             ),
         ),
