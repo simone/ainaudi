@@ -94,7 +94,7 @@ def get_sezioni_filter_for_user(user, consultazione_id=None):
                 new_filter = Q(comune_id__in=comuni_ids)
                 sezioni_filter = new_filter if sezioni_filter is None else (sezioni_filter | new_filter)
 
-            # Filtra per municipi (solo per Roma)
+            # Filtra per municipi (grandi città)
             if sub_delega.municipi:
                 new_filter = Q(municipio__numero__in=sub_delega.municipi)
                 sezioni_filter = new_filter if sezioni_filter is None else (sezioni_filter | new_filter)
@@ -132,7 +132,7 @@ def get_sezioni_filter_for_user(user, consultazione_id=None):
                 new_filter = Q(comune_id__in=comuni_ids)
                 sezioni_filter = new_filter if sezioni_filter is None else (sezioni_filter | new_filter)
 
-            # Filtra per municipi (Roma)
+            # Filtra per municipi (grandi città)
             if delega.territorio_municipi:
                 roma_filter = Q(municipio__numero__in=delega.territorio_municipi)
                 sezioni_filter = roma_filter if sezioni_filter is None else (sezioni_filter | roma_filter)
@@ -197,7 +197,7 @@ def can_manage_sezione(user, sezione, consultazione_id=None):
             if sub_delega.comuni.filter(id=sezione.comune_id).exists():
                 return True
 
-            # Check municipi (per Roma)
+            # Check municipi (grandi città)
             if sub_delega.municipi and sezione.municipio:
                 if sezione.municipio.numero in sub_delega.municipi:
                     return True
@@ -261,9 +261,10 @@ def has_kpi_permission(user, consultazione_id=None):
         return True
 
     # Fallback: check RoleAssignment for KPI_VIEWER
+    # Filter by consultazione if provided (global roles have consultazione=null)
     from core.models import RoleAssignment
-    return RoleAssignment.objects.filter(
-        user=user,
-        role='KPI_VIEWER',
-        is_active=True
-    ).exists()
+    from django.db.models import Q
+    filter_q = Q(user=user, role='KPI_VIEWER', is_active=True)
+    if consultazione_id:
+        filter_q &= Q(consultazione_id=consultazione_id) | Q(consultazione__isnull=True)
+    return RoleAssignment.objects.filter(filter_q).exists()

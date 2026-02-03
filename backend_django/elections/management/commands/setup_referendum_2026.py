@@ -7,7 +7,7 @@ Usage:
 This command:
 1. Loads all 20 Italian regions
 2. Loads all 107 provinces
-3. Sets up European circumscriptions with M2M region relationships
+3. Sets up European circumscriptions using TerritorialPartitionSet
 4. Creates the Referendum Giustizia 2026 consultation
 5. Creates the ballot (scheda) with the official question text
 
@@ -18,9 +18,11 @@ Sources:
 """
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from territorio.models import Regione, Provincia
+from territorio.models import (
+    Regione, Provincia,
+    TerritorialPartitionSet, TerritorialPartitionUnit, TerritorialPartitionMembership
+)
 from elections.models import (
-    CircoscrizioneEuropee,
     ConsultazioneElettorale, TipoElezione, SchedaElettorale
 )
 
@@ -224,24 +226,46 @@ class Command(BaseCommand):
         self.stdout.write(f'    Created {Provincia.objects.count()} provinces')
 
     def setup_circoscrizioni_europee(self):
-        """Set up European circumscriptions with M2M region relationships."""
+        """Set up European circumscriptions using TerritorialPartitionSet."""
         self.stdout.write('  Creating European circumscriptions...')
+
+        # Create the partition set for European elections
+        partition_set, _ = TerritorialPartitionSet.objects.update_or_create(
+            partition_type=TerritorialPartitionSet.PartitionType.EU_CIRCOSCRIZIONE,
+            defaults={
+                'nome': 'Circoscrizioni Europee',
+                'descrizione': '5 circoscrizioni per le elezioni del Parlamento Europeo',
+                'normative_ref': 'Legge 18/1979'
+            }
+        )
 
         # Circoscrizioni Europee con le regioni associate
         circoscrizioni = {
-            'NORD_OVEST': ['01', '02', '03', '07'],  # Piemonte, VdA, Lombardia, Liguria
-            'NORD_EST': ['04', '05', '06', '08'],    # TAA, Veneto, FVG, Emilia-Romagna
-            'CENTRO': ['09', '10', '11', '12'],      # Toscana, Umbria, Marche, Lazio
-            'SUD': ['13', '14', '15', '16', '17', '18'],  # Abruzzo, Molise, Campania, Puglia, Basilicata, Calabria
-            'ISOLE': ['19', '20'],                   # Sicilia, Sardegna
+            'NORD_OVEST': ('Italia Nord-Occidentale', ['01', '02', '03', '07']),  # Piemonte, VdA, Lombardia, Liguria
+            'NORD_EST': ('Italia Nord-Orientale', ['04', '05', '06', '08']),      # TAA, Veneto, FVG, Emilia-Romagna
+            'CENTRO': ('Italia Centrale', ['09', '10', '11', '12']),              # Toscana, Umbria, Marche, Lazio
+            'SUD': ('Italia Meridionale', ['13', '14', '15', '16', '17', '18']),  # Abruzzo, Molise, Campania, Puglia, Basilicata, Calabria
+            'ISOLE': ('Italia Insulare', ['19', '20']),                           # Sicilia, Sardegna
         }
 
-        for codice, codici_regioni in circoscrizioni.items():
-            circ, created = CircoscrizioneEuropee.objects.get_or_create(codice=codice)
-            regioni = Regione.objects.filter(codice_istat__in=codici_regioni)
-            circ.regioni.set(regioni)
+        for codice, (nome, codici_regioni) in circoscrizioni.items():
+            # Create the partition unit
+            unit, _ = TerritorialPartitionUnit.objects.update_or_create(
+                partition_set=partition_set,
+                codice=codice,
+                defaults={'nome': nome}
+            )
 
-        self.stdout.write(f'    Created {CircoscrizioneEuropee.objects.count()} circumscriptions')
+            # Create memberships for each region
+            for codice_regione in codici_regioni:
+                regione = Regione.objects.get(codice_istat=codice_regione)
+                TerritorialPartitionMembership.objects.update_or_create(
+                    unit=unit,
+                    regione=regione,
+                    defaults={'comune': None, 'provincia': None}
+                )
+
+        self.stdout.write(f'    Created {TerritorialPartitionUnit.objects.filter(partition_set=partition_set).count()} circumscriptions')
 
     def setup_referendum(self):
         """Set up the Referendum Giustizia 2026."""

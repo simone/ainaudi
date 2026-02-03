@@ -2,9 +2,22 @@
 Django Admin configuration for core models.
 """
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin, GroupAdmin as BaseGroupAdmin
+from django.contrib.auth.models import Group
 from django.utils.translation import gettext_lazy as _
-from .models import User, IdentityProviderLink, RoleAssignment, AuditLog
+from .models import User, RoleAssignment, AuditLog, Gruppo
+
+
+# =============================================================================
+# Unregister Group from auth app and register Gruppo proxy in core
+# =============================================================================
+admin.site.unregister(Group)
+
+
+@admin.register(Gruppo)
+class GruppoAdmin(BaseGroupAdmin):
+    """Gruppo (proxy di Group) sotto l'app core."""
+    pass
 
 
 @admin.register(User)
@@ -38,34 +51,16 @@ class UserAdmin(BaseUserAdmin):
     )
 
 
-class IdentityProviderLinkInline(admin.TabularInline):
-    """Inline for IdentityProviderLink in User admin."""
-    model = IdentityProviderLink
-    extra = 0
-    readonly_fields = ['linked_at', 'last_used_at']
-
-
 class RoleAssignmentInline(admin.TabularInline):
     """Inline for RoleAssignment in User admin."""
     model = RoleAssignment
     extra = 0
-    readonly_fields = ['assigned_at', 'assigned_by']
+    readonly_fields = ['assigned_at', 'assigned_by_email']
     fk_name = 'user'
 
 
 # Add inlines to UserAdmin
-UserAdmin.inlines = [IdentityProviderLinkInline, RoleAssignmentInline]
-
-
-@admin.register(IdentityProviderLink)
-class IdentityProviderLinkAdmin(admin.ModelAdmin):
-    """Admin configuration for IdentityProviderLink model."""
-
-    list_display = ['user', 'provider', 'provider_email', 'is_primary', 'last_used_at']
-    list_filter = ['provider', 'is_primary']
-    search_fields = ['user__email', 'provider_email', 'provider_uid']
-    raw_id_fields = ['user']
-    readonly_fields = ['linked_at', 'last_used_at']
+UserAdmin.inlines = [RoleAssignmentInline]
 
 
 @admin.register(RoleAssignment)
@@ -73,17 +68,17 @@ class RoleAssignmentAdmin(admin.ModelAdmin):
     """Admin configuration for RoleAssignment model."""
 
     list_display = [
-        'user', 'role', 'scope_type', 'scope_value',
-        'is_active', 'assigned_by', 'assigned_at'
+        'user', 'role', 'consultazione', 'scope_type', 'scope_value',
+        'is_active', 'assigned_by_email', 'assigned_at'
     ]
-    list_filter = ['role', 'scope_type', 'is_active', 'assigned_at']
+    list_filter = ['role', 'consultazione', 'scope_type', 'is_active', 'assigned_at']
     search_fields = ['user__email', 'scope_value', 'notes']
-    raw_id_fields = ['user', 'assigned_by', 'scope_regione', 'scope_provincia', 'scope_comune']
+    raw_id_fields = ['user', 'consultazione', 'scope_regione', 'scope_provincia', 'scope_comune']
     readonly_fields = ['assigned_at']
 
     fieldsets = (
         (None, {
-            'fields': ('user', 'role', 'is_active')
+            'fields': ('user', 'role', 'consultazione', 'is_active')
         }),
         (_('Ambito territoriale'), {
             'fields': ('scope_type', 'scope_value', 'scope_regione', 'scope_provincia', 'scope_comune')
@@ -92,14 +87,14 @@ class RoleAssignmentAdmin(admin.ModelAdmin):
             'fields': ('valid_from', 'valid_to')
         }),
         (_('Audit'), {
-            'fields': ('assigned_by', 'assigned_at', 'notes'),
+            'fields': ('assigned_by_email', 'assigned_at', 'notes'),
             'classes': ('collapse',)
         }),
     )
 
     def save_model(self, request, obj, form, change):
         if not change:  # New object
-            obj.assigned_by = request.user
+            obj.assigned_by_email = request.user.email
         super().save_model(request, obj, form, change)
 
 
@@ -107,11 +102,11 @@ class RoleAssignmentAdmin(admin.ModelAdmin):
 class AuditLogAdmin(admin.ModelAdmin):
     """Admin configuration for AuditLog model."""
 
-    list_display = ['timestamp', 'user', 'action', 'target_model', 'target_id', 'ip_address']
+    list_display = ['timestamp', 'user_email', 'action', 'target_model', 'target_id', 'ip_address']
     list_filter = ['action', 'target_model', 'timestamp']
-    search_fields = ['user__email', 'target_id', 'ip_address']
+    search_fields = ['user_email', 'target_id', 'ip_address']
     readonly_fields = [
-        'user', 'action', 'target_model', 'target_id',
+        'user_email', 'action', 'target_model', 'target_id',
         'details', 'ip_address', 'user_agent', 'timestamp'
     ]
     date_hierarchy = 'timestamp'

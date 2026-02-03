@@ -12,7 +12,8 @@ from django.utils import timezone
 from django.db.models import Q
 from django.db import transaction
 
-from .models import SectionAssignment, DatiSezione, DatiScheda, RdlRegistration
+from .models import SectionAssignment, DatiSezione, DatiScheda
+from campaign.models import RdlRegistration
 from elections.models import ConsultazioneElettorale
 from territorio.models import SezioneElettorale, Comune, Municipio
 
@@ -95,7 +96,41 @@ def get_candidates_and_lists(consultazione):
     return candidate_names, list_names
 
 
-def section_to_legacy_values(dati_sezione, candidate_names, list_names):
+def get_scheda_turno_attivo(consultazione):
+    """
+    Get the scheda for the active turno based on today's date.
+
+    Logic:
+    - If today >= data_inizio_turno of a turno=2 scheda, return that scheda
+    - Otherwise return the turno=1 scheda
+    - Falls back to first available scheda if turno fields not set
+    """
+    from elections.models import SchedaElettorale
+    from datetime import date
+
+    today = date.today()
+
+    # Get all schede for this consultazione ordered by turno desc (2 first, then 1)
+    schede = SchedaElettorale.objects.filter(
+        tipo_elezione__consultazione=consultazione
+    ).order_by('-turno', 'ordine')
+
+    # First check if there's a turno=2 scheda with data_inizio_turno <= today
+    for scheda in schede:
+        if scheda.turno == 2 and scheda.data_inizio_turno:
+            if today >= scheda.data_inizio_turno:
+                return scheda
+
+    # Otherwise return the first turno=1 scheda (or any scheda if none with turno=1)
+    turno1 = schede.filter(turno=1).first()
+    if turno1:
+        return turno1
+
+    # Fallback to first scheda
+    return schede.first()
+
+
+def section_to_legacy_values(dati_sezione, candidate_names, list_names, scheda_attiva=None):
     """
     Convert DatiSezione to legacy values array format.
     Format: [
@@ -112,6 +147,13 @@ def section_to_legacy_values(dati_sezione, candidate_names, list_names):
         ...: list votes,
         last: incongruenze
     ]
+
+    Args:
+        dati_sezione: The DatiSezione instance
+        candidate_names: List of candidate names
+        list_names: List of list names
+        scheda_attiva: Optional SchedaElettorale for the active turno.
+                       If provided, only returns data for that scheda's turno.
     """
     # Base values
     values = [
@@ -126,8 +168,11 @@ def section_to_legacy_values(dati_sezione, candidate_names, list_names):
         '',  # schedeContestate (from DatiScheda)
     ]
 
-    # Get first DatiScheda for ballot-level data
-    dati_scheda = dati_sezione.schede.first()
+    # Get DatiScheda for the active turno's scheda (or first if not specified)
+    if scheda_attiva:
+        dati_scheda = dati_sezione.schede.filter(scheda=scheda_attiva).first()
+    else:
+        dati_scheda = dati_sezione.schede.first()
     if dati_scheda:
         values[2] = dati_scheda.schede_ricevute or ''
         values[3] = dati_scheda.schede_autenticate or ''
@@ -169,7 +214,7 @@ class SectionsStatsView(APIView):
     - Tue sezioni visibili (basate sulla catena deleghe)
     - Assegnate/Non assegnate
     - Dettaglio per comune
-    - Dettaglio per municipio (Roma)
+    - Dettaglio per municipio
     """
     permission_classes = [permissions.IsAuthenticated]
 
@@ -245,7 +290,7 @@ class SectionsStatsView(APIView):
             if is_assigned:
                 per_comune[comune_nome]['assegnate'] += 1
 
-            # Track municipio for Roma
+            # Track municipio for large cities
             if sezione.municipio:
                 mun_num = sezione.municipio.numero
                 if mun_num not in per_municipio:
@@ -277,6 +322,9 @@ class SectionsOwnView(APIView):
 
         candidate_names, list_names = get_candidates_and_lists(consultazione)
 
+        # Get the scheda for the active turno (based on today's date)
+        scheda_attiva = get_scheda_turno_attivo(consultazione)
+
         # Get user's section assignments for the active consultation
         assignments = SectionAssignment.objects.filter(
             user=request.user,
@@ -295,7 +343,7 @@ class SectionsOwnView(APIView):
                 consultazione=consultazione
             )
 
-            values = section_to_legacy_values(dati_sezione, candidate_names, list_names)
+            values = section_to_legacy_values(dati_sezione, candidate_names, list_names, scheda_attiva)
 
             rows.append({
                 'comune': sezione.comune.nome,
@@ -304,7 +352,16 @@ class SectionsOwnView(APIView):
                 'values': values,
             })
 
-        return Response({'rows': rows})
+        # Include turno info in response
+        turno_info = None
+        if scheda_attiva:
+            turno_info = {
+                'turno': scheda_attiva.turno,
+                'scheda_nome': scheda_attiva.nome,
+                'is_ballottaggio': scheda_attiva.turno == 2,
+            }
+
+        return Response({'rows': rows, 'turno': turno_info})
 
 
 class SectionsAssignedView(APIView):
@@ -327,6 +384,9 @@ class SectionsAssignedView(APIView):
             return Response({'rows': []})
 
         candidate_names, list_names = get_candidates_and_lists(consultazione)
+
+        # Get the scheda for the active turno (based on today's date)
+        scheda_attiva = get_scheda_turno_attivo(consultazione)
 
         # Get sections filter based on delegation chain
         from delegations.permissions import get_sezioni_filter_for_user
@@ -358,7 +418,7 @@ class SectionsAssignedView(APIView):
             ).first()
 
             if dati_sezione:
-                values = section_to_legacy_values(dati_sezione, candidate_names, list_names)
+                values = section_to_legacy_values(dati_sezione, candidate_names, list_names, scheda_attiva)
             else:
                 # No data - create empty values
                 values = [''] * (9 + len(candidate_names) + len(list_names) + 1)
@@ -370,7 +430,16 @@ class SectionsAssignedView(APIView):
                 'values': values,
             })
 
-        return Response({'rows': rows})
+        # Include turno info in response
+        turno_info = None
+        if scheda_attiva:
+            turno_info = {
+                'turno': scheda_attiva.turno,
+                'scheda_nome': scheda_attiva.nome,
+                'is_ballottaggio': scheda_attiva.turno == 2,
+            }
+
+        return Response({'rows': rows, 'turno': turno_info})
 
 
 class SectionsSaveView(APIView):
@@ -465,11 +534,8 @@ class SectionsSaveView(APIView):
 
         dati_sezione.save()
 
-        # Get or create DatiScheda for the first ballot
-        from elections.models import SchedaElettorale
-        scheda = SchedaElettorale.objects.filter(
-            tipo_elezione__consultazione=consultazione
-        ).first()
+        # Get the scheda for the active turno based on today's date
+        scheda = get_scheda_turno_attivo(consultazione)
 
         if scheda:
             dati_scheda, _ = DatiScheda.objects.get_or_create(
@@ -959,11 +1025,12 @@ class RdlRegistrationSelfView(APIView):
         comune_residenza = request.data.get('comune_residenza', '').strip()
         indirizzo_residenza = request.data.get('indirizzo_residenza', '').strip()
         seggio_preferenza = request.data.get('seggio_preferenza', '').strip()
+        comune_id = request.data.get('comune_id')
         comune_nome = request.data.get('comune', '').strip()
         municipio_num = request.data.get('municipio')
 
-        # Validate required fields
-        if not email or not nome or not cognome or not telefono or not comune_nome:
+        # Validate required fields - accept either comune_id or comune name
+        if not email or not nome or not cognome or not telefono or not (comune_id or comune_nome):
             return Response({
                 'error': 'Email, nome, cognome, telefono e comune sono obbligatori'
             }, status=400)
@@ -986,11 +1053,16 @@ class RdlRegistrationSelfView(APIView):
             except ValueError:
                 pass
 
-        # Find comune
+        # Find comune - support both comune_id (preferred) and comune name (legacy)
         try:
-            comune = Comune.objects.prefetch_related('municipi').get(nome__iexact=comune_nome)
+            if comune_id:
+                comune = Comune.objects.prefetch_related('municipi').get(id=comune_id)
+            elif comune_nome:
+                comune = Comune.objects.prefetch_related('municipi').get(nome__iexact=comune_nome)
+            else:
+                return Response({'error': 'Comune non specificato'}, status=400)
         except Comune.DoesNotExist:
-            return Response({'error': f'Comune non trovato: {comune_nome}'}, status=404)
+            return Response({'error': f'Comune non trovato: {comune_id or comune_nome}'}, status=404)
 
         # Check if municipio is required (comune has municipalities)
         has_municipi = comune.municipi.exists()
@@ -2018,7 +2090,7 @@ class MappaturaSezioniView(APIView):
                             'nome': comune.nome,
                         })
 
-                # Municipi (solo Roma ha municipi)
+                # Municipi (grandi città)
                 if sub_delega.municipi:
                     for mun_num in sub_delega.municipi:
                         if mun_num not in result['municipi']:

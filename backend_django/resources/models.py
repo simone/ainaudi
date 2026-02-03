@@ -5,8 +5,9 @@ Documents and FAQ can be scoped to specific election types (Referendum, Comunali
 or to a specific consultation.
 """
 from django.db import models
-from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+
+from core.models import get_user_by_email
 
 
 class ScopeChoices(models.TextChoices):
@@ -167,14 +168,7 @@ class Documento(models.Model):
     # Audit
     created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
     updated_at = models.DateTimeField(_('data modifica'), auto_now=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='documenti_creati',
-        verbose_name=_('creato da')
-    )
+    created_by_email = models.EmailField(_('creato da (email)'), blank=True)
 
     objects = RisorsaManager()
 
@@ -232,6 +226,11 @@ class Documento(models.Model):
             return f'{self.dimensione / 1024:.0f} KB'
         else:
             return f'{self.dimensione / (1024 * 1024):.1f} MB'
+
+    @property
+    def created_by(self):
+        """Restituisce l'utente che ha creato il documento."""
+        return get_user_by_email(self.created_by_email)
 
 
 # =============================================================================
@@ -316,14 +315,7 @@ class FAQ(models.Model):
     # Audit
     created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
     updated_at = models.DateTimeField(_('data modifica'), auto_now=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='faq_create',
-        verbose_name=_('creato da')
-    )
+    created_by_email = models.EmailField(_('creato da (email)'), blank=True)
 
     objects = RisorsaManager()
 
@@ -355,3 +347,8 @@ class FAQ(models.Model):
         if totale == 0:
             return None
         return round(self.utile_si / totale * 100)
+
+    @property
+    def created_by(self):
+        """Restituisce l'utente che ha creato la FAQ."""
+        return get_user_by_email(self.created_by_email)

@@ -58,7 +58,6 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
     'dj_rest_auth',
     # 'dj_rest_auth.registration',  # Disabled - we use custom Google OAuth and Magic Link
 
@@ -68,6 +67,7 @@ INSTALLED_APPS = [
     'elections.apps.ElectionsConfig',
     'sections.apps.SectionsConfig',
     'delegations.apps.DelegationsConfig',
+    'campaign.apps.CampaignConfig',
     'incidents.apps.IncidentsConfig',
     'documents.apps.DocumentsConfig',
     'resources.apps.ResourcesConfig',
@@ -181,17 +181,6 @@ ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_VERIFICATION = 'optional'
 ACCOUNT_UNIQUE_EMAIL = True
 
-# Google OAuth Provider
-SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'APP': {
-            'client_id': os.environ.get('GOOGLE_CLIENT_ID', ''),
-            'secret': os.environ.get('GOOGLE_CLIENT_SECRET', ''),
-        },
-        'SCOPE': ['profile', 'email'],
-        'AUTH_PARAMS': {'access_type': 'online'},
-    }
-}
 
 
 # =============================================================================

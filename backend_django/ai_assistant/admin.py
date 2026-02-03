@@ -22,10 +22,10 @@ class ChatMessageInline(admin.TabularInline):
 
 @admin.register(ChatSession)
 class ChatSessionAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'context', 'sezione', 'created_at', 'updated_at']
+    list_display = ['id', 'user_email', 'context', 'sezione', 'created_at', 'updated_at']
     list_filter = ['context', 'created_at']
-    search_fields = ['user__email']
-    raw_id_fields = ['user', 'sezione']
+    search_fields = ['user_email']
+    raw_id_fields = ['sezione']
     inlines = [ChatMessageInline]
     readonly_fields = ['created_at', 'updated_at']
 

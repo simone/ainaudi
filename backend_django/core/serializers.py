@@ -3,7 +3,7 @@ Serializers for core models.
 """
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import IdentityProviderLink, RoleAssignment, AuditLog
+from .models import RoleAssignment, AuditLog
 
 User = get_user_model()
 
@@ -27,19 +27,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['display_name', 'first_name', 'last_name', 'phone_number']
-
-
-class IdentityProviderLinkSerializer(serializers.ModelSerializer):
-    """Serializer for IdentityProviderLink model."""
-    provider_display = serializers.CharField(source='get_provider_display', read_only=True)
-
-    class Meta:
-        model = IdentityProviderLink
-        fields = [
-            'id', 'provider', 'provider_display', 'provider_email',
-            'linked_at', 'last_used_at', 'is_primary'
-        ]
-        read_only_fields = ['id', 'provider', 'provider_email', 'linked_at', 'last_used_at']
 
 
 class RoleAssignmentSerializer(serializers.ModelSerializer):
@@ -88,13 +75,6 @@ class AuditLogSerializer(serializers.ModelSerializer):
             'target_model', 'target_id', 'details',
             'ip_address', 'timestamp'
         ]
-
-
-class GoogleLoginSerializer(serializers.Serializer):
-    """Serializer for Google OAuth login."""
-    id_token = serializers.CharField(
-        help_text='Google OAuth2 ID token'
-    )
 
 
 class MagicLinkRequestSerializer(serializers.Serializer):

@@ -3,52 +3,7 @@ Django Admin configuration for sections models.
 """
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-from .models import SectionAssignment, DatiSezione, DatiScheda, SectionDataHistory, RdlRegistration
-
-
-@admin.register(RdlRegistration)
-class RdlRegistrationAdmin(admin.ModelAdmin):
-    list_display = ['email', 'cognome', 'nome', 'comune', 'municipio', 'status', 'source', 'requested_at']
-    list_filter = ['status', 'source', 'comune__provincia__regione', 'comune']
-    search_fields = ['email', 'nome', 'cognome', 'comune__nome']
-    raw_id_fields = ['comune', 'municipio', 'user', 'approved_by']
-    date_hierarchy = 'requested_at'
-    readonly_fields = ['requested_at', 'approved_at']
-
-    fieldsets = (
-        (None, {
-            'fields': ('email', 'nome', 'cognome', 'telefono')
-        }),
-        (_('Ambito'), {
-            'fields': ('comune', 'municipio')
-        }),
-        (_('Stato'), {
-            'fields': ('status', 'source', 'user')
-        }),
-        (_('Approvazione'), {
-            'fields': ('approved_by', 'approved_at', 'rejection_reason'),
-            'classes': ('collapse',)
-        }),
-        (_('Note'), {
-            'fields': ('notes',),
-            'classes': ('collapse',)
-        }),
-    )
-
-    actions = ['approve_selected', 'reject_selected']
-
-    def approve_selected(self, request, queryset):
-        count = 0
-        for reg in queryset.filter(status='PENDING'):
-            reg.approve(request.user)
-            count += 1
-        self.message_user(request, f'{count} registrazioni approvate.')
-    approve_selected.short_description = _('Approva selezionati')
-
-    def reject_selected(self, request, queryset):
-        count = queryset.filter(status='PENDING').update(status='REJECTED')
-        self.message_user(request, f'{count} registrazioni rifiutate.')
-    reject_selected.short_description = _('Rifiuta selezionati')
+from .models import SectionAssignment, DatiSezione, DatiScheda, SectionDataHistory
 
 
 class DatiSchedaInline(admin.TabularInline):
@@ -66,7 +21,7 @@ class SectionAssignmentAdmin(admin.ModelAdmin):
         'rdl_registration__email', 'rdl_registration__nome', 'rdl_registration__cognome',
         'sezione__comune__nome', 'sezione__numero'
     ]
-    raw_id_fields = ['sezione', 'consultazione', 'rdl_registration', 'user', 'assigned_by']
+    raw_id_fields = ['sezione', 'consultazione', 'rdl_registration']
     date_hierarchy = 'assigned_at'
 
     fieldsets = (
@@ -74,18 +29,15 @@ class SectionAssignmentAdmin(admin.ModelAdmin):
             'fields': ('sezione', 'consultazione', 'rdl_registration', 'role')
         }),
         (_('Audit'), {
-            'fields': ('user', 'assigned_by', 'assigned_at', 'notes'),
+            'fields': ('assigned_by_email', 'assigned_at', 'notes'),
             'classes': ('collapse',)
         }),
     )
-    readonly_fields = ['assigned_at', 'user']
+    readonly_fields = ['assigned_at']
 
     def save_model(self, request, obj, form, change):
         if not change:
-            obj.assigned_by = request.user
-            # Set user from rdl_registration
-            if obj.rdl_registration and obj.rdl_registration.user:
-                obj.user = obj.rdl_registration.user
+            obj.assigned_by_email = request.user.email
         super().save_model(request, obj, form, change)
 
 
@@ -100,7 +52,7 @@ class DatiSezioneAdmin(admin.ModelAdmin):
         'sezione__comune__provincia__regione', 'sezione__comune'
     ]
     search_fields = ['sezione__comune__nome', 'sezione__numero']
-    raw_id_fields = ['sezione', 'consultazione', 'inserito_da', 'verified_by']
+    raw_id_fields = ['sezione', 'consultazione']
     inlines = [DatiSchedaInline]
     date_hierarchy = 'aggiornato_at'
 
@@ -115,10 +67,10 @@ class DatiSezioneAdmin(admin.ModelAdmin):
             )
         }),
         (_('Stato'), {
-            'fields': ('is_complete', 'is_verified', 'verified_by', 'verified_at')
+            'fields': ('is_complete', 'is_verified', 'verified_by_email', 'verified_at')
         }),
         (_('Audit'), {
-            'fields': ('inserito_da', 'inserito_at', 'aggiornato_at'),
+            'fields': ('inserito_da_email', 'inserito_at', 'aggiornato_at'),
             'classes': ('collapse',)
         }),
     )
@@ -187,14 +139,14 @@ class DatiSchedaAdmin(admin.ModelAdmin):
 @admin.register(SectionDataHistory)
 class SectionDataHistoryAdmin(admin.ModelAdmin):
     list_display = [
-        'dati_sezione', 'campo', 'modificato_da', 'modificato_at'
+        'dati_sezione', 'campo', 'modificato_da_email', 'modificato_at'
     ]
     list_filter = ['campo', 'modificato_at']
     search_fields = [
         'dati_sezione__sezione__comune__nome',
-        'modificato_da__email'
+        'modificato_da_email'
     ]
-    raw_id_fields = ['dati_sezione', 'dati_scheda', 'modificato_da']
+    raw_id_fields = ['dati_sezione', 'dati_scheda']
     date_hierarchy = 'modificato_at'
 
     def has_add_permission(self, request):

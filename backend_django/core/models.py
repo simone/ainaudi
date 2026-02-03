@@ -1,11 +1,48 @@
 """
-Core models: User, IdentityProviderLink, RoleAssignment
+Core models: User, RoleAssignment
 
 Custom User model supporting multi-provider authentication and hierarchical roles.
 """
-from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib.auth.models import AbstractUser, BaseUserManager, Group as AuthGroup
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+
+class Gruppo(AuthGroup):
+    """
+    Proxy model for Django's Group to move it under core app in admin.
+    """
+    class Meta:
+        proxy = True
+        verbose_name = _('gruppo')
+        verbose_name_plural = _('gruppi')
+
+
+def get_user_by_email(email):
+    """
+    Restituisce l'utente associato all'email, o un oggetto placeholder se non esiste.
+
+    Il placeholder ha attributi minimi per evitare errori nei template/serializer:
+    - email: l'email originale
+    - display_name: '[Rimosso: {email}]'
+    - is_active: False
+    - pk: None (non salvato)
+    """
+    if not email:
+        return None
+
+    user = User.objects.filter(email=email).first()
+    if user:
+        return user
+
+    # Crea un oggetto placeholder (non salvato in DB)
+    placeholder = User(email=email)
+    placeholder.display_name = f'[Rimosso: {email}]'
+    placeholder.first_name = 'N/A'
+    placeholder.last_name = ''
+    placeholder.is_active = False
+    placeholder.pk = None  # Non salvato
+    return placeholder
 
 
 class UserManager(BaseUserManager):
@@ -98,59 +135,6 @@ class User(AbstractUser):
         return self.first_name or self.display_name or self.email.split('@')[0]
 
 
-class IdentityProviderLink(models.Model):
-    """
-    Links a User to an identity provider (Google, Magic Link, M5S SSO).
-
-    Allows users to authenticate via multiple providers with the same account.
-    """
-    class Provider(models.TextChoices):
-        GOOGLE = 'google', _('Google')
-        MAGIC_LINK = 'magic_link', _('Magic Link')
-        M5S_SSO = 'm5s_sso', _('M5S SSO')
-
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='identity_links',
-        verbose_name=_('utente')
-    )
-    provider = models.CharField(
-        _('provider'),
-        max_length=20,
-        choices=Provider.choices
-    )
-    provider_uid = models.CharField(
-        _('ID provider'),
-        max_length=255,
-        help_text=_('ID univoco dell\'utente presso il provider')
-    )
-    provider_email = models.EmailField(
-        _('email provider'),
-        blank=True,
-        null=True,
-        help_text=_('Email associata al provider (può differire da quella principale)')
-    )
-
-    # Metadata
-    linked_at = models.DateTimeField(_('data collegamento'), auto_now_add=True)
-    last_used_at = models.DateTimeField(_('ultimo utilizzo'), blank=True, null=True)
-    is_primary = models.BooleanField(
-        _('provider primario'),
-        default=False,
-        help_text=_('Se True, questo è il provider principale per l\'utente')
-    )
-
-    class Meta:
-        verbose_name = _('collegamento identity provider')
-        verbose_name_plural = _('collegamenti identity provider')
-        unique_together = ['provider', 'provider_uid']
-        ordering = ['-is_primary', '-last_used_at']
-
-    def __str__(self):
-        return f'{self.user.email} - {self.get_provider_display()}'
-
-
 class RoleAssignment(models.Model):
     """
     Assigns roles to users with optional scope (comune, municipio, etc.).
@@ -228,14 +212,22 @@ class RoleAssignment(models.Model):
         verbose_name=_('comune')
     )
 
+    # Scoping by consultation (required for all roles - enforced at form level)
+    # Database allows null for migration compatibility, but forms/API enforce required
+    consultazione = models.ForeignKey(
+        'elections.ConsultazioneElettorale',
+        on_delete=models.CASCADE,
+        null=True,  # DB allows null for migration, but logically required
+        related_name='role_assignments',
+        verbose_name=_('consultazione'),
+        help_text=_('Consultazione per cui il ruolo è valido (obbligatorio)')
+    )
+
     # Audit
-    assigned_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
+    assigned_by_email = models.EmailField(
+        _('assegnato da (email)'),
         blank=True,
-        related_name='roles_assigned',
-        verbose_name=_('assegnato da')
+        help_text=_('Email di chi ha assegnato il ruolo')
     )
     assigned_at = models.DateTimeField(_('data assegnazione'), auto_now_add=True)
     valid_from = models.DateTimeField(_('valido da'), null=True, blank=True)
@@ -255,6 +247,11 @@ class RoleAssignment(models.Model):
     def __str__(self):
         scope = f' ({self.scope_type}: {self.scope_value})' if self.scope_type else ''
         return f'{self.user.email} - {self.get_role_display()}{scope}'
+
+    @property
+    def assigned_by(self):
+        """Restituisce l'utente che ha assegnato il ruolo."""
+        return get_user_by_email(self.assigned_by_email)
 
     @property
     def is_valid(self):
@@ -287,12 +284,10 @@ class AuditLog(models.Model):
         SUBMIT_DATA = 'SUBMIT_DATA', _('Invio dati')
         GENERATE_PDF = 'GENERATE_PDF', _('Generazione PDF')
 
-    user = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='audit_logs',
-        verbose_name=_('utente')
+    user_email = models.EmailField(
+        _('utente (email)'),
+        blank=True,
+        help_text=_('Email dell\'utente che ha eseguito l\'azione')
     )
     action = models.CharField(
         _('azione'),
@@ -330,10 +325,15 @@ class AuditLog(models.Model):
         verbose_name_plural = _('log audit')
         ordering = ['-timestamp']
         indexes = [
-            models.Index(fields=['user', 'action']),
+            models.Index(fields=['user_email', 'action']),
             models.Index(fields=['timestamp']),
             models.Index(fields=['target_model', 'target_id']),
         ]
 
     def __str__(self):
-        return f'{self.timestamp} - {self.user} - {self.get_action_display()}'
+        return f'{self.timestamp} - {self.user_email} - {self.get_action_display()}'
+
+    @property
+    def user(self):
+        """Restituisce l'utente che ha eseguito l'azione."""
+        return get_user_by_email(self.user_email)

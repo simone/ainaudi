@@ -2,93 +2,18 @@
 Elections models: Electoral events, ballots, lists and candidates.
 
 This module defines:
-- Electoral circumscriptions: Camera, Senato, Europee
 - Electoral events: ConsultazioneElettorale, TipoElezione, SchedaElettorale
 - Lists and Candidates: ListaElettorale, Candidato
+- Partition bindings: ElectionPartitionBinding, BallotActivation, CandidatePartitionEligibility
 
-Territory models (Regione, Provincia, Comune, etc.) are in the 'territorio' app.
+Territory models (Regione, Provincia, Comune, etc.) and Territorial Partitions
+(TerritorialPartitionSet, TerritorialPartitionUnit) are in the 'territorio' app.
 """
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 # Import territory models from territorio app
 from territorio.models import Regione, Comune
-
-
-# =============================================================================
-# CIRCUMSCRIPTIONS (Different by election type)
-# =============================================================================
-
-class CircoscrizioneCamera(models.Model):
-    """
-    26 circumscriptions for Chamber of Deputies.
-    """
-    numero = models.IntegerField(_('numero'), unique=True)
-    nome = models.CharField(_('nome'), max_length=100)
-    regioni = models.ManyToManyField(
-        Regione,
-        related_name='circoscrizioni_camera',
-        verbose_name=_('regioni')
-    )
-
-    class Meta:
-        verbose_name = _('circoscrizione Camera')
-        verbose_name_plural = _('circoscrizioni Camera')
-        ordering = ['numero']
-
-    def __str__(self):
-        return f'{self.numero} - {self.nome}'
-
-
-class CircoscrizioneSenato(models.Model):
-    """
-    20 Senate circumscriptions (= regions).
-    """
-    regione = models.OneToOneField(
-        Regione,
-        on_delete=models.CASCADE,
-        related_name='circoscrizione_senato',
-        verbose_name=_('regione')
-    )
-
-    class Meta:
-        verbose_name = _('circoscrizione Senato')
-        verbose_name_plural = _('circoscrizioni Senato')
-
-    def __str__(self):
-        return f'Circoscrizione Senato - {self.regione.nome}'
-
-
-class CircoscrizioneEuropee(models.Model):
-    """
-    5 macro-circumscriptions for European elections.
-    """
-    class Codice(models.TextChoices):
-        NORD_OVEST = 'NORD_OVEST', _('Italia Nord-Occidentale')
-        NORD_EST = 'NORD_EST', _('Italia Nord-Orientale')
-        CENTRO = 'CENTRO', _('Italia Centrale')
-        SUD = 'SUD', _('Italia Meridionale')
-        ISOLE = 'ISOLE', _('Italia Insulare')
-
-    codice = models.CharField(
-        _('codice'),
-        max_length=20,
-        choices=Codice.choices,
-        unique=True
-    )
-    regioni = models.ManyToManyField(
-        Regione,
-        related_name='circoscrizioni_europee',
-        verbose_name=_('regioni')
-    )
-
-    class Meta:
-        verbose_name = _('circoscrizione Europee')
-        verbose_name_plural = _('circoscrizioni Europee')
-        ordering = ['codice']
-
-    def __str__(self):
-        return self.get_codice_display()
 
 
 # =============================================================================
@@ -141,6 +66,7 @@ class TipoElezione(models.Model):
         EUROPEE = 'EUROPEE', _('Europee')
         REGIONALI = 'REGIONALI', _('Regionali')
         COMUNALI = 'COMUNALI', _('Comunali')
+        MUNICIPALI = 'MUNICIPALI', _('Municipali')
 
     consultazione = models.ForeignKey(
         ConsultazioneElettorale,
@@ -223,6 +149,17 @@ class SchedaElettorale(models.Model):
         _('ordine'),
         default=0,
         help_text=_('Ordine di visualizzazione')
+    )
+    turno = models.IntegerField(
+        _('turno'),
+        default=1,
+        help_text=_('1 = primo turno, 2 = ballottaggio')
+    )
+    data_inizio_turno = models.DateField(
+        _('data inizio turno'),
+        null=True,
+        blank=True,
+        help_text=_('Per turno=2: data del ballottaggio. Se null, usa data_inizio consultazione')
     )
 
     # For referendum: question text
@@ -382,3 +319,129 @@ class Candidato(models.Model):
     @property
     def nome_completo(self):
         return f'{self.nome} {self.cognome}'
+
+
+# =============================================================================
+# PARTITION BINDINGS (Link election → partitions)
+# =============================================================================
+
+class ElectionPartitionBinding(models.Model):
+    """
+    Binding tra consultazione e set di partizioni.
+
+    Indica quale set di partizioni (circoscrizioni/collegi) viene usato
+    per una specifica consultazione elettorale.
+
+    Esempio:
+    - Europee 2024 → usa "Circoscrizioni Europee"
+    - Politiche 2022 → usa "Collegi Camera 2020" + "Collegi Senato 2020"
+    """
+    consultazione = models.ForeignKey(
+        ConsultazioneElettorale,
+        on_delete=models.CASCADE,
+        related_name='partition_bindings',
+        verbose_name=_('consultazione')
+    )
+    partition_set = models.ForeignKey(
+        'territorio.TerritorialPartitionSet',
+        on_delete=models.CASCADE,
+        related_name='election_bindings',
+        verbose_name=_('set partizioni')
+    )
+    note = models.TextField(_('note'), blank=True)
+
+    class Meta:
+        verbose_name = _('binding partizioni elezione')
+        verbose_name_plural = _('binding partizioni elezioni')
+        unique_together = ['consultazione', 'partition_set']
+
+    def __str__(self):
+        return f'{self.consultazione} → {self.partition_set}'
+
+
+class BallotActivation(models.Model):
+    """
+    Attivazione di una scheda per una specifica partizione.
+
+    Indica che una scheda è attiva (votabile) in una specifica
+    circoscrizione/collegio. Usato quando schede diverse sono
+    disponibili in territori diversi.
+
+    Esempio:
+    - Scheda "Europee" attiva in tutte e 5 le circoscrizioni
+    - Scheda "Camera Uninominale Lazio 1" attiva solo nel collegio Lazio 1
+    """
+    scheda = models.ForeignKey(
+        SchedaElettorale,
+        on_delete=models.CASCADE,
+        related_name='activations',
+        verbose_name=_('scheda')
+    )
+    partition_unit = models.ForeignKey(
+        'territorio.TerritorialPartitionUnit',
+        on_delete=models.CASCADE,
+        related_name='ballot_activations',
+        verbose_name=_('unità partizione')
+    )
+    is_active = models.BooleanField(_('attiva'), default=True)
+
+    class Meta:
+        verbose_name = _('attivazione scheda')
+        verbose_name_plural = _('attivazioni schede')
+        unique_together = ['scheda', 'partition_unit']
+
+    def __str__(self):
+        status = '✓' if self.is_active else '✗'
+        return f'{self.scheda.nome} → {self.partition_unit.nome} [{status}]'
+
+
+class CandidatePartitionEligibility(models.Model):
+    """
+    Eleggibilità di un candidato per una specifica partizione.
+
+    Indica in quale circoscrizione/collegio un candidato è eleggibile.
+    Fondamentale per:
+    - Europee: candidato X è nella lista del Nord-Ovest
+    - Politiche: candidato Y è nel collegio uninominale Roma 1
+
+    Esempio:
+    - "Ferrara Carolina" eleggibile in "Nord-Ovest" per lista "M5S"
+    - "Rossi Mario" eleggibile in "Roma - Collegio 1" (uninominale)
+    """
+    candidato = models.ForeignKey(
+        Candidato,
+        on_delete=models.CASCADE,
+        related_name='partition_eligibilities',
+        verbose_name=_('candidato')
+    )
+    partition_unit = models.ForeignKey(
+        'territorio.TerritorialPartitionUnit',
+        on_delete=models.CASCADE,
+        related_name='candidate_eligibilities',
+        verbose_name=_('unità partizione')
+    )
+    lista = models.ForeignKey(
+        ListaElettorale,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='candidate_eligibilities',
+        verbose_name=_('lista'),
+        help_text=_('Lista di appartenenza in questa partizione (per plurinominale)')
+    )
+    posizione = models.IntegerField(
+        _('posizione'),
+        null=True,
+        blank=True,
+        help_text=_('Posizione in lista (per plurinominale)')
+    )
+
+    class Meta:
+        verbose_name = _('eleggibilità candidato per partizione')
+        verbose_name_plural = _('eleggibilità candidati per partizione')
+        unique_together = ['candidato', 'partition_unit']
+
+    def __str__(self):
+        if self.lista:
+            return f'{self.candidato} → {self.partition_unit.nome} ({self.lista.nome_breve})'
+        return f'{self.candidato} → {self.partition_unit.nome}'

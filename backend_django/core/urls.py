@@ -4,7 +4,6 @@ Core URL configuration for authentication endpoints.
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from .views import (
-    GoogleLoginView,
     MagicLinkRequestView,
     MagicLinkVerifyView,
     UserProfileView,
@@ -14,9 +13,6 @@ from .views import (
 )
 
 urlpatterns = [
-    # Google OAuth
-    path('google/', GoogleLoginView.as_view(), name='google_login'),
-
     # Magic Link
     path('magic-link/request/', MagicLinkRequestView.as_view(), name='magic_link_request'),
     path('magic-link/verify/', MagicLinkVerifyView.as_view(), name='magic_link_verify'),

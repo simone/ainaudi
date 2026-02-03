@@ -12,6 +12,7 @@ Endpoints:
 - POST /api/deleghe/designazioni/{id}/conferma/ - Conferma una bozza
 - POST /api/deleghe/designazioni/{id}/rifiuta/ - Rifiuta una bozza
 - /api/deleghe/batch/ - Generazione batch documenti
+- /api/deleghe/campagne/ - CRUD Campagne di reclutamento
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
@@ -21,6 +22,10 @@ from .views import (
     DesignazioneRDLViewSet,
     BatchGenerazioneDocumentiViewSet,
 )
+from .views_campagna import (
+    CampagnaListCreateView,
+    CampagnaDetailView,
+)
 
 router = DefaultRouter()
 router.register(r'sub-deleghe', SubDelegaViewSet, basename='sub-delega')
@@ -29,5 +34,7 @@ router.register(r'batch', BatchGenerazioneDocumentiViewSet, basename='batch')
 
 urlpatterns = [
     path('mia-catena/', MiaCatenaView.as_view(), name='mia-catena'),
+    path('campagne/', CampagnaListCreateView.as_view(), name='campagna-list-create'),
+    path('campagne/<int:pk>/', CampagnaDetailView.as_view(), name='campagna-detail'),
     path('', include(router.urls)),
 ]

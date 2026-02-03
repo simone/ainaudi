@@ -34,7 +34,7 @@ class DocumentoAdmin(admin.ModelAdmin):
     search_fields = ['titolo', 'descrizione']
     list_editable = ['in_evidenza', 'is_pubblico', 'is_attivo']
     ordering = ['-in_evidenza', 'ordine', '-created_at']
-    readonly_fields = ['tipo_file', 'dimensione', 'created_at', 'updated_at', 'created_by']
+    readonly_fields = ['tipo_file', 'dimensione', 'created_at', 'updated_at', 'created_by_email']
     autocomplete_fields = ['consultazione_specifica']
 
     fieldsets = (
@@ -46,7 +46,7 @@ class DocumentoAdmin(admin.ModelAdmin):
             'description': _('Determina quando e a chi è visibile questo documento')
         }),
         (_('Informazioni'), {
-            'fields': ('tipo_file', 'dimensione', 'created_at', 'updated_at', 'created_by'),
+            'fields': ('tipo_file', 'dimensione', 'created_at', 'updated_at', 'created_by_email'),
             'classes': ('collapse',)
         }),
     )
@@ -77,7 +77,7 @@ class DocumentoAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         if not change:
-            obj.created_by = request.user
+            obj.created_by_email = request.user.email
         super().save_model(request, obj, form, change)
 
 
@@ -107,7 +107,7 @@ class FAQAdmin(admin.ModelAdmin):
     search_fields = ['domanda', 'risposta']
     list_editable = ['in_evidenza', 'is_pubblico', 'is_attivo']
     ordering = ['-in_evidenza', 'categoria__ordine', 'ordine', '-created_at']
-    readonly_fields = ['visualizzazioni', 'utile_si', 'utile_no', 'created_at', 'updated_at', 'created_by']
+    readonly_fields = ['visualizzazioni', 'utile_si', 'utile_no', 'created_at', 'updated_at', 'created_by_email']
     autocomplete_fields = ['consultazione_specifica']
 
     fieldsets = (
@@ -122,7 +122,7 @@ class FAQAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         (_('Audit'), {
-            'fields': ('created_at', 'updated_at', 'created_by'),
+            'fields': ('created_at', 'updated_at', 'created_by_email'),
             'classes': ('collapse',)
         }),
     )
@@ -162,5 +162,5 @@ class FAQAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         if not change:
-            obj.created_by = request.user
+            obj.created_by_email = request.user.email
         super().save_model(request, obj, form, change)

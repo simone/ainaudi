@@ -290,7 +290,7 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         Restituisce gli RDL approvati disponibili per la mappatura.
         Filtrati in base al territorio di competenza dell'utente.
         """
-        from sections.models import RdlRegistration
+        from campaign.models import RdlRegistration
 
         user = request.user
         comune_id = request.query_params.get('comune')

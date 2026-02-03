@@ -45,7 +45,7 @@ class DelegatoDiListaAdmin(admin.ModelAdmin):
     list_filter = ['carica', 'consultazione', 'data_nomina']
     search_fields = ['cognome', 'nome', 'email', 'circoscrizione']
     ordering = ['consultazione', 'cognome', 'nome']
-    autocomplete_fields = ['consultazione', 'user']
+    autocomplete_fields = ['consultazione']
     inlines = [SubDelegaInline]
 
     fieldsets = (
@@ -61,8 +61,8 @@ class DelegatoDiListaAdmin(admin.ModelAdmin):
         (_('Nomina dal Partito'), {
             'fields': ('data_nomina', 'numero_protocollo_nomina', 'documento_nomina')
         }),
-        (_('Contatti e Account'), {
-            'fields': ('email', 'telefono', 'user')
+        (_('Contatti'), {
+            'fields': ('email', 'telefono')
         }),
     )
 
@@ -89,7 +89,8 @@ class DelegatoDiListaAdmin(admin.ModelAdmin):
     n_sub_deleghe.short_description = _('Sub-deleghe')
 
     def has_user(self, obj):
-        if obj.user:
+        user = obj.user
+        if user and user.pk:
             return format_html('<span class="text-success">Si</span>')
         return format_html('<span class="text-muted">No</span>')
     has_user.short_description = _('Account')
@@ -104,7 +105,7 @@ class SubDelegaAdmin(admin.ModelAdmin):
     list_filter = ['is_attiva', 'tipo_delega', 'firma_autenticata', 'delegato__consultazione', 'delegato__carica']
     search_fields = ['cognome', 'nome', 'email', 'delegato__cognome', 'delegato__nome']
     ordering = ['delegato', 'cognome', 'nome']
-    autocomplete_fields = ['delegato', 'regioni', 'province', 'comuni', 'user']
+    autocomplete_fields = ['delegato', 'regioni', 'province', 'comuni']
     filter_horizontal = ['regioni', 'province', 'comuni']
     inlines = [DesignazioneRDLInline]
 
@@ -124,7 +125,7 @@ class SubDelegaAdmin(admin.ModelAdmin):
         }),
         (_('Territorio di competenza'), {
             'fields': ('regioni', 'province', 'comuni', 'municipi'),
-            'description': _('Seleziona il livello appropriato: regioni per ambiti regionali, province per ambiti provinciali, comuni per ambiti comunali, municipi per Roma')
+            'description': _('Seleziona il livello appropriato: regioni per ambiti regionali, province per ambiti provinciali, comuni per ambiti comunali, municipi per grandi città')
         }),
         (_('Dati delega'), {
             'fields': ('data_delega', 'numero_protocollo', 'documento_delega')
@@ -133,8 +134,8 @@ class SubDelegaAdmin(admin.ModelAdmin):
             'fields': ('firma_autenticata', 'data_autenticazione', 'autenticatore'),
             'description': _('La firma deve essere autenticata da notaio o segretario comunale (richiesto per FIRMA_AUTENTICATA)')
         }),
-        (_('Contatti e Account'), {
-            'fields': ('email', 'telefono', 'user')
+        (_('Contatti'), {
+            'fields': ('email', 'telefono')
         }),
         (_('Stato'), {
             'fields': ('is_attiva', 'revocata_il', 'motivo_revoca'),
@@ -203,7 +204,7 @@ class SubDelegaAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         if not change:
-            obj.created_by = request.user
+            obj.created_by_email = request.user.email
         super().save_model(request, obj, form, change)
 
 
@@ -216,7 +217,7 @@ class DesignazioneRDLAdmin(admin.ModelAdmin):
     list_filter = ['stato', 'ruolo', 'is_attiva', 'sub_delega__delegato__consultazione']
     search_fields = ['cognome', 'nome', 'email', 'sezione__numero']
     ordering = ['stato', 'sezione', 'ruolo']
-    autocomplete_fields = ['delegato', 'sub_delega', 'sezione', 'user']
+    autocomplete_fields = ['delegato', 'sub_delega', 'sezione']
     actions = ['approva_bozze', 'rifiuta_bozze']
 
     fieldsets = (
@@ -234,14 +235,14 @@ class DesignazioneRDLAdmin(admin.ModelAdmin):
         (_('Dati anagrafici RDL'), {
             'fields': ('cognome', 'nome', 'luogo_nascita', 'data_nascita', 'domicilio')
         }),
-        (_('Contatti e Account'), {
-            'fields': ('email', 'telefono', 'user')
+        (_('Contatti'), {
+            'fields': ('email', 'telefono')
         }),
         (_('Documento'), {
             'fields': ('documento_designazione', 'data_generazione_documento')
         }),
         (_('Approvazione'), {
-            'fields': ('approvata_da', 'data_approvazione'),
+            'fields': ('approvata_da_email', 'data_approvazione'),
             'classes': ('collapse',)
         }),
         (_('Revoca'), {
@@ -249,7 +250,7 @@ class DesignazioneRDLAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    readonly_fields = ['approvata_da', 'data_approvazione']
+    readonly_fields = ['approvata_da_email', 'data_approvazione']
 
     def nome_completo(self, obj):
         return f"{obj.cognome} {obj.nome}"
@@ -305,9 +306,11 @@ class BatchGenerazioneDocumentiAdmin(admin.ModelAdmin):
     list_display = ['sub_delega', 'tipo', 'stato', 'n_designazioni', 'created_at']
     list_filter = ['tipo', 'stato']
     ordering = ['-created_at']
-    readonly_fields = ['n_designazioni', 'n_pagine', 'data_generazione', 'created_at', 'created_by']
+    readonly_fields = ['n_designazioni', 'n_pagine', 'data_generazione', 'created_at', 'created_by_email']
 
     def save_model(self, request, obj, form, change):
         if not change:
-            obj.created_by = request.user
+            obj.created_by_email = request.user.email
         super().save_model(request, obj, form, change)
+
+

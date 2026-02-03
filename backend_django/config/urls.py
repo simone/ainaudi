@@ -20,6 +20,7 @@ from sections.views import (
 )
 from sections.urls import rdl_registration_urlpatterns, mappatura_urlpatterns
 from elections.views import ElectionListsView, ElectionCandidatesView
+from delegations.views_campagna import CampagnaPublicView, CampagnaRegistraView
 
 urlpatterns = [
     # Root redirect to admin
@@ -32,7 +33,7 @@ urlpatterns = [
     # Django Admin
     path('admin/', admin.site.urls),
 
-    # Custom auth endpoints (Google OAuth, Magic Link) - no signup, no password login
+    # Custom auth endpoints (Magic Link) - no signup, no password login
     path('api/auth/', include('core.urls')),
 
     # Permissions endpoint
@@ -61,6 +62,10 @@ urlpatterns = [
     path('api/risorse/', include('resources.urls')),
     path('api/deleghe/', include('delegations.urls')),
     path('api/territorio/', include('territorio.urls')),
+
+    # Public campaign endpoints (no auth required)
+    path('api/campagna/<slug:slug>/', CampagnaPublicView.as_view(), name='campagna-public'),
+    path('api/campagna/<slug:slug>/registra/', CampagnaRegistraView.as_view(), name='campagna-registra'),
 ]
 
 # Serve media files in development

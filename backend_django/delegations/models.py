@@ -17,8 +17,9 @@ Note:
 - La catena delle deleghe viene allegata nel PDF di designazione RDL
 """
 from django.db import models
-from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+
+from core.models import get_user_by_email
 
 
 # =============================================================================
@@ -88,7 +89,7 @@ class DelegatoDiLista(models.Model):
         _('municipi'),
         default=list,
         blank=True,
-        help_text=_('Lista di numeri di municipio (solo per Roma)')
+        help_text=_('Lista di numeri di municipio (per grandi città)')
     )
 
     # Documento di nomina dal Partito
@@ -109,15 +110,6 @@ class DelegatoDiLista(models.Model):
     email = models.EmailField(_('email'), blank=True)
     telefono = models.CharField(_('telefono'), max_length=20, blank=True)
 
-    # Account utente (opzionale, per accesso all'app)
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='deleghe_lista',
-        verbose_name=_('account utente')
-    )
-
     # Audit
     created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
     updated_at = models.DateTimeField(_('data modifica'), auto_now=True)
@@ -134,6 +126,11 @@ class DelegatoDiLista(models.Model):
     @property
     def nome_completo(self):
         return f"{self.cognome} {self.nome}"
+
+    @property
+    def user(self):
+        """Restituisce l'utente associato a questa email (per login/permessi)."""
+        return get_user_by_email(self.email)
 
 
 # =============================================================================
@@ -207,7 +204,7 @@ class SubDelega(models.Model):
         _('municipi'),
         default=list,
         blank=True,
-        help_text=_('Lista di numeri di municipio (solo per Roma)')
+        help_text=_('Lista di numeri di municipio (per grandi città)')
     )
 
     # Dati della sub-delega
@@ -236,15 +233,6 @@ class SubDelega(models.Model):
     email = models.EmailField(_('email'))
     telefono = models.CharField(_('telefono'), max_length=20, blank=True)
 
-    # Account utente (per accesso all'app)
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='sub_deleghe_ricevute',
-        verbose_name=_('account utente')
-    )
-
     # Tipo di delega
     tipo_delega = models.CharField(
         _('tipo delega'),
@@ -262,13 +250,7 @@ class SubDelega(models.Model):
     # Audit
     created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
     updated_at = models.DateTimeField(_('data modifica'), auto_now=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='sub_deleghe_create',
-        verbose_name=_('creato da')
-    )
+    created_by_email = models.EmailField(_('creato da (email)'), blank=True)
 
     class Meta:
         verbose_name = _('Sub-Delega')
@@ -281,6 +263,16 @@ class SubDelega(models.Model):
     @property
     def nome_completo(self):
         return f"{self.cognome} {self.nome}"
+
+    @property
+    def user(self):
+        """Restituisce l'utente associato a questa email (per login/permessi)."""
+        return get_user_by_email(self.email)
+
+    @property
+    def created_by(self):
+        """Restituisce l'utente che ha creato questo record."""
+        return get_user_by_email(self.created_by_email)
 
     @property
     def consultazione(self):
@@ -391,15 +383,6 @@ class DesignazioneRDL(models.Model):
     email = models.EmailField(_('email'))
     telefono = models.CharField(_('telefono'), max_length=20, blank=True)
 
-    # Account utente (per accesso all'app e inserimento dati)
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='designazioni_rdl',
-        verbose_name=_('account utente')
-    )
-
     # Documento di designazione generato
     documento_designazione = models.FileField(
         _('documento designazione'),
@@ -424,13 +407,10 @@ class DesignazioneRDL(models.Model):
     is_attiva = models.BooleanField(_('attiva'), default=True)
 
     # Approvazione (per designazioni BOZZA approvate dal Delegato)
-    approvata_da = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='designazioni_approvate',
-        verbose_name=_('approvata da'),
-        help_text=_('Delegato che ha approvato la bozza')
+    approvata_da_email = models.EmailField(
+        _('approvata da (email)'),
+        blank=True,
+        help_text=_('Email del Delegato che ha approvato la bozza')
     )
     data_approvazione = models.DateTimeField(_('data approvazione'), null=True, blank=True)
 
@@ -441,13 +421,7 @@ class DesignazioneRDL(models.Model):
     # Audit
     created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
     updated_at = models.DateTimeField(_('data modifica'), auto_now=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='designazioni_create',
-        verbose_name=_('creato da')
-    )
+    created_by_email = models.EmailField(_('creato da (email)'), blank=True)
 
     class Meta:
         verbose_name = _('Designazione RDL')
@@ -476,6 +450,21 @@ class DesignazioneRDL(models.Model):
         return f"{self.cognome} {self.nome}"
 
     @property
+    def user(self):
+        """Restituisce l'utente associato a questa email (per login/permessi)."""
+        return get_user_by_email(self.email)
+
+    @property
+    def approvata_da(self):
+        """Restituisce l'utente che ha approvato questa designazione."""
+        return get_user_by_email(self.approvata_da_email)
+
+    @property
+    def created_by(self):
+        """Restituisce l'utente che ha creato questo record."""
+        return get_user_by_email(self.created_by_email)
+
+    @property
     def is_bozza(self):
         """True se è una bozza in attesa di approvazione"""
         return self.stato == self.Stato.BOZZA
@@ -485,22 +474,29 @@ class DesignazioneRDL(models.Model):
         """True se è confermata (designazione valida)"""
         return self.stato == self.Stato.CONFERMATA and self.is_attiva
 
-    def approva(self, user):
+    def approva(self, user_email):
         """
         Approva una designazione in bozza (chiamato dal Delegato).
         Passa lo stato da BOZZA a CONFERMATA.
+
+        Args:
+            user_email: Email dell'utente che approva (str o User object)
         """
         from django.utils import timezone
 
         if self.stato != self.Stato.BOZZA:
             raise ValueError("Solo le bozze possono essere approvate")
 
-        self.stato = self.Stato.CONFERMATA
-        self.approvata_da = user
-        self.data_approvazione = timezone.now()
-        self.save(update_fields=['stato', 'approvata_da', 'data_approvazione', 'updated_at'])
+        # Accetta sia stringa email che oggetto User
+        if hasattr(user_email, 'email'):
+            user_email = user_email.email
 
-    def rifiuta(self, user, motivo=''):
+        self.stato = self.Stato.CONFERMATA
+        self.approvata_da_email = user_email
+        self.data_approvazione = timezone.now()
+        self.save(update_fields=['stato', 'approvata_da_email', 'data_approvazione', 'updated_at'])
+
+    def rifiuta(self, user_email, motivo=''):
         """
         Rifiuta una designazione in bozza.
         """
@@ -637,12 +633,7 @@ class BatchGenerazioneDocumenti(models.Model):
 
     # Audit
     created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        verbose_name=_('creato da')
-    )
+    created_by_email = models.EmailField(_('creato da (email)'), blank=True)
 
     class Meta:
         verbose_name = _('Batch Generazione Documenti')
@@ -651,3 +642,8 @@ class BatchGenerazioneDocumenti(models.Model):
 
     def __str__(self):
         return f"Batch {self.tipo} - {self.sub_delega} ({self.stato})"
+
+    @property
+    def created_by(self):
+        """Restituisce l'utente che ha creato questo record."""
+        return get_user_by_email(self.created_by_email)

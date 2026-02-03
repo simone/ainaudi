@@ -5,33 +5,10 @@ Territory admin is in territorio/admin.py.
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 from .models import (
-    CircoscrizioneCamera, CircoscrizioneSenato, CircoscrizioneEuropee,
     ConsultazioneElettorale, TipoElezione, SchedaElettorale,
     ListaElettorale, Candidato,
+    ElectionPartitionBinding, BallotActivation, CandidatePartitionEligibility,
 )
-
-
-# =============================================================================
-# CIRCUMSCRIPTIONS ADMIN
-# =============================================================================
-
-@admin.register(CircoscrizioneCamera)
-class CircoscrizioneCameraAdmin(admin.ModelAdmin):
-    list_display = ['numero', 'nome']
-    filter_horizontal = ['regioni']
-    ordering = ['numero']
-
-
-@admin.register(CircoscrizioneSenato)
-class CircoscrizioneSenatoAdmin(admin.ModelAdmin):
-    list_display = ['regione']
-    autocomplete_fields = ['regione']
-
-
-@admin.register(CircoscrizioneEuropee)
-class CircoscrizioneEuropeeAdmin(admin.ModelAdmin):
-    list_display = ['codice', 'get_codice_display']
-    filter_horizontal = ['regioni']
 
 
 # =============================================================================
@@ -145,3 +122,61 @@ class CandidatoAdmin(admin.ModelAdmin):
             'fields': ('is_sindaco', 'is_presidente')
         }),
     )
+
+
+# =============================================================================
+# PARTITION BINDINGS ADMIN
+# =============================================================================
+
+class ElectionPartitionBindingInline(admin.TabularInline):
+    model = ElectionPartitionBinding
+    extra = 0
+    autocomplete_fields = ['partition_set']
+
+
+# Add inline to ConsultazioneElettoraleAdmin
+ConsultazioneElettoraleAdmin.inlines = [TipoElezioneInline, ElectionPartitionBindingInline]
+
+
+@admin.register(ElectionPartitionBinding)
+class ElectionPartitionBindingAdmin(admin.ModelAdmin):
+    list_display = ['consultazione', 'partition_set']
+    list_filter = ['consultazione', 'partition_set__partition_type']
+    search_fields = ['consultazione__nome', 'partition_set__nome']
+    autocomplete_fields = ['consultazione', 'partition_set']
+
+
+class BallotActivationInline(admin.TabularInline):
+    model = BallotActivation
+    extra = 0
+    autocomplete_fields = ['partition_unit']
+
+
+# Add inline to SchedaElettoraleAdmin
+SchedaElettoraleAdmin.inlines = [ListaInline, BallotActivationInline]
+
+
+@admin.register(BallotActivation)
+class BallotActivationAdmin(admin.ModelAdmin):
+    list_display = ['scheda', 'partition_unit', 'is_active']
+    list_filter = ['is_active', 'scheda__tipo_elezione__consultazione', 'partition_unit__partition_set']
+    search_fields = ['scheda__nome', 'partition_unit__nome']
+    autocomplete_fields = ['scheda', 'partition_unit']
+
+
+class CandidatePartitionEligibilityInline(admin.TabularInline):
+    model = CandidatePartitionEligibility
+    extra = 0
+    autocomplete_fields = ['partition_unit', 'lista']
+
+
+# Add inline to CandidatoAdmin
+CandidatoAdmin.inlines = [CandidatePartitionEligibilityInline]
+
+
+@admin.register(CandidatePartitionEligibility)
+class CandidatePartitionEligibilityAdmin(admin.ModelAdmin):
+    list_display = ['candidato', 'partition_unit', 'lista', 'posizione']
+    list_filter = ['partition_unit__partition_set', 'lista__scheda__tipo_elezione__consultazione']
+    search_fields = ['candidato__cognome', 'candidato__nome', 'partition_unit__nome']
+    autocomplete_fields = ['candidato', 'partition_unit', 'lista']

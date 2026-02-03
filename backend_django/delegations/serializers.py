@@ -6,6 +6,7 @@ Gerarchia: PARTITO -> DELEGATO DI LISTA -> SUB-DELEGATO -> RDL
 from django.db import models
 from rest_framework import serializers
 from .models import DelegatoDiLista, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti
+from campaign.models import CampagnaReclutamento, RdlRegistration
 
 
 class DelegatoDiListaSerializer(serializers.ModelSerializer):
@@ -317,7 +318,6 @@ class MappaturaCreaSerializer(serializers.Serializer):
     ruolo = serializers.ChoiceField(choices=['EFFETTIVO', 'SUPPLENTE'])
 
     def validate_rdl_registration_id(self, value):
-        from sections.models import RdlRegistration
         try:
             reg = RdlRegistration.objects.get(id=value, status='APPROVED')
         except RdlRegistration.DoesNotExist:
@@ -346,7 +346,6 @@ class MappaturaCreaSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        from sections.models import RdlRegistration
         from territorio.models import SezioneElettorale
 
         reg = RdlRegistration.objects.get(id=validated_data['rdl_registration_id'])
@@ -411,3 +410,205 @@ class ConfermaDesignazioneSerializer(serializers.Serializer):
 class RifiutaDesignazioneSerializer(serializers.Serializer):
     """Serializer per rifiutare una designazione in stato BOZZA."""
     motivo = serializers.CharField(required=False, allow_blank=True)
+
+
+# =============================================================================
+# Serializers per Campagna di Reclutamento
+# =============================================================================
+
+class CampagnaReclutamentoSerializer(serializers.ModelSerializer):
+    """Serializer per Campagna di Reclutamento (lettura completa)."""
+    stato_display = serializers.CharField(source='get_stato_display', read_only=True)
+    consultazione_nome = serializers.CharField(source='consultazione.nome', read_only=True)
+    delegato_nome = serializers.SerializerMethodField()
+    sub_delegato_nome = serializers.SerializerMethodField()
+    created_by_nome = serializers.CharField(source='created_by.get_full_name', read_only=True, allow_null=True)
+    territorio = serializers.SerializerMethodField()
+    is_aperta = serializers.BooleanField(read_only=True)
+    n_registrazioni = serializers.IntegerField(read_only=True)
+    posti_disponibili = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = CampagnaReclutamento
+        fields = [
+            'id', 'consultazione', 'consultazione_nome',
+            'nome', 'slug', 'descrizione',
+            'data_apertura', 'data_chiusura',
+            'territorio_regioni', 'territorio_province', 'territorio_comuni',
+            'territorio',
+            'stato', 'stato_display',
+            'delegato', 'delegato_nome', 'sub_delega', 'sub_delegato_nome',
+            'created_by', 'created_by_nome',
+            'richiedi_approvazione', 'max_registrazioni', 'messaggio_conferma',
+            'is_aperta', 'n_registrazioni', 'posti_disponibili',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'created_by']
+
+    def get_delegato_nome(self, obj):
+        if obj.delegato:
+            return obj.delegato.nome_completo
+        return None
+
+    def get_sub_delegato_nome(self, obj):
+        if obj.sub_delega:
+            return obj.sub_delega.nome_completo
+        return None
+
+    def get_territorio(self, obj):
+        """Restituisce descrizione testuale del territorio."""
+        parti = []
+        regioni = list(obj.territorio_regioni.values_list('nome', flat=True))
+        if regioni:
+            parti.append(f"Regioni: {', '.join(regioni)}")
+        province = list(obj.territorio_province.values_list('nome', flat=True))
+        if province:
+            parti.append(f"Province: {', '.join(province)}")
+        comuni = list(obj.territorio_comuni.values_list('nome', flat=True))
+        if comuni:
+            parti.append(f"Comuni: {', '.join(comuni)}")
+        return ' | '.join(parti) if parti else 'Tutto il territorio'
+
+
+class CampagnaReclutamentoCreateSerializer(serializers.ModelSerializer):
+    """Serializer per creare/aggiornare una Campagna di Reclutamento."""
+
+    class Meta:
+        model = CampagnaReclutamento
+        fields = [
+            'consultazione', 'nome', 'slug', 'descrizione',
+            'data_apertura', 'data_chiusura',
+            'territorio_regioni', 'territorio_province', 'territorio_comuni',
+            'stato', 'delegato', 'sub_delega',
+            'richiedi_approvazione', 'max_registrazioni', 'messaggio_conferma'
+        ]
+
+    def create(self, validated_data):
+        validated_data['created_by'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class CampagnaReclutamentoPublicSerializer(serializers.ModelSerializer):
+    """Serializer pubblico per Campagna (info limitate per pagina registrazione)."""
+    consultazione_nome = serializers.CharField(source='consultazione.nome', read_only=True)
+    consultazione_tipi_elezione = serializers.SerializerMethodField()
+    is_aperta = serializers.BooleanField(read_only=True)
+    posti_disponibili = serializers.IntegerField(read_only=True)
+    comuni_disponibili = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CampagnaReclutamento
+        fields = [
+            'nome', 'slug', 'descrizione',
+            'consultazione_nome', 'consultazione_tipi_elezione',
+            'data_apertura', 'data_chiusura',
+            'is_aperta', 'posti_disponibili',
+            'richiedi_approvazione', 'messaggio_conferma',
+            'comuni_disponibili'
+        ]
+
+    def get_consultazione_tipi_elezione(self, obj):
+        """Restituisce i tipi di elezione della consultazione."""
+        return list(obj.consultazione.tipi_elezione.values_list('tipo', flat=True).distinct())
+
+    def get_comuni_disponibili(self, obj):
+        """Restituisce lista semplificata dei comuni disponibili."""
+        comuni = obj.get_comuni_disponibili()
+        return [
+            {
+                'id': c.id,
+                'nome': c.nome,
+                'label': str(c),
+                'has_municipi': c.municipi.exists(),
+                'municipi': [
+                    {'numero': m.numero, 'nome': m.nome}
+                    for m in c.municipi.all().order_by('numero')
+                ] if c.municipi.exists() else []
+            }
+            for c in comuni.prefetch_related('municipi')[:500]  # Limit for performance
+        ]
+
+
+class CampagnaRegistrazioneSerializer(serializers.Serializer):
+    """Serializer per registrazione RDL via campagna."""
+    email = serializers.EmailField()
+    nome = serializers.CharField(max_length=100)
+    cognome = serializers.CharField(max_length=100)
+    telefono = serializers.CharField(max_length=20)
+    comune_nascita = serializers.CharField(max_length=100)
+    data_nascita = serializers.DateField()
+    comune_residenza = serializers.CharField(max_length=100)
+    indirizzo_residenza = serializers.CharField(max_length=255)
+    seggio_preferenza = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    comune_id = serializers.IntegerField()
+    municipio = serializers.IntegerField(required=False, allow_null=True)
+
+    def validate_comune_id(self, value):
+        from territorio.models import Comune
+        try:
+            Comune.objects.get(id=value)
+        except Comune.DoesNotExist:
+            raise serializers.ValidationError("Comune non trovato")
+        return value
+
+    def validate(self, data):
+        campagna = self.context.get('campagna')
+        if not campagna:
+            raise serializers.ValidationError("Campagna non specificata")
+
+        if not campagna.is_aperta:
+            raise serializers.ValidationError("La campagna non è aperta")
+
+        if campagna.posti_disponibili is not None and campagna.posti_disponibili <= 0:
+            raise serializers.ValidationError("Posti esauriti")
+
+        # Verify comune is within campaign territory
+        from territorio.models import Comune
+        comune = Comune.objects.get(id=data['comune_id'])
+        comuni_disponibili = campagna.get_comuni_disponibili()
+        if not comuni_disponibili.filter(id=comune.id).exists():
+            raise serializers.ValidationError({
+                'comune_id': 'Il comune selezionato non è disponibile per questa campagna'
+            })
+
+        return data
+
+    def create(self, validated_data):
+        from territorio.models import Comune, Municipio
+
+        campagna = self.context['campagna']
+        comune = Comune.objects.get(id=validated_data['comune_id'])
+
+        municipio = None
+        if validated_data.get('municipio'):
+            municipio = Municipio.objects.filter(
+                comune=comune,
+                numero=validated_data['municipio']
+            ).first()
+
+        # Determine initial status
+        status = (
+            RdlRegistration.Status.PENDING
+            if campagna.richiedi_approvazione
+            else RdlRegistration.Status.APPROVED
+        )
+
+        registration = RdlRegistration.objects.create(
+            email=validated_data['email'].lower().strip(),
+            nome=validated_data['nome'].strip(),
+            cognome=validated_data['cognome'].strip(),
+            telefono=validated_data['telefono'].strip(),
+            comune_nascita=validated_data['comune_nascita'].strip(),
+            data_nascita=validated_data['data_nascita'],
+            comune_residenza=validated_data['comune_residenza'].strip(),
+            indirizzo_residenza=validated_data['indirizzo_residenza'].strip(),
+            seggio_preferenza=validated_data.get('seggio_preferenza', '').strip(),
+            comune=comune,
+            municipio=municipio,
+            status=status,
+            source='CAMPAGNA',
+            campagna=campagna,
+            consultazione=campagna.consultazione
+        )
+
+        return registration

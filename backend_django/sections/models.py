@@ -7,168 +7,9 @@ This module defines:
 - DatiScheda: Specific data for each ballot in a section
 """
 from django.db import models
-from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
-
-class RdlRegistration(models.Model):
-    """
-    Registration of an RDL (Responsabile Di Lista).
-
-    Supports two flows:
-    1. Self-registration: user requests to become RDL, status=PENDING until approved
-    2. Import by delegate: created directly with status=APPROVED
-
-    Once approved, RDL can be assigned to sections via SectionAssignment.
-    """
-    class Status(models.TextChoices):
-        PENDING = 'PENDING', _('In attesa di approvazione')
-        APPROVED = 'APPROVED', _('Approvato')
-        REJECTED = 'REJECTED', _('Rifiutato')
-
-    # Contact info (email is the key identifier)
-    email = models.EmailField(_('email'), db_index=True)
-    nome = models.CharField(_('nome'), max_length=100)
-    cognome = models.CharField(_('cognome'), max_length=100)
-    telefono = models.CharField(_('recapito telefonico'), max_length=20)
-
-    # Personal data (required)
-    comune_nascita = models.CharField(_('comune di nascita'), max_length=100)
-    data_nascita = models.DateField(_('data di nascita'))
-
-    # Residence (required)
-    comune_residenza = models.CharField(_('residente nel comune di'), max_length=100)
-    indirizzo_residenza = models.CharField(_('indirizzo di residenza'), max_length=255)
-
-    # Assignment preferences
-    seggio_preferenza = models.CharField(
-        _('seggio/plesso di preferenza'),
-        max_length=255,
-        blank=True,
-        help_text=_('Dove fare il Rappresentante di Lista')
-    )
-
-    # Scope (where they can operate)
-    comune = models.ForeignKey(
-        'territorio.Comune',
-        on_delete=models.CASCADE,
-        related_name='rdl_registrations',
-        verbose_name=_('comune operativo')
-    )
-    municipio = models.ForeignKey(
-        'territorio.Municipio',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='rdl_registrations',
-        verbose_name=_('municipio di appartenenza'),
-        help_text=_('Per grandi città con municipi')
-    )
-
-    # Status
-    status = models.CharField(
-        _('stato'),
-        max_length=20,
-        choices=Status.choices,
-        default=Status.PENDING
-    )
-
-    # Link to user (created when approved or when user logs in)
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='rdl_registrations',
-        verbose_name=_('utente')
-    )
-
-    # Audit
-    requested_at = models.DateTimeField(_('data richiesta'), auto_now_add=True)
-    approved_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='rdl_approvals',
-        verbose_name=_('approvato da')
-    )
-    approved_at = models.DateTimeField(_('data approvazione'), null=True, blank=True)
-    rejection_reason = models.TextField(_('motivo rifiuto'), blank=True)
-    notes = models.TextField(_('note'), blank=True)
-
-    # Source of registration
-    source = models.CharField(
-        _('origine'),
-        max_length=20,
-        choices=[
-            ('SELF', 'Auto-registrazione'),
-            ('IMPORT', 'Import CSV'),
-            ('MANUAL', 'Inserimento manuale'),
-        ],
-        default='SELF'
-    )
-
-    class Meta:
-        verbose_name = _('registrazione RDL')
-        verbose_name_plural = _('registrazioni RDL')
-        ordering = ['-requested_at']
-        indexes = [
-            models.Index(fields=['email']),
-            models.Index(fields=['status']),
-            models.Index(fields=['comune', 'status']),
-        ]
-        # No unique constraint - allow multiple registrations from same person
-
-    def __str__(self):
-        return f'{self.cognome} {self.nome} ({self.email}) - {self.comune}'
-
-    @property
-    def full_name(self):
-        return f'{self.nome} {self.cognome}'
-
-    def approve(self, approved_by):
-        """Approve this registration and create/link user."""
-        from django.utils import timezone
-        from core.models import User, RoleAssignment
-
-        self.status = self.Status.APPROVED
-        self.approved_by = approved_by
-        self.approved_at = timezone.now()
-
-        # Find or create user
-        user, created = User.objects.get_or_create(
-            email=self.email.lower(),
-            defaults={
-                'display_name': self.full_name,
-                'first_name': self.nome,
-                'last_name': self.cognome,
-            }
-        )
-        self.user = user
-
-        # Create RDL role assignment
-        RoleAssignment.objects.get_or_create(
-            user=user,
-            role='RDL',
-            defaults={
-                'assigned_by': approved_by,
-                'is_active': True,
-            }
-        )
-
-        self.save()
-        return user
-
-    def reject(self, rejected_by, reason=''):
-        """Reject this registration."""
-        from django.utils import timezone
-
-        self.status = self.Status.REJECTED
-        self.approved_by = rejected_by  # Store who rejected
-        self.approved_at = timezone.now()
-        self.rejection_reason = reason
-        self.save()
+from core.models import get_user_by_email
 
 
 class SectionAssignment(models.Model):
@@ -200,23 +41,13 @@ class SectionAssignment(models.Model):
     )
     # Primary FK - la fonte di verità per l'RDL assegnato
     rdl_registration = models.ForeignKey(
-        'RdlRegistration',
+        'campaign.RdlRegistration',
         on_delete=models.CASCADE,
         related_name='section_assignments',
         verbose_name=_('registrazione RDL'),
         help_text=_('RDL dal pool approvati - cancellando l\'RDL si cancella l\'assegnazione')
     )
 
-    # Legacy - mantenuto per compatibilità, derivato da rdl_registration.user
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='section_assignments',
-        verbose_name=_('utente (legacy)'),
-        help_text=_('Derivato da rdl_registration.user')
-    )
     role = models.CharField(
         _('ruolo'),
         max_length=20,
@@ -225,14 +56,7 @@ class SectionAssignment(models.Model):
     )
 
     # Audit
-    assigned_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='assignments_made',
-        verbose_name=_('assegnato da')
-    )
+    assigned_by_email = models.EmailField(_('assegnato da (email)'), blank=True)
     assigned_at = models.DateTimeField(_('data assegnazione'), auto_now_add=True)
     notes = models.TextField(_('note'), blank=True)
 
@@ -258,7 +82,17 @@ class SectionAssignment(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.user.email} - {self.sezione} ({self.get_role_display()})'
+        return f'{self.rdl_registration.email} - {self.sezione} ({self.get_role_display()})'
+
+    @property
+    def user(self):
+        """Restituisce l'utente associato all'RDL assegnato."""
+        return self.rdl_registration.user if self.rdl_registration else None
+
+    @property
+    def assigned_by(self):
+        """Restituisce l'utente che ha assegnato."""
+        return get_user_by_email(self.assigned_by_email)
 
 
 class DatiSezione(models.Model):
@@ -312,25 +146,11 @@ class DatiSezione(models.Model):
         default=False,
         help_text=_('Dati verificati da un referente')
     )
-    verified_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='sezioni_verificate',
-        verbose_name=_('verificato da')
-    )
+    verified_by_email = models.EmailField(_('verificato da (email)'), blank=True)
     verified_at = models.DateTimeField(_('data verifica'), null=True, blank=True)
 
     # Audit
-    inserito_da = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='dati_sezioni_inseriti',
-        verbose_name=_('inserito da')
-    )
+    inserito_da_email = models.EmailField(_('inserito da (email)'), blank=True)
     inserito_at = models.DateTimeField(_('data inserimento'), null=True, blank=True)
     aggiornato_at = models.DateTimeField(_('ultimo aggiornamento'), auto_now=True)
 
@@ -342,6 +162,16 @@ class DatiSezione(models.Model):
 
     def __str__(self):
         return f'Dati {self.sezione} - {self.consultazione}'
+
+    @property
+    def verified_by(self):
+        """Restituisce l'utente che ha verificato."""
+        return get_user_by_email(self.verified_by_email)
+
+    @property
+    def inserito_da(self):
+        """Restituisce l'utente che ha inserito i dati."""
+        return get_user_by_email(self.inserito_da_email)
 
     @property
     def totale_elettori(self):
@@ -521,13 +351,7 @@ class SectionDataHistory(models.Model):
     valore_nuovo = models.TextField(_('valore nuovo'), null=True, blank=True)
 
     # Who and when
-    modificato_da = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='modifiche_dati',
-        verbose_name=_('modificato da')
-    )
+    modificato_da_email = models.EmailField(_('modificato da (email)'), blank=True)
     modificato_at = models.DateTimeField(_('data modifica'), auto_now_add=True)
     ip_address = models.GenericIPAddressField(_('indirizzo IP'), null=True, blank=True)
 
@@ -538,3 +362,8 @@ class SectionDataHistory(models.Model):
 
     def __str__(self):
         return f'{self.dati_sezione.sezione} - {self.campo} ({self.modificato_at})'
+
+    @property
+    def modificato_da(self):
+        """Restituisce l'utente che ha fatto la modifica."""
+        return get_user_by_email(self.modificato_da_email)

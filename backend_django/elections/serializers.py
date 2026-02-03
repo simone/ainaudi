@@ -1,44 +1,15 @@
 """
 Serializers for elections models.
 Territory serializers are in territorio/serializers.py.
+Partition serializers are in territorio/serializers.py.
 """
 from rest_framework import serializers
 from territorio.models import Regione
 from territorio.serializers import RegioneSerializer
 from .models import (
-    CircoscrizioneCamera, CircoscrizioneSenato, CircoscrizioneEuropee,
     ConsultazioneElettorale, TipoElezione, SchedaElettorale,
     ListaElettorale, Candidato,
 )
-
-
-# =============================================================================
-# CIRCUMSCRIPTIONS SERIALIZERS
-# =============================================================================
-
-class CircoscrizioneCameraSerializer(serializers.ModelSerializer):
-    regioni = RegioneSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = CircoscrizioneCamera
-        fields = ['id', 'numero', 'nome', 'regioni']
-
-
-class CircoscrizioneSenatoSerializer(serializers.ModelSerializer):
-    regione = RegioneSerializer(read_only=True)
-
-    class Meta:
-        model = CircoscrizioneSenato
-        fields = ['id', 'regione']
-
-
-class CircoscrizioneEuropeeSerializer(serializers.ModelSerializer):
-    codice_display = serializers.CharField(source='get_codice_display', read_only=True)
-    regioni = RegioneSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = CircoscrizioneEuropee
-        fields = ['id', 'codice', 'codice_display', 'regioni']
 
 
 # =============================================================================
@@ -79,12 +50,14 @@ class TipoElezioneSerializer(serializers.ModelSerializer):
 
 class SchedaElettoraleSerializer(serializers.ModelSerializer):
     tipo_elezione_display = serializers.CharField(source='tipo_elezione.get_tipo_display', read_only=True)
+    tipo = serializers.CharField(source='tipo_elezione.tipo', read_only=True)
 
     class Meta:
         model = SchedaElettorale
         fields = [
-            'id', 'tipo_elezione', 'tipo_elezione_display',
-            'nome', 'colore', 'ordine', 'testo_quesito', 'schema_voti'
+            'id', 'tipo_elezione', 'tipo_elezione_display', 'tipo',
+            'nome', 'colore', 'ordine', 'turno', 'data_inizio_turno',
+            'testo_quesito', 'schema_voti'
         ]
 
 
@@ -159,10 +132,11 @@ class SchedaElettoraleDetailSerializer(serializers.ModelSerializer):
     """Detailed serializer including lists and candidates."""
     liste = ListaElettoraleSerializer(many=True, read_only=True)
     candidati_uninominali = CandidatoSerializer(many=True, read_only=True)
+    tipo = serializers.CharField(source='tipo_elezione.tipo', read_only=True)
 
     class Meta:
         model = SchedaElettorale
         fields = [
-            'id', 'tipo_elezione', 'nome', 'colore', 'ordine',
-            'testo_quesito', 'schema_voti', 'liste', 'candidati_uninominali'
+            'id', 'tipo_elezione', 'tipo', 'nome', 'colore', 'ordine', 'turno',
+            'data_inizio_turno', 'testo_quesito', 'schema_voti', 'liste', 'candidati_uninominali'
         ]

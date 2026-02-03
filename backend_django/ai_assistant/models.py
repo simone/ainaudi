@@ -7,8 +7,9 @@ This module will contain (to be implemented in Fase 6):
 - ChatMessage: Individual messages in a session
 """
 from django.db import models
-from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+
+from core.models import get_user_by_email
 
 
 class KnowledgeSource(models.Model):
@@ -46,12 +47,7 @@ class ChatSession(models.Model):
     """
     Chat session with the AI assistant.
     """
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='chat_sessions',
-        verbose_name=_('utente')
-    )
+    user_email = models.EmailField(_('utente (email)'), default='')
     context = models.CharField(
         _('contesto'),
         max_length=50,
@@ -76,7 +72,12 @@ class ChatSession(models.Model):
         ordering = ['-updated_at']
 
     def __str__(self):
-        return f'Chat {self.id} - {self.user.email}'
+        return f'Chat {self.id} - {self.user_email}'
+
+    @property
+    def user(self):
+        """Restituisce l'utente della sessione."""
+        return get_user_by_email(self.user_email)
 
 
 class ChatMessage(models.Model):
