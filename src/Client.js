@@ -179,6 +179,16 @@ const Client = (server, pdfServer, token) => {
     }
 
     const election = {
+        // Lista tutte le consultazioni per lo switcher
+        consultazioni: async () =>
+            fetch(`${server}/api/elections/consultazioni/`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Ottiene la consultazione attiva (prima nel futuro o in corso)
         consultazioneAttiva: async () =>
             fetchWithCacheAndRetry('consultazione_attiva', 300)(`${server}/api/elections/consultazioni/attiva/`, {
                 headers: {
@@ -188,6 +198,39 @@ const Client = (server, pdfServer, token) => {
                 console.error(error);
                 return {error: error.message};
             }),
+
+        // Ottiene una consultazione specifica per ID
+        consultazione: async (id) =>
+            fetch(`${server}/api/elections/consultazioni/${id}/`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Ottiene una scheda elettorale specifica
+        scheda: async (id) =>
+            fetch(`${server}/api/elections/schede/${id}/`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Aggiorna una scheda elettorale
+        updateScheda: async (id, data) =>
+            fetch(`${server}/api/elections/schede/${id}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify(data)
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
         lists: async () =>
             fetchWithCacheAndRetry('lists', 600)(`${server}/api/election/lists`, {
                 headers: {
@@ -504,6 +547,84 @@ const Client = (server, pdfServer, token) => {
                         'Authorization': authHeader
                     },
                     body: JSON.stringify({ motivo })
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+        },
+
+        // Campagne di reclutamento
+        campagne: {
+            list: async (consultazioneId) => {
+                const url = consultazioneId
+                    ? `${server}/api/deleghe/campagne/?consultazione=${consultazioneId}`
+                    : `${server}/api/deleghe/campagne/`;
+                return fetch(url, {
+                    headers: { 'Authorization': authHeader }
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                });
+            },
+
+            get: async (id) =>
+                fetch(`${server}/api/deleghe/campagne/${id}/`, {
+                    headers: { 'Authorization': authHeader }
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+
+            create: async (data) =>
+                fetch(`${server}/api/deleghe/campagne/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': authHeader
+                    },
+                    body: JSON.stringify(data)
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+
+            update: async (id, data) =>
+                fetch(`${server}/api/deleghe/campagne/${id}/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': authHeader
+                    },
+                    body: JSON.stringify(data)
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+
+            delete: async (id) =>
+                fetch(`${server}/api/deleghe/campagne/${id}/`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': authHeader }
+                }).then(response => response.ok ? {} : response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+
+            // Attiva una campagna
+            attiva: async (id) =>
+                fetch(`${server}/api/deleghe/campagne/${id}/attiva/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': authHeader }
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+
+            // Chiude una campagna
+            chiudi: async (id) =>
+                fetch(`${server}/api/deleghe/campagne/${id}/chiudi/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
                     console.error(error);
                     return { error: error.message };

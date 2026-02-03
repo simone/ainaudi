@@ -86,42 +86,6 @@ export function AuthProvider({ children }) {
         return data.access;
     };
 
-    // Login with Google ID token
-    const loginWithGoogle = async (googleIdToken) => {
-        setLoading(true);
-        setError(null);
-
-        try {
-            const response = await fetch(`${SERVER_API}/api/auth/google/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id_token: googleIdToken })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Login failed');
-            }
-
-            const data = await response.json();
-
-            // Store tokens
-            localStorage.setItem(ACCESS_TOKEN_KEY, data.access);
-            localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh);
-            localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-
-            setAccessToken(data.access);
-            setUser(data.user);
-            setLoading(false);
-
-            return data;
-        } catch (err) {
-            setError(err.message);
-            setLoading(false);
-            throw err;
-        }
-    };
-
     // Request magic link
     const requestMagicLink = async (email) => {
         setLoading(true);
@@ -302,7 +266,6 @@ export function AuthProvider({ children }) {
         isAuthenticated: !!accessToken && !!user,
         isImpersonating,
         originalUser,
-        loginWithGoogle,
         requestMagicLink,
         verifyMagicLink,
         logout,

@@ -6,9 +6,6 @@ env_variables:
   REACT_APP_PDF_URL: ''
 
 handlers:
-  - url: /api/.*
-    script: backend/server.js
-    secure: always
   - url: /static/(.*)
     http_headers:
       Cache-Control: 'max-age=31536000, public'

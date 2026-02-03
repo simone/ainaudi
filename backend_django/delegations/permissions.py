@@ -134,8 +134,8 @@ def get_sezioni_filter_for_user(user, consultazione_id=None):
 
             # Filtra per municipi (grandi città)
             if delega.territorio_municipi:
-                roma_filter = Q(municipio__numero__in=delega.territorio_municipi)
-                sezioni_filter = roma_filter if sezioni_filter is None else (sezioni_filter | roma_filter)
+                municipi_filter = Q(municipio__numero__in=delega.territorio_municipi)
+                sezioni_filter = municipi_filter if sezioni_filter is None else (sezioni_filter | municipi_filter)
 
         # Se non ha territorio specificato, non vede niente (deve configurare)
         return sezioni_filter

@@ -2097,15 +2097,18 @@ class MappaturaSezioniView(APIView):
                             result['municipi'].append(mun_num)
                     result['is_limited'] = True
 
-                    # Se ha municipi ma nessun comune esplicito, aggiungi Roma
+                    # Se ha municipi ma nessun comune esplicito, aggiungi i comuni che li contengono
                     if not sub_delega.comuni.exists():
-                        from territorio.models import Comune
-                        roma = Comune.objects.filter(nome__iexact='Roma').first()
-                        if roma and roma.nome not in [c['nome'] for c in result['comuni']]:
-                            result['comuni'].append({
-                                'id': roma.id,
-                                'nome': roma.nome,
-                            })
+                        from territorio.models import Municipio
+                        municipi_comuni = Municipio.objects.filter(
+                            numero__in=sub_delega.municipi
+                        ).values_list('comune_id', 'comune__nome').distinct()
+                        for comune_id, comune_nome in municipi_comuni:
+                            if comune_nome not in [c['nome'] for c in result['comuni']]:
+                                result['comuni'].append({
+                                    'id': comune_id,
+                                    'nome': comune_nome,
+                                })
 
         # Delegato: check their territory
         elif roles['is_delegato']:

@@ -187,7 +187,7 @@ class SubDelegaAdmin(admin.ModelAdmin):
             parti.append(text)
         # Municipi
         if obj.municipi:
-            parti.append(f"Roma Mun. {', '.join(map(str, obj.municipi[:3]))}")
+            parti.append(f"Mun. {', '.join(map(str, obj.municipi[:3]))}")
         return ' | '.join(parti) if parti else '-'
     territorio_display.short_description = _('Territorio')
 

@@ -14,6 +14,7 @@ function SectionList({client, user, setError, referenti}) {
     const [selectedError, setSelectedError] = useState('');
     const [filteredSections, setFilteredSections] = useState([]);
     const [filteredAssignedSections, setFilteredAssignedSections] = useState([]);
+    const [turnoInfo, setTurnoInfo] = useState(null);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -98,6 +99,10 @@ function SectionList({client, user, setError, referenti}) {
             if (rows) {
                 setLoading(false);
                 setSections(adaptToSections(rows));
+            }
+            // Extract turno info from response
+            if (response.turno) {
+                setTurnoInfo(response.turno);
             }
         }).catch((error) => {
             console.error("Error reading Sheet:", error);
@@ -264,6 +269,14 @@ function SectionList({client, user, setError, referenti}) {
                     </select>
                 </div>
             </div>
+            {turnoInfo && turnoInfo.is_ballottaggio && (
+                <div className="alert alert-warning mb-3">
+                    <strong><i className="fas fa-redo me-2"></i>BALLOTTAGGIO</strong>
+                    <span className="ms-2">
+                        Stai inserendo i dati del secondo turno (ballottaggio) per: <strong>{turnoInfo.scheda_nome}</strong>
+                    </span>
+                </div>
+            )}
             {filteredSections.length === 0 && (
                 <div className="card">
                     <div className="card-header alert alert-warning mt-3">

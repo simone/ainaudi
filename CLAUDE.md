@@ -52,15 +52,42 @@ PostgreSQL / Redis
 
 | App | Purpose |
 |-----|---------|
-| `core` | User model (email-based), IdentityProviderLink, RoleAssignment, AuditLog |
-| `territorio` | Italian hierarchy: Regione → Provincia → Comune → Municipio → SezioneElettorale |
-| `elections` | ConsultazioneElettorale, TipoElezione, SchedaElettorale, ListaElettorale, Candidato |
+| `core` | User model (email-based), RoleAssignment, AuditLog |
+| `territorio` | Italian hierarchy: Regione → Provincia → Comune → Municipio → SezioneElettorale + Partizioni territoriali (circoscrizioni, collegi) |
+| `elections` | ConsultazioneElettorale, TipoElezione, SchedaElettorale, ListaElettorale, Candidato + Binding partizioni |
 | `delegations` | DelegatoDiLista, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti |
 | `sections` | RdlRegistration, SectionAssignment, DatiSezione, DatiScheda |
 | `incidents` | Incident reporting during elections |
 | `documents` | PDF template generation |
 | `resources` | Educational materials for RDLs |
 | `kpi` | Dashboard data aggregation |
+
+### Territorial Partitions (Circoscrizioni, Collegi)
+
+Electoral partitions model how the territory is divided for voting purposes:
+
+```
+TerritorialPartitionSet (es. "Circoscrizioni Europee")
+    └── TerritorialPartitionUnit (es. "Nord-Ovest", "Centro", etc.)
+            └── TerritorialPartitionMembership (es. Lazio → Centro)
+```
+
+**Partition Types:**
+- `EU_CIRCOSCRIZIONE`: 5 European Parliament circumscriptions
+- `CAMERA_CIRCOSCRIZIONE`: 26 Chamber circumscriptions
+- `SENATO_CIRCOSCRIZIONE`: 20 Senate circumscriptions (= regions)
+- `COLLEGIO_UNINOMINALE_*`: Single-member constituencies (~200 for Chamber)
+- `COLLEGIO_PLURINOMINALE_*`: Multi-member constituencies (~60 for Chamber)
+
+**Election Bindings:**
+- `ElectionPartitionBinding`: Links election to partition set (which version to use)
+- `BallotActivation`: Which ballots are active in which partitions
+- `CandidatePartitionEligibility`: Which candidates are eligible in which partitions
+
+**Automatic Section→Partition lookup:**
+```python
+sezione.get_partition_unit('EU_CIRCOSCRIZIONE')  # Returns "Centro" for Rome
+```
 
 ### Delegation Hierarchy
 
@@ -82,7 +109,7 @@ RDL (Effettivo + Supplente) per sezione elettorale
 - `regioni`: Access to all sections in the region
 - `province`: Access to all sections in the province
 - `comuni`: Access to all sections in the municipality
-- `municipi`: Access only to specified districts (Rome only)
+- `municipi`: Access only to specified districts (optional, for large cities)
 
 ### Multi-Election Consultations
 
@@ -109,7 +136,7 @@ This simplifies administration while generating legally-required separate docume
 | Component | Purpose |
 |-----------|---------|
 | `App.js` | Main router, auth context, navigation |
-| `AuthContext.js` | JWT management, Google OAuth, Magic Link |
+| `AuthContext.js` | JWT management, Magic Link |
 | `Client.js` | API client with caching |
 | `GestioneDeleghe.js` | Delegation chain management |
 | `GestioneRdl.js` | RDL registration approvals |
@@ -119,10 +146,10 @@ This simplifies administration while generating legally-required separate docume
 
 ### Authentication
 
-Three authentication flows:
-1. **Google OAuth2**: `POST /api/auth/google/` with ID token
-2. **Magic Link**: Request via `POST /api/auth/magic-link/`, verify via `POST /api/auth/magic-link/verify/`
-3. **M5S SSO**: (feature flagged, not active)
+Authentication via **Magic Link**:
+- Request: `POST /api/auth/magic-link/request/` with email
+- Verify: `POST /api/auth/magic-link/verify/` with token from email
+- M5S SSO: (feature flagged, not active)
 
 JWT tokens: Access (1h) + Refresh (7d) stored in localStorage.
 
@@ -146,8 +173,6 @@ DB_HOST=localhost
 DB_NAME=rdl_db
 DB_USER=rdl_user
 DB_PASSWORD=
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
 EMAIL_HOST=smtp.gmail.com
 EMAIL_HOST_USER=
 EMAIL_HOST_PASSWORD=
@@ -161,8 +186,7 @@ REACT_APP_API_URL=http://localhost:3001
 
 ```
 # Auth
-POST /api/auth/google/                  - Google OAuth
-POST /api/auth/magic-link/              - Request magic link
+POST /api/auth/magic-link/request/      - Request magic link
 POST /api/auth/magic-link/verify/       - Verify magic link
 
 # Delegations

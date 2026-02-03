@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import ComuneAutocomplete from './ComuneAutocomplete';
 
 const SERVER_API = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_API_URL : '';
 
@@ -37,7 +36,7 @@ const REQUISITI_ELETTORE = {
     }
 };
 
-function RdlSelfRegistration({ onClose }) {
+function CampagnaRegistration({ slug, onClose }) {
     const [formData, setFormData] = useState({
         email: '',
         cognome: '',
@@ -54,25 +53,29 @@ function RdlSelfRegistration({ onClose }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
-    const [registrationStatus, setRegistrationStatus] = useState(null);
+    const [campagna, setCampagna] = useState(null);
     const [checkingStatus, setCheckingStatus] = useState(true);
+    const [comuneSearch, setComuneSearch] = useState('');
 
     useEffect(() => {
-        checkRegistrationStatus();
-    }, []);
+        loadCampagna();
+    }, [slug]);
 
-    const checkRegistrationStatus = async () => {
+    const loadCampagna = async () => {
         try {
-            const response = await fetch(`${SERVER_API}/api/rdl/register/status`);
-            const data = await response.json();
-            setRegistrationStatus(data);
-
-            // Auto-select comune if only one is available
-            if (data.available && data.comuni && data.comuni.length === 1) {
-                setSelectedComune(data.comuni[0]);
+            const response = await fetch(`${SERVER_API}/api/campagna/${slug}/`);
+            if (!response.ok) {
+                if (response.status === 404) {
+                    setCampagna({ error: 'Campagna non trovata' });
+                } else {
+                    throw new Error('Errore caricamento campagna');
+                }
+            } else {
+                const data = await response.json();
+                setCampagna(data);
             }
         } catch (err) {
-            setRegistrationStatus({ available: false, message: 'Errore verifica stato' });
+            setCampagna({ error: 'Errore caricamento campagna' });
         } finally {
             setCheckingStatus(false);
         }
@@ -83,9 +86,9 @@ function RdlSelfRegistration({ onClose }) {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleComuneChange = (comune) => {
+    const handleComuneSelect = (comune) => {
         setSelectedComune(comune);
-        // Reset municipio when comune changes
+        setComuneSearch(comune.label || comune.nome);
         setFormData(prev => ({ ...prev, municipio: '' }));
     };
 
@@ -108,7 +111,7 @@ function RdlSelfRegistration({ onClose }) {
         }
 
         try {
-            const response = await fetch(`${SERVER_API}/api/rdl/register`, {
+            const response = await fetch(`${SERVER_API}/api/campagna/${slug}/registra/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -121,10 +124,10 @@ function RdlSelfRegistration({ onClose }) {
             const data = await response.json();
 
             if (!response.ok || data.error) {
-                throw new Error(data.error || 'Errore durante la registrazione');
+                throw new Error(data.error || JSON.stringify(data) || 'Errore durante la registrazione');
             }
 
-            setSuccess(true);
+            setSuccess(data);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -132,32 +135,76 @@ function RdlSelfRegistration({ onClose }) {
         }
     };
 
+    // Filter comuni based on search
+    const filteredComuni = campagna?.comuni_disponibili?.filter(c =>
+        c.label?.toLowerCase().includes(comuneSearch.toLowerCase()) ||
+        c.nome?.toLowerCase().includes(comuneSearch.toLowerCase())
+    ) || [];
+
     if (checkingStatus) {
         return (
             <div className="loading-container" role="status" aria-live="polite">
                 <div className="spinner-border text-primary">
-                    <span className="visually-hidden">Verifica in corso...</span>
+                    <span className="visually-hidden">Caricamento...</span>
                 </div>
-                <p className="loading-text">Verifica disponibilità registrazioni...</p>
+                <p className="loading-text">Caricamento campagna...</p>
             </div>
         );
     }
 
-    if (!registrationStatus?.available) {
+    if (campagna?.error) {
+        return (
+            <div className="card">
+                <div className="card-header bg-danger text-white">
+                    Campagna non trovata
+                </div>
+                <div className="card-body">
+                    <p className="text-muted">{campagna.error}</p>
+                    <button className="btn btn-primary" onClick={onClose}>
+                        Torna alla home
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (!campagna?.is_aperta) {
         return (
             <div className="card">
                 <div className="card-header bg-secondary text-white">
-                    Registrazione non disponibile
+                    Campagna chiusa
                 </div>
                 <div className="card-body">
+                    <h5>{campagna.nome}</h5>
                     <p className="text-muted">
-                        {registrationStatus?.message || 'La registrazione come Rappresentante di Lista non è attualmente disponibile.'}
+                        Questa campagna di reclutamento non è attualmente aperta.
                     </p>
+                    {campagna.data_apertura && (
+                        <p className="text-muted">
+                            <strong>Periodo:</strong> {new Date(campagna.data_apertura).toLocaleDateString('it-IT')} - {new Date(campagna.data_chiusura).toLocaleDateString('it-IT')}
+                        </p>
+                    )}
+                    <button className="btn btn-primary" onClick={onClose}>
+                        Torna alla home
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (campagna.posti_disponibili !== null && campagna.posti_disponibili <= 0) {
+        return (
+            <div className="card">
+                <div className="card-header bg-warning text-dark">
+                    Posti esauriti
+                </div>
+                <div className="card-body">
+                    <h5>{campagna.nome}</h5>
                     <p className="text-muted">
-                        Le registrazioni verranno aperte quando sarà indetta una nuova consultazione elettorale.
+                        I posti per questa campagna sono esauriti.
                     </p>
                     <button className="btn btn-primary" onClick={onClose}>
-                        Torna al Login
+                        Torna alla home
                     </button>
                 </div>
             </div>
@@ -171,13 +218,15 @@ function RdlSelfRegistration({ onClose }) {
                     Richiesta Inviata
                 </div>
                 <div className="card-body">
-                    <p>La tua richiesta di registrazione come Rappresentante di Lista è stata inviata.</p>
+                    <p>{success.message}</p>
                     <p>
-                        <strong>Consultazione:</strong> {registrationStatus.consultation?.nome}
+                        <strong>Consultazione:</strong> {campagna.consultazione_nome}
                     </p>
-                    <p>Riceverai una notifica via email quando sarà approvata dal delegato del tuo comune.</p>
+                    {success.richiede_approvazione && (
+                        <p>Riceverai una notifica via email quando sarà approvata.</p>
+                    )}
                     <button className="btn btn-primary" onClick={onClose}>
-                        Torna al Login
+                        Torna alla home
                     </button>
                 </div>
             </div>
@@ -187,19 +236,22 @@ function RdlSelfRegistration({ onClose }) {
     return (
         <div className="card">
             <div className="card-header bg-info text-white">
-                Registrazione Rappresentante di Lista
+                {campagna.nome}
             </div>
             <div className="card-body">
+                {campagna.descrizione && (
+                    <p className="text-muted mb-3">{campagna.descrizione}</p>
+                )}
                 <p className="text-muted mb-3">
-                    Compila il form per richiedere di diventare Rappresentante di Lista per la consultazione: <strong>{registrationStatus.consultation?.nome}</strong>
+                    Compila il form per richiedere di diventare Rappresentante di Lista per la consultazione: <strong>{campagna.consultazione_nome}</strong>
                 </p>
 
                 {/* Eligibility info based on election type */}
-                {registrationStatus.consultation?.tipi_elezione?.length > 0 && (
+                {campagna.consultazione_tipi_elezione?.length > 0 && (
                     <div className="alert alert-info small mb-3">
                         <strong>Requisiti per essere RDL in questa consultazione:</strong>
                         <ul className="mb-0 mt-1">
-                            {[...new Set(registrationStatus.consultation.tipi_elezione)].map(tipo => (
+                            {[...new Set(campagna.consultazione_tipi_elezione)].map(tipo => (
                                 REQUISITI_ELETTORE[tipo] && (
                                     <li key={tipo}>
                                         <strong>{REQUISITI_ELETTORE[tipo].label}:</strong> {REQUISITI_ELETTORE[tipo].requisito}
@@ -214,9 +266,11 @@ function RdlSelfRegistration({ onClose }) {
                     </div>
                 )}
 
-                <p className="text-muted small mb-3">
-                    La tua richiesta sarà valutata dal delegato del comune selezionato.
-                </p>
+                {campagna.posti_disponibili !== null && (
+                    <div className="alert alert-warning small mb-3">
+                        <strong>Posti disponibili:</strong> {campagna.posti_disponibili}
+                    </div>
+                )}
 
                 {error && (
                     <div className="alert alert-danger">{error}</div>
@@ -237,7 +291,6 @@ function RdlSelfRegistration({ onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
-                                aria-required="true"
                             />
                         </div>
                         <div className="col-md-6 mb-3">
@@ -251,7 +304,6 @@ function RdlSelfRegistration({ onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
-                                aria-required="true"
                             />
                         </div>
                     </div>
@@ -268,7 +320,6 @@ function RdlSelfRegistration({ onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
-                                aria-required="true"
                             />
                         </div>
                         <div className="col-md-6 mb-3">
@@ -282,7 +333,6 @@ function RdlSelfRegistration({ onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
-                                aria-required="true"
                             />
                         </div>
                     </div>
@@ -301,8 +351,6 @@ function RdlSelfRegistration({ onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
-                                aria-required="true"
-                                aria-describedby="email-help"
                             />
                         </div>
                         <div className="col-md-6 mb-3">
@@ -316,7 +364,6 @@ function RdlSelfRegistration({ onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
-                                aria-required="true"
                             />
                         </div>
                     </div>
@@ -335,7 +382,6 @@ function RdlSelfRegistration({ onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
-                                aria-required="true"
                             />
                         </div>
                         <div className="col-md-6 mb-3">
@@ -349,7 +395,6 @@ function RdlSelfRegistration({ onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
-                                aria-required="true"
                             />
                         </div>
                     </div>
@@ -364,30 +409,58 @@ function RdlSelfRegistration({ onClose }) {
                     <div className="row">
                         <div className="col-md-6 mb-3">
                             <label htmlFor="comune_seggio" className="form-label">Comune del seggio *</label>
-                            {registrationStatus?.comuni?.length === 1 ? (
-                                // Single comune: show as read-only
-                                <input
-                                    id="comune_seggio"
-                                    type="text"
-                                    className="form-control"
-                                    value={selectedComune?.label || ''}
-                                    disabled
-                                    readOnly
-                                    aria-describedby="comune-seggio-help"
-                                />
+                            {campagna.comuni_disponibili?.length === 1 ? (
+                                // Single comune: show as read-only and auto-select
+                                <>
+                                    <input
+                                        id="comune_seggio"
+                                        type="text"
+                                        className="form-control"
+                                        value={campagna.comuni_disponibili[0].label || campagna.comuni_disponibili[0].nome}
+                                        disabled
+                                        readOnly
+                                    />
+                                    {!selectedComune && setSelectedComune(campagna.comuni_disponibili[0])}
+                                </>
                             ) : (
-                                // Multiple comuni: show autocomplete
-                                <ComuneAutocomplete
-                                    value={selectedComune}
-                                    onChange={handleComuneChange}
-                                    disabled={loading}
-                                    placeholder="Cerca comune..."
-                                    aria-describedby="comune-seggio-help"
-                                />
+                                // Multiple comuni: show search/select
+                                <div className="position-relative">
+                                    <input
+                                        id="comune_seggio"
+                                        type="text"
+                                        className="form-control"
+                                        value={comuneSearch}
+                                        onChange={(e) => {
+                                            setComuneSearch(e.target.value);
+                                            if (selectedComune && e.target.value !== (selectedComune.label || selectedComune.nome)) {
+                                                setSelectedComune(null);
+                                            }
+                                        }}
+                                        placeholder="Cerca comune..."
+                                        disabled={loading}
+                                        autoComplete="off"
+                                    />
+                                    {comuneSearch && !selectedComune && filteredComuni.length > 0 && (
+                                        <div className="position-absolute w-100 bg-white border rounded shadow-sm" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+                                            {filteredComuni.slice(0, 20).map(comune => (
+                                                <div
+                                                    key={comune.id}
+                                                    className="p-2 cursor-pointer"
+                                                    style={{ cursor: 'pointer' }}
+                                                    onClick={() => handleComuneSelect(comune)}
+                                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
+                                                    onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                                                >
+                                                    {comune.label || comune.nome}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             )}
-                            <small id="comune-seggio-help" className="text-muted">
-                                {registrationStatus?.comuni?.length === 1
-                                    ? 'Comune pre-selezionato per questa consultazione'
+                            <small className="text-muted">
+                                {campagna.comuni_disponibili?.length === 1
+                                    ? 'Comune pre-selezionato per questa campagna'
                                     : 'In quale comune vuoi operare come RDL?'}
                             </small>
                         </div>
@@ -404,8 +477,6 @@ function RdlSelfRegistration({ onClose }) {
                                     onChange={handleChange}
                                     required
                                     disabled={loading}
-                                    aria-required="true"
-                                    aria-describedby="municipio-help"
                                 >
                                     <option value="">-- Seleziona municipio --</option>
                                     {selectedComune.municipi.map((m) => (
@@ -421,10 +492,9 @@ function RdlSelfRegistration({ onClose }) {
                                     className="form-control"
                                     disabled
                                     placeholder={selectedComune ? "Questo comune non ha municipi" : "Seleziona prima un comune"}
-                                    aria-describedby="municipio-help"
                                 />
                             )}
-                            <small id="municipio-help" className="text-muted">
+                            <small className="text-muted">
                                 {selectedComune?.has_municipi ? 'In quale municipio vuoi operare?' : 'Solo per grandi città (Roma, Milano, Napoli, ecc.)'}
                             </small>
                         </div>
@@ -442,9 +512,8 @@ function RdlSelfRegistration({ onClose }) {
                                 onChange={handleChange}
                                 placeholder="Es: Scuola Manzoni, Via Roma 15, vicino casa mia..."
                                 disabled={loading}
-                                aria-describedby="seggio-help"
                             />
-                            <small id="seggio-help" className="text-muted">
+                            <small className="text-muted">
                                 Opzionale: indica una scuola, un indirizzo o una zona specifica dove preferiresti essere assegnato
                             </small>
                         </div>
@@ -473,4 +542,4 @@ function RdlSelfRegistration({ onClose }) {
     );
 }
 
-export default RdlSelfRegistration;
+export default CampagnaRegistration;
