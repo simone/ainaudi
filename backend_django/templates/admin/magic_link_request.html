@@ -233,9 +233,13 @@
 
 {% block content_title %}
 <div class="login-logo">
-    <img src="{% static 'admin/img/ainaudi_logo.svg' %}" alt="AInaudi">
+    {% if ADMIN_LOGO == 'm5s' %}
+    <img src="{% static 'admin/img/m5s_logo.svg' %}" alt="{{ ADMIN_SITE_TITLE }}">
+    {% else %}
+    <img src="{% static 'admin/img/ainaudi_logo.svg' %}" alt="{{ ADMIN_SITE_TITLE }}">
+    {% endif %}
 </div>
-<div class="login-title">AInaudi</div>
+<div class="login-title">{{ ADMIN_SITE_TITLE }}</div>
 <div class="login-subtitle">Area Amministrazione</div>
 {% endblock %}
 

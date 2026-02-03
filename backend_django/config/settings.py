@@ -101,6 +101,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.branding',
             ],
         },
     },
@@ -281,6 +282,20 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Media files (user uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+
+# =============================================================================
+# BRANDING SETTINGS
+# =============================================================================
+
+# Logo to use in admin panel: 'ainaudi' or 'm5s'
+# Set via environment variable ADMIN_LOGO
+ADMIN_LOGO = os.environ.get('ADMIN_LOGO', 'ainaudi')  # 'ainaudi' or 'm5s'
+
+# App name displayed in admin
+ADMIN_SITE_HEADER = os.environ.get('ADMIN_SITE_HEADER', 'AInaudi Admin')
+ADMIN_SITE_TITLE = os.environ.get('ADMIN_SITE_TITLE', 'AInaudi')
+ADMIN_INDEX_TITLE = os.environ.get('ADMIN_INDEX_TITLE', 'Gestione Sistema')
 
 
 # =============================================================================
