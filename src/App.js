@@ -931,14 +931,13 @@ function AppContent() {
             </div>
             <footer className="custom-footer">
                 <div className="footer-logo">
-                    <img src={logo} alt="Movimento 5 Stelle" style={{
+                    <img src={logo} alt="AInaudi" style={{
                         width: '100%',
                     }} />
                 </div>
                 <div className="footer-text">
                     <p>
                         <strong>AInaudi</strong><br/>
-                        Ad uso gratuito per il Movimento 5 Stelle<br/>
                         © Simone Federici
                     </p>
                 </div>
