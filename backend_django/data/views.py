@@ -766,6 +766,288 @@ class SectionsSaveView(APIView):
 
 
 # =============================================================================
+# SCRUTINIO ENDPOINTS (new structured API for vote data entry)
+# =============================================================================
+
+class ScrutinioInfoView(APIView):
+    """
+    Get scrutinio info: consultation details and all schede with their structure.
+
+    GET /api/scrutinio/info
+
+    Returns:
+    {
+        "consultazione": {
+            "id": 1,
+            "nome": "Referendum Costituzionale 2026",
+            "data_inizio": "2026-06-08"
+        },
+        "schede": [
+            {
+                "id": 1,
+                "nome": "Quesito 1 - Separazione Carriere",
+                "colore": "#87CEEB",
+                "ordine": 0,
+                "tipo": "referendum",
+                "schema": {"tipo": "si_no", "opzioni": ["SI", "NO"]}
+            },
+            ...
+        ]
+    }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from elections.models import SchedaElettorale, TipoElezione
+
+        consultazione = get_consultazione_attiva()
+        if not consultazione:
+            return Response({'error': 'Nessuna consultazione attiva'}, status=400)
+
+        # Get all schede for the current turno
+        schede = SchedaElettorale.objects.filter(
+            tipo_elezione__consultazione=consultazione
+        ).select_related('tipo_elezione').order_by('ordine')
+
+        schede_list = []
+        for scheda in schede:
+            schede_list.append({
+                'id': scheda.id,
+                'nome': scheda.nome,
+                'colore': scheda.colore,
+                'ordine': scheda.ordine,
+                'turno': scheda.turno,
+                'tipo_elezione': scheda.tipo_elezione.tipo,
+                'tipo_elezione_display': scheda.tipo_elezione.get_tipo_display(),
+                'schema': scheda.schema_voti,
+                'testo_quesito': scheda.testo_quesito,
+            })
+
+        return Response({
+            'consultazione': {
+                'id': consultazione.id,
+                'nome': consultazione.nome,
+                'data_inizio': consultazione.data_inizio,
+                'data_fine': consultazione.data_fine,
+            },
+            'schede': schede_list,
+        })
+
+
+class ScrutinioSezioniView(APIView):
+    """
+    Get user's sections with structured data organized by scheda.
+
+    GET /api/scrutinio/sezioni
+
+    Returns:
+    {
+        "sezioni": [
+            {
+                "comune": "Roma",
+                "sezione": 123,
+                "dati_seggio": {
+                    "elettori_maschi": 500,
+                    "elettori_femmine": 520,
+                    "votanti_maschi": 250,
+                    "votanti_femmine": 260
+                },
+                "schede": {
+                    "1": {  // scheda_id
+                        "schede_ricevute": 1020,
+                        "schede_autenticate": 1018,
+                        "schede_bianche": 5,
+                        "schede_nulle": 3,
+                        "schede_contestate": 0,
+                        "voti": {"si": 300, "no": 200}
+                    },
+                    ...
+                }
+            }
+        ]
+    }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from elections.models import SchedaElettorale
+
+        consultazione = get_consultazione_attiva()
+        if not consultazione:
+            return Response({'sezioni': []})
+
+        # Get all schede for the consultation
+        schede = SchedaElettorale.objects.filter(
+            tipo_elezione__consultazione=consultazione
+        ).order_by('ordine')
+
+        # Get user's section assignments
+        assignments = SectionAssignment.objects.filter(
+            rdl_registration__email=request.user.email,
+            consultazione=consultazione,
+        ).select_related('sezione', 'sezione__comune')
+
+        sezioni_list = []
+        for assignment in assignments:
+            sezione = assignment.sezione
+
+            # Get or create DatiSezione
+            dati_sezione, _ = DatiSezione.objects.prefetch_related('schede').get_or_create(
+                sezione=sezione,
+                consultazione=consultazione
+            )
+
+            # Build dati_seggio
+            dati_seggio = {
+                'elettori_maschi': dati_sezione.elettori_maschi,
+                'elettori_femmine': dati_sezione.elettori_femmine,
+                'votanti_maschi': dati_sezione.votanti_maschi,
+                'votanti_femmine': dati_sezione.votanti_femmine,
+            }
+
+            # Build schede data
+            schede_data = {}
+            for scheda in schede:
+                dati_scheda = dati_sezione.schede.filter(scheda=scheda).first()
+                if dati_scheda:
+                    schede_data[str(scheda.id)] = {
+                        'schede_ricevute': dati_scheda.schede_ricevute,
+                        'schede_autenticate': dati_scheda.schede_autenticate,
+                        'schede_bianche': dati_scheda.schede_bianche,
+                        'schede_nulle': dati_scheda.schede_nulle,
+                        'schede_contestate': dati_scheda.schede_contestate,
+                        'voti': dati_scheda.voti,
+                        'errori': dati_scheda.errori_validazione,
+                    }
+                else:
+                    schede_data[str(scheda.id)] = None
+
+            sezioni_list.append({
+                'comune': sezione.comune.nome,
+                'sezione': sezione.numero,
+                'dati_seggio': dati_seggio,
+                'schede': schede_data,
+            })
+
+        return Response({'sezioni': sezioni_list})
+
+
+class ScrutinioSaveView(APIView):
+    """
+    Save scrutinio data with structured format.
+
+    POST /api/scrutinio/save
+    {
+        "comune": "Roma",
+        "sezione": 123,
+        "dati_seggio": {
+            "elettori_maschi": 500,
+            "elettori_femmine": 520,
+            "votanti_maschi": 250,
+            "votanti_femmine": 260
+        },
+        "schede": {
+            "1": {  // scheda_id
+                "schede_ricevute": 1020,
+                "schede_autenticate": 1018,
+                "schede_bianche": 5,
+                "schede_nulle": 3,
+                "schede_contestate": 0,
+                "voti": {"si": 300, "no": 200}
+            },
+            ...
+        }
+    }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from elections.models import SchedaElettorale
+        from delegations.permissions import can_enter_section_data
+
+        consultazione = get_consultazione_attiva()
+        if not consultazione:
+            return Response({'error': 'Nessuna consultazione attiva'}, status=400)
+
+        comune_nome = request.data.get('comune')
+        sezione_numero = request.data.get('sezione')
+        dati_seggio = request.data.get('dati_seggio', {})
+        schede_data = request.data.get('schede', {})
+
+        if not comune_nome or sezione_numero is None:
+            return Response({'error': 'comune e sezione sono obbligatori'}, status=400)
+
+        # Find the sezione
+        try:
+            comune = Comune.objects.get(nome__iexact=comune_nome)
+            sezione = SezioneElettorale.objects.get(comune=comune, numero=sezione_numero)
+        except (Comune.DoesNotExist, SezioneElettorale.DoesNotExist):
+            return Response({'error': 'Sezione non trovata'}, status=404)
+
+        # Check permission
+        if not can_enter_section_data(request.user, sezione, consultazione.id):
+            return Response({'error': 'Non hai i permessi per questa sezione'}, status=403)
+
+        with transaction.atomic():
+            # Get or create DatiSezione
+            dati_sezione, _ = DatiSezione.objects.get_or_create(
+                sezione=sezione,
+                consultazione=consultazione
+            )
+
+            # Update dati_seggio
+            dati_sezione.elettori_maschi = dati_seggio.get('elettori_maschi')
+            dati_sezione.elettori_femmine = dati_seggio.get('elettori_femmine')
+            dati_sezione.votanti_maschi = dati_seggio.get('votanti_maschi')
+            dati_sezione.votanti_femmine = dati_seggio.get('votanti_femmine')
+            dati_sezione.inserito_da_email = request.user.email
+            dati_sezione.inserito_at = timezone.now()
+
+            # Check if complete
+            dati_sezione.is_complete = all([
+                dati_sezione.elettori_maschi is not None,
+                dati_sezione.elettori_femmine is not None,
+                dati_sezione.votanti_maschi is not None,
+                dati_sezione.votanti_femmine is not None,
+            ])
+
+            dati_sezione.save()
+
+            # Update each scheda
+            for scheda_id, scheda_values in schede_data.items():
+                if scheda_values is None:
+                    continue
+
+                try:
+                    scheda = SchedaElettorale.objects.get(
+                        id=int(scheda_id),
+                        tipo_elezione__consultazione=consultazione
+                    )
+                except SchedaElettorale.DoesNotExist:
+                    continue
+
+                dati_scheda, _ = DatiScheda.objects.get_or_create(
+                    dati_sezione=dati_sezione,
+                    scheda=scheda
+                )
+
+                dati_scheda.schede_ricevute = scheda_values.get('schede_ricevute')
+                dati_scheda.schede_autenticate = scheda_values.get('schede_autenticate')
+                dati_scheda.schede_bianche = scheda_values.get('schede_bianche')
+                dati_scheda.schede_nulle = scheda_values.get('schede_nulle')
+                dati_scheda.schede_contestate = scheda_values.get('schede_contestate')
+                dati_scheda.voti = scheda_values.get('voti')
+                dati_scheda.errori_validazione = scheda_values.get('errori')
+                dati_scheda.inserito_at = timezone.now()
+                dati_scheda.save()
+
+        return Response({
+            'success': True,
+            'is_complete': dati_sezione.is_complete
+        })
+
+
+# =============================================================================
 # RDL ASSIGNMENT ENDPOINTS (for DELEGATE/SUBDELEGATE)
 # =============================================================================
 

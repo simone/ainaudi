@@ -76,7 +76,7 @@ const Client = (server, pdfServer, token) => {
                 return {error: error.message};
             }),
         save: async (data) =>
-            fetchAndInvalidate(['assigned', 'own'])(`${server}/api/sections/`, {
+            fetchAndInvalidate(['assigned', 'own', 'scrutinio.sezioni'])(`${server}/api/sections/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -138,6 +138,41 @@ const Client = (server, pdfServer, token) => {
                 return {error: error.message};
             });
         },
+    }
+
+    // New structured scrutinio API
+    const scrutinio = {
+        // Get consultation info with all schede
+        info: async () =>
+            fetchWithCacheAndRetry('scrutinio.info', 300)(`${server}/api/scrutinio/info`, {
+                headers: { 'Authorization': authHeader }
+            }).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Get user's sections with structured data
+        sezioni: async () =>
+            fetchWithCacheAndRetry('scrutinio.sezioni', 30)(`${server}/api/scrutinio/sezioni`, {
+                headers: { 'Authorization': authHeader }
+            }).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Save section data
+        save: async (data) =>
+            fetchAndInvalidate(['scrutinio.sezioni', 'assigned', 'own'])(`${server}/api/scrutinio/save`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify(data)
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
     }
 
     const rdl = {
@@ -1249,7 +1284,7 @@ const Client = (server, pdfServer, token) => {
         }
     };
 
-    return {permissions, election, sections, rdl, kpi, pdf, users, rdlRegistrations, deleghe, risorse, territorio, mappatura};
+    return {permissions, election, sections, scrutinio, rdl, kpi, pdf, users, rdlRegistrations, deleghe, risorse, territorio, mappatura};
 }
 
 export default Client;

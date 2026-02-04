@@ -25,6 +25,10 @@ from .views import (
     MappaturaRdlView,
     MappaturaAssegnaView,
     MappaturaAssegnaBulkView,
+    # Scrutinio views
+    ScrutinioInfoView,
+    ScrutinioSezioniView,
+    ScrutinioSaveView,
 )
 
 urlpatterns = [
@@ -58,4 +62,11 @@ mappatura_urlpatterns = [
     path('assegna/', MappaturaAssegnaView.as_view(), name='mappatura-assegna'),
     path('assegna/<int:assignment_id>/', MappaturaAssegnaView.as_view(), name='mappatura-assegna-detail'),
     path('assegna-bulk/', MappaturaAssegnaBulkView.as_view(), name='mappatura-assegna-bulk'),
+]
+
+# Scrutinio URLs (mounted at /api/scrutinio/ in main urls.py)
+scrutinio_urlpatterns = [
+    path('info', ScrutinioInfoView.as_view(), name='scrutinio-info'),
+    path('sezioni', ScrutinioSezioniView.as_view(), name='scrutinio-sezioni'),
+    path('save', ScrutinioSaveView.as_view(), name='scrutinio-save'),
 ]

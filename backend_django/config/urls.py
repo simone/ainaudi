@@ -18,7 +18,7 @@ from data.views import (
     RdlAssignView,
     RdlUnassignView,
 )
-from data.urls import rdl_registration_urlpatterns, mappatura_urlpatterns
+from data.urls import rdl_registration_urlpatterns, mappatura_urlpatterns, scrutinio_urlpatterns
 from elections.views import ElectionListsView, ElectionCandidatesView
 from delegations.views_campagna import CampagnaPublicView, CampagnaRegistraView, CampagnaOGView
 
@@ -50,6 +50,9 @@ urlpatterns = [
 
     # Mapping endpoints (operational RDL-to-station assignment)
     path('api/mapping/', include(mappatura_urlpatterns)),
+
+    # Scrutinio endpoints (structured vote data entry)
+    path('api/scrutinio/', include(scrutinio_urlpatterns)),
 
     # Election endpoints (singular 'election' for frontend compatibility)
     path('api/election/lists', ElectionListsView.as_view(), name='election-lists'),
