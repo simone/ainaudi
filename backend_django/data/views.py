@@ -1170,6 +1170,10 @@ class SezioniSearchPublicView(APIView):
                 'numero': sezione.numero,
                 'denominazione': sezione.denominazione or '',
                 'indirizzo': sezione.indirizzo or '',
+                'municipio': {
+                    'numero': sezione.municipio.numero,
+                    'nome': sezione.municipio.nome
+                } if sezione.municipio else None,
             })
 
         return Response(results)

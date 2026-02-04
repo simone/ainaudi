@@ -95,7 +95,19 @@ function RdlSelfRegistration({ onClose }) {
         setFormData(prev => ({ ...prev, municipio: '' }));
         // Reset sezione when comune changes
         setSelectedSezione(null);
+        setFormData(prev => ({ ...prev, seggio_preferenza: '' }));
     };
+
+    // Monitor municipio changes and clear sezione if incoherent
+    useEffect(() => {
+        if (selectedSezione && selectedSezione.municipio && formData.municipio) {
+            // If sezione has a municipio and user selected a different one, clear the sezione
+            if (parseInt(formData.municipio) !== selectedSezione.municipio.numero) {
+                setSelectedSezione(null);
+                setFormData(prev => ({ ...prev, seggio_preferenza: '' }));
+            }
+        }
+    }, [formData.municipio, selectedSezione]);
 
     const handleSezioneChange = (sezione) => {
         if (!sezione) {

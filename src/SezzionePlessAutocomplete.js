@@ -44,9 +44,12 @@ function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, com
 
                 if (Array.isArray(data)) {
                     // Filter by municipio if one is selected
-                    const filtered = municipio
-                        ? data.filter(s => s.municipio && s.municipio.numero === municipio)
-                        : data;
+                    let filtered = data;
+                    if (municipio) {
+                        filtered = data.filter(s =>
+                            s.municipio && s.municipio.numero === parseInt(municipio)
+                        );
+                    }
                     setSuggestions(filtered);
                 } else {
                     setSuggestions([]);
@@ -83,7 +86,7 @@ function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, com
         });
 
         // Auto-select municipio if not already selected and sezione has one
-        if (!municipio && sezione.municipio && onMunicipioChange) {
+        if (!municipio && sezione.municipio && sezione.municipio.numero && onMunicipioChange) {
             onMunicipioChange(sezione.municipio.numero);
         }
 
@@ -221,6 +224,11 @@ function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, com
                             >
                                 <div>
                                     <strong>Sez. {highlightMatch(sezione.numero.toString(), query)}</strong>
+                                    {sezione.municipio && !municipio && (
+                                        <div className="small text-info">
+                                            {sezione.municipio.nome}
+                                        </div>
+                                    )}
                                     {sezione.denominazione && (
                                         <div className="small text-muted">
                                             {highlightMatch(sezione.denominazione, query)}
