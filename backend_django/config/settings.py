@@ -283,6 +283,16 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Google Cloud Storage for production (GAE)
+# Install: pip install django-storages[google]
+USE_GCS = os.environ.get('USE_GCS', 'False').lower() == 'true'
+if USE_GCS:
+    DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
+    GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME', 'rdl-media-bucket')
+    GS_PROJECT_ID = os.environ.get('GS_PROJECT_ID', '')
+    GS_DEFAULT_ACL = 'publicRead'  # Files publicly accessible
+    MEDIA_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/'
+
 
 # =============================================================================
 # BRANDING SETTINGS
@@ -397,3 +407,18 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 # =============================================================================
 
 MAGIC_LINK_TOKEN_EXPIRY = int(os.environ.get('MAGIC_LINK_TOKEN_EXPIRY', 3600))  # 1 hour
+
+
+# =============================================================================
+# REDIS EVENT BUS
+# =============================================================================
+
+# Redis Configuration for Event-Driven PDF Generation
+REDIS_HOST = os.environ.get('REDIS_HOST', 'redis')
+REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
+REDIS_DB = int(os.environ.get('REDIS_DB', 0))
+REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
+REDIS_PDF_EVENT_CHANNEL = 'pdf_events'
+
+# PDF Preview Expiry (24 hours default)
+PDF_PREVIEW_EXPIRY_SECONDS = int(os.environ.get('PDF_PREVIEW_EXPIRY_SECONDS', 86400))

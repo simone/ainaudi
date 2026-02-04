@@ -1300,7 +1300,131 @@ const Client = (server, pdfServer, token) => {
         }
     };
 
-    return {permissions, election, sections, scrutinio, rdl, kpi, pdf, users, rdlRegistrations, deleghe, risorse, territorio, mappatura};
+    // Generic HTTP methods for flexibility
+    const get = async (url, options = {}) => {
+        const fullUrl = url.startsWith('http') ? url : `${server}${url}`;
+        return fetch(fullUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        }).then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        }).catch(error => {
+            console.error('GET request failed:', error);
+            throw error;
+        });
+    };
+
+    const post = async (url, data, options = {}) => {
+        const fullUrl = url.startsWith('http') ? url : `${server}${url}`;
+        return fetch(fullUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json',
+                ...options.headers
+            },
+            body: JSON.stringify(data)
+        }).then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        }).catch(error => {
+            console.error('POST request failed:', error);
+            throw error;
+        });
+    };
+
+    const put = async (url, data, options = {}) => {
+        const fullUrl = url.startsWith('http') ? url : `${server}${url}`;
+        return fetch(fullUrl, {
+            method: 'PUT',
+            headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json',
+                ...options.headers
+            },
+            body: JSON.stringify(data)
+        }).then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        }).catch(error => {
+            console.error('PUT request failed:', error);
+            throw error;
+        });
+    };
+
+    const del = async (url, options = {}) => {
+        const fullUrl = url.startsWith('http') ? url : `${server}${url}`;
+        return fetch(fullUrl, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        }).then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        }).catch(error => {
+            console.error('DELETE request failed:', error);
+            throw error;
+        });
+    };
+
+    const upload = async (url, formData, options = {}) => {
+        const fullUrl = url.startsWith('http') ? url : `${server}${url}`;
+        return fetch(fullUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': authHeader,
+                // Don't set Content-Type - browser will set it with boundary
+                ...options.headers
+            },
+            body: formData
+        }).then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        }).catch(error => {
+            console.error('Upload failed:', error);
+            throw error;
+        });
+    };
+
+    return {
+        permissions,
+        election,
+        sections,
+        scrutinio,
+        rdl,
+        kpi,
+        pdf,
+        users,
+        rdlRegistrations,
+        deleghe,
+        risorse,
+        territorio,
+        mappatura,
+        // Generic HTTP methods
+        get,
+        post,
+        put,
+        delete: del,
+        upload
+    };
 }
 
 export default Client;

@@ -66,6 +66,7 @@ urlpatterns = [
     path('api/risorse/', include('resources.urls')),  # Italian alias
     path('api/delegations/', include('delegations.urls')),
     path('api/territory/', include('territory.urls')),
+    path('api/documents/', include('documents.urls')),
 
     # Public campaign endpoints (no auth required)
     # Italian paths used by frontend

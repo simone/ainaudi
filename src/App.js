@@ -18,6 +18,9 @@ import Risorse from "./Risorse";
 import Dashboard from "./Dashboard";
 import SchedaElettorale from "./SchedaElettorale";
 import GestioneTerritorio from "./GestioneTerritorio";
+import PDFConfirmPage from "./PDFConfirmPage";
+import TemplateEditor from "./TemplateEditor";
+import TemplateList from "./TemplateList";
 import {AuthProvider, useAuth} from "./AuthContext";
 
 const SERVER_API = import.meta.env.MODE === 'development' ? import.meta.env.VITE_API_URL : '';
@@ -38,11 +41,13 @@ function AppContent() {
     });
     const [showRdlRegistration, setShowRdlRegistration] = useState(false);
     const [campagnaSlug, setCampagnaSlug] = useState(null);
+    const [showPdfConfirm, setShowPdfConfirm] = useState(false);
     const [pdf, setPdf] = useState(false);
     const [isTerritorioDropdownOpen, setIsTerritorioDropdownOpen] = useState(false);
     const [isRdlDropdownOpen, setIsRdlDropdownOpen] = useState(false);
     const [isDelegheDropdownOpen, setIsDelegheDropdownOpen] = useState(false);
     const [isConsultazioneDropdownOpen, setIsConsultazioneDropdownOpen] = useState(false);
+    const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
     const [magicLinkEmail, setMagicLinkEmail] = useState(() => {
         return localStorage.getItem('rdl_magic_link_email') || '';
     });
@@ -56,6 +61,7 @@ function AppContent() {
     const [impersonateEmail, setImpersonateEmail] = useState('');
     const [showImpersonate, setShowImpersonate] = useState(false);
     const [impersonateEmails, setImpersonateEmails] = useState([]);
+    const [templateIdToEdit, setTemplateIdToEdit] = useState(null);
 
     // Create client when we have a token
     const client = useMemo(() => {
@@ -93,6 +99,12 @@ function AppContent() {
         const campagnaMatch = path.match(/^\/campagna\/([^/]+)\/?$/);
         if (campagnaMatch) {
             setCampagnaSlug(campagnaMatch[1]);
+        }
+
+        // Check for PDF confirm URL: /pdf/confirm
+        const pdfConfirmMatch = path.match(/^\/pdf\/confirm\/?$/);
+        if (pdfConfirmMatch) {
+            setShowPdfConfirm(true);
         }
     }, []);
 
@@ -282,13 +294,14 @@ function AppContent() {
         };
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
-    }, [isTerritorioDropdownOpen, isRdlDropdownOpen, isDelegheDropdownOpen, isConsultazioneDropdownOpen, showConsultazioniDropdown]);
+    }, [isTerritorioDropdownOpen, isRdlDropdownOpen, isDelegheDropdownOpen, isConsultazioneDropdownOpen, showConsultazioniDropdown, isAdminDropdownOpen]);
 
     const closeAllDropdowns = () => {
         setIsTerritorioDropdownOpen(false);
         setIsRdlDropdownOpen(false);
         setIsDelegheDropdownOpen(false);
         setIsConsultazioneDropdownOpen(false);
+        setIsAdminDropdownOpen(false);
     };
 
     const activate = (tab) => {
@@ -363,14 +376,26 @@ function AppContent() {
                                             </li>
                                         )}
 
-                                        {/* 2. TERRITORIO - solo superuser */}
+                                        {/* 2. ADMIN - solo superuser */}
                                         {user?.is_superuser && (
-                                            <li className="nav-item">
-                                                <a className={`nav-link ${activeTab === 'territorio_admin' ? 'active' : ''}`}
-                                                   onClick={() => activate('territorio_admin')} href="#">
-                                                    <i className="fas fa-globe-europe me-1"></i>
-                                                    Territorio
+                                            <li className="nav-item dropdown">
+                                                <a className={`nav-link dropdown-toggle ${activeTab === 'territorio_admin' ? 'active' : ''}`}
+                                                   href="#"
+                                                   role="button"
+                                                   onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsAdminDropdownOpen(!isAdminDropdownOpen); }}
+                                                   aria-expanded={isAdminDropdownOpen}>
+                                                    <i className="fas fa-cog me-1"></i>
+                                                    Admin
                                                 </a>
+                                                <ul className={`dropdown-menu dropdown-menu-dark ${isAdminDropdownOpen ? 'show' : ''}`}>
+                                                    <li>
+                                                        <a className={`dropdown-item ${activeTab === 'territorio_admin' ? 'active' : ''}`}
+                                                           onClick={() => { activate('territorio_admin'); closeAllDropdowns(); }} href="#">
+                                                            <i className="fas fa-globe-europe me-2"></i>
+                                                            Territorio
+                                                        </a>
+                                                    </li>
+                                                </ul>
                                             </li>
                                         )}
 
@@ -408,7 +433,7 @@ function AppContent() {
                                         {/* 4. DELEGATI - Catena deleghe e designazioni */}
                                         {(permissions.referenti || pdf) && (
                                             <li className="nav-item dropdown">
-                                                <a className={`nav-link dropdown-toggle ${['deleghe', 'pdf'].includes(activeTab) ? 'active' : ''}`}
+                                                <a className={`nav-link dropdown-toggle ${['deleghe', 'pdf', 'template_list', 'template_editor'].includes(activeTab) ? 'active' : ''}`}
                                                    href="#"
                                                    role="button"
                                                    onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsDelegheDropdownOpen(!isDelegheDropdownOpen); }}
@@ -426,12 +451,21 @@ function AppContent() {
                                                             </a>
                                                         </li>
                                                     )}
+                                                    {consultazione && permissions.referenti && (
+                                                        <li>
+                                                            <a className={`dropdown-item ${activeTab === 'template_list' ? 'active' : ''}`}
+                                                               onClick={() => { activate('template_list'); setTemplateIdToEdit(null); closeAllDropdowns(); }} href="#">
+                                                                <i className="fas fa-file-pdf me-2"></i>
+                                                                Template Designazioni
+                                                            </a>
+                                                        </li>
+                                                    )}
                                                     {consultazione && pdf && (
                                                         <li>
                                                             <a className={`dropdown-item ${activeTab === 'pdf' ? 'active' : ''}`}
                                                                onClick={() => { activate('pdf'); closeAllDropdowns(); }} href="#">
                                                                 <i className="fas fa-file-signature me-2"></i>
-                                                                Designazioni
+                                                                Genera Moduli
                                                             </a>
                                                         </li>
                                                     )}
@@ -645,7 +679,9 @@ function AppContent() {
                     <div className="alert alert-info">Nessuna consultazione elettorale attiva</div>
                 )}
                 {error && <div className="alert alert-danger mt-3">{error}</div>}
-                {campagnaSlug ? (
+                {showPdfConfirm ? (
+                    <PDFConfirmPage serverApi={SERVER_API} />
+                ) : campagnaSlug ? (
                     <CampagnaRegistration slug={campagnaSlug} onClose={handleCloseCampagna} isAuthenticated={isAuthenticated} isSuperuser={user?.is_superuser} />
                 ) : isAuthenticated && client && consultazione ? (
                     <div>
@@ -770,6 +806,36 @@ function AppContent() {
                                     <GestioneTerritorio
                                         client={client}
                                         setError={setError}
+                                    />
+                                </div>
+                            )}
+                            {activeTab === 'template_list' && consultazione && permissions.referenti && (
+                                <div className="tab-pane active">
+                                    <TemplateList
+                                        client={client}
+                                        onEditTemplate={(id) => {
+                                            setTemplateIdToEdit(id);
+                                            setActiveTab('template_editor');
+                                        }}
+                                    />
+                                </div>
+                            )}
+                            {activeTab === 'template_editor' && consultazione && permissions.referenti && templateIdToEdit && (
+                                <div className="tab-pane active">
+                                    <div style={{ marginBottom: '15px' }}>
+                                        <button
+                                            className="btn btn-secondary"
+                                            onClick={() => {
+                                                setActiveTab('template_list');
+                                                setTemplateIdToEdit(null);
+                                            }}
+                                        >
+                                            ← Torna alla lista template
+                                        </button>
+                                    </div>
+                                    <TemplateEditor
+                                        templateId={templateIdToEdit}
+                                        client={client}
                                     />
                                 </div>
                             )}
