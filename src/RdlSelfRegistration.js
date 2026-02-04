@@ -571,6 +571,8 @@ function RdlSelfRegistration({ onClose }) {
                                     disabled={loading}
                                     placeholder="Cerca sezione, plesso o indirizzo..."
                                     comuneId={selectedComune.id}
+                                    municipio={formData.municipio ? parseInt(formData.municipio) : null}
+                                    onMunicipioChange={(mun) => setFormData(prev => ({ ...prev, municipio: mun }))}
                                 />
                             ) : (
                                 <input

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 
 const SERVER_API = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_API_URL : '';
 
-function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, comuneId }) {
+function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, comuneId, municipio, onMunicipioChange }) {
     const [query, setQuery] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -43,7 +43,11 @@ function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, com
                 const data = await response.json();
 
                 if (Array.isArray(data)) {
-                    setSuggestions(data);
+                    // Filter by municipio if one is selected
+                    const filtered = municipio
+                        ? data.filter(s => s.municipio && s.municipio.numero === municipio)
+                        : data;
+                    setSuggestions(filtered);
                 } else {
                     setSuggestions([]);
                 }
@@ -58,7 +62,7 @@ function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, com
 
         const debounceTimer = setTimeout(fetchSuggestions, 300);
         return () => clearTimeout(debounceTimer);
-    }, [query, comuneId]);
+    }, [query, comuneId, municipio]);
 
     const handleInputChange = (e) => {
         const newValue = e.target.value;
@@ -77,6 +81,12 @@ function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, com
             ...sezione,
             label
         });
+
+        // Auto-select municipio if not already selected and sezione has one
+        if (!municipio && sezione.municipio && onMunicipioChange) {
+            onMunicipioChange(sezione.municipio.numero);
+        }
+
         setQuery('');
         setShowSuggestions(false);
         setSelectedIndex(-1);
