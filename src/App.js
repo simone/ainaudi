@@ -5,7 +5,7 @@ import Mappatura from "./Mappatura";
 import Kpi from "./Kpi";
 import Client, {clearCache} from "./Client";
 import SectionList from "./SectionList";
-import logo from './assets/logo-m5s.png';
+import logo from './assets/ainaudi_logo.png';
 import GeneraModuli from "./GeneraModuli";
 import GestioneSezioni from "./GestioneSezioni";
 import EmailAutocomplete from "./EmailAutocomplete";
@@ -749,6 +749,10 @@ function AppContent() {
                                         client={client}
                                         consultazione={consultazione}
                                         setError={setError}
+                                        onOpenCampagna={(slug) => {
+                                            setCampagnaSlug(slug);
+                                            window.history.replaceState({}, document.title, `/campagna/${slug}`);
+                                        }}
                                     />
                                 </div>
                             )}

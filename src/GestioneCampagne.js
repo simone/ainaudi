@@ -7,7 +7,7 @@ import ConfirmModal from './ConfirmModal';
  * Permette ai delegati e sub-delegati di creare link pubblici
  * per raccogliere candidature RDL.
  */
-function GestioneCampagne({ client, consultazione, setError }) {
+function GestioneCampagne({ client, consultazione, setError, onOpenCampagna }) {
     // Campagne di reclutamento
     const [campagne, setCampagne] = useState([]);
     const [loadingCampagne, setLoadingCampagne] = useState(false);
@@ -656,9 +656,21 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                                 )}
                                             </div>
                                             {campagna.stato === 'ATTIVA' && (
-                                                <div className="small text-muted">
-                                                    <i className="fas fa-link me-1"></i>
-                                                    {window.location.origin}/campagna/{campagna.slug}
+                                                <div className="small">
+                                                    <i className="fas fa-link me-1 text-muted"></i>
+                                                    <a
+                                                        href={`/campagna/${campagna.slug}`}
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            if (onOpenCampagna) {
+                                                                onOpenCampagna(campagna.slug);
+                                                            }
+                                                        }}
+                                                        className="text-primary"
+                                                        title="Apri campagna"
+                                                    >
+                                                        {window.location.origin}/campagna/{campagna.slug}
+                                                    </a>
                                                 </div>
                                             )}
                                             {campagna.territorio_display && (
@@ -670,13 +682,22 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                         </div>
                                         <div className="d-flex flex-wrap gap-1 justify-content-end" style={{ minWidth: '200px' }}>
                                             {campagna.stato === 'ATTIVA' && (
-                                                <button
-                                                    className="btn btn-outline-primary btn-sm"
-                                                    onClick={() => handleCopiaLink(campagna)}
-                                                    title="Copia link"
-                                                >
-                                                    <i className="fas fa-copy"></i>
-                                                </button>
+                                                <>
+                                                    <button
+                                                        className="btn btn-outline-success btn-sm"
+                                                        onClick={() => onOpenCampagna && onOpenCampagna(campagna.slug)}
+                                                        title="Apri campagna"
+                                                    >
+                                                        <i className="fas fa-external-link-alt"></i>
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-outline-primary btn-sm"
+                                                        onClick={() => handleCopiaLink(campagna)}
+                                                        title="Copia link"
+                                                    >
+                                                        <i className="fas fa-copy"></i>
+                                                    </button>
+                                                </>
                                             )}
                                             <button
                                                 className="btn btn-outline-secondary btn-sm"

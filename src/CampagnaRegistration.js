@@ -302,75 +302,104 @@ function CampagnaRegistration({ slug, onClose, isAuthenticated }) {
     }
 
     return (
-        <div className="card">
-            <div className="card-header bg-info text-white">
-                {campagna.nome}
+        <div className="card border-0 shadow-sm">
+            {/* Hero Section - Full width gradient header */}
+            <div
+                className="text-white text-center py-5 px-4"
+                style={{
+                    background: 'linear-gradient(135deg, #0d6efd 0%, #0a58ca 50%, #084298 100%)',
+                    borderRadius: '0.375rem 0.375rem 0 0'
+                }}
+            >
+                <div className="mb-3">
+                    <i className="fas fa-vote-yea" style={{ fontSize: '3rem', opacity: 0.9 }}></i>
+                </div>
+                <h1 className="display-5 fw-bold mb-2">
+                    {campagna.nome}
+                </h1>
+                <p className="lead mb-0" style={{ opacity: 0.9 }}>
+                    {campagna.consultazione_nome}
+                </p>
             </div>
-            <div className="card-body">
-                {/* Hero section */}
-                <div className="text-center mb-4 pb-4 border-bottom">
-                    <h4 className="text-primary mb-3">
-                        <strong>Vuoi fare la differenza?</strong>
-                    </h4>
-                    <p className="text-muted mb-3">
-                        Compila il form per richiedere di diventare Rappresentante di Lista per la consultazione: <strong>{campagna.consultazione_nome}</strong>
-                    </p>
-                    <div className="alert alert- border mt-4 mb-0">
-                        {campagna.descrizione ? (
-                            <p className="text-muted mb-3">{campagna.descrizione}</p>
-                        ) : (
-                            <>
-                                <p className="mb-1 small">Basta essere elettori. Ti formeremo noi su tutto quello che c'è da sapere!</p>
-                                <p className="mb-0 small text-muted"><i className="fas fa-clock me-1"></i>La registrazione richiede solo 2 minuti</p>
-                            </>
-                        )}
+
+            <div className="card-body px-4 py-4">
+                {/* Campaign description - prominent box */}
+                {campagna.descrizione && (
+                    <div
+                        className="mb-4 p-4 rounded-3 shadow-sm"
+                        style={{
+                            backgroundColor: '#e7f1ff',
+                            border: '2px solid #0d6efd'
+                        }}
+                    >
+                        <div className="d-flex align-items-start">
+                            <i className="fas fa-quote-left text-primary me-3 mt-1" style={{ fontSize: '1.5rem', opacity: 0.6 }}></i>
+                            <p className="mb-0 fs-5" style={{ whiteSpace: 'pre-line', lineHeight: '1.8' }}>
+                                {campagna.descrizione}
+                            </p>
+                        </div>
                     </div>
-                    <br/>
-                    <div className="row text-start justify-content-center">
-                        <div className="col-md-10">
-                            <div className="row g-3">
-                                <div className="col-md-6">
-                                    <div className="d-flex align-items-start">
-                                        <span className="text-success me-2"><i className="fas fa-check-circle"></i></span>
-                                        <div>
-                                            <strong>Tuteli la democrazia</strong>
-                                            <p className="small text-muted mb-0">Garantisci la regolarità delle operazioni di voto nel tuo seggio</p>
-                                        </div>
-                                    </div>
+                )}
+
+                {/* Value proposition */}
+                <div className="text-center mb-4">
+                    <h4 className="text-dark mb-4">
+                        <strong>Perché diventare Rappresentante di Lista?</strong>
+                    </h4>
+                    <div className="row g-4 justify-content-center">
+                        <div className="col-sm-6 col-lg-3">
+                            <div className="p-3 h-100 rounded-3" style={{ backgroundColor: '#f8f9fa' }}>
+                                <div className="text-primary mb-2">
+                                    <i className="fas fa-shield-alt fa-2x"></i>
                                 </div>
-                                <div className="col-md-6">
-                                    <div className="d-flex align-items-start">
-                                        <span className="text-success me-2"><i className="fas fa-check-circle"></i></span>
-                                        <div>
-                                            <strong>Partecipi attivamente</strong>
-                                            <p className="small text-muted mb-0">Non solo votante: diventi protagonista del processo elettorale</p>
-                                        </div>
-                                    </div>
+                                <h6 className="fw-bold">Tuteli la democrazia</h6>
+                                <p className="small text-muted mb-0">Garantisci la regolarità del voto</p>
+                            </div>
+                        </div>
+                        <div className="col-sm-6 col-lg-3">
+                            <div className="p-3 h-100 rounded-3" style={{ backgroundColor: '#f8f9fa' }}>
+                                <div className="text-primary mb-2">
+                                    <i className="fas fa-users fa-2x"></i>
                                 </div>
-                                <div className="col-md-6">
-                                    <div className="d-flex align-items-start">
-                                        <span className="text-success me-2"><i className="fas fa-check-circle"></i></span>
-                                        <div>
-                                            <strong>Impari come funziona</strong>
-                                            <p className="small text-muted mb-0">Scopri dall'interno il meccanismo elettorale italiano</p>
-                                        </div>
-                                    </div>
+                                <h6 className="fw-bold">Partecipi attivamente</h6>
+                                <p className="small text-muted mb-0">Diventi protagonista</p>
+                            </div>
+                        </div>
+                        <div className="col-sm-6 col-lg-3">
+                            <div className="p-3 h-100 rounded-3" style={{ backgroundColor: '#f8f9fa' }}>
+                                <div className="text-primary mb-2">
+                                    <i className="fas fa-graduation-cap fa-2x"></i>
                                 </div>
-                                <div className="col-md-6">
-                                    <div className="d-flex align-items-start">
-                                        <span className="text-success me-2"><i className="fas fa-check-circle"></i></span>
-                                        <div>
-                                            <strong>Scegli dove operare</strong>
-                                            <p className="small text-muted mb-0">Vicino a casa, al lavoro, o dove preferisci</p>
-                                        </div>
-                                    </div>
+                                <h6 className="fw-bold">Impari sul campo</h6>
+                                <p className="small text-muted mb-0">Scopri come funziona</p>
+                            </div>
+                        </div>
+                        <div className="col-sm-6 col-lg-3">
+                            <div className="p-3 h-100 rounded-3" style={{ backgroundColor: '#f8f9fa' }}>
+                                <div className="text-primary mb-2">
+                                    <i className="fas fa-map-marker-alt fa-2x"></i>
                                 </div>
+                                <h6 className="fw-bold">Scegli dove</h6>
+                                <p className="small text-muted mb-0">Vicino a te</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-
+                {/* Reassurance banner */}
+                <div className="alert alert-success text-center mb-4" role="alert">
+                    <div className="d-flex align-items-center justify-content-center flex-wrap gap-3">
+                        <span>
+                            <i className="fas fa-clock me-1"></i>
+                            Registrazione in <strong>2 minuti</strong>
+                        </span>
+                        <span className="text-muted">|</span>
+                        <span>
+                            <i className="fas fa-chalkboard-teacher me-1"></i>
+                            <strong>Ti formiamo noi</strong>
+                        </span>
+                    </div>
+                </div>
 
                 {/* Eligibility info based on election type */}
                 {campagna.consultazione_tipi_elezione?.length > 0 && (
