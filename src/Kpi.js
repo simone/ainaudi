@@ -325,7 +325,7 @@ function Kpi({ client, setError, consultazione }) {
                 <div className="spinner-border text-primary">
                     <span className="visually-hidden">Caricamento in corso...</span>
                 </div>
-                <p className="loading-text">Caricamento dati KPI...</p>
+                <p className="loading-text">Caricamento Diretta...</p>
             </div>
         );
     }
@@ -337,7 +337,7 @@ function Kpi({ client, setError, consultazione }) {
                     {isReferendum ? (
                         <>Visualizza i risultati del referendum in tempo reale. Analizza i voti SI e NO per sezione e territorio.</>
                     ) : (
-                        <>Visualizza i grafici delle performance elettorali nella sezione KPI. Analizza i dati per le preferenze dei candidati e i voti di lista per valutare l'andamento elettorale.</>
+                        <>Visualizza i grafici delle performance elettorali nella Diretta. Analizza i dati per le preferenze dei candidati e i voti di lista per valutare l'andamento elettorale.</>
                     )}
                 </div>
             </div>
