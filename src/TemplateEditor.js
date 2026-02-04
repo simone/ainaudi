@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import * as pdfjsLib from 'pdfjs-dist';
 import './TemplateEditor.css';
+
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 /**
  * Template Editor - Admin only
- * Allows visual configuration of PDF templates without code changes
+ * Visual PDF editor with click-to-place field mappings
  *
- * STATUS: Basic implementation - needs PDF.js for visual editing
+ * STATUS: Full visual editing with PDF.js
  */
 function TemplateEditor({ templateId: initialTemplateId, client }) {
     const [templates, setTemplates] = useState([]);
@@ -33,6 +37,18 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         page: 0
     });
 
+    // PDF rendering state
+    const [pdfDoc, setPdfDoc] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [numPages, setNumPages] = useState(0);
+    const [scale, setScale] = useState(1.0);
+    const canvasRef = useRef(null);
+
+    // Interactive selection state
+    const [isSelecting, setIsSelecting] = useState(false);
+    const [selectionStart, setSelectionStart] = useState(null);
+    const [currentSelection, setCurrentSelection] = useState(null);
+
     // Load available templates on mount
     useEffect(() => {
         loadTemplates();
@@ -44,6 +60,20 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             loadTemplate(selectedTemplateId);
         }
     }, [selectedTemplateId]);
+
+    // Load and render PDF when template is loaded
+    useEffect(() => {
+        if (template?.template_file_url) {
+            loadPDF(template.template_file_url);
+        }
+    }, [template]);
+
+    // Re-render PDF when page or scale changes
+    useEffect(() => {
+        if (pdfDoc) {
+            renderPage(currentPage);
+        }
+    }, [pdfDoc, currentPage, scale, fieldMappings]);
 
     const loadTemplates = async () => {
         try {
@@ -72,6 +102,145 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    const loadPDF = async (url) => {
+        try {
+            const loadingTask = pdfjsLib.getDocument(url);
+            const pdf = await loadingTask.promise;
+            setPdfDoc(pdf);
+            setNumPages(pdf.numPages);
+            setCurrentPage(1);
+        } catch (err) {
+            setError(`Errore caricamento PDF: ${err.message}`);
+            console.error('PDF load error:', err);
+        }
+    };
+
+    const renderPage = async (pageNum) => {
+        if (!pdfDoc || !canvasRef.current) return;
+
+        try {
+            const page = await pdfDoc.getPage(pageNum);
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+            const viewport = page.getViewport({ scale });
+
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            // Render PDF page
+            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            // Draw existing field mappings as overlays
+            drawFieldMappingsOverlay(ctx, pageNum - 1);
+
+            // Draw current selection if active
+            if (isSelecting && currentSelection) {
+                drawSelection(ctx, currentSelection);
+            }
+        } catch (err) {
+            console.error('Page render error:', err);
+        }
+    };
+
+    const drawFieldMappingsOverlay = (ctx, pageIndex) => {
+        const pageMappings = fieldMappings.filter(m => m.page === pageIndex);
+
+        pageMappings.forEach((mapping, index) => {
+            const { x, y, width, height } = mapping.area;
+            const scaledX = x * scale;
+            const scaledY = y * scale;
+            const scaledWidth = width * scale;
+            const scaledHeight = height * scale;
+
+            // Draw rectangle
+            ctx.strokeStyle = mapping.type === 'loop' ? '#ffc107' : '#0dcaf0';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
+
+            // Fill with semi-transparent color
+            ctx.fillStyle = mapping.type === 'loop' ? 'rgba(255, 193, 7, 0.2)' : 'rgba(13, 202, 240, 0.2)';
+            ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
+
+            // Draw label
+            ctx.fillStyle = '#000';
+            ctx.font = '12px Arial';
+            ctx.fillText(`${index + 1}. ${mapping.jsonpath}`, scaledX + 5, scaledY + 15);
+        });
+    };
+
+    const drawSelection = (ctx, selection) => {
+        ctx.strokeStyle = '#28a745';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(selection.x, selection.y, selection.width, selection.height);
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = 'rgba(40, 167, 69, 0.1)';
+        ctx.fillRect(selection.x, selection.y, selection.width, selection.height);
+    };
+
+    const handleCanvasMouseDown = (e) => {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / scale;
+        const y = (e.clientY - rect.top) / scale;
+
+        setSelectionStart({ x, y });
+        setCurrentSelection({ x, y, width: 0, height: 0 });
+        setIsSelecting(true);
+    };
+
+    const handleCanvasMouseMove = (e) => {
+        if (!isSelecting || !selectionStart) return;
+
+        const rect = canvasRef.current.getBoundingClientRect();
+        const currentX = (e.clientX - rect.left) / scale;
+        const currentY = (e.clientY - rect.top) / scale;
+
+        const width = currentX - selectionStart.x;
+        const height = currentY - selectionStart.y;
+
+        setCurrentSelection({
+            x: width >= 0 ? selectionStart.x : currentX,
+            y: height >= 0 ? selectionStart.y : currentY,
+            width: Math.abs(width),
+            height: Math.abs(height)
+        });
+
+        // Re-render with selection
+        if (pdfDoc) {
+            renderPage(currentPage);
+        }
+    };
+
+    const handleCanvasMouseUp = () => {
+        if (!isSelecting || !currentSelection) return;
+
+        // If selection is too small, ignore it
+        if (currentSelection.width < 10 || currentSelection.height < 10) {
+            setIsSelecting(false);
+            setCurrentSelection(null);
+            setSelectionStart(null);
+            if (pdfDoc) renderPage(currentPage);
+            return;
+        }
+
+        // Open form with selection coordinates
+        setNewField({
+            ...newField,
+            x: Math.round(currentSelection.x),
+            y: Math.round(currentSelection.y),
+            width: Math.round(currentSelection.width),
+            height: Math.round(currentSelection.height),
+            page: currentPage - 1
+        });
+        setShowNewFieldForm(true);
+
+        // Clear selection
+        setIsSelecting(false);
+        setCurrentSelection(null);
+        setSelectionStart(null);
     };
 
     const handleAddField = () => {
@@ -111,6 +280,29 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         });
         setSuccess('Campo aggiunto!');
         setTimeout(() => setSuccess(null), 2000);
+
+        // Re-render PDF to show new field overlay
+        if (pdfDoc) {
+            setTimeout(() => renderPage(currentPage), 100);
+        }
+    };
+
+    const handleCancelNewField = () => {
+        setShowNewFieldForm(false);
+        setNewField({
+            jsonpath: '',
+            type: 'text',
+            x: 100,
+            y: 100,
+            width: 200,
+            height: 20,
+            page: 0
+        });
+
+        // Re-render PDF to clear selection
+        if (pdfDoc) {
+            setTimeout(() => renderPage(currentPage), 100);
+        }
     };
 
     const handleRemoveField = (index) => {
@@ -461,18 +653,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                     <button
                                         type="button"
                                         className="btn btn-secondary"
-                                        onClick={() => {
-                                            setShowNewFieldForm(false);
-                                            setNewField({
-                                                jsonpath: '',
-                                                type: 'text',
-                                                x: 100,
-                                                y: 100,
-                                                width: 200,
-                                                height: 20,
-                                                page: 0
-                                            });
-                                        }}
+                                        onClick={handleCancelNewField}
                                     >
                                         Annulla
                                     </button>
@@ -492,18 +673,82 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             )}
 
             <div className="template-editor-content">
-                {/* PDF Preview Section - Requires PDF.js integration */}
+                {/* PDF Interactive Canvas */}
                 <div className="pdf-preview-section">
-                    <h3>Preview PDF</h3>
-                    <div className="pdf-placeholder">
-                        <p>📄 Template: {template?.template_file_url || 'Nessun file caricato'}</p>
-                        <p className="text-muted">
-                            <strong>Nota:</strong> Per l'editing visuale completo, serve integrazione con PDF.js
-                        </p>
-                        <p className="text-muted">
-                            Al momento puoi configurare i campi manualmente usando i pulsanti sotto.
-                        </p>
+                    <div className="pdf-controls">
+                        <h3>Editor Visuale PDF</h3>
+                        {pdfDoc && (
+                            <div className="pdf-navigation">
+                                <button
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                    disabled={currentPage === 1}
+                                >
+                                    ← Pagina precedente
+                                </button>
+                                <span className="page-indicator">
+                                    Pagina {currentPage} di {numPages}
+                                </span>
+                                <button
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={() => setCurrentPage(Math.min(numPages, currentPage + 1))}
+                                    disabled={currentPage === numPages}
+                                >
+                                    Pagina successiva →
+                                </button>
+                                <div className="zoom-controls">
+                                    <button
+                                        className="btn btn-secondary btn-sm"
+                                        onClick={() => setScale(Math.max(0.5, scale - 0.1))}
+                                    >
+                                        −
+                                    </button>
+                                    <span className="zoom-level">{Math.round(scale * 100)}%</span>
+                                    <button
+                                        className="btn btn-secondary btn-sm"
+                                        onClick={() => setScale(Math.min(2.0, scale + 0.1))}
+                                    >
+                                        +
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
+
+                    {pdfDoc ? (
+                        <div className="pdf-canvas-container">
+                            <canvas
+                                ref={canvasRef}
+                                onMouseDown={handleCanvasMouseDown}
+                                onMouseMove={handleCanvasMouseMove}
+                                onMouseUp={handleCanvasMouseUp}
+                                style={{
+                                    border: '1px solid #dee2e6',
+                                    cursor: isSelecting ? 'crosshair' : 'pointer',
+                                    maxWidth: '100%',
+                                    height: 'auto'
+                                }}
+                            />
+                            <div className="pdf-instructions">
+                                <p><strong>💡 Istruzioni:</strong></p>
+                                <ul>
+                                    <li>Clicca e trascina sul PDF per selezionare un'area</li>
+                                    <li>Le aree blu sono campi di tipo "text"</li>
+                                    <li>Le aree gialle sono campi di tipo "loop"</li>
+                                    <li>Dopo la selezione, compila il form per definire il campo</li>
+                                </ul>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="pdf-placeholder">
+                            <p>📄 {template?.template_file_url ? 'Caricamento PDF...' : 'Nessun template selezionato'}</p>
+                            {template?.template_file_url && (
+                                <p className="text-muted">
+                                    Se il caricamento non parte, verifica che il file PDF sia accessibile
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Field Mappings List */}
@@ -631,21 +876,20 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             </div>
 
             <div className="template-editor-help">
-                <h4>💡 Come funziona</h4>
+                <h4>💡 Come funziona l'Editor Visuale</h4>
                 <ul>
+                    <li><strong>Selezione Visuale:</strong> Clicca e trascina sul PDF per definire un'area campo</li>
                     <li><strong>JSONPath:</strong> Specifica da dove prendere i dati (es: <code>$.delegato.cognome</code>)</li>
-                    <li><strong>Tipo text:</strong> Campo semplice, una riga di testo</li>
-                    <li><strong>Tipo loop:</strong> Lista di elementi ripetuti (es: lista designazioni)</li>
-                    <li><strong>Posizione:</strong> Coordinate x,y sulla pagina PDF</li>
-                    <li><strong>Dimensioni:</strong> Larghezza e altezza dell'area</li>
+                    <li><strong>Tipo text:</strong> Campo semplice, una riga di testo (overlay blu)</li>
+                    <li><strong>Tipo loop:</strong> Lista di elementi ripetuti (overlay giallo)</li>
+                    <li><strong>Navigazione:</strong> Usa i controlli per cambiare pagina e zoom</li>
+                    <li><strong>Modifica:</strong> Rimuovi campi dalla tabella e ricrea con nuova selezione</li>
                 </ul>
 
-                <div className="alert alert-info mt-3">
-                    <strong>⚠️ Versione Semplificata</strong>
-                    <p>Questa è una versione base dell'editor che richiede input manuale delle coordinate.</p>
-                    <p>Per l'editing visuale completo (click sul PDF per posizionare i campi),
-                       è necessario integrare la libreria PDF.js come descritto in
-                       <code>IMPLEMENTATION_SUMMARY.md</code>.</p>
+                <div className="alert alert-success mt-3">
+                    <strong>✅ Editor Visuale Attivo</strong>
+                    <p>Questo editor usa PDF.js per rendering interattivo. Puoi cliccare direttamente sul PDF per posizionare i campi!</p>
+                    <p><strong>Workflow:</strong> Seleziona area → Compila form → Salva configurazione → Testa generazione PDF</p>
                 </div>
             </div>
         </div>
