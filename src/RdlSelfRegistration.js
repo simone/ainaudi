@@ -98,15 +98,21 @@ function RdlSelfRegistration({ onClose }) {
     };
 
     const handleSezioneChange = (sezione) => {
-        setSelectedSezione(sezione);
-        if (sezione) {
-            // Set seggio_preferenza to sezione number + denominazione + indirizzo
+        if (!sezione) {
+            // Cleared selection
+            setSelectedSezione(null);
+            setFormData(prev => ({ ...prev, seggio_preferenza: '' }));
+        } else if (sezione.freeText) {
+            // Free text input (user typed something without selecting from suggestions)
+            setSelectedSezione(null);
+            setFormData(prev => ({ ...prev, seggio_preferenza: sezione.text }));
+        } else {
+            // Selected from autocomplete suggestions
+            setSelectedSezione(sezione);
             const parts = [`Sez. ${sezione.numero}`];
             if (sezione.denominazione) parts.push(sezione.denominazione);
             if (sezione.indirizzo) parts.push(sezione.indirizzo);
             setFormData(prev => ({ ...prev, seggio_preferenza: parts.join(' - ') }));
-        } else {
-            setFormData(prev => ({ ...prev, seggio_preferenza: '' }));
         }
     };
 

@@ -64,8 +64,9 @@ function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, com
         const newValue = e.target.value;
         setQuery(newValue);
         setShowSuggestions(true);
-        // Clear selection when user types
-        if (value) {
+        // When user types manually without selecting, still allow free text
+        // Only clear selection if they had selected a sezione before
+        if (value && typeof value === 'object') {
             onChange(null);
         }
     };
@@ -82,7 +83,21 @@ function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, com
     };
 
     const handleKeyDown = (e) => {
-        if (!showSuggestions || suggestions.length === 0) return;
+        if (e.key === 'Escape') {
+            setShowSuggestions(false);
+            setSelectedIndex(-1);
+            return;
+        }
+
+        if (!showSuggestions || suggestions.length === 0) {
+            // If Enter is pressed and no suggestions shown, treat as free text
+            if (e.key === 'Enter' && query.trim()) {
+                e.preventDefault();
+                onChange({ freeText: true, text: query.trim() });
+                setShowSuggestions(false);
+            }
+            return;
+        }
 
         switch (e.key) {
             case 'ArrowDown':
@@ -97,11 +112,11 @@ function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, com
                 e.preventDefault();
                 if (selectedIndex >= 0 && suggestions[selectedIndex]) {
                     handleSelect(suggestions[selectedIndex]);
+                } else if (query.trim()) {
+                    // Enter without selection: treat as free text
+                    onChange({ freeText: true, text: query.trim() });
+                    setShowSuggestions(false);
                 }
-                break;
-            case 'Escape':
-                setShowSuggestions(false);
-                setSelectedIndex(-1);
                 break;
             default:
                 break;
@@ -113,6 +128,16 @@ function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, com
         setQuery('');
         setSuggestions([]);
         inputRef.current?.focus();
+    };
+
+    const handleInputBlur = () => {
+        // When input loses focus, if user typed something but didn't select from suggestions,
+        // treat it as free text and pass it to parent
+        if (query.trim() && !value) {
+            // Pass free text as a string instead of sezione object
+            onChange({ freeText: true, text: query.trim() });
+        }
+        setShowSuggestions(false);
     };
 
     const highlightMatch = (text, query) => {
@@ -135,6 +160,7 @@ function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, com
                     value={displayValue}
                     onChange={handleInputChange}
                     onFocus={() => !value && query.length >= 1 && setShowSuggestions(true)}
+                    onBlur={handleInputBlur}
                     onKeyDown={handleKeyDown}
                     placeholder={placeholder || "Cerca sezione/plesso..."}
                     disabled={disabled || !comuneId}
