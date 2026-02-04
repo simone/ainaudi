@@ -46,39 +46,45 @@ function GestioneCampagne({ client, consultazione, setError }) {
     const loadRegioni = async () => {
         try {
             const result = await client.territorio.regioni();
-            console.log('Regioni caricate:', result);
-            if (!result?.error && Array.isArray(result)) {
-                console.log('Setting regioni:', result);
-                setRegioni(result);
-            } else if (result?.error) {
-                console.error('Errore API:', result.error);
+            if (!result?.error) {
+                // L'API ritorna {count, results, ...} oppure array direttamente
+                const data = Array.isArray(result) ? result : result?.results || [];
+                setRegioni(data);
             } else {
-                console.warn('Risultato non è array:', result);
+                console.error('Errore API:', result.error);
+                setRegioni([]);
             }
         } catch (err) {
             console.error('Errore caricamento regioni:', err);
+            setRegioni([]);
         }
     };
 
     const loadProvince = async (regioneId) => {
         try {
             const result = await client.territorio.province(regioneId);
-            if (!result?.error && Array.isArray(result)) {
-                setProvince(result);
+            if (!result?.error) {
+                // L'API ritorna {count, results, ...} oppure array direttamente
+                const data = Array.isArray(result) ? result : result?.results || [];
+                setProvince(data);
             }
         } catch (err) {
             console.error('Errore caricamento province:', err);
+            setProvince([]);
         }
     };
 
     const loadComuni = async (provinciaId) => {
         try {
             const result = await client.territorio.comuni(provinciaId);
-            if (!result?.error && Array.isArray(result)) {
-                setComuni(result);
+            if (!result?.error) {
+                // L'API ritorna {count, results, ...} oppure array direttamente
+                const data = Array.isArray(result) ? result : result?.results || [];
+                setComuni(data);
             }
         } catch (err) {
             console.error('Errore caricamento comuni:', err);
+            setComuni([]);
         }
     };
 
@@ -390,11 +396,6 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                 </div>
                                 <div className="col-md-4">
                                     <label className="form-label small">Regione</label>
-                                    {regioni.length === 0 && (
-                                        <div className="alert alert-warning mb-2 p-2">
-                                            <small>Caricamento regioni... ({regioni.length} caricate)</small>
-                                        </div>
-                                    )}
                                     <select
                                         className="form-select form-select-sm"
                                         value={campagnaForm.regioni_ids[0] || ''}
@@ -408,8 +409,8 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                             if (val) loadProvince(val);
                                         }}
                                     >
-                                        <option value="">Tutte le regioni ({regioni.length})</option>
-                                        {regioni && regioni.length > 0 && regioni.map(r => (
+                                        <option value="">Tutte le regioni</option>
+                                        {regioni.map(r => (
                                             <option key={r.id} value={r.id}>{r.nome}</option>
                                         ))}
                                     </select>
