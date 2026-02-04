@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const SERVER_API = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_API_URL : '';
+const SERVER_API = import.meta.env.MODE === 'development' ? import.meta.env.VITE_API_URL : '';
 
 function ComuneAutocomplete({ value, onChange, disabled, placeholder, searchEndpoint, authenticated }) {
     // Default endpoint for public RDL registration, can be overridden

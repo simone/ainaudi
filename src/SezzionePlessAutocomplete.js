@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const SERVER_API = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_API_URL : '';
+const SERVER_API = import.meta.env.MODE === 'development' ? import.meta.env.VITE_API_URL : '';
 
 function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, comuneId, municipio, onMunicipioChange }) {
     const [query, setQuery] = useState('');

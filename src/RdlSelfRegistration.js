@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ComuneAutocomplete from './ComuneAutocomplete';
 import SezzionePlessAutocomplete from './SezzionePlessAutocomplete';
 
-const SERVER_API = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_API_URL : '';
+const SERVER_API = import.meta.env.MODE === 'development' ? import.meta.env.VITE_API_URL : '';
 
 // Eligibility requirements by election type
 const REQUISITI_ELETTORE = {

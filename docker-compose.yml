@@ -66,9 +66,7 @@ services:
     container_name: rdl_frontend
     restart: unless-stopped
     environment:
-      - REACT_APP_API_URL=http://localhost:3001
-      - CHOKIDAR_USEPOLLING=true
-      - WDS_SOCKET_PORT=0
+      - VITE_API_URL=http://localhost:3001
     volumes:
       - ./src:/app/src
       - ./public:/app/public

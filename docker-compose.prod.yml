@@ -86,7 +86,7 @@ services:
       context: .
       dockerfile: docker/frontend.prod.Dockerfile
       args:
-        REACT_APP_API_URL: /api
+        VITE_API_URL: /api
     container_name: rdl_frontend_prod
     restart: always
     depends_on:

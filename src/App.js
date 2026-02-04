@@ -20,8 +20,8 @@ import SchedaElettorale from "./SchedaElettorale";
 import GestioneTerritorio from "./GestioneTerritorio";
 import {AuthProvider, useAuth} from "./AuthContext";
 
-const SERVER_API = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_API_URL : '';
-const SERVER_PDF = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_PDF_URL : '';
+const SERVER_API = import.meta.env.MODE === 'development' ? import.meta.env.VITE_API_URL : '';
+const SERVER_PDF = import.meta.env.MODE === 'development' ? import.meta.env.VITE_PDF_URL : '';
 
 function AppContent() {
     const {user, accessToken, isAuthenticated, requestMagicLink, verifyMagicLink, logout, loading: authLoading, error: authError, impersonate, isImpersonating, originalUser, stopImpersonating} = useAuth();
