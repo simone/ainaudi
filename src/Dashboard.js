@@ -1,336 +1,289 @@
 import React from 'react';
 
 /**
- * Dashboard Home - presenta le sezioni dell'app in modo chiaro e visuale
- * Ogni blocco è visibile solo se l'utente ha i permessi per accedervi
+ * Dashboard Home - presenta le sezioni principali dell'app
+ * Struttura allineata al menu: Territorio, Consultazione, Delegati, RDL, Scrutinio, Diretta
  */
 function Dashboard({ user, permissions, consultazione, hasContributions, onNavigate }) {
-    // Determina se è un referendum: dal tipo o dal nome della consultazione
-    const isReferendum = consultazione?.tipo === 'REFERENDUM' ||
-        consultazione?.nome?.toLowerCase().includes('referendum');
-
-    // Determina il ruolo principale dell'utente per il messaggio di benvenuto
-    const getUserRole = () => {
-        if (user?.is_superuser) return { label: 'Amministratore', icon: '👑', color: '#ffc107' };
-        if (permissions.referenti) return { label: 'Delegato/Sub-Delegato', icon: '🏛️', color: '#0d6efd' };
-        if (permissions.sections) return { label: 'Rappresentante di Lista', icon: '📋', color: '#198754' };
-        if (permissions.kpi) return { label: 'Osservatore KPI', icon: '📊', color: '#6f42c1' };
-        return { label: 'Utente', icon: '👤', color: '#6c757d' };
-    };
-
-    const role = getUserRole();
 
     const sections = [
-        // SEZIONI (area RDL - SubDelegato)
+        // 1. TERRITORIO (solo superuser)
         {
-            id: 'sezioni',
-            title: 'Gestione Sezioni',
-            icon: '🗺️',
-            color: '#fd7e14',
-            gradient: 'linear-gradient(135deg, #fd7e14 0%, #dc6a0c 100%)',
-            description: 'Visualizza le sezioni elettorali del tuo territorio. Vedi l\'elenco completo, filtra per comune/municipio e verifica lo stato di copertura RDL.',
-            features: [
-                'Elenco sezioni del territorio',
-                'Filtro per comune/municipio',
-                'Stato copertura RDL',
-            ],
-            permission: permissions.referenti,
-            action: () => onNavigate('sezioni'),
-            cta: 'Gestione Sezioni'
-        },
-        // DESIGNAZIONE (area RDL - SubDelegato)
-        {
-            id: 'designazione',
-            title: 'Designazione RDL',
-            icon: '📝',
-            color: '#20c997',
-            gradient: 'linear-gradient(135deg, #20c997 0%, #1aa179 100%)',
-            description: 'Designa i Rappresentanti di Lista per le sezioni del tuo territorio. Seleziona un RDL approvato per ogni sezione.',
-            features: [
-                'Seleziona sezione',
-                'Scegli RDL approvato',
-                'Crea designazione ufficiale',
-            ],
-            permission: permissions.referenti && consultazione,
-            action: () => onNavigate('designazione'),
-            cta: 'Nuova Designazione'
-        },
-        // CATENA DELEGHE (area Delegati)
-        {
-            id: 'deleghe',
-            title: 'Catena Deleghe',
-            icon: '🔗',
+            id: 'territorio',
+            title: 'Territorio',
+            icon: 'fa-globe-europe',
             color: '#6f42c1',
             gradient: 'linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%)',
-            description: isReferendum
-                ? 'Visualizza la tua catena di autorizzazione dal Comitato Promotore fino a te.'
-                : 'Visualizza la tua catena di autorizzazione dal Partito fino a te.',
+            description: 'Gestisci i dati territoriali italiani: regioni, province, comuni, municipi e sezioni elettorali.',
+            purpose: 'Configurazione della base territoriale su cui operano le consultazioni elettorali.',
             features: [
-                'Catena completa delle deleghe',
-                'Sub-deleghe ricevute/create',
-                'Stato autorizzazioni',
+                'Anagrafica regioni e province',
+                'Gestione comuni e municipi',
+                'Sezioni elettorali',
+                'Import massivo CSV'
+            ],
+            permission: user?.is_superuser,
+            action: () => onNavigate('territorio_admin'),
+            cta: 'Gestisci Territorio'
+        },
+
+        // 2. CONSULTAZIONE
+        {
+            id: 'consultazione',
+            title: 'Consultazione',
+            icon: 'fa-vote-yea',
+            color: '#0d6efd',
+            gradient: 'linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)',
+            description: 'Visualizza i dettagli della consultazione elettorale attiva: schede, quesiti, liste e candidati.',
+            purpose: 'Ogni consultazione contiene una o più schede elettorali con i relativi quesiti o liste.',
+            features: [
+                `${consultazione?.schede?.length || 0} schede elettorali`,
+                'Dettaglio quesiti referendum',
+                'Liste e candidati',
+                'Colori e denominazioni'
+            ],
+            permission: permissions.referenti && consultazione?.schede?.length > 0,
+            action: () => {
+                // Apri la prima scheda
+                if (consultazione?.schede?.[0]) {
+                    onNavigate('scheda');
+                }
+            },
+            cta: 'Vedi Schede',
+            extraInfo: consultazione?.nome
+        },
+
+        // 3. DELEGATI
+        {
+            id: 'delegati',
+            title: 'Delegati',
+            icon: 'fa-user-tie',
+            color: '#198754',
+            gradient: 'linear-gradient(135deg, #198754 0%, #146c43 100%)',
+            description: 'Gestisci la catena delle deleghe: dal partito/comitato promotore fino ai sub-delegati territoriali.',
+            purpose: 'I delegati di lista nominano sub-delegati che a loro volta designano i Rappresentanti di Lista.',
+            features: [
+                'Catena autorizzazioni',
+                'Sub-deleghe territoriali',
+                'Generazione documenti PDF',
+                'Firma autenticata'
             ],
             permission: permissions.referenti,
             action: () => onNavigate('deleghe'),
-            cta: 'Vedi Catena'
+            cta: 'Gestisci Deleghe'
         },
-        // SCRUTINIO
+
+        // 4. RDL
         {
-            id: 'sections',
-            title: 'Scrutinio',
-            icon: '🗳️',
-            color: '#0d6efd',
-            gradient: 'linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)',
-            description: isReferendum
-                ? 'Inserisci i risultati dello scrutinio per la tua sezione: voti SI, voti NO, schede bianche, nulle e contestate.'
-                : 'Inserisci i risultati dello scrutinio per la tua sezione: voti per lista, preferenze, schede bianche e nulle.',
+            id: 'rdl',
+            title: 'RDL',
+            icon: 'fa-users',
+            color: '#fd7e14',
+            gradient: 'linear-gradient(135deg, #fd7e14 0%, #dc6a0c 100%)',
+            description: 'Recluta, approva e assegna i Rappresentanti di Lista alle sezioni elettorali del territorio.',
+            purpose: 'Gli RDL presidiano i seggi durante le votazioni e lo scrutinio, garantendo la regolarità delle operazioni.',
             features: [
-                'Inserimento dati scrutinio',
-                'Validazione automatica',
-                'Salvataggio sicuro',
+                'Campagne di reclutamento',
+                'Approvazione candidature',
+                'Gestione sezioni',
+                'Mappatura RDL-Sezioni'
+            ],
+            permission: permissions.referenti || permissions.gestione_rdl,
+            action: () => onNavigate(permissions.gestione_rdl ? 'gestione_rdl' : 'campagne'),
+            cta: 'Gestisci RDL'
+        },
+
+        // 5. SCRUTINIO
+        {
+            id: 'scrutinio',
+            title: 'Scrutinio',
+            icon: 'fa-clipboard-check',
+            color: '#20c997',
+            gradient: 'linear-gradient(135deg, #20c997 0%, #1aa179 100%)',
+            description: 'Inserisci i dati dello scrutinio per le sezioni assegnate: elettori, votanti, voti per scheda.',
+            purpose: 'I dati inseriti dagli RDL permettono di seguire in tempo reale l\'andamento della consultazione.',
+            features: [
+                'Dati seggio (elettori/votanti)',
+                'Voti per ogni scheda',
+                'Schede bianche/nulle',
+                'Salvataggio automatico'
             ],
             permission: permissions.sections && consultazione,
             action: () => onNavigate('sections'),
-            cta: 'Vai allo Scrutinio'
+            cta: 'Inserisci Dati',
+            highlight: true
         },
-        // KPI / DIRETTA
+
+        // 6. DIRETTA
         {
-            id: 'kpi',
-            title: 'Diretta Risultati',
-            icon: '📊',
+            id: 'diretta',
+            title: 'Diretta',
+            icon: 'fa-chart-line',
             color: '#dc3545',
             gradient: 'linear-gradient(135deg, #dc3545 0%, #b02a37 100%)',
-            description: 'Segui in tempo reale l\'andamento dello scrutinio. Visualizza grafici, percentuali e proiezioni basate sui dati inseriti dai RDL.',
+            description: 'Segui in tempo reale i risultati dello scrutinio con grafici, percentuali e proiezioni.',
+            purpose: 'Dashboard KPI che aggrega i dati inseriti dagli RDL per mostrare l\'andamento live.',
             features: [
-                'Aggiornamento in tempo reale',
+                'Aggiornamento real-time',
                 'Grafici interattivi',
-                'Confronto tra territori',
+                'Affluenza e percentuali',
+                'Confronto territoriale'
             ],
             permission: permissions.kpi && consultazione && hasContributions,
             action: () => onNavigate('kpi'),
-            cta: 'Segui la Diretta',
-            badge: hasContributions ? 'LIVE' : null
+            cta: 'Segui Live',
+            badge: 'LIVE',
+            badgeColor: '#dc3545'
         },
-        // RISORSE
-        {
-            id: 'risorse',
-            title: 'Risorse e FAQ',
-            icon: '📚',
-            color: '#17a2b8',
-            gradient: 'linear-gradient(135deg, #20c997 0%, #17a2b8 100%)',
-            description: 'Consulta documenti, guide operative e domande frequenti. Tutto quello che ti serve per svolgere al meglio il tuo ruolo di Rappresentante di Lista.',
-            features: [
-                'Modulistica ufficiale',
-                'Guide e tutorial',
-                'FAQ interattive',
-            ],
-            permission: true, // Sempre visibile
-            action: () => onNavigate('risorse'),
-            cta: 'Consulta Risorse'
-        },
-    ];
 
-    // Sezioni admin/gestione
-    const adminSections = [
+        // 7. ASSISTENZA
         {
-            id: 'gestione_rdl',
-            title: 'Approva Candidature RDL',
-            icon: '✅',
-            color: '#198754',
-            gradient: 'linear-gradient(135deg, #198754 0%, #146c43 100%)',
-            description: 'Revisiona e approva le candidature spontanee di chi vuole diventare Rappresentante di Lista.',
+            id: 'assistenza',
+            title: 'Assistenza',
+            icon: 'fa-life-ring',
+            color: '#17a2b8',
+            gradient: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)',
+            description: 'Trova risposte, guide e supporto per ogni domanda. L\'assistente IA è pronto ad aiutarti.',
+            purpose: 'Centro di supporto unificato: risorse, FAQ, guide operative e assistenza intelligente.',
             features: [
-                'Lista candidature in attesa',
-                'Approvazione/rifiuto',
-                'Notifica automatica',
+                'Assistente IA',
+                'FAQ interattive',
+                'Guide e tutorial',
+                'Segnala problemi'
             ],
-            permission: permissions.gestione_rdl,
-            action: () => onNavigate('gestione_rdl'),
-            cta: 'Approva RDL'
-        },
-        {
-            id: 'pdf',
-            title: 'Stampa Designazioni',
-            icon: '🖨️',
-            color: '#6c757d',
-            gradient: 'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)',
-            description: 'Genera i PDF delle designazioni con gli allegati di delega per la stampa e la consegna ai seggi.',
-            features: [
-                'PDF designazioni',
-                'Allegati delega inclusi',
-                'Stampa batch',
-            ],
-            permission: user?.email === 's.federici@gmail.com' && consultazione,
-            action: () => onNavigate('pdf'),
-            cta: 'Stampa'
+            permission: true, // Sempre visibile per tutti
+            action: () => onNavigate('risorse'),
+            cta: 'Ottieni Aiuto'
         },
     ];
 
     const visibleSections = sections.filter(s => s.permission);
-    const visibleAdminSections = adminSections.filter(s => s.permission);
+
+    // Se non ci sono sezioni visibili, mostra messaggio
+    if (visibleSections.length === 0) {
+        return (
+            <div className="dashboard">
+                <div className="alert alert-info">
+                    <h5><i className="fas fa-info-circle me-2"></i>Benvenuto!</h5>
+                    <p className="mb-0">
+                        Non hai ancora accesso a funzionalità specifiche.
+                        Attendi che un delegato ti assegni un ruolo.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="dashboard">
-            {/* Hero Welcome */}
-            <div className="card mb-4" style={{
-                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-                border: 'none',
-                borderRadius: '16px',
-                overflow: 'hidden'
-            }}>
-                <div className="card-body text-white py-4">
-                    <div className="row align-items-center">
-                        <div className="col-md-8">
-                            <div className="d-flex align-items-center mb-3">
-                                <span style={{ fontSize: '2.5rem', marginRight: '16px' }}>{role.icon}</span>
-                                <div>
-                                    <h2 className="mb-0">Benvenuto, {user?.first_name || user?.display_name?.split(' ')[0] || 'Utente'}!</h2>
-                                    <span className="badge" style={{
-                                        backgroundColor: role.color,
-                                        fontSize: '0.85rem',
-                                        padding: '6px 12px',
-                                        marginTop: '8px',
-                                        display: 'inline-block'
-                                    }}>
-                                        {role.label}
-                                    </span>
-                                </div>
-                            </div>
-                            <p className="mb-0 opacity-75" style={{ fontSize: '1.1rem' }}>
-                                {consultazione
-                                    ? `Stai lavorando su: ${consultazione.nome}`
-                                    : 'Nessuna consultazione attiva al momento'}
-                            </p>
-                        </div>
-                        <div className="col-md-4 text-end d-none d-md-block">
-                            <div style={{ fontSize: '5rem', opacity: 0.3 }}>
-                                {isReferendum ? '🗳️' : '🏛️'}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Quick Stats (if available) */}
-            {permissions.referenti && (
-                <div className="row mb-4 g-3">
-                    <div className="col-6 col-md-3">
-                        <div className="card h-100 border-0 shadow-sm">
-                            <div className="card-body text-center">
-                                <div style={{ fontSize: '2rem', color: '#6f42c1' }}>🔗</div>
-                                <div className="small text-muted">Il Tuo Ruolo</div>
-                                <div className="fw-bold">{role.label}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="col-6 col-md-3">
-                        <div className="card h-100 border-0 shadow-sm">
-                            <div className="card-body text-center">
-                                <div style={{ fontSize: '2rem', color: '#fd7e14' }}>{isReferendum ? '🗳️' : '🏛️'}</div>
-                                <div className="small text-muted">Tipo</div>
-                                <div className="fw-bold">{consultazione?.tipo_display || (isReferendum ? 'Referendum' : 'Elezioni')}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="col-6 col-md-3">
-                        <div className="card h-100 border-0 shadow-sm">
-                            <div className="card-body text-center">
-                                <div style={{ fontSize: '2rem', color: '#198754' }}>📅</div>
-                                <div className="small text-muted">Data</div>
-                                <div className="fw-bold">
-                                    {consultazione?.data_inizio
-                                        ? new Date(consultazione.data_inizio).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
-                                        : '-'}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="col-6 col-md-3">
-                        <div className="card h-100 border-0 shadow-sm">
-                            <div className="card-body text-center">
-                                <div style={{ fontSize: '2rem', color: hasContributions ? '#dc3545' : '#6c757d' }}>
-                                    {hasContributions ? '🔴' : '⚪'}
-                                </div>
-                                <div className="small text-muted">Stato</div>
-                                <div className="fw-bold">{hasContributions ? 'In corso' : 'In attesa'}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Main Sections */}
-            <h5 className="mb-3 text-muted">
-                <i className="fas fa-th-large me-2"></i>
-                Le tue funzionalità
-            </h5>
-
-            <div className="row g-4 mb-4">
+            {/* Grid delle sezioni principali */}
+            <div className="row g-4">
                 {visibleSections.map((section) => (
-                    <div key={section.id} className="col-12 col-md-6 col-lg-4">
+                    <div key={section.id} className="col-12 col-md-6 col-xl-4">
                         <div
-                            className="card h-100 border-0 shadow-sm dashboard-card"
+                            className={`card h-100 border-0 shadow-sm dashboard-card ${section.highlight ? 'dashboard-card-highlight' : ''}`}
                             style={{
                                 cursor: 'pointer',
-                                transition: 'all 0.3s ease',
-                                borderRadius: '12px',
+                                borderRadius: '16px',
                                 overflow: 'hidden'
                             }}
                             onClick={section.action}
                         >
-                            {/* Card Header with gradient */}
+                            {/* Header con gradiente */}
                             <div style={{
                                 background: section.gradient,
-                                padding: '20px',
+                                padding: '24px 20px 20px',
                                 color: 'white',
                                 position: 'relative'
                             }}>
                                 <div className="d-flex justify-content-between align-items-start">
-                                    <span style={{ fontSize: '2.5rem' }}>{section.icon}</span>
+                                    <div style={{
+                                        width: '56px',
+                                        height: '56px',
+                                        borderRadius: '14px',
+                                        background: 'rgba(255,255,255,0.2)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        <i className={`fas ${section.icon}`} style={{ fontSize: '1.5rem' }}></i>
+                                    </div>
                                     {section.badge && (
-                                        <span className="badge bg-light text-danger" style={{
-                                            animation: 'pulse 1.5s infinite'
+                                        <span className="badge" style={{
+                                            background: 'white',
+                                            color: section.badgeColor || section.color,
+                                            fontSize: '0.7rem',
+                                            fontWeight: 700,
+                                            padding: '4px 10px',
+                                            borderRadius: '20px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px'
                                         }}>
                                             <span style={{
-                                                display: 'inline-block',
-                                                width: '8px',
-                                                height: '8px',
-                                                backgroundColor: '#dc3545',
+                                                width: '6px',
+                                                height: '6px',
                                                 borderRadius: '50%',
-                                                marginRight: '4px'
+                                                background: section.badgeColor || section.color,
+                                                animation: 'pulse 1.5s infinite'
                                             }}></span>
                                             {section.badge}
                                         </span>
                                     )}
                                 </div>
-                                <h5 className="mt-3 mb-0">{section.title}</h5>
+                                <h4 className="mt-3 mb-1" style={{ fontWeight: 700 }}>{section.title}</h4>
+                                {section.extraInfo && (
+                                    <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>
+                                        {section.extraInfo}
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Card Body */}
-                            <div className="card-body">
-                                <p className="text-muted small mb-3">
+                            {/* Body */}
+                            <div className="card-body d-flex flex-column" style={{ padding: '20px' }}>
+                                {/* Descrizione */}
+                                <p className="text-muted mb-3" style={{ fontSize: '0.9rem', lineHeight: 1.5 }}>
                                     {section.description}
                                 </p>
 
-                                {/* Features list */}
-                                <ul className="list-unstyled mb-0 small">
-                                    {section.features.map((feature, idx) => (
-                                        <li key={idx} className="mb-1">
-                                            <i className="fas fa-check-circle me-2" style={{ color: section.color }}></i>
-                                            {feature}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
+                                {/* Scopo */}
+                                <div className="mb-3 p-3" style={{
+                                    background: '#f8f9fa',
+                                    borderRadius: '10px',
+                                    borderLeft: `4px solid ${section.color}`
+                                }}>
+                                    <div className="small text-muted mb-1">
+                                        <i className="fas fa-lightbulb me-1"></i> A cosa serve
+                                    </div>
+                                    <div style={{ fontSize: '0.85rem', color: '#333' }}>
+                                        {section.purpose}
+                                    </div>
+                                </div>
 
-                            {/* Card Footer */}
-                            <div className="card-footer bg-transparent border-0 pt-0">
+                                {/* Features */}
+                                <div className="flex-grow-1">
+                                    <div className="row g-2">
+                                        {section.features.map((feature, idx) => (
+                                            <div key={idx} className="col-6">
+                                                <div className="d-flex align-items-center" style={{ fontSize: '0.8rem' }}>
+                                                    <i className="fas fa-check me-2" style={{ color: section.color, fontSize: '0.65rem' }}></i>
+                                                    <span className="text-muted">{feature}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* CTA Button */}
                                 <button
-                                    className="btn w-100"
+                                    className="btn w-100 mt-3"
                                     style={{
-                                        backgroundColor: section.color,
+                                        background: section.gradient,
                                         color: 'white',
-                                        borderRadius: '8px'
+                                        borderRadius: '10px',
+                                        padding: '12px',
+                                        fontWeight: 600,
+                                        border: 'none'
                                     }}
                                 >
                                     {section.cta}
@@ -342,98 +295,28 @@ function Dashboard({ user, permissions, consultazione, hasContributions, onNavig
                 ))}
             </div>
 
-            {/* Admin Sections */}
-            {visibleAdminSections.length > 0 && (
-                <>
-                    <h5 className="mb-3 text-muted">
-                        <i className="fas fa-cog me-2"></i>
-                        Amministrazione
-                    </h5>
-
-                    <div className="row g-4 mb-4">
-                        {visibleAdminSections.map((section) => (
-                            <div key={section.id} className="col-12 col-md-6">
-                                <div
-                                    className="card h-100 border-0 shadow-sm dashboard-card"
-                                    style={{
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s ease',
-                                        borderRadius: '12px',
-                                        overflow: 'hidden'
-                                    }}
-                                    onClick={section.action}
-                                >
-                                    <div className="card-body d-flex align-items-center">
-                                        <div style={{
-                                            width: '60px',
-                                            height: '60px',
-                                            borderRadius: '12px',
-                                            background: section.gradient,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            marginRight: '16px',
-                                            flexShrink: 0
-                                        }}>
-                                            <span style={{ fontSize: '1.8rem' }}>{section.icon}</span>
-                                        </div>
-                                        <div className="flex-grow-1">
-                                            <h6 className="mb-1">{section.title}</h6>
-                                            <p className="text-muted small mb-0">{section.description}</p>
-                                        </div>
-                                        <i className="fas fa-chevron-right text-muted ms-2"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </>
-            )}
-
-            {/* Help Section */}
-            <div className="card border-0 shadow-sm" style={{
-                background: 'linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%)',
-                borderRadius: '12px'
-            }}>
-                <div className="card-body">
-                    <div className="row align-items-center">
-                        <div className="col-md-8">
-                            <h5 className="mb-2">
-                                <i className="fas fa-question-circle me-2 text-info"></i>
-                                Hai bisogno di aiuto?
-                            </h5>
-                            <p className="mb-0 text-muted">
-                                Consulta le risorse e le FAQ per trovare tutte le informazioni di cui hai bisogno.
-                                Troverai guide, modulistica e risposte alle domande più frequenti.
-                            </p>
-                        </div>
-                        <div className="col-md-4 text-md-end mt-3 mt-md-0">
-                            <button
-                                className="btn btn-info"
-                                onClick={() => onNavigate('risorse')}
-                            >
-                                <i className="fas fa-book me-2"></i>
-                                Vai alle Risorse
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Inline Styles for hover effects */}
+            {/* Styles */}
             <style>{`
+                .dashboard-card {
+                    transition: all 0.3s ease;
+                }
+
                 .dashboard-card:hover {
-                    transform: translateY(-4px);
-                    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+                    transform: translateY(-6px);
+                    box-shadow: 0 12px 30px rgba(0,0,0,0.15) !important;
                 }
 
                 .dashboard-card:active {
-                    transform: translateY(-2px);
+                    transform: translateY(-3px);
+                }
+
+                .dashboard-card-highlight {
+                    box-shadow: 0 4px 20px rgba(32, 201, 151, 0.3) !important;
                 }
 
                 @keyframes pulse {
                     0% { opacity: 1; }
-                    50% { opacity: 0.5; }
+                    50% { opacity: 0.4; }
                     100% { opacity: 1; }
                 }
             `}</style>

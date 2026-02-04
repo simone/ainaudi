@@ -252,19 +252,6 @@ function Risorse({ client, consultazione, setError }) {
         <>
             <style>{docCardStyles}</style>
 
-            {/* Header */}
-            <div className="card mb-3" style={{ background: 'linear-gradient(135deg, #20c997 0%, #17a2b8 100%)' }}>
-                <div className="card-body text-white py-3">
-                    <h5 className="mb-1">
-                        <i className="fas fa-folder-open me-2"></i>
-                        Risorse
-                    </h5>
-                    <small className="opacity-75">
-                        Documenti, guide e FAQ per la consultazione elettorale
-                    </small>
-                </div>
-            </div>
-
             {/* Tabs */}
             <ul className="nav nav-tabs mb-3">
                 <li className="nav-item">

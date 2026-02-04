@@ -185,16 +185,6 @@ function GestioneDeleghe({ client, user, consultazione, setError, initialTab }) 
 
     return (
         <>
-            {/* Header */}
-            <div className="card mb-3" style={{ background: 'linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%)' }}>
-                <div className="card-body text-white py-3">
-                    <h5 className="mb-1">Gestione Deleghe</h5>
-                    <small className="opacity-75">
-                        Sistema di autorizzazione per la designazione dei Rappresentanti di Lista
-                    </small>
-                </div>
-            </div>
-
             {/* Tabs */}
             <ul className="nav nav-tabs mb-3">
                 <li className="nav-item">

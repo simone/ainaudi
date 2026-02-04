@@ -416,16 +416,6 @@ function GestioneSezioni({ client, setError }) {
                 </li>
                 <li className="nav-item">
                     <button
-                        className={`nav-link ${activeView === 'aggiungi' ? 'active' : ''}`}
-                        onClick={() => setActiveView('aggiungi')}
-                        aria-selected={activeView === 'aggiungi'}
-                    >
-                        <i className="fas fa-plus me-2"></i>
-                        Aggiungi
-                    </button>
-                </li>
-                <li className="nav-item">
-                    <button
                         className={`nav-link ${activeView === 'carica' ? 'active' : ''}`}
                         onClick={() => setActiveView('carica')}
                         aria-selected={activeView === 'carica'}
@@ -764,245 +754,41 @@ function GestioneSezioni({ client, setError }) {
                 </>
             )}
 
-            {/* Aggiungi View */}
-            {activeView === 'aggiungi' && (
-                <>
-                    {/* Aggiungi singola sezione */}
-                    <div className="card mb-4">
-                        <div className="card-header">
-                            <h5 className="mb-0">
-                                <i className="fas fa-plus-circle me-2"></i>
-                                Aggiungi Sezione Singola
-                            </h5>
-                        </div>
-                        <div className="card-body">
-                            <form onSubmit={handleAddSection}>
-                                <div className="row g-3">
-                                    <div className="col-6 col-md-3">
-                                        <label htmlFor="sezione" className="form-label">Numero Sezione *</label>
-                                        <input
-                                            type="number"
-                                            className="form-control"
-                                            id="sezione"
-                                            name="sezione"
-                                            value={formData.sezione}
-                                            onChange={handleFormChange}
-                                            min="1"
-                                            required
-                                            placeholder="1"
-                                        />
-                                    </div>
-                                    <div className="col-6 col-md-3">
-                                        <label htmlFor="comune" className="form-label">Comune *</label>
-                                        <ComuneAutocomplete
-                                            value={selectedComune}
-                                            onChange={handleComuneChange}
-                                            disabled={saving}
-                                            placeholder="Cerca comune..."
-                                            searchEndpoint="/api/sections/comuni/search"
-                                        />
-                                    </div>
-                                    <div className="col-6 col-md-3">
-                                        <label htmlFor="municipio" className="form-label">
-                                            Municipio {selectedComune?.has_municipi && selectedComune?.municipi?.length > 0 ? '*' : ''}
-                                        </label>
-                                        {selectedComune?.has_municipi && selectedComune?.municipi?.length > 0 ? (
-                                            <select
-                                                className="form-select"
-                                                id="municipio"
-                                                name="municipio"
-                                                value={formData.municipio}
-                                                onChange={handleFormChange}
-                                                required
-                                                disabled={saving}
-                                            >
-                                                <option value="">Seleziona municipio...</option>
-                                                {selectedComune.municipi.map(mun => (
-                                                    <option key={mun.numero} value={mun.numero}>
-                                                        {mun.nome || `Municipio ${toRoman(mun.numero)}`}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        ) : (
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                id="municipio"
-                                                disabled
-                                                placeholder={selectedComune ? "Questo comune non ha municipi" : "Seleziona prima un comune"}
-                                            />
-                                        )}
-                                        <small className="text-muted">Solo per grandi città (Roma, Milano, Napoli, ecc.)</small>
-                                    </div>
-                                    <div className="col-12 col-md-6">
-                                        <label htmlFor="indirizzo" className="form-label">Indirizzo seggio</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            id="indirizzo"
-                                            name="indirizzo"
-                                            value={formData.indirizzo}
-                                            onChange={handleFormChange}
-                                            placeholder="Via Roma, 1"
-                                        />
-                                    </div>
-                                    <div className="col-12 col-md-6 d-flex align-items-end">
-                                        <button
-                                            type="submit"
-                                            className="btn btn-primary w-100"
-                                            disabled={saving}
-                                        >
-                                            {saving ? (
-                                                <>
-                                                    <span className="spinner-border spinner-border-sm me-2"></span>
-                                                    Salvataggio...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <i className="fas fa-save me-2"></i>
-                                                    Aggiungi Sezione
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    {/* Aggiungi range di sezioni */}
-                    <div className="card mb-4">
-                        <div className="card-header">
-                            <h5 className="mb-0">
-                                <i className="fas fa-layer-group me-2"></i>
-                                Aggiungi Range di Sezioni
-                            </h5>
-                        </div>
-                        <div className="card-body">
-                            <p className="text-muted small">
-                                Per piccoli comuni con poche sezioni: inserisci il range (es. da 1 a 5)
-                                e verranno create tutte le sezioni intermedie.
-                            </p>
-                            <form onSubmit={handleAddMultiple}>
-                                <div className="row g-3">
-                                    <div className="col-6 col-md-2">
-                                        <label htmlFor="sezioneInizio" className="form-label">Da sezione *</label>
-                                        <input
-                                            type="number"
-                                            className="form-control"
-                                            id="sezioneInizio"
-                                            name="sezioneInizio"
-                                            value={formData.sezioneInizio || ''}
-                                            onChange={handleFormChange}
-                                            min="1"
-                                            required
-                                            placeholder="1"
-                                        />
-                                    </div>
-                                    <div className="col-6 col-md-2">
-                                        <label htmlFor="sezioneFine" className="form-label">A sezione *</label>
-                                        <input
-                                            type="number"
-                                            className="form-control"
-                                            id="sezioneFine"
-                                            name="sezioneFine"
-                                            value={formData.sezioneFine || ''}
-                                            onChange={handleFormChange}
-                                            min="1"
-                                            required
-                                            placeholder="10"
-                                        />
-                                    </div>
-                                    <div className="col-12 col-md-3">
-                                        <label htmlFor="comuneRange" className="form-label">Comune *</label>
-                                        <ComuneAutocomplete
-                                            value={selectedComune}
-                                            onChange={handleComuneChange}
-                                            disabled={saving}
-                                            placeholder="Cerca comune..."
-                                            searchEndpoint="/api/sections/comuni/search"
-                                        />
-                                    </div>
-                                    <div className="col-6 col-md-3">
-                                        <label htmlFor="municipioRange" className="form-label">
-                                            Municipio {selectedComune?.has_municipi && selectedComune?.municipi?.length > 0 ? '*' : ''}
-                                        </label>
-                                        {selectedComune?.has_municipi && selectedComune?.municipi?.length > 0 ? (
-                                            <select
-                                                className="form-select"
-                                                id="municipioRange"
-                                                name="municipio"
-                                                value={formData.municipio}
-                                                onChange={handleFormChange}
-                                                required
-                                                disabled={saving}
-                                            >
-                                                <option value="">Seleziona municipio...</option>
-                                                {selectedComune.municipi.map(mun => (
-                                                    <option key={mun.numero} value={mun.numero}>
-                                                        {mun.nome || `Municipio ${toRoman(mun.numero)}`}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        ) : (
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                id="municipioRange"
-                                                disabled
-                                                placeholder={selectedComune ? "Questo comune non ha municipi" : "Seleziona prima un comune"}
-                                            />
-                                        )}
-                                        <small className="text-muted">Solo per grandi città (Roma, Milano, Napoli, ecc.)</small>
-                                    </div>
-                                    <div className="col-12 col-md-3 d-flex align-items-end">
-                                        <button
-                                            type="submit"
-                                            className="btn btn-success w-100"
-                                            disabled={saving}
-                                        >
-                                            {saving ? (
-                                                <>
-                                                    <span className="spinner-border spinner-border-sm me-2"></span>
-                                                    Creazione...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <i className="fas fa-plus me-2"></i>
-                                                    Crea Sezioni
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    {/* Risultato salvataggio */}
-                    {saveResult && (
-                        <div className={`alert ${saveResult.success ? 'alert-success' : 'alert-danger'}`}>
-                            <i className={`fas ${saveResult.success ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2`}></i>
-                            {saveResult.message}
-                        </div>
-                    )}
-                </>
-            )}
-
             {/* Upload View */}
             {activeView === 'carica' && (
                 <>
+                    {/* Territory Scope Alert */}
+                    <div className="alert alert-primary mb-3">
+                        <div className="d-flex align-items-center">
+                            <i className="fas fa-map-marked-alt fa-2x me-3"></i>
+                            <div>
+                                <strong>Il tuo ambito territoriale:</strong>
+                                <div className="fs-5 fw-bold">{getTerritorioLabel() || 'Tutto il territorio'}</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="card">
                         <div className="card-header bg-info text-white">
                             <i className="fas fa-file-import me-2"></i>
-                            Arricchisci Sezioni da CSV
+                            Aggiorna Denominazioni e Indirizzi
                         </div>
                         <div className="card-body">
-                            <p className="alert alert-success">
-                                <i className="fas fa-info-circle me-2"></i>
-                                <strong>Import in modalità MERGE:</strong> questo import aggiorna solo i campi compilati,
-                                senza sovrascrivere dati esistenti con valori vuoti.
-                                Utile per aggiungere denominazioni e indirizzi alle sezioni del tuo territorio.
+                            <p className="alert alert-warning">
+                                <i className="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Attenzione:</strong> L'import elabora solo le sezioni <strong>già presenti a sistema</strong> e
+                                <strong> all'interno del tuo territorio</strong> ({getTerritorioLabel() || 'intero territorio'}).
+                                <br/>
+                                Le righe con sezioni fuori dal tuo ambito verranno <strong>scartate automaticamente</strong>.
+                            </p>
+
+                            <p className="alert alert-success mb-3">
+                                <i className="fas fa-lightbulb me-2"></i>
+                                <strong>A cosa serve:</strong> Questo strumento è pensato per arricchire le sezioni esistenti
+                                aggiungendo o modificando <strong>denominazioni</strong> (es. "Scuola Mazzini") e
+                                <strong> indirizzi</strong> (es. "Via Roma, 1").
+                                <br/>
+                                I campi vuoti nel CSV non sovrascriveranno i dati esistenti.
                             </p>
 
                             <p className="text-muted">

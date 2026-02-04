@@ -50,6 +50,24 @@
 }
 
 /* --------------------------------------------------------------------------
+   Global - Disabilita selezione testo (app mobile-first)
+   -------------------------------------------------------------------------- */
+* {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Riabilita selezione per input e textarea */
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* --------------------------------------------------------------------------
    Base styles
    -------------------------------------------------------------------------- */
 html, body {

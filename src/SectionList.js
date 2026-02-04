@@ -1,5 +1,5 @@
 // SectionList.js - Mobile-first redesign with wizard support
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useState, useRef, useCallback} from "react";
 import SectionForm from "./SectionForm";
 
 // Stili mobile-first per la lista sezioni
@@ -194,16 +194,54 @@ const listStyles = `
         font-size: 0.8rem;
         opacity: 0.9;
     }
+
+    .plesso-header {
+        padding: 10px 16px;
+        background: #e9ecef;
+        border-bottom: 1px solid #dee2e6;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #495057;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .plesso-header i {
+        color: #6c757d;
+    }
+
+    .plesso-header .plesso-count {
+        margin-left: auto;
+        font-weight: 400;
+        color: #6c757d;
+        font-size: 0.8rem;
+    }
+
+    .plesso-address {
+        font-size: 0.75rem;
+        font-weight: 400;
+        color: #6c757d;
+        margin-top: 2px;
+    }
 `;
 
 function SectionList({client, user, setError, referenti}) {
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [consultazione, setConsultazione] = useState(null);
     const [schede, setSchede] = useState([]);
     const [sections, setSections] = useState([]);
     const [selectedSection, setSelectedSection] = useState(null);
     const [searchText, setSearchText] = useState('');
     const [filteredSections, setFilteredSections] = useState([]);
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalSections, setTotalSections] = useState(0);
+    const [totalMie, setTotalMie] = useState(0);
+    const [totalTerritorio, setTotalTerritorio] = useState(0);
+    const [hasMore, setHasMore] = useState(false);
 
     // Load scrutinio info (consultazione + schede)
     useEffect(() => {
@@ -223,7 +261,7 @@ function SectionList({client, user, setError, referenti}) {
             setSchede(info.schede || []);
 
             // Now load sections
-            await loadSections();
+            await loadSections(1, true);
         } catch (err) {
             console.error('Error loading scrutinio info:', err);
             setError('Errore nel caricamento dati');
@@ -231,34 +269,84 @@ function SectionList({client, user, setError, referenti}) {
         }
     };
 
-    const loadSections = async () => {
+    const loadSections = async (page = 1, reset = false) => {
+        if (reset) {
+            setLoading(true);
+        } else {
+            setLoadingMore(true);
+        }
+
         try {
-            const result = await client.scrutinio.sezioni();
+            const result = await client.scrutinio.sezioni(page, 50);
             if (result?.error) {
                 setError(result.error);
             } else {
-                setSections(result.sezioni || []);
+                if (reset) {
+                    setSections(result.sezioni || []);
+                } else {
+                    setSections(prev => [...prev, ...(result.sezioni || [])]);
+                }
+                setCurrentPage(result.page || page);
+                setTotalSections(result.total || 0);
+                setTotalMie(result.total_mie || 0);
+                setTotalTerritorio(result.total_territorio || 0);
+                setHasMore(result.has_more || false);
             }
         } catch (err) {
             console.error('Error loading sections:', err);
         }
         setLoading(false);
+        setLoadingMore(false);
     };
 
-    const updateSection = async (payload) => {
+    const loadMore = useCallback(() => {
+        if (!loadingMore && hasMore) {
+            loadSections(currentPage + 1, false);
+        }
+    }, [loadingMore, hasMore, currentPage]);
+
+    // Infinite scroll with IntersectionObserver
+    const sentinelRef = useRef(null);
+
+    useEffect(() => {
+        if (!sentinelRef.current || searchText) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !loadingMore) {
+                    loadMore();
+                }
+            },
+            { threshold: 0.1, rootMargin: '100px' }
+        );
+
+        observer.observe(sentinelRef.current);
+        return () => observer.disconnect();
+    }, [hasMore, loadingMore, loadMore, searchText]);
+
+    // Save without closing the form (for auto-save)
+    const saveSection = async (payload) => {
         try {
             const result = await client.scrutinio.save(payload);
             if (result?.error) {
                 setError(result.error);
-            } else {
-                // Reload sections and close form
-                await loadSections();
-                window.scrollTo(0, 0);
-                setSelectedSection(null);
+                return false;
             }
+            return true;
         } catch (err) {
             console.error('Error saving section:', err);
             setError('Errore durante il salvataggio');
+            return false;
+        }
+    };
+
+    // Save and close the form (for explicit exit)
+    const saveAndClose = async (payload) => {
+        const success = await saveSection(payload);
+        if (success) {
+            await loadSections(1, true);
+            window.scrollTo(0, 0);
+            setSelectedSection(null);
         }
     };
 
@@ -302,18 +390,52 @@ function SectionList({client, user, setError, referenti}) {
         return calculateProgress(sectionData) === 100;
     };
 
-    // Filter sections
+    // Filter sections by numero, comune, indirizzo, denominazione
     function filterSection(section) {
         if (!searchText) return true;
-        const q = searchText.toLowerCase();
-        const comuneString = section.comune?.toString().toLowerCase() || '';
-        const sezioneString = section.sezione?.toString().toLowerCase() || '';
-        return comuneString.includes(q) || sezioneString.includes(q);
+        const q = searchText.toLowerCase().trim();
+        const numero = String(section.sezione || '');
+        const comune = (section.comune || '').toLowerCase();
+        const indirizzo = (section.indirizzo || '').toLowerCase();
+        const denominazione = (section.denominazione || '').toLowerCase();
+
+        return numero.includes(q) ||
+               comune.includes(q) ||
+               indirizzo.includes(q) ||
+               denominazione.includes(q);
+    }
+
+    // Get plesso key for grouping
+    function getPlessoKey(section) {
+        return section.denominazione || section.indirizzo || 'Altro';
+    }
+
+    // Group sections by plesso
+    function groupByPlesso(sections) {
+        const groups = {};
+        sections.forEach(section => {
+            const key = getPlessoKey(section);
+            if (!groups[key]) {
+                groups[key] = {
+                    name: section.denominazione || '',
+                    address: section.indirizzo || '',
+                    sections: []
+                };
+            }
+            groups[key].sections.push(section);
+        });
+        return groups;
     }
 
     useEffect(() => {
         setFilteredSections(sections.filter(filterSection));
     }, [sections, searchText]);
+
+    // Split into my sections vs other sections, then group by plesso
+    const mySections = filteredSections.filter(s => s.is_mia);
+    const otherSections = filteredSections.filter(s => !s.is_mia);
+    const myGrouped = groupByPlesso(mySections);
+    const otherGrouped = groupByPlesso(otherSections);
 
     if (loading) {
         return (
@@ -337,8 +459,8 @@ function SectionList({client, user, setError, referenti}) {
                 schede={schede}
                 section={selectedSection}
                 sectionData={sectionData}
-                updateSection={updateSection}
-                cancel={() => setSelectedSection(null)}
+                saveSection={saveSection}
+                saveAndClose={saveAndClose}
             />
         );
     }
@@ -393,24 +515,13 @@ function SectionList({client, user, setError, referenti}) {
     return (
         <>
             <style>{listStyles}</style>
-
-            {/* Consultazione info */}
-            {consultazione && (
-                <div className="consultazione-info">
-                    <div className="consultazione-nome">{consultazione.nome}</div>
-                    <div className="consultazione-schede">
-                        {schede.length} {schede.length === 1 ? 'scheda' : 'schede'} da compilare
-                    </div>
-                </div>
-            )}
-
             {/* Search */}
             {sections.length > 3 && (
                 <div className="sezioni-search">
                     <input
                         type="search"
                         className="sezioni-search-input"
-                        placeholder="Cerca sezione..."
+                        placeholder="Cerca numero, città, indirizzo..."
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
                     />
@@ -432,20 +543,88 @@ function SectionList({client, user, setError, referenti}) {
                 </div>
             )}
 
-            {/* Sections list */}
-            {filteredSections.length > 0 && (
+            {/* My sections (assigned to me as RDL) */}
+            {(mySections.length > 0 || totalMie > 0) && (
                 <>
                     <div className="sezioni-section-header">
                         <i className="fas fa-user"></i>
                         Le mie sezioni
                         <span style={{ marginLeft: 'auto', fontWeight: 400 }}>
-                            {filteredSections.length}
+                            {searchText ? mySections.length : totalMie}
                         </span>
                     </div>
-                    <ul className="sezioni-list">
-                        {filteredSections.map(renderSectionCard)}
-                    </ul>
+
+                    {Object.entries(myGrouped).map(([key, group]) => (
+                        <div key={`my-${key}`}>
+                            <div className="plesso-header">
+                                <i className="fas fa-school"></i>
+                                <div>
+                                    <div>{group.name || group.address || 'Senza plesso'}</div>
+                                    {group.name && group.address && (
+                                        <div className="plesso-address">{group.address}</div>
+                                    )}
+                                </div>
+                                <span className="plesso-count">{group.sections.length} sez.</span>
+                            </div>
+                            <ul className="sezioni-list">
+                                {group.sections.map(renderSectionCard)}
+                            </ul>
+                        </div>
+                    ))}
                 </>
+            )}
+
+            {/* Other sections in my territory (as delegato/sub-delegato) */}
+            {(otherSections.length > 0 || totalTerritorio > 0) && (
+                <>
+                    <div className="sezioni-section-header" style={{ background: '#fff3cd', color: '#856404' }}>
+                        <i className="fas fa-users"></i>
+                        Sezioni del territorio
+                        <span style={{ marginLeft: 'auto', fontWeight: 400 }}>
+                            {searchText ? otherSections.length : totalTerritorio}
+                        </span>
+                    </div>
+
+                    {Object.entries(otherGrouped).map(([key, group]) => (
+                        <div key={`other-${key}`}>
+                            <div className="plesso-header">
+                                <i className="fas fa-school"></i>
+                                <div>
+                                    <div>{group.name || group.address || 'Senza plesso'}</div>
+                                    {group.name && group.address && (
+                                        <div className="plesso-address">{group.address}</div>
+                                    )}
+                                </div>
+                                <span className="plesso-count">{group.sections.length} sez.</span>
+                            </div>
+                            <ul className="sezioni-list">
+                                {group.sections.map(renderSectionCard)}
+                            </ul>
+                        </div>
+                    ))}
+                </>
+            )}
+
+            {/* Infinite scroll sentinel and load more indicator */}
+            {filteredSections.length > 0 && !searchText && (
+                <div ref={sentinelRef} style={{ padding: '16px', textAlign: 'center', minHeight: '60px' }}>
+                    {loadingMore ? (
+                        <div className="spinner-border spinner-border-sm text-primary" role="status">
+                            <span className="visually-hidden">Caricamento...</span>
+                        </div>
+                    ) : hasMore ? (
+                        <button
+                            className="btn btn-outline-primary btn-sm"
+                            onClick={loadMore}
+                        >
+                            Carica altre sezioni ({totalSections - sections.length} rimanenti)
+                        </button>
+                    ) : totalSections > 0 ? (
+                        <small className="text-muted">
+                            Tutte le {totalSections} sezioni caricate
+                        </small>
+                    ) : null}
+                </div>
             )}
         </>
     );

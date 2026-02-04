@@ -838,59 +838,99 @@ class ScrutinioSezioniView(APIView):
     """
     Get user's sections with structured data organized by scheda.
 
-    GET /api/scrutinio/sezioni
+    GET /api/scrutinio/sezioni?page=1&page_size=50
+
+    Visibility:
+    - RDL: sections assigned via SectionAssignment
+    - Delegato/SubDelegato: all sections in their territory (paginated)
+
+    Query params:
+    - page: page number (default 1)
+    - page_size: items per page (default 50, max 50)
 
     Returns:
     {
-        "sezioni": [
-            {
-                "comune": "Roma",
-                "sezione": 123,
-                "dati_seggio": {
-                    "elettori_maschi": 500,
-                    "elettori_femmine": 520,
-                    "votanti_maschi": 250,
-                    "votanti_femmine": 260
-                },
-                "schede": {
-                    "1": {  // scheda_id
-                        "schede_ricevute": 1020,
-                        "schede_autenticate": 1018,
-                        "schede_bianche": 5,
-                        "schede_nulle": 3,
-                        "schede_contestate": 0,
-                        "voti": {"si": 300, "no": 200}
-                    },
-                    ...
-                }
-            }
-        ]
+        "sezioni": [...],
+        "total": 150,
+        "page": 1,
+        "page_size": 50,
+        "has_more": true
     }
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         from elections.models import SchedaElettorale
+        from delegations.permissions import get_sezioni_filter_for_user, get_user_delegation_roles
 
         consultazione = get_consultazione_attiva()
         if not consultazione:
-            return Response({'sezioni': []})
+            return Response({'sezioni': [], 'total': 0, 'page': 1, 'page_size': 50, 'has_more': False})
+
+        # Pagination params
+        try:
+            page = max(1, int(request.query_params.get('page', 1)))
+        except (ValueError, TypeError):
+            page = 1
+        try:
+            page_size = min(50, max(1, int(request.query_params.get('page_size', 50))))
+        except (ValueError, TypeError):
+            page_size = 50
 
         # Get all schede for the consultation
         schede = SchedaElettorale.objects.filter(
             tipo_elezione__consultazione=consultazione
         ).order_by('ordine')
 
-        # Get user's section assignments
+        # Collect sezioni from multiple sources, tracking which are "mine"
+        my_sezioni_ids = set()  # Sections assigned to me as RDL
+        territory_sezioni_ids = set()  # Sections visible due to delegation territory
+
+        # 1. RDL: sections from SectionAssignment (these are "mine")
         assignments = SectionAssignment.objects.filter(
             rdl_registration__email=request.user.email,
             consultazione=consultazione,
-        ).select_related('sezione', 'sezione__comune')
+        ).values_list('sezione_id', flat=True)
+        my_sezioni_ids.update(assignments)
+
+        # 2. Delegato/SubDelegato: sections from their territory
+        roles = get_user_delegation_roles(request.user, consultazione.id)
+        if roles['is_delegato'] or roles['is_sub_delegato']:
+            sezioni_filter = get_sezioni_filter_for_user(request.user, consultazione.id)
+            if sezioni_filter is not None:
+                # Q() means "all sections" for superusers
+                if sezioni_filter == Q():
+                    # Don't load ALL sections for superuser in scrutinio
+                    # They should use admin or specific filters
+                    pass
+                else:
+                    territory_sezioni = SezioneElettorale.objects.filter(
+                        sezioni_filter,
+                        is_attiva=True
+                    ).values_list('id', flat=True)
+                    # Exclude sections already in my_sezioni_ids
+                    territory_sezioni_ids.update(set(territory_sezioni) - my_sezioni_ids)
+
+        sezioni_ids = my_sezioni_ids | territory_sezioni_ids
+
+        if not sezioni_ids:
+            return Response({'sezioni': [], 'total': 0, 'page': page, 'page_size': page_size, 'has_more': False})
+
+        # Total count
+        total = len(sezioni_ids)
+
+        # Load sezioni with pagination
+        sezioni_qs = SezioneElettorale.objects.filter(
+            id__in=sezioni_ids
+        ).select_related('comune', 'municipio').order_by('comune__nome', 'numero')
+
+        # Apply pagination
+        offset = (page - 1) * page_size
+        sezioni_page = sezioni_qs[offset:offset + page_size]
+        has_more = offset + page_size < total
 
         sezioni_list = []
-        for assignment in assignments:
-            sezione = assignment.sezione
-
+        for sezione in sezioni_page:
             # Get or create DatiSezione
             dati_sezione, _ = DatiSezione.objects.prefetch_related('schede').get_or_create(
                 sezione=sezione,
@@ -925,11 +965,22 @@ class ScrutinioSezioniView(APIView):
             sezioni_list.append({
                 'comune': sezione.comune.nome,
                 'sezione': sezione.numero,
+                'denominazione': sezione.denominazione,
+                'indirizzo': sezione.indirizzo,
+                'is_mia': sezione.id in my_sezioni_ids,
                 'dati_seggio': dati_seggio,
                 'schede': schede_data,
             })
 
-        return Response({'sezioni': sezioni_list})
+        return Response({
+            'sezioni': sezioni_list,
+            'total': total,
+            'total_mie': len(my_sezioni_ids),
+            'total_territorio': len(territory_sezioni_ids),
+            'page': page,
+            'page_size': page_size,
+            'has_more': has_more
+        })
 
 
 class ScrutinioSaveView(APIView):

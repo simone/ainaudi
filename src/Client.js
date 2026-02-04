@@ -151,18 +151,34 @@ const Client = (server, pdfServer, token) => {
                 return { error: error.message };
             }),
 
-        // Get user's sections with structured data
-        sezioni: async () =>
-            fetchWithCacheAndRetry('scrutinio.sezioni', 30)(`${server}/api/scrutinio/sezioni`, {
+        // Get user's sections with structured data (paginated)
+        sezioni: async (page = 1, pageSize = 50) => {
+            const params = new URLSearchParams({ page, page_size: pageSize });
+            // Only cache first page briefly
+            const cacheKey = page === 1 ? 'scrutinio.sezioni.1' : null;
+            const url = `${server}/api/scrutinio/sezioni?${params}`;
+
+            if (cacheKey) {
+                return fetchWithCacheAndRetry(cacheKey, 30)(url, {
+                    headers: { 'Authorization': authHeader }
+                }).catch(error => {
+                    console.error(error);
+                    return { error: error.message, sezioni: [], total: 0, has_more: false };
+                });
+            }
+
+            // No cache for subsequent pages
+            return fetch(url, {
                 headers: { 'Authorization': authHeader }
-            }).catch(error => {
+            }).then(response => response.json()).catch(error => {
                 console.error(error);
-                return { error: error.message };
-            }),
+                return { error: error.message, sezioni: [], total: 0, has_more: false };
+            });
+        },
 
         // Save section data
         save: async (data) =>
-            fetchAndInvalidate(['scrutinio.sezioni', 'assigned', 'own'])(`${server}/api/scrutinio/save`, {
+            fetchAndInvalidate(['scrutinio.sezioni.1', 'assigned', 'own'])(`${server}/api/scrutinio/save`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

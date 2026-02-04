@@ -303,6 +303,305 @@ function GestioneCampagne({ client, consultazione, setError, onOpenCampagna }) {
         return date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
 
+    // Render del form campagna (riusabile)
+    const renderCampagnaForm = () => (
+        <div className="card">
+            <div className="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <strong>{editingCampagna ? 'Modifica Campagna' : 'Nuova Campagna'}</strong>
+                <button
+                    type="button"
+                    className="btn-close btn-close-white"
+                    onClick={() => { setShowCampagnaForm(false); resetCampagnaForm(); }}
+                    aria-label="Chiudi"
+                />
+            </div>
+            <div className="card-body">
+                <p className="text-muted mb-3 small">
+                    Crea un link pubblico per raccogliere candidature RDL per: <strong>{consultazione?.nome}</strong>
+                </p>
+
+                {formError && (
+                    <div className="alert alert-danger py-2">{formError}</div>
+                )}
+
+                <form onSubmit={handleSaveCampagna}>
+                    <div className="row g-2 mb-2">
+                        <div className="col-12">
+                            <label htmlFor="nome" className="form-label small mb-1">Nome *</label>
+                            <input
+                                id="nome"
+                                type="text"
+                                className="form-control form-control-sm"
+                                value={campagnaForm.nome}
+                                onChange={(e) => handleCampagnaFormChange('nome', e.target.value)}
+                                placeholder="Es: Referendum Giugno 2025 - Roma"
+                                required
+                                disabled={savingCampagna}
+                            />
+                        </div>
+                        <div className="col-12">
+                            <label htmlFor="slug" className="form-label small mb-1">Slug URL</label>
+                            <input
+                                id="slug"
+                                type="text"
+                                className="form-control form-control-sm"
+                                value={campagnaForm.slug}
+                                onChange={(e) => handleCampagnaFormChange('slug', e.target.value)}
+                                placeholder="auto-generato"
+                                disabled={savingCampagna}
+                            />
+                            <small className="text-muted">/campagna/{campagnaForm.slug || '...'}</small>
+                        </div>
+                    </div>
+
+                    <div className="mb-2">
+                        <label htmlFor="descrizione" className="form-label small mb-1">Descrizione</label>
+                        <textarea
+                            id="descrizione"
+                            className="form-control form-control-sm"
+                            rows="2"
+                            value={campagnaForm.descrizione}
+                            onChange={(e) => handleCampagnaFormChange('descrizione', e.target.value)}
+                            placeholder="Descrizione opzionale"
+                            disabled={savingCampagna}
+                        />
+                    </div>
+
+                    <div className="row g-2 mb-2">
+                        <div className="col-6">
+                            <label htmlFor="data_apertura" className="form-label small mb-1">Apertura *</label>
+                            <input
+                                id="data_apertura"
+                                type="datetime-local"
+                                className="form-control form-control-sm"
+                                value={campagnaForm.data_apertura}
+                                onChange={(e) => handleCampagnaFormChange('data_apertura', e.target.value)}
+                                required
+                                disabled={savingCampagna}
+                            />
+                        </div>
+                        <div className="col-6">
+                            <label htmlFor="data_chiusura" className="form-label small mb-1">Chiusura *</label>
+                            <input
+                                id="data_chiusura"
+                                type="datetime-local"
+                                className="form-control form-control-sm"
+                                value={campagnaForm.data_chiusura}
+                                onChange={(e) => handleCampagnaFormChange('data_chiusura', e.target.value)}
+                                required
+                                disabled={savingCampagna}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="row g-2 mb-2">
+                        <div className="col-6">
+                            <label htmlFor="regione" className="form-label small mb-1">Regione</label>
+                            <select
+                                id="regione"
+                                className="form-select form-select-sm"
+                                value={String(campagnaForm.regioni_ids[0] || '')}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val) {
+                                        handleCampagnaFormChange('regioni_ids', [parseInt(val)]);
+                                        handleCampagnaFormChange('province_ids', []);
+                                        handleCampagnaFormChange('comuni_ids', []);
+                                        setProvince([]);
+                                        setComuni([]);
+                                        loadProvince(val);
+                                    } else {
+                                        handleCampagnaFormChange('regioni_ids', []);
+                                        handleCampagnaFormChange('province_ids', []);
+                                        handleCampagnaFormChange('comuni_ids', []);
+                                        setProvince([]);
+                                        setComuni([]);
+                                    }
+                                }}
+                                disabled={savingCampagna}
+                            >
+                                <option value="">Tutte</option>
+                                {regioni && regioni.map(r => (
+                                    <option key={r.id} value={String(r.id)}>{r.nome}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="col-6">
+                            <label htmlFor="provincia" className="form-label small mb-1">Provincia</label>
+                            <select
+                                id="provincia"
+                                className="form-select form-select-sm"
+                                value={String(campagnaForm.province_ids[0] || '')}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    handleCampagnaFormChange('province_ids', val ? [parseInt(val)] : []);
+                                    handleCampagnaFormChange('comuni_ids', []);
+                                    setComuni([]);
+                                    if (val) loadComuni(val);
+                                }}
+                                disabled={!campagnaForm.regioni_ids.length || savingCampagna}
+                            >
+                                <option value="">Tutte</option>
+                                {province.map(p => (
+                                    <option key={p.id} value={String(p.id)}>{p.nome}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="mb-2">
+                        <label htmlFor="comune" className="form-label small mb-1">Comune</label>
+                        <select
+                            id="comune"
+                            className="form-select form-select-sm"
+                            value={String(campagnaForm.comuni_ids[0] || '')}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                handleCampagnaFormChange('comuni_ids', val ? [parseInt(val)] : []);
+                            }}
+                            disabled={!campagnaForm.province_ids.length || savingCampagna}
+                        >
+                            <option value="">Tutti</option>
+                            {comuni.map(c => (
+                                <option key={c.id} value={String(c.id)}>{c.nome}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="mb-3">
+                        <label htmlFor="messaggio" className="form-label small mb-1">Messaggio conferma</label>
+                        <textarea
+                            id="messaggio"
+                            className="form-control form-control-sm"
+                            rows="2"
+                            value={campagnaForm.messaggio_conferma}
+                            onChange={(e) => handleCampagnaFormChange('messaggio_conferma', e.target.value)}
+                            placeholder="Opzionale"
+                            disabled={savingCampagna}
+                        />
+                    </div>
+
+                    <div className="d-flex gap-2">
+                        <button
+                            type="submit"
+                            className="btn btn-primary btn-sm flex-grow-1"
+                            disabled={savingCampagna || !campagnaForm.nome || !campagnaForm.data_apertura || !campagnaForm.data_chiusura}
+                        >
+                            {savingCampagna ? (
+                                <><span className="spinner-border spinner-border-sm me-1"></span>Salvataggio...</>
+                            ) : (editingCampagna ? 'Salva' : 'Crea')}
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-outline-secondary btn-sm"
+                            onClick={() => { setShowCampagnaForm(false); resetCampagnaForm(); }}
+                            disabled={savingCampagna}
+                        >
+                            Annulla
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+
+    // Render della lista campagne
+    const renderCampagneList = () => (
+        <>
+            {loadingCampagne ? (
+                <div className="text-center py-4">
+                    <div className="spinner-border text-primary" role="status">
+                        <span className="visually-hidden">Caricamento...</span>
+                    </div>
+                </div>
+            ) : campagne.length === 0 && !showCampagnaForm ? (
+                <div className="text-center text-muted py-5">
+                    <div style={{ fontSize: '3rem' }}>📢</div>
+                    <p>Non hai ancora creato campagne di reclutamento</p>
+                    <p className="small">Le campagne ti permettono di creare link pubblici per raccogliere candidature RDL.</p>
+                </div>
+            ) : (
+                <div className="d-flex flex-column gap-2">
+                    {campagne.map((campagna) => (
+                        <div key={campagna.id} className={`card ${
+                            campagna.stato === 'ATTIVA' ? 'border-success' :
+                            campagna.stato === 'CHIUSA' ? 'border-secondary' :
+                            'border-warning'
+                        }`}>
+                            <div className="card-body py-2 px-3">
+                                <div className="d-flex justify-content-between align-items-start mb-1">
+                                    <h6 className="mb-0 small">
+                                        <i className="fas fa-bullhorn me-1 text-primary"></i>
+                                        {campagna.nome}
+                                    </h6>
+                                    <span className={`badge ${
+                                        campagna.stato === 'ATTIVA' ? 'bg-success' :
+                                        campagna.stato === 'CHIUSA' ? 'bg-secondary' :
+                                        'bg-warning text-dark'
+                                    }`} style={{ fontSize: '0.65rem' }}>
+                                        {campagna.stato}
+                                    </span>
+                                </div>
+
+                                <div className="mb-1 d-flex flex-wrap gap-1">
+                                    <span className="badge bg-light text-dark" style={{ fontSize: '0.65rem' }}>
+                                        {campagna.n_registrazioni || 0} registrazioni
+                                    </span>
+                                    {campagna.data_chiusura && (
+                                        <span className="badge bg-light text-dark" style={{ fontSize: '0.65rem' }}>
+                                            Scade: {formatDate(campagna.data_chiusura)}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {campagna.stato === 'ATTIVA' && (
+                                    <div className="small mb-1" style={{ wordBreak: 'break-all', fontSize: '0.75rem' }}>
+                                        <a
+                                            href={`/campagna/${campagna.slug}`}
+                                            onClick={(e) => { e.preventDefault(); onOpenCampagna?.(campagna.slug); }}
+                                            className="text-primary"
+                                        >
+                                            /campagna/{campagna.slug}
+                                        </a>
+                                    </div>
+                                )}
+
+                                <div className="d-flex flex-wrap gap-1 pt-1 border-top">
+                                    {campagna.stato === 'ATTIVA' && (
+                                        <>
+                                            <button className="btn btn-outline-success btn-sm py-0 px-1" onClick={() => onOpenCampagna?.(campagna.slug)} title="Apri">
+                                                <i className="fas fa-external-link-alt"></i>
+                                            </button>
+                                            <button className="btn btn-outline-primary btn-sm py-0 px-1" onClick={() => handleCopiaLink(campagna)} title="Copia">
+                                                <i className="fas fa-copy"></i>
+                                            </button>
+                                        </>
+                                    )}
+                                    <button className="btn btn-outline-secondary btn-sm py-0 px-1" onClick={() => handleEditCampagna(campagna)} title="Modifica">
+                                        <i className="fas fa-edit"></i>
+                                    </button>
+                                    {campagna.stato === 'BOZZA' && (
+                                        <button className="btn btn-success btn-sm py-0 px-2" onClick={() => handleAttivaCampagna(campagna)} title="Attiva">
+                                            <i className="fas fa-play"></i>
+                                        </button>
+                                    )}
+                                    {campagna.stato === 'ATTIVA' && (
+                                        <button className="btn btn-outline-warning btn-sm py-0 px-2" onClick={() => handleChiudiCampagna(campagna)} title="Chiudi">
+                                            <i className="fas fa-pause"></i>
+                                        </button>
+                                    )}
+                                    <button className="btn btn-outline-danger btn-sm py-0 px-1 ms-auto" onClick={() => handleDeleteCampagna(campagna)} title="Elimina">
+                                        <i className="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </>
+    );
+
     return (
         <>
             <div className="mb-3">
@@ -334,431 +633,37 @@ function GestioneCampagne({ client, consultazione, setError, onOpenCampagna }) {
                                 }
                             }}
                         >
-                            {showCampagnaForm ? 'Annulla' : '+ Nuova Campagna'}
+                            {showCampagnaForm ? 'Torna alla Lista' : '+ Nuova Campagna'}
                         </button>
                     </div>
                 </div>
             </div>
-
-            {/* Form nuova/modifica campagna */}
-            {showCampagnaForm && (
-                <div className="card mb-3">
-                    <div className="card-header bg-info text-white">
-                        <strong>{editingCampagna ? 'Modifica Campagna' : 'Nuova Campagna'}</strong>
-                    </div>
-                    <div className="card-body">
-                        <p className="text-muted mb-3">
-                            Crea un link pubblico per raccogliere candidature come Rappresentante di Lista per la consultazione: <strong>{consultazione?.nome}</strong>
-                        </p>
-
-                        {formError && (
-                            <div className="alert alert-danger">{formError}</div>
-                        )}
-
-                        <form onSubmit={handleSaveCampagna}>
-                            {/* Informazioni campagna */}
-                            <h6 className="text-muted mb-3">Informazioni campagna</h6>
-                            <div className="row g-3 mb-3">
-                                <div className="col-md-6">
-                                    <label htmlFor="nome" className="form-label">Nome *</label>
-                                    <input
-                                        id="nome"
-                                        type="text"
-                                        className="form-control"
-                                        value={campagnaForm.nome}
-                                        onChange={(e) => handleCampagnaFormChange('nome', e.target.value)}
-                                        placeholder="Es: Referendum Giugno 2025 - Roma"
-                                        required
-                                        disabled={savingCampagna}
-                                        aria-required="true"
-                                        aria-describedby="nome-help"
-                                    />
-                                    <small id="nome-help" className="text-muted">Nome della campagna di reclutamento</small>
-                                </div>
-                                <div className="col-md-6">
-                                    <label htmlFor="slug" className="form-label">Slug URL</label>
-                                    <input
-                                        id="slug"
-                                        type="text"
-                                        className="form-control"
-                                        value={campagnaForm.slug}
-                                        onChange={(e) => handleCampagnaFormChange('slug', e.target.value)}
-                                        placeholder="auto-generato"
-                                        disabled={savingCampagna}
-                                        aria-describedby="slug-help"
-                                    />
-                                    <small id="slug-help" className="text-muted">/campagna/{campagnaForm.slug || '...'}</small>
-                                </div>
-                            </div>
-
-                            <div className="row g-3 mb-3">
-                                <div className="col-12">
-                                    <label htmlFor="descrizione" className="form-label">Descrizione</label>
-                                    <textarea
-                                        id="descrizione"
-                                        className="form-control"
-                                        rows="2"
-                                        value={campagnaForm.descrizione}
-                                        onChange={(e) => handleCampagnaFormChange('descrizione', e.target.value)}
-                                        placeholder="Descrizione opzionale della campagna"
-                                        disabled={savingCampagna}
-                                        aria-describedby="descrizione-help"
-                                    />
-                                    <small id="descrizione-help" className="text-muted">Mostrata sulla pagina di registrazione</small>
-                                </div>
-                            </div>
-
-                            {/* Date */}
-                            <h6 className="text-muted mb-3 mt-3">Periodo di disponibilità</h6>
-                            <div className="row g-3 mb-3">
-                                <div className="col-md-6">
-                                    <label htmlFor="data_apertura" className="form-label">Data e ora apertura *</label>
-                                    <input
-                                        id="data_apertura"
-                                        type="datetime-local"
-                                        className="form-control"
-                                        value={campagnaForm.data_apertura}
-                                        onChange={(e) => handleCampagnaFormChange('data_apertura', e.target.value)}
-                                        required
-                                        disabled={savingCampagna}
-                                        aria-required="true"
-                                        aria-describedby="data_apertura-help"
-                                    />
-                                    <small id="data_apertura-help" className="text-muted">Da quando la campagna è accessibile</small>
-                                </div>
-                                <div className="col-md-6">
-                                    <label htmlFor="data_chiusura" className="form-label">Data e ora chiusura *</label>
-                                    <input
-                                        id="data_chiusura"
-                                        type="datetime-local"
-                                        className="form-control"
-                                        value={campagnaForm.data_chiusura}
-                                        onChange={(e) => handleCampagnaFormChange('data_chiusura', e.target.value)}
-                                        required
-                                        disabled={savingCampagna}
-                                        aria-required="true"
-                                        aria-describedby="data_chiusura-help"
-                                    />
-                                    <small id="data_chiusura-help" className="text-muted">Quando la campagna si chiude</small>
-                                </div>
-                            </div>
-
-                            {/* Territorio */}
-                            <h6 className="text-muted mb-3 mt-3">Territorio (opzionale)</h6>
-                            <div className="alert alert-light border small mb-3" role="note">
-                                <strong>Scegli per territorio:</strong> Lascia vuoto per accettare registrazioni da tutti i comuni,
-                                oppure seleziona regione, provincia e/o comune per limitare le candidature a specifiche aree.
-                            </div>
-
-                            <div className="row g-3 mb-3">
-                                <div className="col-md-6">
-                                    <label htmlFor="regione" className="form-label">Regione</label>
-                                    <select
-                                        id="regione"
-                                        className="form-select"
-                                        value={String(campagnaForm.regioni_ids[0] || '')}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            if (val) {
-                                                handleCampagnaFormChange('regioni_ids', [parseInt(val)]);
-                                                handleCampagnaFormChange('province_ids', []);
-                                                handleCampagnaFormChange('comuni_ids', []);
-                                                setProvince([]);
-                                                setComuni([]);
-                                                loadProvince(val);
-                                            } else {
-                                                handleCampagnaFormChange('regioni_ids', []);
-                                                handleCampagnaFormChange('province_ids', []);
-                                                handleCampagnaFormChange('comuni_ids', []);
-                                                setProvince([]);
-                                                setComuni([]);
-                                            }
-                                        }}
-                                        disabled={savingCampagna}
-                                        aria-describedby="regione-help"
-                                    >
-                                        <option value="">Tutte le regioni</option>
-                                        {regioni && regioni.map(r => (
-                                            <option key={r.id} value={String(r.id)}>{r.nome}</option>
-                                        ))}
-                                    </select>
-                                    <small id="regione-help" className="text-muted">Accettare candidature da tutta l'Italia o da una regione specifica?</small>
-                                </div>
-                                <div className="col-md-6">
-                                    <label htmlFor="provincia" className="form-label">Provincia</label>
-                                    <select
-                                        id="provincia"
-                                        className="form-select"
-                                        value={String(campagnaForm.province_ids[0] || '')}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            handleCampagnaFormChange('province_ids', val ? [parseInt(val)] : []);
-                                            handleCampagnaFormChange('comuni_ids', []);
-                                            setComuni([]);
-                                            if (val) loadComuni(val);
-                                        }}
-                                        disabled={!campagnaForm.regioni_ids.length || savingCampagna}
-                                        aria-describedby="provincia-help"
-                                    >
-                                        <option value="">Tutte le province</option>
-                                        {province.map(p => (
-                                            <option key={p.id} value={String(p.id)}>{p.nome}</option>
-                                        ))}
-                                    </select>
-                                    <small id="provincia-help" className="text-muted">Disponibile dopo aver selezionato una regione</small>
-                                </div>
-                            </div>
-
-                            <div className="row g-3 mb-3">
-                                <div className="col-12">
-                                    <label htmlFor="comune" className="form-label">Comune</label>
-                                    <select
-                                        id="comune"
-                                        className="form-select"
-                                        value={String(campagnaForm.comuni_ids[0] || '')}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            handleCampagnaFormChange('comuni_ids', val ? [parseInt(val)] : []);
-                                        }}
-                                        disabled={!campagnaForm.province_ids.length || savingCampagna}
-                                        aria-describedby="comune-help"
-                                    >
-                                        <option value="">Tutti i comuni</option>
-                                        {comuni.map(c => (
-                                            <option key={c.id} value={String(c.id)}>{c.nome}</option>
-                                        ))}
-                                    </select>
-                                    <small id="comune-help" className="text-muted">Disponibile dopo aver selezionato una provincia</small>
-                                </div>
-                            </div>
-
-                            {/* Messaggio di conferma */}
-                            <h6 className="text-muted mb-3 mt-3">Messaggio di conferma</h6>
-                            <div className="row g-3 mb-3">
-                                <div className="col-12">
-                                    <label htmlFor="messaggio" className="form-label">Messaggio personalizzato</label>
-                                    <textarea
-                                        id="messaggio"
-                                        className="form-control"
-                                        rows="2"
-                                        value={campagnaForm.messaggio_conferma}
-                                        onChange={(e) => handleCampagnaFormChange('messaggio_conferma', e.target.value)}
-                                        placeholder="Messaggio mostrato dopo la registrazione (opzionale)"
-                                        disabled={savingCampagna}
-                                        aria-describedby="messaggio-help"
-                                    />
-                                    <small id="messaggio-help" className="text-muted">Se vuoto, verrà mostrato il messaggio predefinito di completamento registrazione</small>
-                                </div>
-                            </div>
-
-                            {/* Buttons */}
-                            <div className="d-flex gap-2 mt-4 pt-3 border-top">
-                                <button
-                                    type="submit"
-                                    className="btn btn-primary"
-                                    disabled={savingCampagna || !campagnaForm.nome || !campagnaForm.data_apertura || !campagnaForm.data_chiusura}
-                                >
-                                    {savingCampagna ? (
-                                        <>
-                                            <span className="spinner-border spinner-border-sm me-2"></span>
-                                            Salvataggio...
-                                        </>
-                                    ) : (editingCampagna ? 'Salva Modifiche' : 'Crea Campagna')}
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    onClick={() => { setShowCampagnaForm(false); resetCampagnaForm(); }}
-                                    disabled={savingCampagna}
-                                >
-                                    Annulla
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
 
             {/* Success screen */}
             {successCampagna && (
-                <div className="card mb-3 border-success">
-                    <div className="card-header bg-success text-white">
-                        <i className="fas fa-check-circle me-2"></i>
-                        {editingCampagna ? 'Campagna modificata' : 'Campagna creata'}
+                <div className="alert alert-success d-flex align-items-center mb-3">
+                    <i className="fas fa-check-circle me-2"></i>
+                    <div className="flex-grow-1">
+                        Campagna "{successCampagna.nome}" {editingCampagna ? 'modificata' : 'creata'} con successo!
                     </div>
-                    <div className="card-body">
-                        <p className="mb-2">
-                            {editingCampagna
-                                ? `La campagna "${successCampagna.nome}" è stata modificata con successo.`
-                                : `La campagna "${successCampagna.nome}" è stata creata con successo!`}
-                        </p>
-                        <p className="text-muted small mb-3">
-                            {successCampagna.stato === 'BOZZA'
-                                ? 'La campagna è attualmente in bozza e non visibile pubblicamente. Potrai attivarla quando sarai pronto.'
-                                : 'La campagna è attualmente attiva e visibile pubblicamente.'}
-                        </p>
-                        <button
-                            className="btn btn-primary"
-                            onClick={() => setSuccessCampagna(null)}
-                        >
-                            Continua
-                        </button>
-                    </div>
+                    <button className="btn btn-sm btn-success" onClick={() => setSuccessCampagna(null)}>OK</button>
                 </div>
             )}
 
-            {/* Lista campagne */}
-            {loadingCampagne ? (
-                <div className="text-center py-4">
-                    <div className="spinner-border text-primary" role="status">
-                        <span className="visually-hidden">Caricamento...</span>
-                    </div>
-                </div>
-            ) : campagne.length === 0 ? (
-                <div className="text-center text-muted py-5">
-                    <div style={{ fontSize: '3rem' }}>📢</div>
-                    <p>Non hai ancora creato campagne di reclutamento</p>
-                    <p className="small">
-                        Le campagne ti permettono di creare link pubblici per raccogliere candidature RDL.
-                    </p>
-                </div>
+            {/* Form OPPURE Lista (mai entrambi) */}
+            {showCampagnaForm ? (
+                renderCampagnaForm()
             ) : (
-                <div className="row g-3">
-                    {campagne.map((campagna) => (
-                        <div key={campagna.id} className="col-12">
-                            <div className={`card ${
-                                campagna.stato === 'ATTIVA' ? 'border-success' :
-                                campagna.stato === 'CHIUSA' ? 'border-secondary' :
-                                'border-warning'
-                            }`}>
-                                <div className="card-body">
-                                    {/* Header: titolo e stato */}
-                                    <div className="d-flex justify-content-between align-items-start mb-2">
-                                        <h6 className="mb-0">
-                                            <i className="fas fa-bullhorn me-2 text-primary"></i>
-                                            {campagna.nome}
-                                        </h6>
-                                        <span className={`badge flex-shrink-0 ${
-                                            campagna.stato === 'ATTIVA' ? 'bg-success' :
-                                            campagna.stato === 'CHIUSA' ? 'bg-secondary' :
-                                            'bg-warning text-dark'
-                                        }`}>
-                                            {campagna.stato === 'ATTIVA' ? '● Attiva' :
-                                             campagna.stato === 'CHIUSA' ? '○ Chiusa' :
-                                             '○ Bozza'}
-                                        </span>
-                                    </div>
-
-                                    {/* Info badges */}
-                                    <div className="mb-2 d-flex flex-wrap gap-1">
-                                        <span className="badge bg-light text-dark">
-                                            {campagna.n_registrazioni || 0} registrazioni
-                                        </span>
-                                        {campagna.data_chiusura && (
-                                            <span className="badge bg-light text-dark">
-                                                Scade: {formatDate(campagna.data_chiusura)}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Link (solo se attiva) */}
-                                    {campagna.stato === 'ATTIVA' && (
-                                        <div className="small mb-2" style={{ wordBreak: 'break-all' }}>
-                                            <i className="fas fa-link me-1 text-muted"></i>
-                                            <a
-                                                href={`/campagna/${campagna.slug}`}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    if (onOpenCampagna) {
-                                                        onOpenCampagna(campagna.slug);
-                                                    }
-                                                }}
-                                                className="text-primary"
-                                                title="Apri campagna"
-                                            >
-                                                {window.location.origin}/campagna/{campagna.slug}
-                                            </a>
-                                        </div>
-                                    )}
-
-                                    {/* Territorio */}
-                                    {campagna.territorio_display && (
-                                        <div className="small text-muted mb-2">
-                                            <i className="fas fa-map-marker-alt me-1"></i>
-                                            {campagna.territorio_display}
-                                        </div>
-                                    )}
-
-                                    {/* Azioni */}
-                                    <div className="d-flex flex-wrap gap-1 pt-2 border-top">
-                                        {campagna.stato === 'ATTIVA' && (
-                                            <>
-                                                <button
-                                                    className="btn btn-outline-success btn-sm"
-                                                    onClick={() => onOpenCampagna && onOpenCampagna(campagna.slug)}
-                                                    title="Apri campagna"
-                                                >
-                                                    <i className="fas fa-external-link-alt"></i>
-                                                </button>
-                                                <button
-                                                    className="btn btn-outline-primary btn-sm"
-                                                    onClick={() => handleCopiaLink(campagna)}
-                                                    title="Copia link"
-                                                >
-                                                    <i className="fas fa-copy"></i>
-                                                </button>
-                                            </>
-                                        )}
-                                        <button
-                                            className="btn btn-outline-secondary btn-sm"
-                                            onClick={() => handleEditCampagna(campagna)}
-                                            title="Modifica"
-                                        >
-                                            <i className="fas fa-edit"></i>
-                                        </button>
-                                        {campagna.stato === 'BOZZA' && (
-                                            <button
-                                                className="btn btn-success btn-sm"
-                                                onClick={() => handleAttivaCampagna(campagna)}
-                                                title="Attiva"
-                                            >
-                                                <i className="fas fa-play me-1"></i>Attiva
-                                            </button>
-                                        )}
-                                        {campagna.stato === 'ATTIVA' && (
-                                            <button
-                                                className="btn btn-outline-warning btn-sm"
-                                                onClick={() => handleChiudiCampagna(campagna)}
-                                                title="Chiudi"
-                                            >
-                                                <i className="fas fa-pause me-1"></i>Chiudi
-                                            </button>
-                                        )}
-                                        <button
-                                            className="btn btn-outline-danger btn-sm ms-auto"
-                                            onClick={() => handleDeleteCampagna(campagna)}
-                                            title="Elimina"
-                                        >
-                                            <i className="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                renderCampagneList()
             )}
 
             {/* Info box */}
-            <div className="alert alert-info mt-3 small">
-                <i className="fas fa-info-circle me-1"></i>
-                <strong>Come funzionano le campagne:</strong>
-                <ul className="mb-0 mt-1">
-                    <li><strong>Bozza</strong>: La campagna non e visibile pubblicamente</li>
-                    <li><strong>Attiva</strong>: Il link e accessibile e le persone possono registrarsi</li>
-                    <li><strong>Chiusa</strong>: Il link non funziona piu</li>
-                </ul>
-            </div>
+            {!showCampagnaForm && campagne.length > 0 && (
+                <div className="alert alert-info mt-3 small">
+                    <i className="fas fa-info-circle me-1"></i>
+                    <strong>Bozza</strong> = non visibile | <strong>Attiva</strong> = link funzionante | <strong>Chiusa</strong> = link disattivato
+                </div>
+            )}
 
             {/* Confirm Modal */}
             <ConfirmModal

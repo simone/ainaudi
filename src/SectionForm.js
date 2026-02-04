@@ -1,30 +1,104 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useState, useRef, useCallback} from "react";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 // Stili per il wizard mobile-first
 const wizardStyles = `
+    /* Overlay backdrop */
+    .wizard-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 998;
+        opacity: 0;
+        animation: fadeIn 0.3s ease forwards;
+    }
+
+    .wizard-overlay.closing {
+        animation: fadeOut 0.3s ease forwards;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+
+    /* Sheet container */
+    .wizard-sheet {
+        position: fixed;
+        inset: 0;
+        top: 40px;
+        z-index: 999;
+        transform: translateY(100%);
+        animation: slideUp 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+        will-change: transform;
+    }
+
+    .wizard-sheet.closing {
+        animation: slideDown 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+    }
+
+    .wizard-sheet.dragging {
+        animation: none;
+        transition: none;
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+    }
+
+    @keyframes slideDown {
+        from { transform: translateY(0); }
+        to { transform: translateY(100%); }
+    }
+
     .wizard-container {
-        min-height: 100vh;
-        padding-bottom: 100px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
         background: #f5f5f5;
+        border-radius: 20px 20px 0 0;
+        overflow: hidden;
+    }
+
+    /* Drag handle */
+    .wizard-drag-handle {
+        flex-shrink: 0;
+        padding: 12px 0 8px 0;
+        display: flex;
+        justify-content: center;
+        cursor: grab;
+        touch-action: none;
+    }
+
+    .wizard-drag-handle:active {
+        cursor: grabbing;
+    }
+
+    .wizard-drag-bar {
+        width: 36px;
+        height: 5px;
+        background: #ccc;
+        border-radius: 3px;
     }
 
     .wizard-header {
-        position: sticky;
-        top: 0;
-        z-index: 100;
+        flex-shrink: 0;
         background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
         color: white;
-        padding: 12px 16px;
-        margin: -1rem -1rem 0 -1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        padding: 8px 16px 12px 16px;
     }
 
     .wizard-header-top {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
     }
 
     .wizard-header-back {
@@ -60,41 +134,77 @@ const wizardStyles = `
         opacity: 0.9;
     }
 
-    /* Step indicator */
-    .wizard-steps {
+    /* Step tabs - Touch optimized */
+    .wizard-tabs {
         display: flex;
-        justify-content: center;
         gap: 8px;
-        padding: 8px 0;
+        padding: 10px 0 6px 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
     }
 
-    .wizard-step {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.3);
-        transition: all 0.3s;
+    .wizard-tabs::-webkit-scrollbar {
+        display: none;
     }
 
-    .wizard-step.active {
+    .wizard-tab {
+        flex: 0 0 auto;
+        min-height: 36px;
+        padding: 8px 14px;
+        border-radius: 18px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border: none;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.15s;
+        -webkit-tap-highlight-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .wizard-tab:active {
+        transform: scale(0.95);
+    }
+
+    .wizard-tab.active {
         background: white;
-        transform: scale(1.2);
+        color: #0d6efd;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
 
-    .wizard-step.completed {
-        background: rgba(255,255,255,0.8);
+    .wizard-tab.complete:not(.active) {
+        background: rgba(255,255,255,0.5);
     }
 
-    .wizard-step-label {
-        font-size: 0.75rem;
-        opacity: 0.9;
-        text-align: center;
-        margin-top: 4px;
+    .wizard-tab-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
     }
 
-    /* Content area */
+    .wizard-tab-check {
+        color: #198754;
+        font-size: 0.7rem;
+    }
+
+    /* Scrollable content area */
+    .wizard-scroll {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
     .wizard-content {
         padding: 16px;
+        padding-bottom: 100px;
     }
 
     .wizard-card {
@@ -164,10 +274,6 @@ const wizardStyles = `
     .wizard-input:focus {
         outline: none;
         border-color: #0d6efd;
-    }
-
-    .wizard-input.error {
-        border-color: #dc3545;
     }
 
     /* Totals */
@@ -251,24 +357,23 @@ const wizardStyles = `
         margin-bottom: 12px;
     }
 
-    /* Bottom navigation */
+    /* Bottom navigation - Mobile optimized */
     .wizard-nav {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
+        flex-shrink: 0;
         background: white;
         padding: 12px 16px;
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
         box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
         display: flex;
         gap: 12px;
-        z-index: 100;
+        position: relative;
     }
 
     .wizard-nav-btn {
         flex: 1;
-        padding: 14px 20px;
-        border-radius: 12px;
+        min-height: 52px;
+        padding: 14px 16px;
+        border-radius: 14px;
         font-size: 1rem;
         font-weight: 600;
         border: none;
@@ -277,87 +382,95 @@ const wizardStyles = `
         align-items: center;
         justify-content: center;
         gap: 8px;
-        transition: all 0.2s;
+        transition: all 0.15s;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .wizard-nav-btn:active {
+        transform: scale(0.97);
     }
 
     .wizard-nav-btn.secondary {
         background: #f0f0f0;
-        color: #333;
+        color: #495057;
+        flex: 0.8;
     }
 
     .wizard-nav-btn.primary {
-        background: #0d6efd;
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
         color: white;
+        flex: 1.2;
     }
 
     .wizard-nav-btn.success {
-        background: #198754;
+        background: linear-gradient(135deg, #198754 0%, #157347 100%);
         color: white;
+        flex: 1.2;
     }
 
     .wizard-nav-btn:disabled {
-        opacity: 0.5;
+        opacity: 0.4;
         cursor: not-allowed;
+        transform: none;
     }
 
-    /* Summary */
-    .summary-section {
-        background: #f8f9fa;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 12px;
-    }
-
-    .summary-section-title {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: #666;
-        margin-bottom: 8px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .summary-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 6px 0;
-        border-bottom: 1px solid #e9ecef;
-    }
-
-    .summary-row:last-child {
-        border-bottom: none;
-    }
-
-    .summary-label {
-        color: #666;
+    .wizard-nav-btn i {
         font-size: 0.9rem;
     }
 
-    .summary-value {
+    /* Step indicator in nav */
+    .wizard-nav-indicator {
+        position: absolute;
+        top: -24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.75rem;
         font-weight: 600;
-        color: #333;
+        color: #666;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
-    .summary-value.si { color: #198754; }
-    .summary-value.no { color: #dc3545; }
-
-    /* Error message */
-    .wizard-error {
-        background: #f8d7da;
-        color: #721c24;
-        padding: 10px 14px;
-        border-radius: 8px;
+    /* Saving indicator */
+    .saving-indicator {
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #198754;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
         font-size: 0.85rem;
-        margin-bottom: 12px;
+        font-weight: 600;
+        z-index: 200;
+        animation: fadeInOut 1.5s ease-in-out;
+    }
+
+    @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+        20% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        80% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
     }
 `;
 
-function SectionForm({schede, section, sectionData, updateSection, cancel}) {
-    // Steps: 0 = Dati Seggio, 1..N = Schede, N+1 = Riepilogo
-    const totalSteps = schede.length + 2; // seggio + N schede + riepilogo
+function SectionForm({schede, section, sectionData, saveSection, saveAndClose}) {
+    // Steps: 0 = Dati Seggio, 1..N = Schede
+    const totalSteps = schede.length + 1;
     const [currentStep, setCurrentStep] = useState(0);
-    const [isSaving, setIsSaving] = useState(false);
+    const [showSaved, setShowSaved] = useState(false);
+    const hasChangesRef = useRef(false);
+
+    // Bottom sheet animation state
+    const [isClosing, setIsClosing] = useState(false);
+    const [dragOffset, setDragOffset] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const sheetRef = useRef(null);
+    const dragStartY = useRef(0);
+    const dragStartOffset = useRef(0);
 
     // Initialize form data from sectionData
     const [datiSeggio, setDatiSeggio] = useState({
@@ -384,24 +497,49 @@ function SectionForm({schede, section, sectionData, updateSection, cancel}) {
         return initial;
     });
 
+    // Calculate first incomplete step
+    const getFirstIncompleteStep = useCallback(() => {
+        // Check seggio
+        const seggio = sectionData?.dati_seggio || {};
+        const seggioComplete = seggio.elettori_maschi != null &&
+                              seggio.elettori_femmine != null &&
+                              seggio.votanti_maschi != null &&
+                              seggio.votanti_femmine != null;
+        if (!seggioComplete) return 0;
+
+        // Check each scheda
+        for (let i = 0; i < schede.length; i++) {
+            const schedaData = sectionData?.schede?.[String(schede[i].id)];
+            if (!schedaData) return i + 1;
+
+            const isReferendum = schede[i].schema?.tipo === 'si_no';
+            const hasVotes = !isReferendum || (schedaData.voti?.si != null && schedaData.voti?.no != null);
+            const complete = schedaData.schede_ricevute != null && hasVotes;
+            if (!complete) return i + 1;
+        }
+
+        return 0; // All complete, go to first
+    }, [schede, sectionData]);
+
+    // Start at first incomplete step
+    useEffect(() => {
+        const startStep = getFirstIncompleteStep();
+        setCurrentStep(startStep);
+    }, []);
+
     useEffect(() => {
         window.scrollTo(0, 0);
     }, [currentStep]);
 
-    // Handle back button
+    // Handle browser back button
     useEffect(() => {
         window.history.pushState(null, null, window.location.pathname);
         const onPopState = () => {
-            if (currentStep > 0) {
-                setCurrentStep(currentStep - 1);
-                window.history.pushState(null, null, window.location.pathname);
-            } else {
-                cancel();
-            }
+            handleExit();
         };
         window.addEventListener('popstate', onPopState);
         return () => window.removeEventListener('popstate', onPopState);
-    }, [currentStep, cancel]);
+    }, []);
 
     // Prevent scroll on number input wheel
     useEffect(() => {
@@ -414,6 +552,55 @@ function SectionForm({schede, section, sectionData, updateSection, cancel}) {
         return () => window.removeEventListener('wheel', handleWheel);
     }, []);
 
+    // Build payload for saving
+    const buildPayload = useCallback(() => {
+        return {
+            comune: section.comune,
+            sezione: section.sezione,
+            dati_seggio: {
+                elettori_maschi: datiSeggio.elettori_maschi === '' ? null : +datiSeggio.elettori_maschi,
+                elettori_femmine: datiSeggio.elettori_femmine === '' ? null : +datiSeggio.elettori_femmine,
+                votanti_maschi: datiSeggio.votanti_maschi === '' ? null : +datiSeggio.votanti_maschi,
+                votanti_femmine: datiSeggio.votanti_femmine === '' ? null : +datiSeggio.votanti_femmine,
+            },
+            schede: Object.fromEntries(
+                schede.map(scheda => {
+                    const data = schedeData[scheda.id];
+                    return [scheda.id, {
+                        schede_ricevute: data.schede_ricevute === '' ? null : +data.schede_ricevute,
+                        schede_autenticate: data.schede_autenticate === '' ? null : +data.schede_autenticate,
+                        schede_bianche: data.schede_bianche === '' ? null : +data.schede_bianche,
+                        schede_nulle: data.schede_nulle === '' ? null : +data.schede_nulle,
+                        schede_contestate: data.schede_contestate === '' ? null : +data.schede_contestate,
+                        voti: {
+                            si: data.voti?.si === '' ? null : (data.voti?.si != null ? +data.voti.si : null),
+                            no: data.voti?.no === '' ? null : (data.voti?.no != null ? +data.voti.no : null),
+                        },
+                    }];
+                })
+            ),
+        };
+    }, [section, datiSeggio, schede, schedeData]);
+
+    // Auto-save function (doesn't close the form)
+    const doSave = useCallback(async (showIndicator = true) => {
+        if (!hasChangesRef.current) return;
+
+        const payload = buildPayload();
+        const success = await saveSection(payload);
+
+        if (success) {
+            hasChangesRef.current = false;
+            if (showIndicator) {
+                setShowSaved(true);
+                setTimeout(() => setShowSaved(false), 1500);
+            }
+        }
+    }, [buildPayload, saveSection]);
+
+    // No auto-save on data change - save only on step change or exit
+    // This prevents hammering the server
+
     // Calculate totals
     const totalElettori = (+datiSeggio.elettori_maschi || 0) + (+datiSeggio.elettori_femmine || 0);
     const totalVotanti = (+datiSeggio.votanti_maschi || 0) + (+datiSeggio.votanti_femmine || 0);
@@ -422,6 +609,7 @@ function SectionForm({schede, section, sectionData, updateSection, cancel}) {
     const handleSeggioChange = (field, value) => {
         const numValue = value === '' ? '' : Math.max(0, parseInt(value) || 0);
         setDatiSeggio(prev => ({ ...prev, [field]: numValue }));
+        hasChangesRef.current = true;
     };
 
     const handleSchedaChange = (schedaId, field, value) => {
@@ -433,6 +621,7 @@ function SectionForm({schede, section, sectionData, updateSection, cancel}) {
                 [field]: numValue,
             }
         }));
+        hasChangesRef.current = true;
     };
 
     const handleVotiChange = (schedaId, votoKey, value) => {
@@ -447,61 +636,95 @@ function SectionForm({schede, section, sectionData, updateSection, cancel}) {
                 }
             }
         }));
+        hasChangesRef.current = true;
     };
 
-    const goNext = () => {
-        if (currentStep < totalSteps - 1) {
-            setCurrentStep(currentStep + 1);
+    const goToStep = async (step) => {
+        if (step >= 0 && step < totalSteps && step !== currentStep) {
+            // Save before changing step
+            await doSave(false);
+            setCurrentStep(step);
         }
     };
 
-    const goPrev = () => {
-        if (currentStep > 0) {
-            setCurrentStep(currentStep - 1);
-        } else {
-            cancel();
-        }
+    const goNext = () => goToStep(currentStep + 1);
+    const goPrev = () => goToStep(currentStep - 1);
+
+    const handleExit = async () => {
+        // Start closing animation, then save and close
+        setIsClosing(true);
+        const payload = buildPayload();
+        // Wait for animation then close
+        setTimeout(async () => {
+            await saveAndClose(payload);
+        }, 280);
     };
 
-    const handleSave = async () => {
-        if (isSaving) return;
-        setIsSaving(true);
+    // Refs for drag handling
+    const dragHandleRef = useRef(null);
+    const isDraggingRef = useRef(false);
+    const dragOffsetRef = useRef(0);
 
-        // Build payload
-        const payload = {
-            comune: section.comune,
-            sezione: section.sezione,
-            dati_seggio: {
-                elettori_maschi: datiSeggio.elettori_maschi === '' ? null : datiSeggio.elettori_maschi,
-                elettori_femmine: datiSeggio.elettori_femmine === '' ? null : datiSeggio.elettori_femmine,
-                votanti_maschi: datiSeggio.votanti_maschi === '' ? null : datiSeggio.votanti_maschi,
-                votanti_femmine: datiSeggio.votanti_femmine === '' ? null : datiSeggio.votanti_femmine,
-            },
-            schede: {},
+    // Touch handlers for swipe-to-dismiss (native events for passive: false)
+    useEffect(() => {
+        const dragHandle = dragHandleRef.current;
+        if (!dragHandle) return;
+
+        const handleTouchStart = (e) => {
+            e.preventDefault();
+            dragStartY.current = e.touches[0].clientY;
+            dragStartOffset.current = dragOffsetRef.current;
+            isDraggingRef.current = true;
+            setIsDragging(true);
         };
 
-        // Add each scheda
-        schede.forEach(scheda => {
-            const data = schedeData[scheda.id];
-            payload.schede[scheda.id] = {
-                schede_ricevute: data.schede_ricevute === '' ? null : data.schede_ricevute,
-                schede_autenticate: data.schede_autenticate === '' ? null : data.schede_autenticate,
-                schede_bianche: data.schede_bianche === '' ? null : data.schede_bianche,
-                schede_nulle: data.schede_nulle === '' ? null : data.schede_nulle,
-                schede_contestate: data.schede_contestate === '' ? null : data.schede_contestate,
-                voti: data.voti,
-            };
-        });
+        const handleTouchMove = (e) => {
+            if (!isDraggingRef.current) return;
+            e.preventDefault();
+            const currentY = e.touches[0].clientY;
+            const diff = currentY - dragStartY.current;
+            const newOffset = Math.max(0, dragStartOffset.current + diff);
+            dragOffsetRef.current = newOffset;
+            setDragOffset(newOffset);
+        };
 
-        await updateSection(payload);
-        setIsSaving(false);
-    };
+        const handleTouchEnd = () => {
+            if (!isDraggingRef.current) return;
+            isDraggingRef.current = false;
+            setIsDragging(false);
 
-    // Get step name for indicator
-    const getStepName = (index) => {
-        if (index === 0) return 'Seggio';
-        if (index === totalSteps - 1) return 'Invio';
-        return `Scheda ${index}`;
+            if (dragOffsetRef.current > 150) {
+                handleExit();
+            } else {
+                dragOffsetRef.current = 0;
+                setDragOffset(0);
+            }
+        };
+
+        dragHandle.addEventListener('touchstart', handleTouchStart, { passive: false });
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd);
+
+        return () => {
+            dragHandle.removeEventListener('touchstart', handleTouchStart);
+            document.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('touchend', handleTouchEnd);
+        };
+    }, []);
+
+    // Check if a step is complete
+    const isStepComplete = (stepIndex) => {
+        if (stepIndex === 0) {
+            return datiSeggio.elettori_maschi !== '' &&
+                   datiSeggio.elettori_femmine !== '' &&
+                   datiSeggio.votanti_maschi !== '' &&
+                   datiSeggio.votanti_femmine !== '';
+        }
+        const scheda = schede[stepIndex - 1];
+        const data = schedeData[scheda.id];
+        const isReferendum = scheda.schema?.tipo === 'si_no';
+        const hasVotes = !isReferendum || (data.voti?.si !== '' && data.voti?.no !== '');
+        return data.schede_ricevute !== '' && hasVotes;
     };
 
     // Render step content
@@ -515,7 +738,7 @@ function SectionForm({schede, section, sectionData, updateSection, cancel}) {
                         Dati del Seggio
                     </div>
                     <div className="wizard-card-subtitle">
-                        Inserisci i dati relativi agli elettori e ai votanti
+                        Elettori iscritti e votanti
                     </div>
 
                     {/* Elettori */}
@@ -582,101 +805,13 @@ function SectionForm({schede, section, sectionData, updateSection, cancel}) {
                             <span className="wizard-total-label">Totale Votanti</span>
                             <span className="wizard-total-value">{totalVotanti}</span>
                         </div>
-                        <div className="wizard-total" style={{ marginTop: 8 }}>
-                            <span className="wizard-total-label">Affluenza</span>
-                            <span className="wizard-total-value highlight">{affluenza}%</span>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        // Last step: Riepilogo
-        if (currentStep === totalSteps - 1) {
-            return (
-                <div className="wizard-card">
-                    <div className="wizard-card-title">
-                        <i className="fas fa-clipboard-check"></i>
-                        Riepilogo Dati
-                    </div>
-                    <div className="wizard-card-subtitle">
-                        Verifica i dati prima dell'invio
-                    </div>
-
-                    {/* Dati Seggio Summary */}
-                    <div className="summary-section">
-                        <div className="summary-section-title">
-                            <i className="fas fa-users"></i>
-                            Dati Seggio
-                        </div>
-                        <div className="summary-row">
-                            <span className="summary-label">Elettori</span>
-                            <span className="summary-value">
-                                {datiSeggio.elettori_maschi || 0} M + {datiSeggio.elettori_femmine || 0} F = {totalElettori}
-                            </span>
-                        </div>
-                        <div className="summary-row">
-                            <span className="summary-label">Votanti</span>
-                            <span className="summary-value">
-                                {datiSeggio.votanti_maschi || 0} M + {datiSeggio.votanti_femmine || 0} F = {totalVotanti}
-                            </span>
-                        </div>
-                        <div className="summary-row">
-                            <span className="summary-label">Affluenza</span>
-                            <span className="summary-value">{affluenza}%</span>
-                        </div>
-                    </div>
-
-                    {/* Schede Summary */}
-                    {schede.map(scheda => {
-                        const data = schedeData[scheda.id];
-                        const isReferendum = scheda.schema?.tipo === 'si_no';
-                        const votiSi = data.voti?.si || 0;
-                        const votiNo = data.voti?.no || 0;
-
-                        return (
-                            <div key={scheda.id} className="summary-section">
-                                <div className="summary-section-title">
-                                    <span
-                                        style={{
-                                            width: 12,
-                                            height: 12,
-                                            borderRadius: 3,
-                                            background: scheda.colore || '#ccc',
-                                            display: 'inline-block'
-                                        }}
-                                    ></span>
-                                    {scheda.nome}
-                                </div>
-                                <div className="summary-row">
-                                    <span className="summary-label">Schede ricevute</span>
-                                    <span className="summary-value">{data.schede_ricevute || '-'}</span>
-                                </div>
-                                <div className="summary-row">
-                                    <span className="summary-label">Schede autenticate</span>
-                                    <span className="summary-value">{data.schede_autenticate || '-'}</span>
-                                </div>
-                                {isReferendum && (
-                                    <>
-                                        <div className="summary-row">
-                                            <span className="summary-label">Voti SI</span>
-                                            <span className="summary-value si">{votiSi || '-'}</span>
-                                        </div>
-                                        <div className="summary-row">
-                                            <span className="summary-label">Voti NO</span>
-                                            <span className="summary-value no">{votiNo || '-'}</span>
-                                        </div>
-                                    </>
-                                )}
-                                <div className="summary-row">
-                                    <span className="summary-label">Bianche / Nulle / Contestate</span>
-                                    <span className="summary-value">
-                                        {data.schede_bianche || 0} / {data.schede_nulle || 0} / {data.schede_contestate || 0}
-                                    </span>
-                                </div>
+                        {totalElettori > 0 && (
+                            <div className="wizard-total" style={{ marginTop: 8 }}>
+                                <span className="wizard-total-label">Affluenza</span>
+                                <span className="wizard-total-value highlight">{affluenza}%</span>
                             </div>
-                        );
-                    })}
+                        )}
+                    </div>
                 </div>
             );
         }
@@ -703,48 +838,19 @@ function SectionForm({schede, section, sectionData, updateSection, cancel}) {
                 </div>
                 {scheda.testo_quesito && (
                     <div className="wizard-card-subtitle" style={{ fontStyle: 'italic' }}>
-                        {scheda.testo_quesito.length > 150
-                            ? scheda.testo_quesito.substring(0, 150) + '...'
+                        {scheda.testo_quesito.length > 120
+                            ? scheda.testo_quesito.substring(0, 120) + '...'
                             : scheda.testo_quesito}
                     </div>
                 )}
 
-                {/* Schede consegnate */}
-                <div className="wizard-field-group">
-                    <span className="wizard-field-label">Schede</span>
-                    <div className="wizard-field-row">
-                        <div className="wizard-field-col">
-                            <label>Ricevute</label>
-                            <input
-                                type="number"
-                                inputMode="numeric"
-                                className="wizard-input"
-                                value={data.schede_ricevute}
-                                onChange={(e) => handleSchedaChange(scheda.id, 'schede_ricevute', e.target.value)}
-                                placeholder="0"
-                            />
-                        </div>
-                        <div className="wizard-field-col">
-                            <label>Autenticate</label>
-                            <input
-                                type="number"
-                                inputMode="numeric"
-                                className="wizard-input"
-                                value={data.schede_autenticate}
-                                onChange={(e) => handleSchedaChange(scheda.id, 'schede_autenticate', e.target.value)}
-                                placeholder="0"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Voti Referendum */}
+                {/* Voti Referendum - mostrati prima */}
                 {isReferendum && (
                     <div className="wizard-field-group">
                         <span className="wizard-field-label">Voti Espressi</span>
                         <div className="referendum-votes">
                             <div className="referendum-vote-card si">
-                                <div className="referendum-vote-label si">SI</div>
+                                <div className="referendum-vote-label si">SÌ</div>
                                 <input
                                     type="number"
                                     inputMode="numeric"
@@ -766,18 +872,12 @@ function SectionForm({schede, section, sectionData, updateSection, cancel}) {
                                 />
                             </div>
                         </div>
-                        <div className="wizard-total" style={{ marginTop: 12 }}>
-                            <span className="wizard-total-label">Totale Voti Validi</span>
-                            <span className="wizard-total-value">
-                                {(+data.voti?.si || 0) + (+data.voti?.no || 0)}
-                            </span>
-                        </div>
                     </div>
                 )}
 
                 {/* Schede speciali */}
                 <div className="wizard-field-group">
-                    <span className="wizard-field-label">Schede Speciali</span>
+                    <span className="wizard-field-label">Schede non valide</span>
                     <div className="wizard-field-row">
                         <div className="wizard-field-col">
                             <label>Bianche</label>
@@ -814,86 +914,153 @@ function SectionForm({schede, section, sectionData, updateSection, cancel}) {
                         </div>
                     </div>
                 </div>
+
+                {/* Schede consegnate */}
+                <div className="wizard-field-group">
+                    <span className="wizard-field-label">Schede</span>
+                    <div className="wizard-field-row">
+                        <div className="wizard-field-col">
+                            <label>Ricevute</label>
+                            <input
+                                type="number"
+                                inputMode="numeric"
+                                className="wizard-input"
+                                value={data.schede_ricevute}
+                                onChange={(e) => handleSchedaChange(scheda.id, 'schede_ricevute', e.target.value)}
+                                placeholder="0"
+                            />
+                        </div>
+                        <div className="wizard-field-col">
+                            <label>Autenticate</label>
+                            <input
+                                type="number"
+                                inputMode="numeric"
+                                className="wizard-input"
+                                value={data.schede_autenticate}
+                                onChange={(e) => handleSchedaChange(scheda.id, 'schede_autenticate', e.target.value)}
+                                placeholder="0"
+                            />
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     };
 
+    // Calculate sheet transform
+    const sheetTransform = isDragging ? `translateY(${dragOffset}px)` : undefined;
+
     return (
         <>
             <style>{wizardStyles}</style>
-            <div className="wizard-container">
-                {/* Header */}
-                <div className="wizard-header">
-                    <div className="wizard-header-top">
-                        <button className="wizard-header-back" onClick={goPrev}>
-                            <i className="fas fa-arrow-left"></i>
-                        </button>
-                        <div className="wizard-header-title">
-                            <div className="wizard-header-sezione">Sezione {section.sezione}</div>
-                            <div className="wizard-header-comune">{section.comune}</div>
+
+            {/* Overlay backdrop - click to close */}
+            <div
+                className={`wizard-overlay ${isClosing ? 'closing' : ''}`}
+                onClick={handleExit}
+            />
+
+            {/* Sheet container */}
+            <div
+                ref={sheetRef}
+                className={`wizard-sheet ${isClosing ? 'closing' : ''} ${isDragging ? 'dragging' : ''}`}
+                style={isDragging ? { transform: sheetTransform } : undefined}
+            >
+                <div className="wizard-container">
+                    {/* Drag handle for swipe-to-dismiss */}
+                    <div className="wizard-drag-handle" ref={dragHandleRef}>
+                        <div className="wizard-drag-bar"></div>
+                    </div>
+
+                    {/* Saving indicator */}
+                    {showSaved && (
+                        <div className="saving-indicator">
+                            <i className="fas fa-check me-2"></i>
+                            Salvato
                         </div>
-                        <div style={{ width: 40 }}></div>
-                    </div>
-
-                    {/* Step indicators */}
-                    <div className="wizard-steps">
-                        {Array.from({ length: totalSteps }).map((_, index) => (
-                            <div
-                                key={index}
-                                className={`wizard-step ${
-                                    index === currentStep ? 'active' :
-                                    index < currentStep ? 'completed' : ''
-                                }`}
-                            ></div>
-                        ))}
-                    </div>
-                    <div className="wizard-step-label">
-                        {getStepName(currentStep)} ({currentStep + 1}/{totalSteps})
-                    </div>
-                </div>
-
-                {/* Content */}
-                <div className="wizard-content">
-                    {renderStepContent()}
-                </div>
-
-                {/* Bottom navigation */}
-                <div className="wizard-nav">
-                    <button
-                        className="wizard-nav-btn secondary"
-                        onClick={goPrev}
-                    >
-                        <i className="fas fa-chevron-left"></i>
-                        {currentStep === 0 ? 'Esci' : 'Indietro'}
-                    </button>
-
-                    {currentStep === totalSteps - 1 ? (
-                        <button
-                            className="wizard-nav-btn success"
-                            onClick={handleSave}
-                            disabled={isSaving}
-                        >
-                            {isSaving ? (
-                                <>
-                                    <span className="spinner-border spinner-border-sm"></span>
-                                    Invio...
-                                </>
-                            ) : (
-                                <>
-                                    <i className="fas fa-paper-plane"></i>
-                                    Invia Dati
-                                </>
-                            )}
-                        </button>
-                    ) : (
-                        <button
-                            className="wizard-nav-btn primary"
-                            onClick={goNext}
-                        >
-                            Avanti
-                            <i className="fas fa-chevron-right"></i>
-                        </button>
                     )}
+
+                    {/* Header */}
+                    <div className="wizard-header">
+                        <div className="wizard-header-top">
+                            <button className="wizard-header-back" onClick={handleExit}>
+                                <i className="fas fa-arrow-left"></i>
+                            </button>
+                            <div className="wizard-header-title">
+                                <div className="wizard-header-sezione">Sezione {section.sezione}</div>
+                                <div className="wizard-header-comune">{section.comune}</div>
+                            </div>
+                            <div style={{ width: 40 }}></div>
+                        </div>
+
+                        {/* Step tabs */}
+                        <div className="wizard-tabs">
+                            <button
+                                className={`wizard-tab ${currentStep === 0 ? 'active' : ''} ${isStepComplete(0) ? 'complete' : ''}`}
+                                onClick={() => goToStep(0)}
+                            >
+                                {isStepComplete(0) && <i className="fas fa-check wizard-tab-check"></i>}
+                                Seggio
+                            </button>
+                            {schede.map((scheda, index) => (
+                                <button
+                                    key={scheda.id}
+                                    className={`wizard-tab ${currentStep === index + 1 ? 'active' : ''} ${isStepComplete(index + 1) ? 'complete' : ''}`}
+                                    onClick={() => goToStep(index + 1)}
+                                >
+                                    {isStepComplete(index + 1) ? (
+                                        <i className="fas fa-check wizard-tab-check"></i>
+                                    ) : scheda.colore ? (
+                                        <span className="wizard-tab-dot" style={{ background: scheda.colore }}></span>
+                                    ) : null}
+                                    {scheda.nome?.length > 12 ? scheda.nome.substring(0, 12) + '…' : scheda.nome}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Scrollable content */}
+                    <div className="wizard-scroll">
+                        <div className="wizard-content">
+                            {renderStepContent()}
+                        </div>
+                    </div>
+
+                    {/* Bottom navigation - Mobile optimized */}
+                    <div className="wizard-nav">
+                        {/* Step indicator pill */}
+                        <div className="wizard-nav-indicator">
+                            {currentStep + 1} / {totalSteps}
+                        </div>
+
+                        {/* Back button */}
+                        <button
+                            className="wizard-nav-btn secondary"
+                            onClick={currentStep === 0 ? handleExit : goPrev}
+                        >
+                            <i className="fas fa-chevron-left"></i>
+                            {currentStep === 0 ? 'Esci' : 'Indietro'}
+                        </button>
+
+                        {/* Forward button - changes based on position */}
+                        {currentStep === totalSteps - 1 ? (
+                            <button
+                                className="wizard-nav-btn success"
+                                onClick={handleExit}
+                            >
+                                <i className="fas fa-check"></i>
+                                Fatto
+                            </button>
+                        ) : (
+                            <button
+                                className="wizard-nav-btn primary"
+                                onClick={goNext}
+                            >
+                                Avanti
+                                <i className="fas fa-chevron-right"></i>
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         </>
