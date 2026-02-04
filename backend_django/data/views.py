@@ -672,7 +672,7 @@ class SectionsSaveView(APIView):
         if len(values) > 5:
             dati_sezione.votanti_femmine = parse_int(values[5])
 
-        dati_sezione.inserito_da = request.user
+        dati_sezione.inserito_da_email = request.user.email
         dati_sezione.inserito_at = timezone.now()
 
         # Check if complete
