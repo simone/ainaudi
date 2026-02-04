@@ -577,7 +577,7 @@ class SectionsAssignedView(APIView):
             rows.append({
                 'comune': sezione.comune.nome,
                 'sezione': sezione.numero,
-                'email': assignment.email if assignment else '',
+                'email': assignment.rdl_registration.email if assignment and assignment.rdl_registration else '',
                 'values': values,
             })
 
@@ -817,7 +817,7 @@ class RdlSectionsView(APIView):
             ).select_related('rdl_registration').first()
 
             municipio_str = f"Municipio {sezione.municipio.numero}" if sezione.municipio else ""
-            email = assignment.email if assignment else ""
+            email = assignment.rdl_registration.email if assignment and assignment.rdl_registration else ""
 
             # Format: [comune, sezione_numero, municipio, email] - matches frontend expectation
             row = [sezione.comune.nome, sezione.numero, municipio_str, email]

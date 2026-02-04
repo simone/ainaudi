@@ -647,7 +647,23 @@ function GestioneRdl({ client, setError }) {
                                         <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>
                                             {reg.cognome} {reg.nome}
                                         </div>
-                                        {getStatusBadge(reg.status)}
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                            {getStatusBadge(reg.status)}
+                                            {reg.fuorisede && (
+                                                <span style={{
+                                                    display: 'inline-block',
+                                                    padding: '2px 8px',
+                                                    borderRadius: '4px',
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: 500,
+                                                    backgroundColor: '#0dcaf0',
+                                                    color: '#000'
+                                                }}>
+                                                    <i className="fas fa-suitcase me-1" style={{ fontSize: '0.65rem' }}></i>
+                                                    Fuorisede
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Info secondarie */}

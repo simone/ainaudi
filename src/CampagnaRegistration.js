@@ -37,7 +37,7 @@ const REQUISITI_ELETTORE = {
     }
 };
 
-function CampagnaRegistration({ slug, onClose, isAuthenticated }) {
+function CampagnaRegistration({ slug, onClose, isAuthenticated, isSuperuser }) {
     const [formData, setFormData] = useState({
         email: '',
         cognome: '',
@@ -62,6 +62,70 @@ function CampagnaRegistration({ slug, onClose, isAuthenticated }) {
     const [checkingStatus, setCheckingStatus] = useState(true);
     const [comuneSearch, setComuneSearch] = useState('');
     const [gdprAccepted, setGdprAccepted] = useState(false);
+
+    // Test data for superadmin auto-fill
+    const COLORI_ITALIANI = [
+        'Rosso', 'Blu', 'Verde', 'Giallo', 'Arancione', 'Viola', 'Rosa',
+        'Marrone', 'Grigio', 'Nero', 'Bianco', 'Azzurro', 'Indaco', 'Turchese',
+        'Magenta', 'Ciano', 'Beige', 'Cremisi', 'Corallo', 'Smeraldo'
+    ];
+
+    const fillTestData = () => {
+        // Random color names for cognome and nome
+        const cognome = COLORI_ITALIANI[Math.floor(Math.random() * COLORI_ITALIANI.length)];
+        let nome = COLORI_ITALIANI[Math.floor(Math.random() * COLORI_ITALIANI.length)];
+        // Make sure nome is different from cognome
+        while (nome === cognome) {
+            nome = COLORI_ITALIANI[Math.floor(Math.random() * COLORI_ITALIANI.length)];
+        }
+
+        // Today's date in YYYY-MM-DD format
+        const today = new Date();
+        const birthYear = 1970 + Math.floor(Math.random() * 35); // 1970-2005
+        const birthDate = `${birthYear}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+        // Random phone
+        const phone = `3${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}`;
+
+        // Random email using color name
+        const email = `${nome.toLowerCase()}.${cognome.toLowerCase()}${Math.floor(Math.random() * 100)}@test.it`;
+
+        // Find Rome in available comuni
+        const romaComune = campagna?.comuni_disponibili?.find(c =>
+            c.nome?.toLowerCase() === 'roma' ||
+            c.label?.toLowerCase().includes('roma') ||
+            c.codice_istat === '058091'
+        );
+
+        // 30% chance of being fuorisede
+        const isFuorisede = Math.random() > 0.7;
+
+        // Set form data
+        setFormData({
+            email: email,
+            cognome: cognome,
+            nome: nome,
+            comune_nascita: 'Roma',
+            data_nascita: birthDate,
+            comune_residenza: isFuorisede ? 'Napoli' : 'Roma', // If fuorisede, residence is elsewhere
+            indirizzo_residenza: `Via ${COLORI_ITALIANI[Math.floor(Math.random() * COLORI_ITALIANI.length)]} ${Math.floor(Math.random() * 200) + 1}`,
+            seggio_preferenza: '',
+            municipio: romaComune?.has_municipi ? String(Math.floor(Math.random() * 15) + 1) : '',
+            telefono: phone,
+            fuorisede: isFuorisede,
+            comune_domicilio: isFuorisede ? 'Roma' : '',
+            indirizzo_domicilio: isFuorisede ? `Via ${COLORI_ITALIANI[Math.floor(Math.random() * COLORI_ITALIANI.length)]} ${Math.floor(Math.random() * 200) + 1}` : ''
+        });
+
+        // If Rome is available, select it
+        if (romaComune) {
+            setSelectedComune(romaComune);
+            setComuneSearch(romaComune.label || romaComune.nome);
+        }
+
+        // Accept GDPR
+        setGdprAccepted(true);
+    };
 
     useEffect(() => {
         loadCampagna();
@@ -669,6 +733,25 @@ function CampagnaRegistration({ slug, onClose, isAuthenticated }) {
                 )}
 
                 <form onSubmit={handleSubmit}>
+                    {/* Superadmin test data button */}
+                    {isSuperuser && (
+                        <div className="alert alert-warning mb-4 d-flex align-items-center justify-content-between">
+                            <span>
+                                <i className="fas fa-flask me-2"></i>
+                                <strong>Superadmin:</strong> Compila con dati di test
+                            </span>
+                            <button
+                                type="button"
+                                className="btn btn-warning btn-sm"
+                                onClick={fillTestData}
+                                disabled={loading}
+                            >
+                                <i className="fas fa-magic me-1"></i>
+                                Auto-fill test
+                            </button>
+                        </div>
+                    )}
+
                     {/* Dati personali */}
                     <h6 className="text-muted mb-3">Dati personali</h6>
                     <div className="row">

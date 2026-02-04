@@ -646,7 +646,7 @@ function AppContent() {
                 )}
                 {error && <div className="alert alert-danger mt-3">{error}</div>}
                 {campagnaSlug ? (
-                    <CampagnaRegistration slug={campagnaSlug} onClose={handleCloseCampagna} isAuthenticated={isAuthenticated} />
+                    <CampagnaRegistration slug={campagnaSlug} onClose={handleCloseCampagna} isAuthenticated={isAuthenticated} isSuperuser={user?.is_superuser} />
                 ) : isAuthenticated && client && consultazione ? (
                     <div>
                         <div className="tab-content">

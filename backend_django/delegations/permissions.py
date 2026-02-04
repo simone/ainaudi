@@ -88,15 +88,24 @@ def get_sezioni_filter_for_user(user, consultazione_id=None):
                 new_filter = Q(comune__provincia_id__in=province_ids)
                 sezioni_filter = new_filter if sezioni_filter is None else (sezioni_filter | new_filter)
 
-            # Filtra per comuni
+            # Filtra per comuni + municipi (combinati)
+            # Se sono specificati sia comuni che municipi, vanno in AND (solo quei municipi di quei comuni)
+            # Se solo comuni, tutti i loro settori
+            # Se solo municipi (senza comuni), tutti i settori in quei municipi
             comuni_ids = list(sub_delega.comuni.values_list('id', flat=True))
-            if comuni_ids:
+            municipi_nums = sub_delega.municipi
+
+            if comuni_ids and municipi_nums:
+                # Comuni E municipi: restringe ai municipi specifici di quei comuni
+                new_filter = Q(comune_id__in=comuni_ids, municipio__numero__in=municipi_nums)
+                sezioni_filter = new_filter if sezioni_filter is None else (sezioni_filter | new_filter)
+            elif comuni_ids:
+                # Solo comuni: tutte le sezioni di quei comuni
                 new_filter = Q(comune_id__in=comuni_ids)
                 sezioni_filter = new_filter if sezioni_filter is None else (sezioni_filter | new_filter)
-
-            # Filtra per municipi (grandi città)
-            if sub_delega.municipi:
-                new_filter = Q(municipio__numero__in=sub_delega.municipi)
+            elif municipi_nums:
+                # Solo municipi (senza comuni specifici): tutte le sezioni in quei municipi
+                new_filter = Q(municipio__numero__in=municipi_nums)
                 sezioni_filter = new_filter if sezioni_filter is None else (sezioni_filter | new_filter)
 
         if sezioni_filter is not None:
@@ -126,16 +135,25 @@ def get_sezioni_filter_for_user(user, consultazione_id=None):
                 new_filter = Q(comune__provincia_id__in=province_ids)
                 sezioni_filter = new_filter if sezioni_filter is None else (sezioni_filter | new_filter)
 
-            # Filtra per comuni
+            # Filtra per comuni + municipi (combinati)
+            # Se sono specificati sia comuni che municipi, vanno in AND (solo quei municipi di quei comuni)
+            # Se solo comuni, tutti i loro settori
+            # Se solo municipi (senza comuni), tutti i settori in quei municipi
             comuni_ids = list(delega.territorio_comuni.values_list('id', flat=True))
-            if comuni_ids:
+            municipi_nums = delega.territorio_municipi
+
+            if comuni_ids and municipi_nums:
+                # Comuni E municipi: restringe ai municipi specifici di quei comuni
+                new_filter = Q(comune_id__in=comuni_ids, municipio__numero__in=municipi_nums)
+                sezioni_filter = new_filter if sezioni_filter is None else (sezioni_filter | new_filter)
+            elif comuni_ids:
+                # Solo comuni: tutte le sezioni di quei comuni
                 new_filter = Q(comune_id__in=comuni_ids)
                 sezioni_filter = new_filter if sezioni_filter is None else (sezioni_filter | new_filter)
-
-            # Filtra per municipi (grandi città)
-            if delega.territorio_municipi:
-                municipi_filter = Q(municipio__numero__in=delega.territorio_municipi)
-                sezioni_filter = municipi_filter if sezioni_filter is None else (sezioni_filter | municipi_filter)
+            elif municipi_nums:
+                # Solo municipi (senza comuni specifici): tutte le sezioni in quei municipi
+                new_filter = Q(municipio__numero__in=municipi_nums)
+                sezioni_filter = new_filter if sezioni_filter is None else (sezioni_filter | new_filter)
 
         # Se non ha territorio specificato, non vede niente (deve configurare)
         return sezioni_filter

@@ -79,19 +79,19 @@ function PDFViewer({ url, originalUrl, titolo, onClose }) {
 
                 {/* Toolbar */}
                 <div className="pdf-viewer-toolbar">
-                    <div className="btn-group me-3">
+                    <div className="pdf-toolbar-group">
                         <button
-                            className="btn btn-sm btn-secondary"
+                            className="pdf-toolbar-btn"
                             onClick={goToPrevPage}
                             disabled={pageNumber <= 1}
                         >
                             <i className="fas fa-chevron-left"></i>
                         </button>
-                        <span className="btn btn-sm btn-light disabled">
+                        <span className="pdf-toolbar-label">
                             {pageNumber} / {numPages || '?'}
                         </span>
                         <button
-                            className="btn btn-sm btn-secondary"
+                            className="pdf-toolbar-btn"
                             onClick={goToNextPage}
                             disabled={pageNumber >= (numPages || 1)}
                         >
@@ -99,25 +99,25 @@ function PDFViewer({ url, originalUrl, titolo, onClose }) {
                         </button>
                     </div>
 
-                    <div className="btn-group">
+                    <div className="pdf-toolbar-group">
                         <button
-                            className="btn btn-sm btn-secondary"
+                            className="pdf-toolbar-btn"
                             onClick={zoomOut}
                             disabled={scale <= 0.5}
                             title="Riduci"
                         >
-                            <i className="fas fa-search-minus"></i>
+                            <i className="fas fa-minus"></i>
                         </button>
-                        <span className="btn btn-sm btn-light disabled">
+                        <span className="pdf-toolbar-label">
                             {Math.round(scale * 100)}%
                         </span>
                         <button
-                            className="btn btn-sm btn-secondary"
+                            className="pdf-toolbar-btn"
                             onClick={zoomIn}
                             disabled={scale >= 3}
                             title="Ingrandisci"
                         >
-                            <i className="fas fa-search-plus"></i>
+                            <i className="fas fa-plus"></i>
                         </button>
                     </div>
                 </div>
@@ -212,9 +212,47 @@ function PDFViewer({ url, originalUrl, titolo, onClose }) {
                     display: flex;
                     justify-content: center;
                     align-items: center;
+                    gap: 16px;
                     padding: 8px 16px;
                     background: #252525;
                     border-bottom: 1px solid #444;
+                }
+
+                .pdf-toolbar-group {
+                    display: inline-flex;
+                    align-items: center;
+                    background: #3a3a3a;
+                    border-radius: 6px;
+                    overflow: hidden;
+                }
+
+                .pdf-toolbar-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 36px;
+                    height: 32px;
+                    border: none;
+                    background: #4a4a4a;
+                    color: white;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                }
+
+                .pdf-toolbar-btn:hover:not(:disabled) {
+                    background: #5a5a5a;
+                }
+
+                .pdf-toolbar-btn:disabled {
+                    opacity: 0.4;
+                    cursor: not-allowed;
+                }
+
+                .pdf-toolbar-label {
+                    padding: 0 12px;
+                    color: white;
+                    font-size: 0.85rem;
+                    white-space: nowrap;
                 }
 
                 .pdf-viewer-content {
@@ -255,8 +293,31 @@ function PDFViewer({ url, originalUrl, titolo, onClose }) {
                     }
 
                     .pdf-viewer-toolbar {
-                        flex-wrap: wrap;
                         gap: 8px;
+                        padding: 6px 10px;
+                    }
+
+                    .pdf-toolbar-btn {
+                        width: 32px;
+                        height: 28px;
+                        font-size: 0.8rem;
+                    }
+
+                    .pdf-toolbar-label {
+                        padding: 0 8px;
+                        font-size: 0.75rem;
+                    }
+
+                    .pdf-viewer-header {
+                        padding: 8px 12px;
+                    }
+
+                    .pdf-title {
+                        font-size: 0.85rem;
+                    }
+
+                    .pdf-viewer-content {
+                        padding: 10px;
                     }
                 }
             `}</style>

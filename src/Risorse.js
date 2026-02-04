@@ -6,6 +6,72 @@ import PDFViewer from './PDFViewer';
  * I contenuti sono filtrati in base alla consultazione attiva e al suo tipo (referendum, comunali, etc.)
  */
 
+// CSS per le card documenti
+const docCardStyles = `
+    .doc-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 12px;
+        text-decoration: none;
+        color: inherit;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background 0.15s ease;
+        cursor: pointer;
+    }
+    .doc-card:last-child {
+        border-bottom: none;
+    }
+    .doc-card:hover {
+        background: #f8f9fa;
+    }
+    .doc-card:active {
+        background: #e9ecef;
+    }
+    .doc-card-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .doc-card-content {
+        flex: 1;
+        min-width: 0;
+    }
+    .doc-card-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #1a1a1a;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .doc-card-desc {
+        margin: 0;
+        font-size: 0.8rem;
+        color: #666;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        line-height: 1.4;
+    }
+    .doc-card-arrow {
+        color: #ccc;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+    .doc-card-star {
+        color: #ffc107;
+        font-size: 0.7rem;
+        margin-right: 4px;
+    }
+`;
+
 function Risorse({ client, consultazione, setError }) {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('documenti'); // 'documenti' | 'faq'
@@ -184,6 +250,8 @@ function Risorse({ client, consultazione, setError }) {
 
     return (
         <>
+            <style>{docCardStyles}</style>
+
             {/* Header */}
             <div className="card mb-3" style={{ background: 'linear-gradient(135deg, #20c997 0%, #17a2b8 100%)' }}>
                 <div className="card-body text-white py-3">
@@ -241,47 +309,14 @@ function Risorse({ client, consultazione, setError }) {
                                     <strong>{categoria.nome}</strong>
                                     <span className="badge bg-secondary ms-2">{categoria.documenti.length}</span>
                                 </div>
-                                <div className="list-group list-group-flush">
-                                    {categoria.documenti.map(doc => {
-                                        const url = doc.download_url || doc.file_url || doc.url_esterno;
-                                        return (
-                                            <a
-                                                key={doc.id}
-                                                href={url || '#'}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                                                onClick={(e) => handleDocumentClick(doc, e)}
-                                                style={{ cursor: 'pointer' }}
-                                            >
-                                                <div className="d-flex align-items-center">
-                                                    <FileIcon tipo={doc.tipo_file} />
-                                                    <div className="ms-3">
-                                                        <div className="fw-semibold">
-                                                            {doc.titolo}
-                                                            {doc.in_evidenza && (
-                                                                <span className="badge bg-warning text-dark ms-2">⭐ In evidenza</span>
-                                                            )}
-                                                        </div>
-                                                        {doc.descrizione && (
-                                                            <small className="text-muted d-block">{doc.descrizione}</small>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="text-end">
-                                                    <span className="badge bg-light text-dark">{doc.tipo_file}</span>
-                                                    {doc.tipo_file === 'PDF' && (
-                                                        <small className="text-primary d-block">
-                                                            <i className="fas fa-eye me-1"></i>Anteprima
-                                                        </small>
-                                                    )}
-                                                    {doc.dimensione_formattata && (
-                                                        <small className="text-muted d-block">{doc.dimensione_formattata}</small>
-                                                    )}
-                                                </div>
-                                            </a>
-                                        );
-                                    })}
+                                <div>
+                                    {categoria.documenti.map(doc => (
+                                        <DocumentCard
+                                            key={doc.id}
+                                            doc={doc}
+                                            onClick={(e) => handleDocumentClick(doc, e)}
+                                        />
+                                    ))}
                                 </div>
                             </div>
                         ))
@@ -404,34 +439,61 @@ function Risorse({ client, consultazione, setError }) {
 }
 
 /**
- * Icona file in base al tipo
+ * Configurazione tipi documento
  */
-function FileIcon({ tipo }) {
-    const iconMap = {
-        'PDF': { icon: 'fa-file-pdf', color: '#dc3545' },
-        'Word': { icon: 'fa-file-word', color: '#0d6efd' },
-        'Excel': { icon: 'fa-file-excel', color: '#198754' },
-        'PowerPoint': { icon: 'fa-file-powerpoint', color: '#fd7e14' },
-        'ZIP': { icon: 'fa-file-archive', color: '#6c757d' },
-    };
+const DOC_TYPES = {
+    'PDF': { icon: 'fa-file-pdf', color: '#dc3545', label: 'PDF' },
+    'Word': { icon: 'fa-file-word', color: '#0d6efd', label: 'Word' },
+    'Excel': { icon: 'fa-file-excel', color: '#198754', label: 'Excel' },
+    'PowerPoint': { icon: 'fa-file-powerpoint', color: '#fd7e14', label: 'PPT' },
+    'ZIP': { icon: 'fa-file-archive', color: '#6c757d', label: 'ZIP' },
+    'LINK': { icon: 'fa-external-link-alt', color: '#0d6efd', label: 'Link' },
+};
 
-    const config = iconMap[tipo] || { icon: 'fa-file', color: '#6c757d' };
+/**
+ * Card documento - design mobile-first
+ */
+function DocumentCard({ doc, onClick }) {
+    const url = doc.download_url || doc.file_url || doc.url_esterno;
+    const isExternal = url?.startsWith('http') && !doc.file_url;
+    const docType = isExternal ? 'LINK' : doc.tipo_file;
+    const config = DOC_TYPES[docType] || DOC_TYPES['LINK'];
 
     return (
-        <div
-            style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '8px',
-                background: `${config.color}20`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: config.color
-            }}
+        <a
+            href={url || '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onClick}
+            className="doc-card"
         >
-            <i className={`fas ${config.icon}`} style={{ fontSize: '1.2rem' }}></i>
-        </div>
+            {/* Icona tipo con colore */}
+            <div
+                className="doc-card-icon"
+                style={{ background: `${config.color}12` }}
+            >
+                <i
+                    className={`fas ${config.icon}`}
+                    style={{ fontSize: '1.25rem', color: config.color }}
+                ></i>
+            </div>
+
+            {/* Contenuto */}
+            <div className="doc-card-content">
+                <div className="doc-card-title">
+                    {doc.in_evidenza && (
+                        <i className="fas fa-star doc-card-star"></i>
+                    )}
+                    {doc.titolo}
+                </div>
+                {doc.descrizione && (
+                    <p className="doc-card-desc">{doc.descrizione}</p>
+                )}
+            </div>
+
+            {/* Freccia / indicatore azione */}
+            <i className={`fas ${isExternal ? 'fa-external-link-alt' : 'fa-chevron-right'} doc-card-arrow`}></i>
+        </a>
     );
 }
 
