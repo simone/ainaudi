@@ -398,7 +398,7 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                     <label className="form-label small">Regione</label>
                                     <select
                                         className="form-select form-select-sm"
-                                        value={campagnaForm.regioni_ids[0] || ''}
+                                        value={String(campagnaForm.regioni_ids[0] || '')}
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             handleCampagnaFormChange('regioni_ids', val ? [parseInt(val)] : []);
@@ -411,7 +411,7 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                     >
                                         <option value="">Tutte le regioni</option>
                                         {regioni.map(r => (
-                                            <option key={r.id} value={r.id}>{r.nome}</option>
+                                            <option key={r.id} value={String(r.id)}>{r.nome}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -419,7 +419,7 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                     <label className="form-label small">Provincia</label>
                                     <select
                                         className="form-select form-select-sm"
-                                        value={campagnaForm.province_ids[0] || ''}
+                                        value={String(campagnaForm.province_ids[0] || '')}
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             handleCampagnaFormChange('province_ids', val ? [parseInt(val)] : []);
@@ -431,7 +431,7 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                     >
                                         <option value="">Tutte le province</option>
                                         {province.map(p => (
-                                            <option key={p.id} value={p.id}>{p.nome}</option>
+                                            <option key={p.id} value={String(p.id)}>{p.nome}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -439,7 +439,7 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                     <label className="form-label small">Comune</label>
                                     <select
                                         className="form-select form-select-sm"
-                                        value={campagnaForm.comuni_ids[0] || ''}
+                                        value={String(campagnaForm.comuni_ids[0] || '')}
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             handleCampagnaFormChange('comuni_ids', val ? [parseInt(val)] : []);
@@ -448,7 +448,7 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                     >
                                         <option value="">Tutti i comuni</option>
                                         {comuni.map(c => (
-                                            <option key={c.id} value={c.id}>{c.nome}</option>
+                                            <option key={c.id} value={String(c.id)}>{c.nome}</option>
                                         ))}
                                     </select>
                                 </div>
