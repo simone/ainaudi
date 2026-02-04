@@ -689,6 +689,28 @@ function GestioneRdl({ client, setError }) {
                                                     <div style={{ gridColumn: '1 / -1' }}>
                                                         <span style={{ color: '#6c757d' }}>Residenza:</span> {reg.comune_residenza || '-'}, {reg.indirizzo_residenza || '-'}
                                                     </div>
+                                                    {reg.fuorisede !== null && (
+                                                        <div style={{ gridColumn: '1 / -1' }}>
+                                                            <span style={{ color: '#6c757d' }}>Fuorisede:</span>{' '}
+                                                            {reg.fuorisede ? (
+                                                                <span style={{
+                                                                    background: '#0dcaf0',
+                                                                    color: '#000',
+                                                                    padding: '1px 6px',
+                                                                    borderRadius: '4px',
+                                                                    fontSize: '0.75rem',
+                                                                    fontWeight: 500
+                                                                }}>SI</span>
+                                                            ) : (
+                                                                <span style={{ color: '#6c757d' }}>No</span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {reg.fuorisede && reg.comune_domicilio && (
+                                                        <div style={{ gridColumn: '1 / -1' }}>
+                                                            <span style={{ color: '#6c757d' }}>Domicilio:</span> {reg.comune_domicilio}, {reg.indirizzo_domicilio || '-'}
+                                                        </div>
+                                                    )}
                                                     {reg.seggio_preferenza && (
                                                         <div style={{ gridColumn: '1 / -1' }}>
                                                             <span style={{ color: '#6c757d' }}>Preferenza:</span> {reg.seggio_preferenza}
@@ -699,6 +721,34 @@ function GestioneRdl({ client, setError }) {
                                                             <span style={{ color: '#6c757d' }}>Note:</span> {reg.notes}
                                                         </div>
                                                     )}
+                                                    {/* Origine registrazione */}
+                                                    <div style={{ gridColumn: '1 / -1', marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #dee2e6' }}>
+                                                        <span style={{ color: '#6c757d' }}>Origine:</span>{' '}
+                                                        {reg.campagna_slug ? (
+                                                            <a
+                                                                href={`/campagna/${reg.campagna_slug}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                style={{ color: '#0d6efd' }}
+                                                            >
+                                                                <i className="fas fa-bullhorn me-1"></i>
+                                                                {reg.campagna_nome}
+                                                            </a>
+                                                        ) : (
+                                                            <span style={{
+                                                                background: reg.source === 'SELF' ? '#6c757d' : reg.source === 'IMPORT' ? '#0dcaf0' : '#ffc107',
+                                                                color: reg.source === 'IMPORT' ? '#000' : '#fff',
+                                                                padding: '1px 6px',
+                                                                borderRadius: '4px',
+                                                                fontSize: '0.75rem',
+                                                                fontWeight: 500
+                                                            }}>
+                                                                {reg.source === 'SELF' ? 'Auto-registrazione' :
+                                                                 reg.source === 'IMPORT' ? 'CSV Import' :
+                                                                 reg.source === 'MANUAL' ? 'Manuale' : reg.source}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
 

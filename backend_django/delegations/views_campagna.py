@@ -4,6 +4,7 @@ Views for CampagnaReclutamento API endpoints.
 Public endpoints:
 - GET /api/campagna/{slug}/ - Info pubblica campagna
 - POST /api/campagna/{slug}/registra/ - Registrazione pubblica
+- GET /campagna/{slug} - HTML page with OG meta tags (for social sharing)
 
 Admin/delegate endpoints:
 - GET/POST /api/deleghe/campagne/ - CRUD campagne
@@ -13,6 +14,9 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
+from django.views import View
+from django.conf import settings
 
 from .models import DelegatoDiLista, SubDelega
 from campaign.models import CampagnaReclutamento
@@ -28,6 +32,113 @@ from .permissions import get_user_delegation_roles
 # =============================================================================
 # Public endpoints (no authentication required)
 # =============================================================================
+
+class CampagnaOGView(View):
+    """
+    Serve HTML page with Open Graph meta tags for social media sharing.
+
+    GET /campagna/{slug}
+
+    Returns HTML that:
+    - Contains proper OG meta tags for Facebook, Twitter, etc.
+    - Redirects browser to the React SPA
+    """
+
+    def get(self, request, slug):
+        campagna = get_object_or_404(
+            CampagnaReclutamento,
+            slug=slug,
+            stato__in=['ATTIVA', 'CHIUSA']
+        )
+
+        # Build the canonical URL
+        frontend_url = getattr(settings, 'FRONTEND_URL', request.build_absolute_uri('/'))
+        canonical_url = f"{frontend_url.rstrip('/')}/campagna/{slug}"
+
+        # Get logo URL
+        logo_url = f"{frontend_url.rstrip('/')}/favicon.svg"
+
+        # Prepare description (escape HTML)
+        import html
+        raw_desc = campagna.descrizione[:200] if campagna.descrizione else "Diventa Rappresentante di Lista e tutela la democrazia!"
+        if len(campagna.descrizione or '') > 200:
+            raw_desc += "..."
+        # Replace newlines with spaces for meta tags
+        description = html.escape(raw_desc.replace('\n', ' ').replace('\r', ' '))
+        title = html.escape(campagna.nome)
+
+        # Build HTML with OG tags
+        html_content = f'''<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{title} - Diventa RDL</title>
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{canonical_url}">
+    <meta property="og:title" content="{title}">
+    <meta property="og:description" content="{description}">
+    <meta property="og:image" content="{logo_url}">
+    <meta property="og:locale" content="it_IT">
+    <meta property="og:site_name" content="AInaudi">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="{canonical_url}">
+    <meta name="twitter:title" content="{title}">
+    <meta name="twitter:description" content="{description}">
+    <meta name="twitter:image" content="{logo_url}">
+
+    <!-- Standard meta -->
+    <meta name="description" content="{description}">
+    <link rel="canonical" href="{canonical_url}">
+
+    <!-- Redirect to React SPA after a short delay for crawlers -->
+    <meta http-equiv="refresh" content="0; url={canonical_url}">
+
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 50%, #084298 100%);
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }}
+        .container {{
+            max-width: 600px;
+        }}
+        h1 {{
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }}
+        p {{
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }}
+        a {{
+            color: white;
+            text-decoration: underline;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{title}</h1>
+        <p>{description}</p>
+        <p>Reindirizzamento in corso... <a href="{canonical_url}">Clicca qui</a> se non vieni reindirizzato.</p>
+    </div>
+</body>
+</html>'''
+
+        return HttpResponse(html_content, content_type='text/html')
+
 
 class CampagnaPublicView(APIView):
     """

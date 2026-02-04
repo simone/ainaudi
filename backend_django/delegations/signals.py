@@ -75,7 +75,7 @@ def ensure_user_exists(email, defaults=None):
         raise
 
 
-def ensure_role_assigned(user, role, scope_type=None, scope_value=None, assigned_by=None):
+def ensure_role_assigned(user, role, scope_type=None, scope_value=None, assigned_by_email=None):
     """
     Ensure a user has a specific role assigned.
 
@@ -86,7 +86,7 @@ def ensure_role_assigned(user, role, scope_type=None, scope_value=None, assigned
         role: Role string (from RoleAssignment.Role choices)
         scope_type: Optional scope type
         scope_value: Optional scope value
-        assigned_by: Optional user who assigned the role
+        assigned_by_email: Optional email of user who assigned the role
 
     Returns:
         tuple: (role_assignment, created)
@@ -102,7 +102,7 @@ def ensure_role_assigned(user, role, scope_type=None, scope_value=None, assigned
                 defaults={
                     'scope_type': scope_type,
                     'scope_value': scope_value,
-                    'assigned_by': assigned_by,
+                    'assigned_by_email': assigned_by_email or '',
                     'is_active': True,
                 }
             )

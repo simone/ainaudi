@@ -5,6 +5,8 @@ Only exposes endpoints needed by the frontend.
 from django.urls import path
 from .views import (
     SectionsStatsView,
+    SectionsListView,
+    SectionsUpdateView,
     SectionsOwnView,
     SectionsAssignedView,
     SectionsSaveView,
@@ -27,6 +29,8 @@ from .views import (
 
 urlpatterns = [
     path('stats', SectionsStatsView.as_view(), name='sections-stats'),
+    path('list/', SectionsListView.as_view(), name='sections-list'),
+    path('<int:pk>/', SectionsUpdateView.as_view(), name='sections-update'),
     path('own', SectionsOwnView.as_view(), name='sections-own'),
     path('assigned', SectionsAssignedView.as_view(), name='sections-assigned'),
     path('upload', SectionsUploadView.as_view(), name='sections-upload'),

@@ -14,17 +14,16 @@ class SectionAssignmentSerializer(serializers.ModelSerializer):
     rdl_email = serializers.EmailField(source='rdl_registration.email', read_only=True)
     rdl_nome = serializers.SerializerMethodField()
     role_display = serializers.CharField(source='get_role_display', read_only=True)
-    assigned_by_email = serializers.EmailField(source='assigned_by.email', read_only=True)
 
     class Meta:
         model = SectionAssignment
         fields = [
             'id', 'sezione', 'sezione_numero', 'sezione_comune', 'sezione_indirizzo',
             'consultazione', 'rdl_registration', 'rdl_email', 'rdl_nome',
-            'role', 'role_display', 'assigned_by', 'assigned_by_email',
+            'role', 'role_display', 'assigned_by_email',
             'assigned_at', 'notes'
         ]
-        read_only_fields = ['id', 'assigned_at', 'assigned_by']
+        read_only_fields = ['id', 'assigned_at', 'assigned_by_email']
 
     def get_rdl_nome(self, obj):
         if obj.rdl_registration:

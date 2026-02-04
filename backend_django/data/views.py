@@ -275,34 +275,185 @@ class SectionsStatsView(APIView):
             'nonAssegnate': visibili_count - assegnate_count,
         }
 
-        # Group by comune
-        per_comune = {}
+        # Group by comune (with id and municipi)
+        comuni_dict = {}
         per_municipio = {}
 
         for sezione in sezioni:
-            comune_nome = sezione.comune.nome
+            comune = sezione.comune
+            comune_id = comune.id
             is_assigned = sezione.id in assigned_sezioni_ids
 
-            if comune_nome not in per_comune:
-                per_comune[comune_nome] = {'totale': 0, 'assegnate': 0}
+            if comune_id not in comuni_dict:
+                comuni_dict[comune_id] = {
+                    'id': comune_id,
+                    'nome': comune.nome,
+                    'totale': 0,
+                    'assegnate': 0,
+                    'municipi_dict': {},
+                }
 
-            per_comune[comune_nome]['totale'] += 1
+            comuni_dict[comune_id]['totale'] += 1
             if is_assigned:
-                per_comune[comune_nome]['assegnate'] += 1
+                comuni_dict[comune_id]['assegnate'] += 1
 
             # Track municipio for large cities
             if sezione.municipio:
                 mun_num = sezione.municipio.numero
+                mun_nome = sezione.municipio.nome
+
+                # Global municipio stats
                 if mun_num not in per_municipio:
                     per_municipio[mun_num] = {'visibili': 0, 'assegnate': 0}
                 per_municipio[mun_num]['visibili'] += 1
                 if is_assigned:
                     per_municipio[mun_num]['assegnate'] += 1
 
+                # Per-comune municipio stats
+                if mun_num not in comuni_dict[comune_id]['municipi_dict']:
+                    comuni_dict[comune_id]['municipi_dict'][mun_num] = {
+                        'numero': mun_num,
+                        'nome': mun_nome,
+                        'visibili': 0,
+                        'assegnate': 0,
+                    }
+                comuni_dict[comune_id]['municipi_dict'][mun_num]['visibili'] += 1
+                if is_assigned:
+                    comuni_dict[comune_id]['municipi_dict'][mun_num]['assegnate'] += 1
+
+        # Convert to array format expected by frontend
+        comuni_list = []
+        for comune_data in comuni_dict.values():
+            # Convert municipi dict to sorted list
+            municipi_list = sorted(
+                comune_data['municipi_dict'].values(),
+                key=lambda m: m['numero']
+            )
+            comuni_list.append({
+                'id': comune_data['id'],
+                'nome': comune_data['nome'],
+                'totale': comune_data['totale'],
+                'assegnate': comune_data['assegnate'],
+                'municipi': municipi_list if municipi_list else None,
+            })
+
+        # Also keep perComune for backward compatibility
+        per_comune = {c['nome']: {'totale': c['totale'], 'assegnate': c['assegnate']} for c in comuni_list}
+
+        result['comuni'] = comuni_list
         result['perComune'] = per_comune
         result['perMunicipio'] = per_municipio
 
         return Response(result)
+
+
+class SectionsUpdateView(APIView):
+    """
+    Update a section's indirizzo and denominazione.
+
+    PATCH /api/sections/<id>/
+    {
+        "indirizzo": "Via Roma, 1",
+        "denominazione": "Scuola Mazzini"
+    }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, pk):
+        try:
+            sezione = SezioneElettorale.objects.get(pk=pk)
+        except SezioneElettorale.DoesNotExist:
+            return Response({'error': 'Sezione non trovata'}, status=404)
+
+        # Check user has permission based on delegation chain
+        consultazione = get_consultazione_attiva()
+        from delegations.permissions import get_sezioni_filter_for_user
+
+        sezioni_filter = get_sezioni_filter_for_user(request.user, consultazione.id if consultazione else None)
+        if sezioni_filter is not None:
+            if not SezioneElettorale.objects.filter(sezioni_filter, pk=pk).exists():
+                return Response({'error': 'Non hai i permessi per questa sezione'}, status=403)
+
+        # Update allowed fields
+        if 'indirizzo' in request.data:
+            sezione.indirizzo = request.data['indirizzo']
+        if 'denominazione' in request.data:
+            sezione.denominazione = request.data['denominazione']
+
+        sezione.save()
+
+        return Response({
+            'id': sezione.id,
+            'numero': sezione.numero,
+            'indirizzo': sezione.indirizzo,
+            'denominazione': sezione.denominazione,
+        })
+
+
+class SectionsListView(APIView):
+    """
+    List sections for a comune with pagination.
+
+    GET /api/sections/list/?comune_id=123&page=1&page_size=200
+
+    Returns paginated list of sections filtered by user's delegation scope.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        comune_id = request.query_params.get('comune_id')
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 200))
+
+        if not comune_id:
+            return Response({'error': 'comune_id è obbligatorio'}, status=400)
+
+        consultazione = get_consultazione_attiva()
+
+        # Get sections filter based on delegation chain
+        from delegations.permissions import get_sezioni_filter_for_user
+
+        sezioni_filter = get_sezioni_filter_for_user(request.user, consultazione.id if consultazione else None)
+
+        # Build query
+        queryset = SezioneElettorale.objects.filter(
+            comune_id=comune_id,
+            is_attiva=True
+        ).select_related('municipio').order_by('numero')
+
+        # Apply user's territory filter if any
+        if sezioni_filter is not None:
+            queryset = queryset.filter(sezioni_filter)
+
+        # Count total
+        total = queryset.count()
+
+        # Paginate
+        start = (page - 1) * page_size
+        end = start + page_size
+        sezioni = queryset[start:end]
+
+        # Serialize
+        results = []
+        for sez in sezioni:
+            results.append({
+                'id': sez.id,
+                'numero': sez.numero,
+                'indirizzo': sez.indirizzo,
+                'denominazione': sez.denominazione,
+                'municipio': {
+                    'numero': sez.municipio.numero,
+                    'nome': sez.municipio.nome,
+                } if sez.municipio else None,
+            })
+
+        return Response({
+            'results': results,
+            'count': total,
+            'has_next': end < total,
+            'page': page,
+            'page_size': page_size,
+        })
 
 
 class SectionsOwnView(APIView):
@@ -755,7 +906,7 @@ class RdlAssignView(APIView):
             consultazione=consultazione,
             rdl_registration=rdl_reg,
             role=SectionAssignment.Role.RDL,
-            assigned_by=request.user,
+            assigned_by_email=request.user.email,
         )
 
         # Also assign RDL role to the user if not already assigned
@@ -764,7 +915,7 @@ class RdlAssignView(APIView):
             user=user,
             role='RDL',
             defaults={
-                'assigned_by': request.user,
+                'assigned_by_email': request.user.email,
                 'is_active': True
             }
         )
@@ -1044,6 +1195,10 @@ class RdlRegistrationSelfView(APIView):
         comune_residenza = request.data.get('comune_residenza', '').strip()
         indirizzo_residenza = request.data.get('indirizzo_residenza', '').strip()
         seggio_preferenza = request.data.get('seggio_preferenza', '').strip()
+        # Fuorisede info
+        fuorisede = request.data.get('fuorisede')
+        comune_domicilio = request.data.get('comune_domicilio', '').strip()
+        indirizzo_domicilio = request.data.get('indirizzo_domicilio', '').strip()
         comune_id = request.data.get('comune_id')
         comune_nome = request.data.get('comune', '').strip()
         municipio_num = request.data.get('municipio')
@@ -1108,6 +1263,9 @@ class RdlRegistrationSelfView(APIView):
             data_nascita=data_nascita,
             comune_residenza=comune_residenza,
             indirizzo_residenza=indirizzo_residenza,
+            fuorisede=fuorisede,
+            comune_domicilio=comune_domicilio,
+            indirizzo_domicilio=indirizzo_domicilio,
             seggio_preferenza=seggio_preferenza,
             comune=comune,
             municipio=municipio,
@@ -1255,7 +1413,7 @@ class RdlRegistrationListView(APIView):
             registrations_filter
         ).select_related(
             'comune', 'comune__provincia', 'comune__provincia__regione',
-            'municipio'
+            'municipio', 'campagna'
         ).order_by('-requested_at')
 
         result = []
@@ -1270,6 +1428,10 @@ class RdlRegistrationListView(APIView):
                 'data_nascita': reg.data_nascita.isoformat() if reg.data_nascita else None,
                 'comune_residenza': reg.comune_residenza,
                 'indirizzo_residenza': reg.indirizzo_residenza,
+                # Fuorisede info
+                'fuorisede': reg.fuorisede,
+                'comune_domicilio': reg.comune_domicilio,
+                'indirizzo_domicilio': reg.indirizzo_domicilio,
                 'seggio_preferenza': reg.seggio_preferenza,
                 # Territorio info
                 'comune': reg.comune.nome,
@@ -1282,6 +1444,9 @@ class RdlRegistrationListView(APIView):
                 'municipio_id': reg.municipio_id,
                 'status': reg.status,
                 'source': reg.source,
+                # Campagna info (for audit)
+                'campagna_nome': reg.campagna.nome if reg.campagna else None,
+                'campagna_slug': reg.campagna.slug if reg.campagna else None,
                 'requested_at': reg.requested_at.isoformat(),
                 'approved_by': reg.approved_by.email if reg.approved_by else None,
                 'approved_at': reg.approved_at.isoformat() if reg.approved_at else None,
@@ -2467,8 +2632,7 @@ class MappaturaAssegnaView(APIView):
             rdl_registration=rdl_reg,
             defaults={
                 'role': ruolo,
-                'user': user,  # Legacy field, derivato da rdl_registration.user
-                'assigned_by': request.user,
+                'assigned_by_email': request.user.email,
             }
         )
 
@@ -2591,9 +2755,8 @@ class MappaturaAssegnaBulkView(APIView):
                     consultazione=consultazione,
                     rdl_registration=rdl_reg,
                     defaults={
-                        'user': user,  # Legacy field
                         'role': ruolo,
-                        'assigned_by': request.user,
+                        'assigned_by_email': request.user.email,
                     }
                 )
                 assigned.append({

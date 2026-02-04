@@ -539,6 +539,10 @@ class CampagnaRegistrazioneSerializer(serializers.Serializer):
     data_nascita = serializers.DateField()
     comune_residenza = serializers.CharField(max_length=100)
     indirizzo_residenza = serializers.CharField(max_length=255)
+    # Fuorisede info
+    fuorisede = serializers.BooleanField(required=False, allow_null=True)
+    comune_domicilio = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    indirizzo_domicilio = serializers.CharField(max_length=255, required=False, allow_blank=True)
     seggio_preferenza = serializers.CharField(max_length=255, required=False, allow_blank=True)
     comune_id = serializers.IntegerField()
     municipio = serializers.IntegerField(required=False, allow_null=True)
@@ -602,6 +606,9 @@ class CampagnaRegistrazioneSerializer(serializers.Serializer):
             data_nascita=validated_data['data_nascita'],
             comune_residenza=validated_data['comune_residenza'].strip(),
             indirizzo_residenza=validated_data['indirizzo_residenza'].strip(),
+            fuorisede=validated_data.get('fuorisede'),
+            comune_domicilio=validated_data.get('comune_domicilio', '').strip(),
+            indirizzo_domicilio=validated_data.get('indirizzo_domicilio', '').strip(),
             seggio_preferenza=validated_data.get('seggio_preferenza', '').strip(),
             comune=comune,
             municipio=municipio,

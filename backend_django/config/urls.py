@@ -20,7 +20,7 @@ from data.views import (
 )
 from data.urls import rdl_registration_urlpatterns, mappatura_urlpatterns
 from elections.views import ElectionListsView, ElectionCandidatesView
-from delegations.views_campagna import CampagnaPublicView, CampagnaRegistraView
+from delegations.views_campagna import CampagnaPublicView, CampagnaRegistraView, CampagnaOGView
 
 urlpatterns = [
     # Root redirect to admin
@@ -68,6 +68,10 @@ urlpatterns = [
     # Italian paths used by frontend
     path('api/campagna/<slug:slug>/', CampagnaPublicView.as_view(), name='campagna-public'),
     path('api/campagna/<slug:slug>/registra/', CampagnaRegistraView.as_view(), name='campagna-registra'),
+
+    # Campaign page with Open Graph meta tags (for social media sharing)
+    # This serves HTML with OG tags and redirects to the React SPA
+    path('campagna/<slug:slug>', CampagnaOGView.as_view(), name='campagna-og'),
 ]
 
 # Serve media files in development

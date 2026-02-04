@@ -278,24 +278,193 @@ function CampagnaRegistration({ slug, onClose, isAuthenticated }) {
 
     if (success) {
         return (
-            <div className="card">
-                <div className="card-header bg-success text-white">
-                    Richiesta Inviata
-                </div>
-                <div className="card-body">
-                    <p>{success.message}</p>
-                    <p>
-                        <strong>Consultazione:</strong> {campagna.consultazione_nome}
+            <div className="card border-0 shadow-sm">
+                {/* Hero Section - Success gradient */}
+                <div
+                    className="text-white text-center py-5 px-4"
+                    style={{
+                        background: 'linear-gradient(135deg, #198754 0%, #157347 50%, #0f5132 100%)',
+                        borderRadius: '0.375rem 0.375rem 0 0'
+                    }}
+                >
+                    <div className="mb-3">
+                        <i className="fas fa-check-circle" style={{ fontSize: '4rem', opacity: 0.9 }}></i>
+                    </div>
+                    <h1 className="display-5 fw-bold mb-2">
+                        Grazie!
+                    </h1>
+                    <p className="lead mb-0" style={{ opacity: 0.95 }}>
+                        La tua candidatura è stata registrata
                     </p>
-                    {success.richiede_approvazione && (
-                        <p>Riceverai una notifica via email quando sarà approvata.</p>
-                    )}
-                    {!isAuthenticated && (
-                        <p className="text-muted small mt-3">
-                            <i className="fas fa-info-circle me-1"></i>
-                            Puoi chiudere questa pagina.
+                </div>
+
+                <div className="card-body px-4 py-4">
+                    {/* Personal thank you message */}
+                    <div className="text-center mb-4">
+                        <div
+                            className="d-inline-block p-4 rounded-3 shadow-sm"
+                            style={{
+                                backgroundColor: '#e7f1ff',
+                                border: '2px solid #0d6efd',
+                                maxWidth: '500px'
+                            }}
+                        >
+                            <i className="fas fa-heart text-danger mb-2" style={{ fontSize: '2rem' }}></i>
+                            <p className="fs-5 mb-0 fw-medium" style={{ lineHeight: '1.6' }}>
+                                {success.message || 'Grazie per aver dato la tua disponibilità!'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* What happens next */}
+                    <div className="mb-4">
+                        <h5 className="text-center mb-3">
+                            <i className="fas fa-route me-2 text-primary"></i>
+                            Cosa succede ora?
+                        </h5>
+                        <div className="row g-3 justify-content-center">
+                            <div className="col-md-4">
+                                <div className="text-center p-3 bg-light rounded-3 h-100">
+                                    <div className="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-2" style={{ width: '40px', height: '40px' }}>
+                                        <strong>1</strong>
+                                    </div>
+                                    <h6 className="fw-bold">Verifica</h6>
+                                    <p className="small text-muted mb-0">
+                                        {success.richiede_approvazione
+                                            ? 'Il delegato verificherà la tua candidatura'
+                                            : 'La tua candidatura è già stata approvata!'
+                                        }
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="col-md-4">
+                                <div className="text-center p-3 bg-light rounded-3 h-100">
+                                    <div className="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-2" style={{ width: '40px', height: '40px' }}>
+                                        <strong>2</strong>
+                                    </div>
+                                    <h6 className="fw-bold">Notifica</h6>
+                                    <p className="small text-muted mb-0">
+                                        Riceverai un'email con le istruzioni per accedere
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="col-md-4">
+                                <div className="text-center p-3 bg-light rounded-3 h-100">
+                                    <div className="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-2" style={{ width: '40px', height: '40px' }}>
+                                        <strong>3</strong>
+                                    </div>
+                                    <h6 className="fw-bold">Formazione</h6>
+                                    <p className="small text-muted mb-0">
+                                        Ti invieremo materiale formativo per prepararti
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Consultation info */}
+                    <div className="alert alert-info text-center mb-4">
+                        <i className="fas fa-calendar-alt me-2"></i>
+                        <strong>Consultazione:</strong> {campagna.consultazione_nome}
+                    </div>
+
+                    {/* Spread the word - Share section */}
+                    <div
+                        className="text-center p-4 rounded-3 mb-4"
+                        style={{ backgroundColor: '#fff3cd', border: '1px solid #ffca2c' }}
+                    >
+                        <h5 className="mb-3">
+                            <i className="fas fa-bullhorn me-2"></i>
+                            Passa parola!
+                        </h5>
+                        <p className="mb-3">
+                            Conosci altre persone che potrebbero voler diventare RDL?<br />
+                            <strong>Ogni sezione ha bisogno di rappresentanti!</strong>
                         </p>
-                    )}
+                        <div className="d-flex justify-content-center flex-wrap gap-2">
+                            <a
+                                href={`https://wa.me/?text=${encodeURIComponent(`Ho appena dato la mia disponibilità come Rappresentante di Lista per ${campagna.consultazione_nome}!\n\nVuoi partecipare anche tu? Registrati qui:\n${window.location.href}`)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-success"
+                                title="Condividi su WhatsApp"
+                            >
+                                <i className="fab fa-whatsapp me-1"></i>
+                                WhatsApp
+                            </a>
+                            <a
+                                href={`https://www.facebook.com/sharer.php?u=${encodeURIComponent(window.location.href)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-primary"
+                                title="Condividi su Facebook"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    window.open(
+                                        `https://www.facebook.com/sharer.php?u=${encodeURIComponent(window.location.href)}`,
+                                        'facebook-share',
+                                        'width=580,height=400'
+                                    );
+                                }}
+                            >
+                                <i className="fab fa-facebook-f me-1"></i>
+                                Facebook
+                            </a>
+                            <a
+                                href={`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(`Diventa anche tu Rappresentante di Lista per ${campagna.consultazione_nome}!`)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-info text-white"
+                                title="Condividi su Telegram"
+                            >
+                                <i className="fab fa-telegram-plane me-1"></i>
+                                Telegram
+                            </a>
+                            <a
+                                href={`mailto:?subject=${encodeURIComponent(`Diventa Rappresentante di Lista - ${campagna.consultazione_nome}`)}&body=${encodeURIComponent(`Ciao!\n\nHo appena dato la mia disponibilità come Rappresentante di Lista.\n\nTi segnalo questa iniziativa: ${campagna.nome}\n\nSe vuoi partecipare anche tu, registrati qui:\n${window.location.href}\n\nGrazie!`)}`}
+                                className="btn btn-secondary"
+                                title="Condividi via Email"
+                            >
+                                <i className="fas fa-envelope me-1"></i>
+                                Email
+                            </a>
+                            <button
+                                type="button"
+                                className="btn btn-outline-dark"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(window.location.href);
+                                    alert('Link copiato! Condividilo con chi vuoi.');
+                                }}
+                                title="Copia link"
+                            >
+                                <i className="fas fa-copy me-1"></i>
+                                Copia link
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Final message */}
+                    <div className="text-center">
+                        <p className="text-muted mb-3">
+                            <i className="fas fa-shield-alt me-1"></i>
+                            Insieme possiamo garantire elezioni trasparenti e regolari.
+                        </p>
+                        {isAuthenticated ? (
+                            <button
+                                type="button"
+                                className="btn btn-outline-primary"
+                                onClick={onClose}
+                            >
+                                <i className="fas fa-arrow-left me-1"></i>
+                                Torna alla Dashboard
+                            </button>
+                        ) : (
+                            <p className="small text-muted">
+                                <i className="fas fa-check-circle text-success me-1"></i>
+                                Puoi chiudere questa pagina. Ti contatteremo via email.
+                            </p>
+                        )}
+                    </div>
                 </div>
             </div>
         );
@@ -398,6 +567,74 @@ function CampagnaRegistration({ slug, onClose, isAuthenticated }) {
                             <i className="fas fa-chalkboard-teacher me-1"></i>
                             <strong>Ti formiamo noi</strong>
                         </span>
+                    </div>
+                </div>
+
+                {/* Share buttons */}
+                <div className="text-center mb-4">
+                    <p className="small text-muted mb-2">
+                        <i className="fas fa-share-alt me-1"></i>
+                        Condividi con amici e conoscenti
+                    </p>
+                    <div className="d-flex justify-content-center flex-wrap gap-2">
+                        <a
+                            href={`https://wa.me/?text=${encodeURIComponent(`${campagna.nome} - Diventa Rappresentante di Lista!\n${window.location.href}`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-success btn-sm"
+                            title="Condividi su WhatsApp"
+                        >
+                            <i className="fab fa-whatsapp me-1"></i>
+                            WhatsApp
+                        </a>
+                        <a
+                            href={`https://www.facebook.com/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(campagna.nome + ' - Diventa Rappresentante di Lista!')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-primary btn-sm"
+                            title="Condividi su Facebook"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                window.open(
+                                    `https://www.facebook.com/sharer.php?u=${encodeURIComponent(window.location.href)}`,
+                                    'facebook-share',
+                                    'width=580,height=400'
+                                );
+                            }}
+                        >
+                            <i className="fab fa-facebook-f me-1"></i>
+                            Facebook
+                        </a>
+                        <a
+                            href={`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(campagna.nome)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-info btn-sm text-white"
+                            title="Condividi su Telegram"
+                        >
+                            <i className="fab fa-telegram-plane me-1"></i>
+                            Telegram
+                        </a>
+                        <a
+                            href={`mailto:?subject=${encodeURIComponent(`${campagna.nome} - Diventa RDL`)}&body=${encodeURIComponent(`Ciao,\n\nti segnalo questa iniziativa: ${campagna.nome}\n\nRegistrati come Rappresentante di Lista:\n${window.location.href}\n\nGrazie!`)}`}
+                            className="btn btn-secondary btn-sm"
+                            title="Condividi via Email"
+                        >
+                            <i className="fas fa-envelope me-1"></i>
+                            Email
+                        </a>
+                        <button
+                            type="button"
+                            className="btn btn-outline-dark btn-sm"
+                            onClick={() => {
+                                navigator.clipboard.writeText(window.location.href);
+                                alert('Link copiato! Puoi incollarlo su Instagram, TikTok o altre app.');
+                            }}
+                            title="Copia link per Instagram/TikTok"
+                        >
+                            <i className="fas fa-copy me-1"></i>
+                            Copia link
+                        </button>
                     </div>
                 </div>
 

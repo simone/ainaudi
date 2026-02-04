@@ -33,7 +33,6 @@ class RoleAssignmentSerializer(serializers.ModelSerializer):
     """Serializer for RoleAssignment model."""
     role_display = serializers.CharField(source='get_role_display', read_only=True)
     scope_type_display = serializers.CharField(source='get_scope_type_display', read_only=True)
-    assigned_by_email = serializers.EmailField(source='assigned_by.email', read_only=True)
     is_valid = serializers.BooleanField(read_only=True)
 
     class Meta:

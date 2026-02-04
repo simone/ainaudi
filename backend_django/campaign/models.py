@@ -231,6 +231,26 @@ class RdlRegistration(models.Model):
     comune_residenza = models.CharField(_('residente nel comune di'), max_length=100)
     indirizzo_residenza = models.CharField(_('indirizzo di residenza'), max_length=255)
 
+    # Fuorisede info
+    fuorisede = models.BooleanField(
+        _('fuorisede'),
+        null=True,
+        blank=True,
+        help_text=_('Lavora o studia in un comune diverso dalla residenza')
+    )
+    comune_domicilio = models.CharField(
+        _('comune di domicilio'),
+        max_length=100,
+        blank=True,
+        help_text=_('Se fuorisede, comune dove lavora/studia')
+    )
+    indirizzo_domicilio = models.CharField(
+        _('indirizzo di domicilio'),
+        max_length=255,
+        blank=True,
+        help_text=_('Se fuorisede, indirizzo di domicilio')
+    )
+
     # Assignment preferences
     seggio_preferenza = models.CharField(
         _('seggio/plesso di preferenza'),
