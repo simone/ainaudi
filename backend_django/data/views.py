@@ -1706,45 +1706,100 @@ class RdlRegistrationListView(APIView):
     GET /api/rdl/registrations?status=PENDING
 
     Returns registrations filtered by delegate's scope.
+    Supports both DelegatoDiLista/SubDelega and RoleAssignment permission systems.
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         from core.models import RoleAssignment
         from campaign.models import RdlRegistration
+        from delegations.permissions import get_user_delegation_roles
 
-        # Check permission
-        user_roles = RoleAssignment.objects.filter(
-            user=request.user,
-            is_active=True,
-            role__in=['ADMIN', 'DELEGATE', 'SUBDELEGATE']
-        ).select_related('scope_regione', 'scope_provincia', 'scope_comune')
-
-        if not user_roles.exists() and not request.user.is_superuser:
-            return Response({'error': 'Non autorizzato'}, status=403)
-
-        # Build filter based on scope
+        user = request.user
         registrations_filter = Q()
         has_global_access = False
+        has_permission = False
 
-        for role in user_roles:
-            if role.scope_type == 'global' or role.role == 'ADMIN':
-                has_global_access = True
-                break
-            elif role.scope_type == 'regione' and role.scope_regione:
-                registrations_filter |= Q(comune__provincia__regione=role.scope_regione)
-            elif role.scope_type == 'provincia' and role.scope_provincia:
-                registrations_filter |= Q(comune__provincia=role.scope_provincia)
-            elif role.scope_type == 'comune' and role.scope_comune:
-                registrations_filter |= Q(comune=role.scope_comune)
-            elif role.scope_type == 'municipio' and role.scope_comune and role.scope_value:
-                registrations_filter |= Q(
-                    comune=role.scope_comune,
-                    municipio__numero=parse_municipio_number(role.scope_value)
-                )
-
-        if request.user.is_superuser:
+        # 1. Superuser has global access
+        if user.is_superuser:
             has_global_access = True
+            has_permission = True
+
+        # 2. Check delegation chain (DelegatoDiLista / SubDelega) - PREFERRED
+        if not has_permission:
+            delegation_roles = get_user_delegation_roles(user)
+
+            if delegation_roles['is_delegato']:
+                has_permission = True
+                # Build filter based on delegato's territory
+                for delega in delegation_roles['deleghe_lista'].prefetch_related(
+                    'territorio_regioni', 'territorio_province', 'territorio_comuni'
+                ):
+                    regioni_ids = list(delega.territorio_regioni.values_list('id', flat=True))
+                    province_ids = list(delega.territorio_province.values_list('id', flat=True))
+                    comuni_ids = list(delega.territorio_comuni.values_list('id', flat=True))
+                    municipi_nums = delega.territorio_municipi
+
+                    if not regioni_ids and not province_ids and not comuni_ids and not municipi_nums:
+                        # No territory restriction = global access
+                        has_global_access = True
+                    else:
+                        if regioni_ids:
+                            registrations_filter |= Q(comune__provincia__regione_id__in=regioni_ids)
+                        if province_ids:
+                            registrations_filter |= Q(comune__provincia_id__in=province_ids)
+                        if comuni_ids and municipi_nums:
+                            registrations_filter |= Q(comune_id__in=comuni_ids, municipio__numero__in=municipi_nums)
+                        elif comuni_ids:
+                            registrations_filter |= Q(comune_id__in=comuni_ids)
+
+            if delegation_roles['is_sub_delegato']:
+                has_permission = True
+                # Build filter based on sub_delega's territory
+                for sub_delega in delegation_roles['sub_deleghe'].prefetch_related('regioni', 'province', 'comuni'):
+                    regioni_ids = list(sub_delega.regioni.values_list('id', flat=True))
+                    province_ids = list(sub_delega.province.values_list('id', flat=True))
+                    comuni_ids = list(sub_delega.comuni.values_list('id', flat=True))
+                    municipi_nums = sub_delega.municipi
+
+                    if regioni_ids:
+                        registrations_filter |= Q(comune__provincia__regione_id__in=regioni_ids)
+                    if province_ids:
+                        registrations_filter |= Q(comune__provincia_id__in=province_ids)
+                    if comuni_ids and municipi_nums:
+                        registrations_filter |= Q(comune_id__in=comuni_ids, municipio__numero__in=municipi_nums)
+                    elif comuni_ids:
+                        registrations_filter |= Q(comune_id__in=comuni_ids)
+
+        # 3. Fallback: Check RoleAssignment (legacy system)
+        if not has_permission:
+            user_roles = RoleAssignment.objects.filter(
+                user=user,
+                is_active=True,
+                role__in=['ADMIN', 'DELEGATE', 'SUBDELEGATE']
+            ).select_related('scope_regione', 'scope_provincia', 'scope_comune')
+
+            if user_roles.exists():
+                has_permission = True
+                for role in user_roles:
+                    if role.scope_type == 'global' or role.role == 'ADMIN':
+                        has_global_access = True
+                        break
+                    elif role.scope_type == 'regione' and role.scope_regione:
+                        registrations_filter |= Q(comune__provincia__regione=role.scope_regione)
+                    elif role.scope_type == 'provincia' and role.scope_provincia:
+                        registrations_filter |= Q(comune__provincia=role.scope_provincia)
+                    elif role.scope_type == 'comune' and role.scope_comune:
+                        registrations_filter |= Q(comune=role.scope_comune)
+                    elif role.scope_type == 'municipio' and role.scope_comune and role.scope_value:
+                        registrations_filter |= Q(
+                            comune=role.scope_comune,
+                            municipio__numero=parse_municipio_number(role.scope_value)
+                        )
+
+        # No permission from any source
+        if not has_permission:
+            return Response({'error': 'Non autorizzato'}, status=403)
 
         if has_global_access:
             registrations_filter = Q()

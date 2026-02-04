@@ -216,25 +216,56 @@ class CampagnaListCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        """List campaigns visible to the user."""
+        """List campaigns visible to the user.
+
+        Un delegato/sub-delegato può vedere:
+        1. Campagne che ha creato
+        2. Campagne collegate alle sue deleghe
+        3. Campagne di altri delegati/sub-delegati della stessa consultazione
+           (per coordinamento, tutti i referenti vedono tutte le campagne attive)
+        """
         user = request.user
 
         if user.is_superuser:
             queryset = CampagnaReclutamento.objects.all()
         else:
-            # Get campaigns created by user or linked to their deleghe
             roles = get_user_delegation_roles(user)
 
-            delegato_ids = list(roles['deleghe_lista'].values_list('id', flat=True))
-            sub_delega_ids = list(roles['sub_deleghe'].values_list('id', flat=True))
+            if not roles['is_delegato'] and not roles['is_sub_delegato']:
+                # Non è né delegato né sub-delegato: mostra solo le proprie
+                queryset = CampagnaReclutamento.objects.filter(
+                    created_by_email=user.email
+                )
+            else:
+                # È delegato o sub-delegato: mostra tutte le campagne delle consultazioni
+                # a cui partecipa (per coordinamento tra referenti)
+                consultazione_ids = set()
 
-            queryset = CampagnaReclutamento.objects.filter(
-                created_by_email=user.email
-            ) | CampagnaReclutamento.objects.filter(
-                delegato_id__in=delegato_ids
-            ) | CampagnaReclutamento.objects.filter(
-                sub_delega_id__in=sub_delega_ids
-            )
+                for delega in roles['deleghe_lista']:
+                    if delega.consultazione_id:
+                        consultazione_ids.add(delega.consultazione_id)
+
+                for sub_delega in roles['sub_deleghe'].select_related('delegato'):
+                    if sub_delega.delegato and sub_delega.delegato.consultazione_id:
+                        consultazione_ids.add(sub_delega.delegato.consultazione_id)
+
+                if consultazione_ids:
+                    # Mostra tutte le campagne delle consultazioni a cui partecipa
+                    queryset = CampagnaReclutamento.objects.filter(
+                        consultazione_id__in=consultazione_ids
+                    )
+                else:
+                    # Fallback: solo le proprie o collegate
+                    delegato_ids = list(roles['deleghe_lista'].values_list('id', flat=True))
+                    sub_delega_ids = list(roles['sub_deleghe'].values_list('id', flat=True))
+
+                    queryset = CampagnaReclutamento.objects.filter(
+                        created_by_email=user.email
+                    ) | CampagnaReclutamento.objects.filter(
+                        delegato_id__in=delegato_ids
+                    ) | CampagnaReclutamento.objects.filter(
+                        sub_delega_id__in=sub_delega_ids
+                    )
 
         queryset = queryset.select_related(
             'consultazione', 'delegato', 'sub_delega'
