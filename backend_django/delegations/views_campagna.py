@@ -118,7 +118,7 @@ class CampagnaListCreateView(APIView):
             sub_delega_ids = list(roles['sub_deleghe'].values_list('id', flat=True))
 
             queryset = CampagnaReclutamento.objects.filter(
-                created_by=user
+                created_by_email=user.email
             ) | CampagnaReclutamento.objects.filter(
                 delegato_id__in=delegato_ids
             ) | CampagnaReclutamento.objects.filter(
@@ -178,7 +178,7 @@ class CampagnaDetailView(APIView):
             return campagna
 
         # Check ownership
-        if campagna.created_by == user:
+        if campagna.created_by_email == user.email:
             return campagna
 
         roles = get_user_delegation_roles(user)
@@ -239,3 +239,79 @@ class CampagnaDetailView(APIView):
 
         campagna.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CampagnaAttivaView(APIView):
+    """
+    Activate a campaign.
+
+    POST /api/deleghe/campagne/{id}/attiva/
+    Changes campaign state from BOZZA to ATTIVA.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        campagna = get_object_or_404(CampagnaReclutamento, pk=pk)
+        user = request.user
+
+        # Check ownership
+        if not user.is_superuser:
+            if campagna.created_by_email != user.email:
+                roles = get_user_delegation_roles(user)
+                delegato_ids = list(roles['deleghe_lista'].values_list('id', flat=True))
+                sub_delega_ids = list(roles['sub_deleghe'].values_list('id', flat=True))
+
+                if campagna.delegato_id not in delegato_ids and campagna.sub_delega_id not in sub_delega_ids:
+                    return Response(
+                        {'error': 'Non autorizzato'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+
+        if campagna.stato != 'BOZZA':
+            return Response(
+                {'error': 'Solo le campagne in bozza possono essere attivate'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        campagna.stato = 'ATTIVA'
+        campagna.save()
+
+        return Response(CampagnaReclutamentoSerializer(campagna).data)
+
+
+class CampagnaChiudiView(APIView):
+    """
+    Close a campaign.
+
+    POST /api/deleghe/campagne/{id}/chiudi/
+    Changes campaign state from ATTIVA to CHIUSA.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        campagna = get_object_or_404(CampagnaReclutamento, pk=pk)
+        user = request.user
+
+        # Check ownership
+        if not user.is_superuser:
+            if campagna.created_by_email != user.email:
+                roles = get_user_delegation_roles(user)
+                delegato_ids = list(roles['deleghe_lista'].values_list('id', flat=True))
+                sub_delega_ids = list(roles['sub_deleghe'].values_list('id', flat=True))
+
+                if campagna.delegato_id not in delegato_ids and campagna.sub_delega_id not in sub_delega_ids:
+                    return Response(
+                        {'error': 'Non autorizzato'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+
+        if campagna.stato != 'ATTIVA':
+            return Response(
+                {'error': 'Solo le campagne attive possono essere chiuse'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        campagna.stato = 'CHIUSA'
+        campagna.save()
+
+        return Response(CampagnaReclutamentoSerializer(campagna).data)

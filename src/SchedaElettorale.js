@@ -50,6 +50,8 @@ function SchedaElettorale({ scheda, client, onClose, onUpdate }) {
     };
 
     const isReferendum = scheda.tipo === 'REFERENDUM';
+    // Il turno/ballottaggio è previsto solo per elezioni comunali con comuni > 15.000 abitanti
+    const supportsBallottaggio = scheda.tipo === 'COMUNALI' || scheda.tipo === 'MUNICIPALI';
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -352,7 +354,7 @@ function SchedaElettorale({ scheda, client, onClose, onUpdate }) {
                     {isEditing && (
                         <div className="mt-4">
                             <div className="row">
-                                <div className="col-md-6">
+                                <div className={supportsBallottaggio ? "col-md-6" : "col-md-12"}>
                                     <label className="form-label">
                                         <i className="fas fa-sort-numeric-up me-2"></i>
                                         Ordine di Visualizzazione
@@ -366,36 +368,41 @@ function SchedaElettorale({ scheda, client, onClose, onUpdate }) {
                                         min="0"
                                     />
                                 </div>
-                                <div className="col-md-3">
-                                    <label className="form-label">
-                                        <i className="fas fa-redo me-2"></i>
-                                        Turno
-                                    </label>
-                                    <select
-                                        className="form-select"
-                                        value={formData.turno}
-                                        onChange={(e) => handleChange('turno', e.target.value)}
-                                    >
-                                        <option value={1}>1 - Primo turno</option>
-                                        <option value={2}>2 - Ballottaggio</option>
-                                    </select>
-                                </div>
-                                {parseInt(formData.turno) === 2 && (
-                                    <div className="col-md-3">
-                                        <label className="form-label">
-                                            <i className="fas fa-calendar me-2"></i>
-                                            Data Ballottaggio
-                                        </label>
-                                        <input
-                                            type="date"
-                                            className="form-control"
-                                            value={formData.data_inizio_turno}
-                                            onChange={(e) => handleChange('data_inizio_turno', e.target.value)}
-                                        />
-                                        <small className="text-muted">
-                                            Data a partire dalla quale gli RDL vedono questo turno
-                                        </small>
-                                    </div>
+                                {/* Turno/Ballottaggio solo per elezioni comunali (> 15.000 abitanti) */}
+                                {supportsBallottaggio && (
+                                    <>
+                                        <div className="col-md-3">
+                                            <label className="form-label">
+                                                <i className="fas fa-redo me-2"></i>
+                                                Turno
+                                            </label>
+                                            <select
+                                                className="form-select"
+                                                value={formData.turno}
+                                                onChange={(e) => handleChange('turno', e.target.value)}
+                                            >
+                                                <option value={1}>1 - Primo turno</option>
+                                                <option value={2}>2 - Ballottaggio</option>
+                                            </select>
+                                        </div>
+                                        {parseInt(formData.turno) === 2 && (
+                                            <div className="col-md-3">
+                                                <label className="form-label">
+                                                    <i className="fas fa-calendar me-2"></i>
+                                                    Data Ballottaggio
+                                                </label>
+                                                <input
+                                                    type="date"
+                                                    className="form-control"
+                                                    value={formData.data_inizio_turno}
+                                                    onChange={(e) => handleChange('data_inizio_turno', e.target.value)}
+                                                />
+                                                <small className="text-muted">
+                                                    Data a partire dalla quale gli RDL vedono questo turno
+                                                </small>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -419,9 +426,11 @@ function SchedaElettorale({ scheda, client, onClose, onUpdate }) {
                         <div className="col-md-2">
                             <strong>Tipo:</strong> {scheda.tipo}
                         </div>
-                        <div className="col-md-2">
-                            <strong>Turno:</strong> {formData.turno === 2 ? 'Ballottaggio' : 'Primo turno'}
-                        </div>
+                        {supportsBallottaggio && (
+                            <div className="col-md-2">
+                                <strong>Turno:</strong> {formData.turno === 2 ? 'Ballottaggio' : 'Primo turno'}
+                            </div>
+                        )}
                         <div className="col-md-2">
                             <strong>Ordine:</strong> {formData.ordine}
                         </div>

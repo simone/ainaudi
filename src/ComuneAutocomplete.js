@@ -2,7 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 
 const SERVER_API = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_API_URL : '';
 
-function ComuneAutocomplete({ value, onChange, disabled, placeholder }) {
+function ComuneAutocomplete({ value, onChange, disabled, placeholder, searchEndpoint, authenticated }) {
+    // Default endpoint for public RDL registration, can be overridden
+    const endpoint = searchEndpoint || '/api/rdl/comuni/search';
+    // If authenticated, include JWT token in request
+    const needsAuth = authenticated || (searchEndpoint && searchEndpoint !== '/api/rdl/comuni/search');
     const [query, setQuery] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -33,7 +37,16 @@ function ComuneAutocomplete({ value, onChange, disabled, placeholder }) {
 
             setLoading(true);
             try {
-                const response = await fetch(`${SERVER_API}/api/rdl/comuni/search?q=${encodeURIComponent(query)}`);
+                const fetchOptions = {};
+                if (needsAuth) {
+                    const token = localStorage.getItem('rdl_access_token');
+                    if (token) {
+                        fetchOptions.headers = {
+                            'Authorization': `Bearer ${token}`
+                        };
+                    }
+                }
+                const response = await fetch(`${SERVER_API}${endpoint}?q=${encodeURIComponent(query)}`, fetchOptions);
                 const data = await response.json();
                 setSuggestions(data.comuni || []);
                 setSelectedIndex(-1);
@@ -47,7 +60,7 @@ function ComuneAutocomplete({ value, onChange, disabled, placeholder }) {
 
         const debounceTimer = setTimeout(fetchSuggestions, 300);
         return () => clearTimeout(debounceTimer);
-    }, [query]);
+    }, [query, endpoint, needsAuth]);
 
     const handleInputChange = (e) => {
         const newValue = e.target.value;

@@ -1122,6 +1122,59 @@ class RdlRegistrationSelfView(APIView):
         }, status=201)
 
 
+class SezioniSearchPublicView(APIView):
+    """
+    PUBLIC endpoint for searching sezioni (sections) by comune.
+    Used by RDL self-registration form for sezione autocomplete.
+
+    GET /api/sections/search-public/?comune_id=1&q=numero
+    Returns: [
+        {"id": 1, "numero": 1, "denominazione": "Scuola...", "indirizzo": "Via..."},
+        ...
+    ]
+    """
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        comune_id = request.query_params.get('comune_id')
+        q = request.query_params.get('q', '').strip()
+
+        if not comune_id:
+            return Response({'error': 'comune_id required'}, status=400)
+
+        try:
+            comune = Comune.objects.get(pk=comune_id)
+        except Comune.DoesNotExist:
+            return Response({'error': 'Comune not found'}, status=404)
+
+        # Get all active sezioni for this comune
+        sezioni = SezioneElettorale.objects.filter(
+            comune=comune,
+            is_attiva=True
+        ).order_by('numero')
+
+        # Filter by search query if provided
+        if q:
+            sezioni = sezioni.filter(
+                Q(numero__icontains=q) |
+                Q(denominazione__icontains=q) |
+                Q(indirizzo__icontains=q)
+            )
+
+        # Limit to 20 results
+        results = []
+        for sezione in sezioni[:20]:
+            results.append({
+                'id': sezione.id,
+                'numero': sezione.numero,
+                'denominazione': sezione.denominazione or '',
+                'indirizzo': sezione.indirizzo or '',
+            })
+
+        return Response(results)
+
+
 class RdlRegistrationListView(APIView):
     """
     List RDL registrations for delegates.

@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="it">
+
+    <!-- virtual="include/head.html" -->
+    <script src="/opendata/include/head.vm"></script>
+    <body id="open-data-on">
+
+        <!-- virtual="include/header.html" -->
+                                        <script src="/opendata/include/header.vm?lg="></script>
+
+        <!--main-->
+        <section class="grigia">
+            <div class="container ">
+                <div class="row override pagine-interne flex">
+                    <!--left-->
+                    <div class="col-md-offset-1 col-md-3" id="leftCol">
+                        <div id="sidebar">
+
+                            <!-- La sidebar l'ho pensata cosi: Classe "ul-open" per lo stile delle sezioni aperte Classe
+                            "ul-close" per chiudere i rami di navigazione Classe "active" per evidenziare l'area attiva al
+                            momento Classe "none" per disattivare l'area (ricordarsi tooltip se necessari) -->
+                            <div class="sottomenu">
+                                <strong>MENU</strong>
+                                | Open-Data</div>
+                            <ul>
+                                <li >
+                                    <a class=" ul-open" href="/opendata/opendata/catalogo">
+                                        <p class="sezione-menu">Catalogo Dataset</p>
+                                    </a>
+                                                                        <ul>
+                                        <li >
+                                                                                            <a class=" ul-open" href="/opendata/opendata/catalogo#Scuola">Ambito Scuola
+                                                    <span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+                                                    <span class="glyphicon glyphicon-chevron-up pull-right" aria-hidden="true"></span>
+                                                </a>
+
+                                                <ul>
+                                                                                                         
+			
+					<li>		
+							<a class="" href="/opendata/opendata/catalogo/elements1/?area=Scuole">SCUOLE
+						<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+			</a>
+						
+					</li>
+							<li>		
+							<a class="" href="/opendata/opendata/catalogo/elements1/?area=Studenti">STUDENTI
+						<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+			</a>
+						
+					</li>
+							<li>		
+							<a class="" href="/opendata/opendata/catalogo/elements1/?area=Personale Scuola">PERSONALE SCUOLA
+						<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+			</a>
+						
+					</li>
+							<li>		
+							<a class="" href="/opendata/opendata/catalogo/elements1/?area=Sistema Nazionale di Valutazione">SISTEMA NAZIONALE DI VALUTAZIONE
+						<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+			</a>
+						
+					</li>
+							<li>		
+						    			    <a class="ul-open" href="/opendata/opendata/catalogo/elements1/?area=Edilizia Scolastica">EDILIZIA SCOLASTICA
+			    						<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+			</a>
+						
+						<ul>
+											</ul>			
+					</li>
+							<li>		
+							<a class="" href="/opendata/opendata/catalogo/elements1/?area=Adozioni libri di testo">ADOZIONI LIBRI DI TESTO
+						<span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+			</a>
+						
+					</li>
+																					
+                                                </ul>
+                                                                                    </li>
+                                        <li >
+                                                                                            <a class=" ul-close" href="/opendata/opendata/catalogo#PON">Ambito PON
+                                                    <span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+                                                    <span class="glyphicon glyphicon-chevron-up pull-right" aria-hidden="true"></span>
+                                                </a>
+                                                                                    </li>
+                                        <li >
+                                                                                            <a class=" ul-close" href="/opendata/opendata/catalogo#Bilanci">Ambito Bilancio Scuole
+                                                    <span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+                                                    <span class="glyphicon glyphicon-chevron-up pull-right" aria-hidden="true"></span>
+                                                </a>
+                                                                                    </li>
+                                        <li >
+                                                                                            <a class=" ul-close" href="/opendata/opendata/catalogo#ANIST">Ambito ANIST
+                                                    <span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+                                                    <span class="glyphicon glyphicon-chevron-up pull-right" aria-hidden="true"></span>
+                                                </a>
+                                                                                    </li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <a class=" ul-open" href="/opendata/opendata/sparql">
+                                        <p class="sezione-menu">Interroga i dati con SPARQL</p>
+                                    </a>
+                                    <ul>
+                                        <li>
+                                            <a class=" ul-close" href="/opendata/opendata/sparql/endpoint#Scuola">Ambito Scuola
+                                                <span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+                                                <span class="glyphicon glyphicon-chevron-up pull-right" aria-hidden="true"></span>
+                                            </a>
+                                        </li>
+                                        <!--<li><a href="/opendata\ontologie" title="Area in costruzione">Ontologie</a></li>-->
+                                        <li>
+                                            <a class=" ul-close" href="/opendata/opendata/sparql/endpoint?lg=it#PON">Ambito PON
+                                                <span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+                                                <span class="glyphicon glyphicon-chevron-up pull-right" aria-hidden="true"></span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class=" ul-close" href="/opendata/opendata/sparql/endpoint#Bilanci">Ambito Bilancio Scuole
+                                                <span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+                                                <span class="glyphicon glyphicon-chevron-up pull-right" aria-hidden="true"></span>
+                                            </a>
+                                        </li>
+                                         <li>
+                                            <a class=" ul-close" href="/opendata/opendata/sparql/endpoint#ANIST">Ambito ANIST
+                                                <span class="glyphicon glyphicon-chevron-down pull-right" aria-hidden="true"></span>
+                                                <span class="glyphicon glyphicon-chevron-up pull-right" aria-hidden="true"></span>
+                                            </a>
+                                        </li>
+                                        <!--<li><a href="/opendata\ontologie" title="Area in costruzione">Ontologie</a></li>-->
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <!--/left-->
+
+                    <!--right-->
+                    
+                    <div id="contenuto" class="col-md-7 bordino">
+                                                
+<tr><td>
+<div id="breadcrumb">
+	<a href="/opendata">Home</a>
+	<span>></span>
+				<a href="/opendata/opendata/">Open Data</a>
+		<span>></span>
+ 				<a href="/opendata/opendata/catalogo">Catalogo Dataset Ambito Scuola</a>
+		<span>></span>
+ 				<a href="/opendata/opendata/catalogo/elements1/?area=Edilizia Scolastica">Edilizia Scolastica</a>
+		<span>></span>
+ 	</div>
+                        <h1 id="sec0">Elenco e localizzazione degli edifici scolastici attivi</h1>
+
+                        <div class="row">
+
+                            <div class="col-lg-12 ">
+                                <div class="card">
+                                    <div class="row">
+                                        <div class="col-lg-4 bottoni">
+                                                                                            <a href="#informazioni" class="btn btn-block btn-default btn-portale">INFORMAZIONI</a>
+                                                <a href="#tracciato" class="btn btn-block btn-default btn-portale">TRACCIATO RECORD</a>
+                                                                                    </div>
+
+                                        
+                                                                                                                            <div class="col-lg-8">
+                                                <div class="tipo pull-right-responsive">
+                                                                                                                                                                
+                                                                                                                        
+                                                                
+                                                                                                                                
+                                                                
+                                                                                                                            
+                                                                
+                                                                                                                                
+                                                                
+                                                                                                                            
+                                                                
+                                                                                                                                
+                                                                
+                                                                                                                                                                                        <a class="csv split" data-target="#csv-01" role="button" aria-expanded="false">
+                                                                <span class="nome">CSV</span>
+                                                                <div class="icona">
+                                                                    <img
+                                                                        alt="Scarica il file"
+                                                                        src="/opendata/img/pagine-interne/icon-download-split.svg"
+                                                                        onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download-split.png'"
+                                                                        class="img-responsive"/>
+                                                                </div>
+                                                                <span class="kb">15 Mb</span>
+                                                            </a>
+
+                                                                                                                                                                    
+                                                                                                                        
+                                                                
+                                                                                                                                
+                                                                
+                                                                                                                            
+                                                                
+                                                                                                                                
+                                                                
+                                                                                                                            
+                                                                
+                                                                                                                                
+                                                                
+                                                                                                                                                                                        <a class="json split" data-target="#json-01" role="button" aria-expanded="false">
+                                                                <span class="nome">JSON</span>
+                                                                <div class="icona">
+                                                                    <img
+                                                                        alt="Scarica il file"
+                                                                        src="/opendata/img/pagine-interne/icon-download-split.svg"
+                                                                        onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download-split.png'"
+                                                                        class="img-responsive"/>
+                                                                </div>
+                                                                <span class="kb">83 Mb</span>
+                                                            </a>
+
+                                                                                                                                                                    
+                                                                                                                        
+                                                                
+                                                                                                                                
+                                                                
+                                                                                                                            
+                                                                
+                                                                                                                                
+                                                                
+                                                                                                                            
+                                                                
+                                                                                                                                
+                                                                
+                                                                                                                                                                                        <a class="rdf split" data-target="#rdf-01" role="button" aria-expanded="false">
+                                                                <span class="nome">RDF</span>
+                                                                <div class="icona">
+                                                                    <img
+                                                                        alt="Scarica il file"
+                                                                        src="/opendata/img/pagine-interne/icon-download-split.svg"
+                                                                        onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download-split.png'"
+                                                                        class="img-responsive"/>
+                                                                </div>
+                                                                <span class="kb">159 Mb</span>
+                                                            </a>
+
+                                                                                                                                                                    
+                                                                                                                        
+                                                                
+                                                                                                                                
+                                                                
+                                                                                                                            
+                                                                
+                                                                                                                                
+                                                                
+                                                                                                                            
+                                                                
+                                                                                                                                
+                                                                
+                                                                                                                                                                                        <a class="xml split" data-target="#xml-01" role="button" aria-expanded="false">
+                                                                <span class="nome">XML</span>
+                                                                <div class="icona">
+                                                                    <img
+                                                                        alt="Scarica il file"
+                                                                        src="/opendata/img/pagine-interne/icon-download-split.svg"
+                                                                        onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download-split.png'"
+                                                                        class="img-responsive"/>
+                                                                </div>
+                                                                <span class="kb">236 Mb</span>
+                                                            </a>
+
+                                                                                                                                                                <div class="download">
+                                                                                                                    <span>Numero
+                                                                <br>Download:<br></span>
+                                                                                                                <span class="numero">66,697</span>
+
+                                                    </div>
+                                                    <div class="clearfix"></div>
+                                                </div>
+                                            </div>
+                                        
+                                    </div>
+                                    <!--<div class="row"> <div class="col-lg-5 bottoni"> </div> <div class="col-lg-7"> <h4><small>(*) le
+                                    dimensioni dei file sono espresse in Kilobye.</small></h4> </div> </div> -->
+
+                                    <div class="row">
+                                                                                                                                    <div class="split-div csv-table" id="csv-01">
+                                                    <div class="table-responsive" ;=";">
+                                                        <table class="table  table-striped">
+                                                            <tr>
+                                                                <th class="titolo" colspan="4">Disponibilta' dei dati per Anno Scolastico nel formato CSV</th>
+
+                                                            </tr>
+                                                            <tr>
+                                                                <th>#</th>
+                                                                <th>Distribuzione</th>
+                                                                <th>Dati al</th>
+                                                                <th class="column-dimension">Dimensione</th>
+                                                                <th class="column-download">Download</th>
+                                                            </tr>
+                                                                                                                        
+                                                                <tr>
+                                                                    <td>1</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20181920180901.csv">Distribuzione per ANNOSCOLASTICO 201819</a>
+                                                                    </td>
+                                                                    <td>30/05/2019</td>
+                                                                    <td>5 Mb</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20181920180901.csv" ">
+                                                                            <div class="icona">
+                                                                                <img
+                                                                                    alt="Scarica il file"
+                                                                                    src="/opendata/img/pagine-interne/icon-download.svg"
+                                                                                    onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download.png'"
+                                                                                    class="img-responsive"/>
+                                                                            </div>
+                                                                        </a>
+                                                                    </td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>1</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20171820180925.csv">Distribuzione per ANNOSCOLASTICO 201718</a>
+                                                                    </td>
+                                                                    <td>25/09/2018</td>
+                                                                    <td>5 Mb</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20171820180925.csv" ">
+                                                                            <div class="icona">
+                                                                                <img
+                                                                                    alt="Scarica il file"
+                                                                                    src="/opendata/img/pagine-interne/icon-download.svg"
+                                                                                    onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download.png'"
+                                                                                    class="img-responsive"/>
+                                                                            </div>
+                                                                        </a>
+                                                                    </td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>1</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20160831.csv">Distribuzione per ANNOSCOLASTICO 201516</a>
+                                                                    </td>
+                                                                    <td>31/08/2016</td>
+                                                                    <td>5 Mb</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20160831.csv" ">
+                                                                            <div class="icona">
+                                                                                <img
+                                                                                    alt="Scarica il file"
+                                                                                    src="/opendata/img/pagine-interne/icon-download.svg"
+                                                                                    onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download.png'"
+                                                                                    class="img-responsive"/>
+                                                                            </div>
+                                                                        </a>
+                                                                    </td>
+                                                                </tr>
+
+                                                            
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                                <!-- Fine Tabella CSV -->
+
+                                                                                                                                                                                <div class="split-div json-table" id="json-01">
+                                                    <div class="table-responsive" ;=";">
+                                                        <table class="table  table-striped">
+                                                            <tr>
+                                                                <th class="titolo" colspan="4">Disponibilta' dei dati per Anno Scolastico nel formato JSON</th>
+
+                                                            </tr>
+                                                            <tr>
+                                                                <th>#</th>
+                                                                <th>Distribuzione</th>
+                                                                <th>Dati al</th>
+                                                                <th class="column-dimension">Dimensione</th>
+                                                                <th class="column-download">Download</th>
+                                                            </tr>
+                                                                                                                        
+                                                                <tr>
+                                                                    <td>1</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20181920180901.json">Distribuzione per ANNOSCOLASTICO 201819</a>
+                                                                    </td>
+                                                                    <td>30/05/2019</td>
+                                                                    <td>29 Mb</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20181920180901.json" ">
+                                                                            <div class="icona">
+                                                                                <img
+                                                                                    alt="Scarica il file"
+                                                                                    src="/opendata/img/pagine-interne/icon-download.svg"
+                                                                                    onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download.png'"
+                                                                                    class="img-responsive"/>
+                                                                            </div>
+                                                                        </a>
+                                                                    </td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>1</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20171820180925.json">Distribuzione per ANNOSCOLASTICO 201718</a>
+                                                                    </td>
+                                                                    <td>25/09/2018</td>
+                                                                    <td>29 Mb</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20171820180925.json" ">
+                                                                            <div class="icona">
+                                                                                <img
+                                                                                    alt="Scarica il file"
+                                                                                    src="/opendata/img/pagine-interne/icon-download.svg"
+                                                                                    onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download.png'"
+                                                                                    class="img-responsive"/>
+                                                                            </div>
+                                                                        </a>
+                                                                    </td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>1</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20160831.json">Distribuzione per ANNOSCOLASTICO 201516</a>
+                                                                    </td>
+                                                                    <td>31/08/2016</td>
+                                                                    <td>25 Mb</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20160831.json" ">
+                                                                            <div class="icona">
+                                                                                <img
+                                                                                    alt="Scarica il file"
+                                                                                    src="/opendata/img/pagine-interne/icon-download.svg"
+                                                                                    onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download.png'"
+                                                                                    class="img-responsive"/>
+                                                                            </div>
+                                                                        </a>
+                                                                    </td>
+                                                                </tr>
+
+                                                            
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                                <!-- Fine Tabella CSV -->
+
+                                                                                                                                                                                <div class="split-div rdf-table" id="rdf-01">
+                                                    <div class="table-responsive" ;=";">
+                                                        <table class="table  table-striped">
+                                                            <tr>
+                                                                <th class="titolo" colspan="4">Disponibilta' dei dati per Anno Scolastico nel formato RDF</th>
+
+                                                            </tr>
+                                                            <tr>
+                                                                <th>#</th>
+                                                                <th>Distribuzione</th>
+                                                                <th>Dati al</th>
+                                                                <th class="column-dimension">Dimensione</th>
+                                                                <th class="column-download">Download</th>
+                                                            </tr>
+                                                                                                                        
+                                                                <tr>
+                                                                    <td>1</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20181920180901.rdf">Distribuzione per ANNOSCOLASTICO 201819</a>
+                                                                    </td>
+                                                                    <td>30/05/2019</td>
+                                                                    <td>56 Mb</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20181920180901.rdf" ">
+                                                                            <div class="icona">
+                                                                                <img
+                                                                                    alt="Scarica il file"
+                                                                                    src="/opendata/img/pagine-interne/icon-download.svg"
+                                                                                    onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download.png'"
+                                                                                    class="img-responsive"/>
+                                                                            </div>
+                                                                        </a>
+                                                                    </td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>1</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20171820180925.rdf">Distribuzione per ANNOSCOLASTICO 201718</a>
+                                                                    </td>
+                                                                    <td>25/09/2018</td>
+                                                                    <td>55 Mb</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20171820180925.rdf" ">
+                                                                            <div class="icona">
+                                                                                <img
+                                                                                    alt="Scarica il file"
+                                                                                    src="/opendata/img/pagine-interne/icon-download.svg"
+                                                                                    onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download.png'"
+                                                                                    class="img-responsive"/>
+                                                                            </div>
+                                                                        </a>
+                                                                    </td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>1</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20160831.rdf">Distribuzione per ANNOSCOLASTICO 201516</a>
+                                                                    </td>
+                                                                    <td>31/08/2016</td>
+                                                                    <td>48 Mb</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20160831.rdf" ">
+                                                                            <div class="icona">
+                                                                                <img
+                                                                                    alt="Scarica il file"
+                                                                                    src="/opendata/img/pagine-interne/icon-download.svg"
+                                                                                    onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download.png'"
+                                                                                    class="img-responsive"/>
+                                                                            </div>
+                                                                        </a>
+                                                                    </td>
+                                                                </tr>
+
+                                                            
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                                <!-- Fine Tabella CSV -->
+
+                                                                                                                                                                                <div class="split-div xml-table" id="xml-01">
+                                                    <div class="table-responsive" ;=";">
+                                                        <table class="table  table-striped">
+                                                            <tr>
+                                                                <th class="titolo" colspan="4">Disponibilta' dei dati per Anno Scolastico nel formato XML</th>
+
+                                                            </tr>
+                                                            <tr>
+                                                                <th>#</th>
+                                                                <th>Distribuzione</th>
+                                                                <th>Dati al</th>
+                                                                <th class="column-dimension">Dimensione</th>
+                                                                <th class="column-download">Download</th>
+                                                            </tr>
+                                                                                                                        
+                                                                <tr>
+                                                                    <td>1</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20181920180901.xml">Distribuzione per ANNOSCOLASTICO 201819</a>
+                                                                    </td>
+                                                                    <td>30/05/2019</td>
+                                                                    <td>83 Mb</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20181920180901.xml" ">
+                                                                            <div class="icona">
+                                                                                <img
+                                                                                    alt="Scarica il file"
+                                                                                    src="/opendata/img/pagine-interne/icon-download.svg"
+                                                                                    onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download.png'"
+                                                                                    class="img-responsive"/>
+                                                                            </div>
+                                                                        </a>
+                                                                    </td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>1</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20171820180925.xml">Distribuzione per ANNOSCOLASTICO 201718</a>
+                                                                    </td>
+                                                                    <td>25/09/2018</td>
+                                                                    <td>82 Mb</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20171820180925.xml" ">
+                                                                            <div class="icona">
+                                                                                <img
+                                                                                    alt="Scarica il file"
+                                                                                    src="/opendata/img/pagine-interne/icon-download.svg"
+                                                                                    onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download.png'"
+                                                                                    class="img-responsive"/>
+                                                                            </div>
+                                                                        </a>
+                                                                    </td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>1</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20160831.xml">Distribuzione per ANNOSCOLASTICO 201516</a>
+                                                                    </td>
+                                                                    <td>31/08/2016</td>
+                                                                    <td>71 Mb</td>
+                                                                    <td>
+                                                                        <a href="EDIANAGRAFESTA20160831.xml" ">
+                                                                            <div class="icona">
+                                                                                <img
+                                                                                    alt="Scarica il file"
+                                                                                    src="/opendata/img/pagine-interne/icon-download.svg"
+                                                                                    onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download.png'"
+                                                                                    class="img-responsive"/>
+                                                                            </div>
+                                                                        </a>
+                                                                    </td>
+                                                                </tr>
+
+                                                            
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                                <!-- Fine Tabella CSV -->
+
+                                                                                                                        </div>
+                                    <!-- ROW - parte split fine -->
+
+                                </div>
+                            </div>
+                            <div class="clearfix"></div>
+
+                            <section>
+                                <div class="col-lg-12 ">
+                                    <div class="card">
+                                        <h2>
+                                                                                        
+                                            <!-- <div class="row"> <div class="col-lg-12"> -->
+                                             Informazioni sul Dataset                                                 <!-- <div class="tipo pull-right-responsive"> <a class="csv"
+                                                href="/opendata/opendata/sparql/endpoint/query/ExportServlet?query=SELECT%20%3FIdentifier%20%3FTitle%20%3FDescription%20
+                                                %3FCreator%20%3FPublisher%20%3FContactPoint%20%3FIssued%20%20%3FModified%20%3FTemporal%20%3FSpatial%20%3FAccrualPeriodicity%20
+                                                %3FKeyword%20%3FLanguage%20%3FLicense%20WHERE%20%7B%3Fsubject%20%20%20%20%3Fdset%20%3Chttp%3A%2F%2Fwww.w3.org%2Fns%2Fdcat%23Dataset%3E.
+                                                %3Fsubject%20%20%20%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fidentifier%3E%20%3FIdentifier.
+                                                %3Fsubject%20%20%20%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Ftitle%3E%20%3FTitle.
+                                                %3Fsubject%20%20%20%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fpublisher%3E%20%3FDPublisher.
+                                                %3FDPublisher%20%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fcreator%3E%20%3FCreator.
+                                                %20%3FCatalog%20%20%20%20%20%3Chttp%3A%2F%2Fwww.w3.org%2Fns%2Fdcat%23dataset%3E%20%3Fsubject.
+                                                %20%3FCatalog%20%20%20%20%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fpublisher%3E%20%3FCPublisher.
+                                                %20%3FCPublisher%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fpublisher%3E%20%3FPublisher.
+                                                %20%3Fsubject%20%20%20%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Ftemporal%3E%20%3FTemporal.
+                                                %3Fsubject%20%20%20%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fissued%3E%20%3FIssued.
+                                                %20%3Fsubject%20%20%20%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fdescription%3E%20%3FDescription.
+                                                %3Fsubject%20%20%20%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fspatial%3E%20%3FSpatial.
+                                                %3Fsubject%20%20%20%20%3Chttp%3A%2F%2Fwww.w3.org%2Fns%2Fdcat%23contactPoint%3E%3FContactPoint.
+                                                %20%3Fsubject%20%20%20%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2FaccrualPeriodicity%3E%20%3FAccrualPeriodicity.
+                                                %20%3Fsubject%20%20%20%20%3Chttp%3A%2F%2Fwww.w3.org%2Fns%2Fdcat%23keyword%3E%20%3FKeyword.
+                                                %3Fsubject%20%20%20%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fmodified%3E%20%3FModified.
+                                                %20%3Fsubject%20%20%20%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Flanguage%3E%20%3FLanguage.
+                                                %20%3Fcatalog%20%20%20%20%3Chttp%3A%2F%2Fwww.w3.org%2Fns%2Fdcat%23dataset%3E%20%3Fsubject.
+                                                %20%3Fcatalog%20%20%20%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Flicense%3E%20%3FLicense%20
+                                                FILTER%20regex%20(%3FIdentifier%2C%22DS0200EDIANAGRAFESTA%22)%20%7D&dataset=/metadata&dataType=csv">
+                                                <div class="icona"> <img alt="Scarica il file" src="/opendata/img/pagine-interne/icon-download.svg"
+                                                onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download.png'"
+                                                class="img-responsive"/> </div> </a> <div class="clearfix"></div> </div> </div> </div> -->
+
+                                            </h2>
+                                            <div id="informazioni" class="offset2"></div>
+                                            <div class="table-responsive">
+                                                <table class="table table-portale">
+                                                    <tbody>
+
+                                                                                                                                                                                    <tr>
+
+                                                                                                                                            <td>
+                                                                            <a style="text-decoration: none;" id="creator">Prodotto da:</a>
+                                                                        </td>
+                                                                    
+                                                                                                                                        
+                                                                                                                                                                                                                        <td>DGEFID</td>
+                                                                                                                                            
+                                                                </tr>
+                                                                                                                                                                                                                                                <tr>
+
+                                                                                                                                            <td>
+                                                                            <a style="text-decoration: none;" id="publisher">Pubblicato da:</a>
+                                                                        </td>
+                                                                    
+                                                                                                                                        
+                                                                                                                                                                                                                        <td>DGCASIS</td>
+                                                                                                                                            
+                                                                </tr>
+                                                                                                                                                                                                                                                <tr>
+
+                                                                                                                                            <td>
+                                                                            <a style="text-decoration: none;" id="title">Nome Dataset:</a>
+                                                                        </td>
+                                                                    
+                                                                                                                                        
+                                                                                                                                                                                                                        <td>Elenco e localizzazione degli edifici scolastici attivi</td>
+                                                                                                                                            
+                                                                </tr>
+                                                                                                                                                                                                                                                <tr>
+
+                                                                                                                                            <td>
+                                                                            <a style="text-decoration: none;" id="description">Descrizione Dataset:</a>
+                                                                        </td>
+                                                                    
+                                                                                                                                        
+                                                                                                                                                                                                                        <td>Nel flusso di dati sono contenute le informazioni riguardanti l'anagrafica dell'edificio scolastico e alla sua localizzazione relativamente alle scuole Statali di ogni ordine e grado (I dati sono caricati dagli Enti locali proprietari o gestori degli edifici adibiti ad uso scolastico ai sensi della legge 11 gennaio 1996, n. 23)</td>
+                                                                                                                                            
+                                                                </tr>
+                                                                                                                                                                                                                                                <tr>
+
+                                                                                                                                            <td>
+                                                                            <a style="text-decoration: none;" id="modified">Data pubblicazione:</a>
+                                                                        </td>
+                                                                    
+                                                                                                                                                                                                            
+                                                                                                                                                                                                                        <td>04/03/2020</td>
+                                                                                                                                            
+                                                                </tr>
+                                                                                                                                                                                                                                                <tr>
+
+                                                                                                                                                                                                                
+                                                                                                                                                                                                            
+                                                                                                                                                                                                                
+                                                                </tr>
+                                                                                                                                                                                                                                                                                                                                                                    <tr>
+
+                                                                                                                                            <td>
+                                                                            <a style="text-decoration: none;" id="accrualPeriodicity">Periodicita' rilevazione:</a>
+                                                                        </td>
+                                                                    
+                                                                                                                                        
+                                                                                                                                                                                                                        <td>Aggiornamento non periodico</td>
+                                                                                                                                            
+                                                                </tr>
+                                                                                                                                                                                                                                                <tr>
+
+                                                                                                                                            <td>
+                                                                            <a style="text-decoration: none;" id="license">Licenza:</a>
+                                                                        </td>
+                                                                    
+                                                                                                                                        
+                                                                                                                                                                                                                        <td>IODL 2.0</td>
+                                                                                                                                            
+                                                                </tr>
+                                                                                                                                                                                                                                                <tr>
+
+                                                                                                                                            <td>
+                                                                            <a style="text-decoration: none;" id="keyword">Keyword:</a>
+                                                                        </td>
+                                                                    
+                                                                                                                                        
+                                                                                                                                                                                                                        <td>Legge 107, Edilizia scolastica, Edificio, Dati anagrafici</td>
+                                                                                                                                            
+                                                                </tr>
+                                                                                                                                                                                                                                                <tr>
+
+                                                                                                                                            <td>
+                                                                            <a style="text-decoration: none;" id="spatial">Copertura geografica:</a>
+                                                                        </td>
+                                                                    
+                                                                                                                                        
+                                                                                                                                                                                                                        <td>Dati nazionali con esclusione delle province autonome di Trento e Bolzano. A partire dall'anno scolastico 2017-18 nei dataset sono disponibili anche i dati relativi agli edifici di Aosta</td>
+                                                                                                                                            
+                                                                </tr>
+                                                                                                                                                                                                                                                <tr>
+
+                                                                                                                                            <td>
+                                                                            <a style="text-decoration: none;" id="temporal">Copertura temporale:</a>
+                                                                        </td>
+                                                                    
+                                                                                                                                        
+                                                                                                                                                                                                                        <td>Anno scolastico</td>
+                                                                                                                                            
+                                                                </tr>
+                                                                                                                                                                                                                                                <tr>
+
+                                                                                                                                            <td>
+                                                                            <a style="text-decoration: none;" id="language">Lingua Datase;</a>
+                                                                        </td>
+                                                                    
+                                                                                                                                        
+                                                                                                                                                                                                                        <td>Italiano</td>
+                                                                                                                                            
+                                                                </tr>
+                                                                                                                                                                        </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="clearfix"></div>
+                                </section>
+                                <section>
+                                    <div class="col-lg-12 ">
+                                        <div class="card">
+                                            <h2>
+                                                <div class="row">
+                                                    <div class="col-lg-12">
+                                                         Tracciato record                                                               <div class="tipo pull-right-responsive">
+                                                                <a
+                                                                    class="csv"
+                                                                    href="/opendata/opendata/sparql/endpoint/query/ExportServlet?query=SELECT%20DISTINCT%20%3FAttributo%20%3FEtichetta%20%3FDescrizione%20%3FTipoDato%20
+                      WHERE%20{%3Fsubject%20%3Chttp://www.miur.it/ns/miur%23describe%3E%20%3Fdset.%20
+                      %3Fdset%20%3Chttp://purl.org/dc/terms/identifier%3E%20%3Fidentifier.%20
+                      %3Fsubject%20%3Chttp://www.miur.it/ns/miur%23Posizione%3E%20%3FPosizione.%20
+                      %3Fsubject%20%3Chttp://www.miur.it/ns/miur%23Attributo%3E%20%3FAttributo.%20
+                      %3Fsubject%20%3Chttp://www.miur.it/ns/miur%23Etichetta%3E%20%3FEtichetta.%20
+                      %3Fsubject%20%3Chttp://www.miur.it/ns/miur%23Descrizione%3E%20%3FDescrizione.%20
+                      %3Fsubject%20%3Chttp://www.miur.it/ns/miur%23TipoDato%3E%20%3FTipoDato.%20
+                      FILTER%20regex%20(%3Fidentifier%2C%22DS0200EDIANAGRAFESTA%22)%20}%20order%20by%20%3FPosizione&dataset=/metadata&dataType=csv&datasetId=DS0200EDIANAGRAFESTA">
+
+                                                                    <div class="icona">
+                                                                        <img
+                                                                            alt="Scarica il file"
+                                                                            src="/opendata/img/pagine-interne/icon-download.svg"
+                                                                            onerror="this.onerror=null; this.src='/opendata/img/pagine-interne/icon-download.png'"
+                                                                            class="img-responsive"/>
+                                                                    </div>
+                                                                </a>
+                                                                <div class="clearfix"></div>
+                                                            </div>
+
+                                                        </div>
+
+                                                    </div>
+                                                </h2>
+
+                                                <div id="tracciato" class="offset2"></div>
+                                                <div class="table-responsive">
+                                                    <table class="table table-portale">
+                                                        <thead class="grigio-20-bg">
+                                                            <tr>
+                                                                                                                                    <th>Attributo:</th>
+                                                                    <th>Tipo:</th>
+                                                                    <th>Descrizione Attributo:</th>
+                                                                                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+
+                                                                                                                        
+                                                                <tr>
+                                                                    <td>
+                                                                        <a style="text-decoration: none;">AnnoScolastico:</a>
+                                                                        <div id="ANNOSCOLASTICO" class="offset2"></div>
+                                                                    </td>
+                                                                    <td>Numerico</td>
+                                                                    <td>Anno scolastico di riferimento anagrafe scuola</td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>
+                                                                        <a style="text-decoration: none;">CodiceScuola:</a>
+                                                                        <div id="CODICESCUOLA" class="offset2"></div>
+                                                                    </td>
+                                                                    <td>Testo</td>
+                                                                    <td>Codice della scuola (plesso)</td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>
+                                                                        <a style="text-decoration: none;">CodiceEdificio:</a>
+                                                                        <div id="CODICEEDIFICIO" class="offset2"></div>
+                                                                    </td>
+                                                                    <td>Testo</td>
+                                                                    <td>Identifica l'edificio della scuola</td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>
+                                                                        <a style="text-decoration: none;">CodiceComune:</a>
+                                                                        <div id="CODICECOMUNE" class="offset2"></div>
+                                                                    </td>
+                                                                    <td>Testo</td>
+                                                                    <td>Codice catastale del Comune dell'edificio</td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>
+                                                                        <a style="text-decoration: none;">DescrizioneComune:</a>
+                                                                        <div id="DESCRIZIONECOMUNE" class="offset2"></div>
+                                                                    </td>
+                                                                    <td>Testo</td>
+                                                                    <td>Descrizione codice catastale del Comune dell'edificio</td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>
+                                                                        <a style="text-decoration: none;">SiglaProvincia:</a>
+                                                                        <div id="SIGLAPROVINCIA" class="offset2"></div>
+                                                                    </td>
+                                                                    <td>Testo</td>
+                                                                    <td>Sigla provincia dell'edificio</td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>
+                                                                        <a style="text-decoration: none;">TipologiaIndirizzo:</a>
+                                                                        <div id="TIPOLOGIAINDIRIZZO" class="offset2"></div>
+                                                                    </td>
+                                                                    <td>Testo</td>
+                                                                    <td>Tipologia indirizzo di recapito dell'edificio (via o piazza..)</td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>
+                                                                        <a style="text-decoration: none;">DenominazioneIndirizzo:</a>
+                                                                        <div id="DENOMINAZIONEINDIRIZZO" class="offset2"></div>
+                                                                    </td>
+                                                                    <td>Testo</td>
+                                                                    <td>Denominazione indirizzo di recapito dell'edificio</td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>
+                                                                        <a style="text-decoration: none;">NumeroCivico:</a>
+                                                                        <div id="NUMEROCIVICO" class="offset2"></div>
+                                                                    </td>
+                                                                    <td>Testo</td>
+                                                                    <td>Numero civico dell'indirizzo di recapito dell'edificio</td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>
+                                                                        <a style="text-decoration: none;">CAP:</a>
+                                                                        <div id="CAP" class="offset2"></div>
+                                                                    </td>
+                                                                    <td>Testo</td>
+                                                                    <td>C.A.P. dell'edificio. Se non presente ''ASSENTE''</td>
+                                                                </tr>
+
+                                                            
+                                                                <tr>
+                                                                    <td>
+                                                                        <a style="text-decoration: none;">StatoEdificio:</a>
+                                                                        <div id="STATOEDIFICIO" class="offset2"></div>
+                                                                    </td>
+                                                                    <td>Testo</td>
+                                                                    <td>Indica lo stato dell'edificio (ATTIVO)</td>
+                                                                </tr>
+
+                                                            
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="clearfix"></div>
+                                    </section>
+                                </div>
+
+                            </div>
+                            <!--/right-->
+                        </div>
+                        <!--/row-->
+                    </div>
+                    <!--/container-->
+                </section>
+                                                <!-- virtual="include/footer.html" -->
+                <script src="/opendata/include/footer.vm"></script>
+                <script src="/opendata/js/scripts.js"></script>
+                <!-- SCRIPT SCROLL UP-->
+                <!-- virtual="include/scroll-script.html" -->
+                                <script>
+
+	$(function(){
+		$(window).scroll(function(){
+			if($(this).scrollTop()>200){$('#bttop').fadeIn();
+			}
+			else{
+				$('#bttop').fadeOut();
+				}
+			});
+			$('#bttop').click(function(){
+				$('body,html').animate({scrollTop:0},800);
+				});
+			});
+			
+			
+		$(function() {
+		  $('a[href*="#"]:not([href="#"])').click(function() {
+			if (location.pathname.replace(/^\//,'') == this.pathname.replace(/^\//,'') && location.hostname == this.hostname) {
+			  var target = $(this.hash);
+			  target = target.length ? target : $('[name=' + this.hash.slice(1) +']');
+			  if (target.length) {
+				$('html, body').animate({
+				  scrollTop: target.offset().top
+				}, 800);
+				return false;
+			  }
+			}
+		  });
+		});
+	</script>
+                </body>
+<script type="text/javascript">
+$(document).ready(function(){
+    $('[data-toggle="tooltip"]').tooltip();   
+});
+</script>
+</html>

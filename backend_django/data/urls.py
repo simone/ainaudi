@@ -9,6 +9,7 @@ from .views import (
     SectionsAssignedView,
     SectionsSaveView,
     SectionsUploadView,
+    SezioniSearchPublicView,
     RdlRegistrationSelfView,
     RdlRegistrationListView,
     RdlRegistrationApproveView,
@@ -29,6 +30,8 @@ urlpatterns = [
     path('own', SectionsOwnView.as_view(), name='sections-own'),
     path('assigned', SectionsAssignedView.as_view(), name='sections-assigned'),
     path('upload', SectionsUploadView.as_view(), name='sections-upload'),
+    path('search-public/', SezioniSearchPublicView.as_view(), name='sections-search-public'),
+    path('comuni/search', ComuniSearchView.as_view(), name='sections-comuni-search'),
     path('', SectionsSaveView.as_view(), name='sections-save'),
 ]
 

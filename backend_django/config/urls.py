@@ -60,12 +60,14 @@ urlpatterns = [
     path('api/sections/', include('data.urls')),
     path('api/kpi/', include('kpi.urls')),
     path('api/resources/', include('resources.urls')),
+    path('api/risorse/', include('resources.urls')),  # Italian alias
     path('api/delegations/', include('delegations.urls')),
     path('api/territory/', include('territory.urls')),
 
     # Public campaign endpoints (no auth required)
-    path('api/campaigns/<slug:slug>/', CampagnaPublicView.as_view(), name='campaign-public'),
-    path('api/campaigns/<slug:slug>/register/', CampagnaRegistraView.as_view(), name='campaign-register'),
+    # Italian paths used by frontend
+    path('api/campagna/<slug:slug>/', CampagnaPublicView.as_view(), name='campagna-public'),
+    path('api/campagna/<slug:slug>/registra/', CampagnaRegistraView.as_view(), name='campagna-registra'),
 ]
 
 # Serve media files in development

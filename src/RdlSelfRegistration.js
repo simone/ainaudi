@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ComuneAutocomplete from './ComuneAutocomplete';
+import SezzionePlessAutocomplete from './SezzionePlessAutocomplete';
 
 const SERVER_API = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_API_URL : '';
 
@@ -48,14 +49,19 @@ function RdlSelfRegistration({ onClose }) {
         indirizzo_residenza: '',
         seggio_preferenza: '',
         municipio: '',
-        telefono: ''
+        telefono: '',
+        fuorisede: null,
+        comune_domicilio: '',
+        indirizzo_domicilio: ''
     });
     const [selectedComune, setSelectedComune] = useState(null);
+    const [selectedSezione, setSelectedSezione] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
     const [registrationStatus, setRegistrationStatus] = useState(null);
     const [checkingStatus, setCheckingStatus] = useState(true);
+    const [gdprAccepted, setGdprAccepted] = useState(false);
 
     useEffect(() => {
         checkRegistrationStatus();
@@ -87,6 +93,21 @@ function RdlSelfRegistration({ onClose }) {
         setSelectedComune(comune);
         // Reset municipio when comune changes
         setFormData(prev => ({ ...prev, municipio: '' }));
+        // Reset sezione when comune changes
+        setSelectedSezione(null);
+    };
+
+    const handleSezioneChange = (sezione) => {
+        setSelectedSezione(sezione);
+        if (sezione) {
+            // Set seggio_preferenza to sezione number + denominazione + indirizzo
+            const parts = [`Sez. ${sezione.numero}`];
+            if (sezione.denominazione) parts.push(sezione.denominazione);
+            if (sezione.indirizzo) parts.push(sezione.indirizzo);
+            setFormData(prev => ({ ...prev, seggio_preferenza: parts.join(' - ') }));
+        } else {
+            setFormData(prev => ({ ...prev, seggio_preferenza: '' }));
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -103,6 +124,34 @@ function RdlSelfRegistration({ onClose }) {
         // Municipio is required if the comune has municipalities
         if (selectedComune.has_municipi && selectedComune.municipi?.length > 0 && !formData.municipio) {
             setError('Seleziona un municipio');
+            setLoading(false);
+            return;
+        }
+
+        // Fuorisede selection is required
+        if (formData.fuorisede === null) {
+            setError('Devi indicare se sei un fuorisede');
+            setLoading(false);
+            return;
+        }
+
+        // If fuorisede is true, domicilio fields are required
+        if (formData.fuorisede === true) {
+            if (!formData.comune_domicilio) {
+                setError('Inserisci il comune di domicilio');
+                setLoading(false);
+                return;
+            }
+            if (!formData.indirizzo_domicilio) {
+                setError('Inserisci l\'indirizzo di domicilio');
+                setLoading(false);
+                return;
+            }
+        }
+
+        // GDPR acceptance is required
+        if (!gdprAccepted) {
+            setError('Devi accettare il trattamento dei dati personali per continuare');
             setLoading(false);
             return;
         }
@@ -354,6 +403,82 @@ function RdlSelfRegistration({ onClose }) {
                         </div>
                     </div>
 
+                    {/* Fuorisede */}
+                    <h6 className="text-muted mb-3 mt-3">Situazione abitativa</h6>
+                    <div className="row">
+                        <div className="col-12 mb-3">
+                            <label className="form-label">
+                                Sei un "fuorisede": lavori o studi in un comune italiano, diverso da quello della tua residenza anagrafica? *
+                            </label>
+                            <div className="btn-group w-100" role="group" aria-required="true">
+                                <input
+                                    type="radio"
+                                    className="btn-check"
+                                    name="fuorisede"
+                                    id="fuorisede_si"
+                                    value="true"
+                                    checked={formData.fuorisede === true}
+                                    onChange={() => setFormData(prev => ({ ...prev, fuorisede: true }))}
+                                    disabled={loading}
+                                />
+                                <label className="btn btn-outline-primary" htmlFor="fuorisede_si">
+                                    <i className="fas fa-check me-2"></i>SI
+                                </label>
+
+                                <input
+                                    type="radio"
+                                    className="btn-check"
+                                    name="fuorisede"
+                                    id="fuorisede_no"
+                                    value="false"
+                                    checked={formData.fuorisede === false}
+                                    onChange={() => setFormData(prev => ({ ...prev, fuorisede: false }))}
+                                    disabled={loading}
+                                />
+                                <label className="btn btn-outline-primary" htmlFor="fuorisede_no">
+                                    <i className="fas fa-times me-2"></i>NO
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Domicilio (shown only if fuorisede === true) */}
+                    {formData.fuorisede === true && (
+                        <>
+                            <h6 className="text-muted mb-3 mt-3">Domicilio</h6>
+                            <div className="row">
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="comune_domicilio" className="form-label">Comune di domicilio *</label>
+                                    <input
+                                        id="comune_domicilio"
+                                        type="text"
+                                        className="form-control"
+                                        name="comune_domicilio"
+                                        value={formData.comune_domicilio}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={loading}
+                                        aria-required="true"
+                                    />
+                                </div>
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="indirizzo_domicilio" className="form-label">Indirizzo di domicilio *</label>
+                                    <input
+                                        id="indirizzo_domicilio"
+                                        type="text"
+                                        className="form-control"
+                                        name="indirizzo_domicilio"
+                                        value={formData.indirizzo_domicilio}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={loading}
+                                        aria-required="true"
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    )}
+
                     {/* Dove vuoi fare il RDL */}
                     <h6 className="text-muted mb-3 mt-3">Dove vuoi fare il Rappresentante di Lista?</h6>
                     <div className="alert alert-light border small mb-3" role="note">
@@ -433,30 +558,54 @@ function RdlSelfRegistration({ onClose }) {
                     <div className="row">
                         <div className="col-md-12 mb-3">
                             <label htmlFor="seggio_preferenza" className="form-label">Seggio o plesso di preferenza</label>
-                            <input
-                                id="seggio_preferenza"
-                                type="text"
-                                className="form-control"
-                                name="seggio_preferenza"
-                                value={formData.seggio_preferenza}
-                                onChange={handleChange}
-                                placeholder="Es: Scuola Manzoni, Via Roma 15, vicino casa mia..."
-                                disabled={loading}
-                                aria-describedby="seggio-help"
-                            />
+                            {selectedComune ? (
+                                <SezzionePlessAutocomplete
+                                    value={selectedSezione}
+                                    onChange={handleSezioneChange}
+                                    disabled={loading}
+                                    placeholder="Cerca sezione, plesso o indirizzo..."
+                                    comuneId={selectedComune.id}
+                                />
+                            ) : (
+                                <input
+                                    id="seggio_preferenza"
+                                    type="text"
+                                    className="form-control"
+                                    disabled
+                                    placeholder="Seleziona prima un comune"
+                                />
+                            )}
                             <small id="seggio-help" className="text-muted">
-                                Opzionale: indica una scuola, un indirizzo o una zona specifica dove preferiresti essere assegnato
+                                Opzionale: digita per cercare una sezione, plesso, scuola o indirizzo dove preferiresti essere assegnato
                             </small>
                         </div>
+                    </div>
+
+                    {/* Privacy GDPR Acceptance */}
+                    <div className="form-check mt-4 pt-3 border-top">
+                        <input
+                            id="gdprAccepted"
+                            type="checkbox"
+                            className="form-check-input"
+                            checked={gdprAccepted}
+                            onChange={(e) => setGdprAccepted(e.target.checked)}
+                            disabled={loading}
+                            aria-required="true"
+                        />
+                        <label htmlFor="gdprAccepted" className="form-check-label">
+                            <strong>Autorizzo il trattamento dei miei dati personali</strong> inseriti in questo modulo.
+                            I dati saranno usati solo ai sensi del Decreto Legislativo 30 giugno 2003, n. 196 e del GDPR
+                            (Regolamento UE 2016/679) esclusivamente ai fini del coordinamento delle attività degli RDL *
+                        </label>
                     </div>
 
                     <div className="d-flex gap-2 mt-3">
                         <button
                             type="submit"
                             className="btn btn-primary"
-                            disabled={loading}
+                            disabled={loading || !gdprAccepted}
                         >
-                            {loading ? 'Invio in corso...' : 'Invia Richiesta'}
+                            {loading ? 'Invio in corso...' : 'ACCETTO'}
                         </button>
                         <button
                             type="button"

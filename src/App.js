@@ -13,9 +13,11 @@ import RdlSelfRegistration from "./RdlSelfRegistration";
 import CampagnaRegistration from "./CampagnaRegistration";
 import GestioneRdl from "./GestioneRdl";
 import GestioneDeleghe from "./GestioneDeleghe";
+import GestioneCampagne from "./GestioneCampagne";
 import Risorse from "./Risorse";
 import Dashboard from "./Dashboard";
 import SchedaElettorale from "./SchedaElettorale";
+import GestioneTerritorio from "./GestioneTerritorio";
 import {AuthProvider, useAuth} from "./AuthContext";
 
 const SERVER_API = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_API_URL : '';
@@ -263,9 +265,6 @@ function AppContent() {
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
-        if (isMenuOpen) {
-            setIsGestioneDropdownOpen(false);
-        }
     };
 
     // Close dropdowns when clicking outside
@@ -338,7 +337,7 @@ function AppContent() {
                                 </button>
                                 <div className={`collapse navbar-collapse ${isMenuOpen ? 'show' : ''}`} id="navbarNav">
                                     <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-                                        {/* 0. Home/Dashboard - solo per delegati/sub-delegati/admin, non per RDL semplici */}
+                                        {/* 1. HOME - solo per delegati/sub-delegati/admin, non per RDL semplici */}
                                         {(permissions.referenti || permissions.kpi) && (
                                             <li className="nav-item">
                                                 <a className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
@@ -349,110 +348,21 @@ function AppContent() {
                                             </li>
                                         )}
 
-                                        {/* 1. TERRITORIO - Gestione territoriale */}
-                                        {permissions.referenti && (
-                                            <li className="nav-item dropdown">
-                                                <a className={`nav-link dropdown-toggle ${['sezioni'].includes(activeTab) ? 'active' : ''}`}
-                                                   href="#"
-                                                   role="button"
-                                                   onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsTerritorioDropdownOpen(!isTerritorioDropdownOpen); }}
-                                                   aria-expanded={isTerritorioDropdownOpen}>
+                                        {/* 2. TERRITORIO - solo superuser */}
+                                        {user?.is_superuser && (
+                                            <li className="nav-item">
+                                                <a className={`nav-link ${activeTab === 'territorio_admin' ? 'active' : ''}`}
+                                                   onClick={() => activate('territorio_admin')} href="#">
                                                     <i className="fas fa-globe-europe me-1"></i>
                                                     Territorio
                                                 </a>
-                                                <ul className={`dropdown-menu dropdown-menu-dark ${isTerritorioDropdownOpen ? 'show' : ''}`}>
-                                                    <li>
-                                                        <a className={`dropdown-item ${activeTab === 'sezioni' ? 'active' : ''}`}
-                                                           onClick={() => { activate('sezioni'); closeAllDropdowns(); }} href="#">
-                                                            <i className="fas fa-map-marker-alt me-2"></i>
-                                                            Gestione Sezioni
-                                                        </a>
-                                                    </li>
-                                                </ul>
                                             </li>
                                         )}
 
-                                        {/* 2. RDL - Gestione RDL */}
-                                        {(permissions.referenti || permissions.gestione_rdl) && (
-                                            <li className="nav-item dropdown">
-                                                <a className={`nav-link dropdown-toggle ${['campagne', 'gestione_rdl', 'designazione'].includes(activeTab) ? 'active' : ''}`}
-                                                   href="#"
-                                                   role="button"
-                                                   onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsRdlDropdownOpen(!isRdlDropdownOpen); }}
-                                                   aria-expanded={isRdlDropdownOpen}>
-                                                    <i className="fas fa-users me-1"></i>
-                                                    RDL
-                                                </a>
-                                                <ul className={`dropdown-menu dropdown-menu-dark ${isRdlDropdownOpen ? 'show' : ''}`}>
-                                                    {permissions.referenti && (
-                                                        <li>
-                                                            <a className={`dropdown-item ${activeTab === 'campagne' ? 'active' : ''}`}
-                                                               onClick={() => { activate('campagne'); closeAllDropdowns(); }} href="#">
-                                                                <i className="fas fa-bullhorn me-2"></i>
-                                                                Campagne
-                                                            </a>
-                                                        </li>
-                                                    )}
-                                                    {permissions.gestione_rdl && (
-                                                        <li>
-                                                            <a className={`dropdown-item ${activeTab === 'gestione_rdl' ? 'active' : ''}`}
-                                                               onClick={() => { activate('gestione_rdl'); closeAllDropdowns(); }} href="#">
-                                                                <i className="fas fa-user-check me-2"></i>
-                                                                Gestione RDL
-                                                            </a>
-                                                        </li>
-                                                    )}
-                                                    {consultazione && permissions.referenti && (
-                                                        <li>
-                                                            <a className={`dropdown-item ${activeTab === 'designazione' ? 'active' : ''}`}
-                                                               onClick={() => { activate('designazione'); closeAllDropdowns(); }} href="#">
-                                                                <i className="fas fa-th me-2"></i>
-                                                                Mappatura
-                                                            </a>
-                                                        </li>
-                                                    )}
-                                                </ul>
-                                            </li>
-                                        )}
-
-                                        {/* 3. DELEGHE - Catena deleghe e designazioni */}
-                                        {(permissions.referenti || pdf) && (
-                                            <li className="nav-item dropdown">
-                                                <a className={`nav-link dropdown-toggle ${['deleghe', 'pdf'].includes(activeTab) ? 'active' : ''}`}
-                                                   href="#"
-                                                   role="button"
-                                                   onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsDelegheDropdownOpen(!isDelegheDropdownOpen); }}
-                                                   aria-expanded={isDelegheDropdownOpen}>
-                                                    <i className="fas fa-link me-1"></i>
-                                                    Deleghe
-                                                </a>
-                                                <ul className={`dropdown-menu dropdown-menu-dark ${isDelegheDropdownOpen ? 'show' : ''}`}>
-                                                    {permissions.referenti && (
-                                                        <li>
-                                                            <a className={`dropdown-item ${activeTab === 'deleghe' ? 'active' : ''}`}
-                                                               onClick={() => { activate('deleghe'); closeAllDropdowns(); }} href="#">
-                                                                <i className="fas fa-sitemap me-2"></i>
-                                                                Catena Deleghe
-                                                            </a>
-                                                        </li>
-                                                    )}
-                                                    {consultazione && pdf && (
-                                                        <li>
-                                                            <a className={`dropdown-item ${activeTab === 'pdf' ? 'active' : ''}`}
-                                                               onClick={() => { activate('pdf'); closeAllDropdowns(); }} href="#">
-                                                                <i className="fas fa-file-signature me-2"></i>
-                                                                Designazioni
-                                                            </a>
-                                                        </li>
-                                                    )}
-                                                </ul>
-                                            </li>
-                                        )}
-
-                                        {/* 4. CONSULTAZIONE - Menu dinamico con tipologie elezione */}
+                                        {/* 3. CONSULTAZIONE - Menu dinamico con tipologie elezione */}
                                         {consultazione && permissions.referenti && consultazione.schede && consultazione.schede.length > 0 && (
                                             <li className="nav-item dropdown">
-                                                <a className={`nav-link dropdown-toggle ${activeTab === 'consultazione' ? 'active' : ''}`}
+                                                <a className={`nav-link dropdown-toggle ${activeTab === 'scheda' ? 'active' : ''}`}
                                                    href="#"
                                                    role="button"
                                                    onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsConsultazioneDropdownOpen(!isConsultazioneDropdownOpen); }}
@@ -480,7 +390,93 @@ function AppContent() {
                                             </li>
                                         )}
 
-                                        {/* 5. SCRUTINIO */}
+                                        {/* 4. DELEGATI - Catena deleghe e designazioni */}
+                                        {(permissions.referenti || pdf) && (
+                                            <li className="nav-item dropdown">
+                                                <a className={`nav-link dropdown-toggle ${['deleghe', 'pdf'].includes(activeTab) ? 'active' : ''}`}
+                                                   href="#"
+                                                   role="button"
+                                                   onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsDelegheDropdownOpen(!isDelegheDropdownOpen); }}
+                                                   aria-expanded={isDelegheDropdownOpen}>
+                                                    <i className="fas fa-user-tie me-1"></i>
+                                                    Delegati
+                                                </a>
+                                                <ul className={`dropdown-menu dropdown-menu-dark ${isDelegheDropdownOpen ? 'show' : ''}`}>
+                                                    {permissions.referenti && (
+                                                        <li>
+                                                            <a className={`dropdown-item ${activeTab === 'deleghe' ? 'active' : ''}`}
+                                                               onClick={() => { activate('deleghe'); closeAllDropdowns(); }} href="#">
+                                                                <i className="fas fa-sitemap me-2"></i>
+                                                                Catena Deleghe
+                                                            </a>
+                                                        </li>
+                                                    )}
+                                                    {consultazione && pdf && (
+                                                        <li>
+                                                            <a className={`dropdown-item ${activeTab === 'pdf' ? 'active' : ''}`}
+                                                               onClick={() => { activate('pdf'); closeAllDropdowns(); }} href="#">
+                                                                <i className="fas fa-file-signature me-2"></i>
+                                                                Designazioni
+                                                            </a>
+                                                        </li>
+                                                    )}
+                                                </ul>
+                                            </li>
+                                        )}
+
+                                        {/* 5. RDL - Gestione RDL */}
+                                        {(permissions.referenti || permissions.gestione_rdl) && (
+                                            <li className="nav-item dropdown">
+                                                <a className={`nav-link dropdown-toggle ${['campagne', 'gestione_rdl', 'designazione', 'sezioni'].includes(activeTab) ? 'active' : ''}`}
+                                                   href="#"
+                                                   role="button"
+                                                   onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsRdlDropdownOpen(!isRdlDropdownOpen); }}
+                                                   aria-expanded={isRdlDropdownOpen}>
+                                                    <i className="fas fa-users me-1"></i>
+                                                    RDL
+                                                </a>
+                                                <ul className={`dropdown-menu dropdown-menu-dark ${isRdlDropdownOpen ? 'show' : ''}`}>
+                                                    {permissions.referenti && (
+                                                        <li>
+                                                            <a className={`dropdown-item ${activeTab === 'campagne' ? 'active' : ''}`}
+                                                               onClick={() => { activate('campagne'); closeAllDropdowns(); }} href="#">
+                                                                <i className="fas fa-bullhorn me-2"></i>
+                                                                Campagne
+                                                            </a>
+                                                        </li>
+                                                    )}
+                                                    {permissions.gestione_rdl && (
+                                                        <li>
+                                                            <a className={`dropdown-item ${activeTab === 'gestione_rdl' ? 'active' : ''}`}
+                                                               onClick={() => { activate('gestione_rdl'); closeAllDropdowns(); }} href="#">
+                                                                <i className="fas fa-user-check me-2"></i>
+                                                                Gestione RDL
+                                                            </a>
+                                                        </li>
+                                                    )}
+                                                    {permissions.referenti && (
+                                                        <li>
+                                                            <a className={`dropdown-item ${activeTab === 'sezioni' ? 'active' : ''}`}
+                                                               onClick={() => { activate('sezioni'); closeAllDropdowns(); }} href="#">
+                                                                <i className="fas fa-map-marker-alt me-2"></i>
+                                                                Gestione Sezioni
+                                                            </a>
+                                                        </li>
+                                                    )}
+                                                    {consultazione && permissions.referenti && (
+                                                        <li>
+                                                            <a className={`dropdown-item ${activeTab === 'designazione' ? 'active' : ''}`}
+                                                               onClick={() => { activate('designazione'); closeAllDropdowns(); }} href="#">
+                                                                <i className="fas fa-th me-2"></i>
+                                                                Mappatura
+                                                            </a>
+                                                        </li>
+                                                    )}
+                                                </ul>
+                                            </li>
+                                        )}
+
+                                        {/* 6. SCRUTINIO */}
                                         {consultazione && permissions.sections && (
                                             <li className="nav-item">
                                                 <a className={`nav-link ${activeTab === 'sections' ? 'active' : ''}`}
@@ -491,7 +487,7 @@ function AppContent() {
                                             </li>
                                         )}
 
-                                        {/* 6. DIRETTA (KPI) - visibile solo quando ci sono contributi */}
+                                        {/* 7. DIRETTA (KPI) - visibile solo quando ci sono contributi */}
                                         {consultazione && permissions.kpi && hasContributions && (
                                             <li className="nav-item">
                                                 <a className={`nav-link ${activeTab === 'kpi' ? 'active' : ''}`}
@@ -510,7 +506,7 @@ function AppContent() {
                                             </li>
                                         )}
 
-                                        {/* 7. RISORSE - visibile a tutti gli utenti autenticati */}
+                                        {/* 8. RISORSE - visibile a tutti gli utenti autenticati */}
                                         <li className="nav-item">
                                             <a className={`nav-link ${activeTab === 'risorse' ? 'active' : ''}`}
                                                onClick={() => activate('risorse')} href="#">
@@ -732,12 +728,10 @@ function AppContent() {
                             )}
                             {activeTab === 'campagne' && permissions.referenti && (
                                 <div className="tab-pane active">
-                                    <GestioneDeleghe
+                                    <GestioneCampagne
                                         client={client}
-                                        user={user}
                                         consultazione={consultazione}
                                         setError={setError}
-                                        initialTab="campagne"
                                     />
                                 </div>
                             )}
@@ -746,6 +740,14 @@ function AppContent() {
                                     <Risorse
                                         client={client}
                                         consultazione={consultazione}
+                                        setError={setError}
+                                    />
+                                </div>
+                            )}
+                            {activeTab === 'territorio_admin' && user?.is_superuser && (
+                                <div className="tab-pane active">
+                                    <GestioneTerritorio
+                                        client={client}
                                         setError={setError}
                                     />
                                 </div>

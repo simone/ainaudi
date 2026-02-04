@@ -25,6 +25,8 @@ from .views import (
 from .views_campagna import (
     CampagnaListCreateView,
     CampagnaDetailView,
+    CampagnaAttivaView,
+    CampagnaChiudiView,
 )
 
 router = DefaultRouter()
@@ -36,5 +38,7 @@ urlpatterns = [
     path('mia-catena/', MiaCatenaView.as_view(), name='mia-catena'),
     path('campagne/', CampagnaListCreateView.as_view(), name='campagna-list-create'),
     path('campagne/<int:pk>/', CampagnaDetailView.as_view(), name='campagna-detail'),
+    path('campagne/<int:pk>/attiva/', CampagnaAttivaView.as_view(), name='campagna-attiva'),
+    path('campagne/<int:pk>/chiudi/', CampagnaChiudiView.as_view(), name='campagna-chiudi'),
     path('', include(router.urls)),
 ]

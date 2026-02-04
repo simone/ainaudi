@@ -103,17 +103,10 @@ class Comune(models.Model):
         help_text=_('Codice Belfiore/catastale')
     )
     nome = models.CharField(_('nome'), max_length=100)
-    popolazione = models.IntegerField(
-        _('popolazione'),
-        null=True,
-        blank=True,
-        help_text=_('Popolazione residente (per determinare sistema elettorale)')
-    )
-    cap = models.CharField(
-        _('CAP'),
-        max_length=5,
-        null=True,
-        blank=True
+    sopra_15000_abitanti = models.BooleanField(
+        _('sopra 15.000 abitanti'),
+        default=False,
+        help_text=_('Indica se il comune ha più di 15.000 abitanti (per sistema elettorale)')
     )
 
     class Meta:
@@ -126,12 +119,8 @@ class Comune(models.Model):
 
     @property
     def sistema_elettorale_comunali(self):
-        """Determine electoral system based on population."""
-        if self.popolazione is None:
-            return None
-        if self.popolazione < 15000:
-            return 'turno_unico'
-        return 'doppio_turno'
+        """Determine electoral system based on population threshold."""
+        return 'doppio_turno' if self.sopra_15000_abitanti else 'turno_unico'
 
 
 class Municipio(models.Model):

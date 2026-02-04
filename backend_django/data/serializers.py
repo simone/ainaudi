@@ -40,7 +40,7 @@ class SectionAssignmentCreateSerializer(serializers.ModelSerializer):
         fields = ['sezione', 'consultazione', 'rdl_registration', 'role', 'notes']
 
     def create(self, validated_data):
-        validated_data['assigned_by'] = self.context['request'].user
+        validated_data['assigned_by_email'] = self.context['request'].user.email
         return super().create(validated_data)
 
 
@@ -126,7 +126,7 @@ class DatiSezioneUpdateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         instance = super().update(instance, validated_data)
-        instance.inserito_da = self.context['request'].user
+        instance.inserito_da_email = self.context['request'].user.email
         instance.inserito_at = timezone.now()
         instance.save()
         return instance

@@ -59,7 +59,7 @@ class RoleAssignmentCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         # Set assigned_by from request context
-        validated_data['assigned_by'] = self.context['request'].user
+        validated_data['assigned_by_email'] = self.context['request'].user.email
         return super().create(validated_data)
 
 

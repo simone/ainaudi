@@ -139,7 +139,7 @@ class SubDelegaViewSet(viewsets.ModelViewSet):
         return qs.distinct()
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        serializer.save(created_by_email=self.request.user.email)
 
     def destroy(self, request, *args, **kwargs):
         """Revoca invece di cancellare."""

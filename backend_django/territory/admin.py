@@ -27,9 +27,9 @@ class ProvinciaAdmin(admin.ModelAdmin):
 
 @admin.register(Comune)
 class ComuneAdmin(admin.ModelAdmin):
-    list_display = ['codice_istat', 'nome', 'provincia', 'popolazione', 'cap']
-    list_filter = ['provincia__regione', 'provincia']
-    search_fields = ['nome', 'codice_istat', 'codice_catastale', 'cap']
+    list_display = ['codice_istat', 'nome', 'provincia', 'sopra_15000_abitanti']
+    list_filter = ['provincia__regione', 'provincia', 'sopra_15000_abitanti']
+    search_fields = ['nome', 'codice_istat', 'codice_catastale']
     ordering = ['nome']
     autocomplete_fields = ['provincia']
 

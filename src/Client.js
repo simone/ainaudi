@@ -76,7 +76,7 @@ const Client = (server, pdfServer, token) => {
                 return {error: error.message};
             }),
         save: async ({comune, sezione, values}) =>
-            fetchAndInvalidate(['assigned', 'own'])(`${server}/api/sections`, {
+            fetchAndInvalidate(['assigned', 'own'])(`${server}/api/sections/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -105,6 +105,34 @@ const Client = (server, pdfServer, token) => {
                     'Authorization': authHeader
                 },
                 body: formData
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return {error: error.message};
+            });
+        },
+        update: async (id, data) => {
+            return fetch(`${server}/api/sections/${id}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify(data)
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return {error: error.message};
+            });
+        },
+        list: async (comuneId, page = 1, pageSize = 200) => {
+            const params = new URLSearchParams({
+                comune_id: comuneId,
+                page: page,
+                page_size: pageSize
+            });
+            return fetch(`${server}/api/sections/list/?${params}`, {
+                headers: {
+                    'Authorization': authHeader
+                }
             }).then(response => response.json()).catch(error => {
                 console.error(error);
                 return {error: error.message};
@@ -734,6 +762,388 @@ const Client = (server, pdfServer, token) => {
                 console.error(error);
                 return { error: error.message };
             }),
+
+        // Admin CRUD operations for territory management (superuser only)
+        admin: {
+            // Regioni
+            regioni: {
+                list: async () =>
+                    fetch(`${server}/api/territory/regioni/`, {
+                        headers: { 'Authorization': authHeader }
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                get: async (id) =>
+                    fetch(`${server}/api/territory/regioni/${id}/`, {
+                        headers: { 'Authorization': authHeader }
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                create: async (data) =>
+                    fetch(`${server}/api/territory/regioni/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': authHeader
+                        },
+                        body: JSON.stringify(data)
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                update: async (id, data) =>
+                    fetch(`${server}/api/territory/regioni/${id}/`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': authHeader
+                        },
+                        body: JSON.stringify(data)
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                delete: async (id) =>
+                    fetch(`${server}/api/territory/regioni/${id}/`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': authHeader }
+                    }).then(response => response.ok ? {} : response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                import: async (file) => {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    return fetch(`${server}/api/territory/regioni/import_csv/`, {
+                        method: 'POST',
+                        headers: { 'Authorization': authHeader },
+                        body: formData
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    });
+                }
+            },
+
+            // Province
+            province: {
+                list: async (filters = {}) => {
+                    const params = new URLSearchParams();
+                    if (filters.regione) params.append('regione', filters.regione);
+                    const queryString = params.toString();
+                    return fetch(`${server}/api/territory/province/${queryString ? `?${queryString}` : ''}`, {
+                        headers: { 'Authorization': authHeader }
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    });
+                },
+
+                get: async (id) =>
+                    fetch(`${server}/api/territory/province/${id}/`, {
+                        headers: { 'Authorization': authHeader }
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                create: async (data) =>
+                    fetch(`${server}/api/territory/province/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': authHeader
+                        },
+                        body: JSON.stringify(data)
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                update: async (id, data) =>
+                    fetch(`${server}/api/territory/province/${id}/`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': authHeader
+                        },
+                        body: JSON.stringify(data)
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                delete: async (id) =>
+                    fetch(`${server}/api/territory/province/${id}/`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': authHeader }
+                    }).then(response => response.ok ? {} : response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                import: async (file) => {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    return fetch(`${server}/api/territory/province/import_csv/`, {
+                        method: 'POST',
+                        headers: { 'Authorization': authHeader },
+                        body: formData
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    });
+                }
+            },
+
+            // Comuni
+            comuni: {
+                list: async (filters = {}) => {
+                    const params = new URLSearchParams();
+                    if (filters.provincia) params.append('provincia', filters.provincia);
+                    if (filters.provincia__regione) params.append('provincia__regione', filters.provincia__regione);
+                    if (filters.search) params.append('search', filters.search);
+                    if (filters.sopra_15000_abitanti !== undefined) params.append('sopra_15000_abitanti', filters.sopra_15000_abitanti);
+                    const queryString = params.toString();
+                    return fetch(`${server}/api/territory/comuni/${queryString ? `?${queryString}` : ''}`, {
+                        headers: { 'Authorization': authHeader }
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    });
+                },
+
+                get: async (id) =>
+                    fetch(`${server}/api/territory/comuni/${id}/`, {
+                        headers: { 'Authorization': authHeader }
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                create: async (data) =>
+                    fetch(`${server}/api/territory/comuni/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': authHeader
+                        },
+                        body: JSON.stringify(data)
+                    }).then(async response => {
+                        const json = await response.json();
+                        if (!response.ok) {
+                            const errorMsg = Object.entries(json).map(([k, v]) => `${k}: ${v}`).join(', ');
+                            return { error: errorMsg };
+                        }
+                        return json;
+                    }).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                update: async (id, data) =>
+                    fetch(`${server}/api/territory/comuni/${id}/`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': authHeader
+                        },
+                        body: JSON.stringify(data)
+                    }).then(async response => {
+                        const json = await response.json();
+                        if (!response.ok) {
+                            const errorMsg = Object.entries(json).map(([k, v]) => `${k}: ${v}`).join(', ');
+                            return { error: errorMsg };
+                        }
+                        return json;
+                    }).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                delete: async (id) =>
+                    fetch(`${server}/api/territory/comuni/${id}/`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': authHeader }
+                    }).then(response => response.ok ? {} : response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                import: async (file) => {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    return fetch(`${server}/api/territory/comuni/import_csv/`, {
+                        method: 'POST',
+                        headers: { 'Authorization': authHeader },
+                        body: formData
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    });
+                }
+            },
+
+            // Municipi
+            municipi: {
+                list: async (filters = {}) => {
+                    const params = new URLSearchParams();
+                    if (filters.comune) params.append('comune', filters.comune);
+                    const queryString = params.toString();
+                    return fetch(`${server}/api/territory/municipi/${queryString ? `?${queryString}` : ''}`, {
+                        headers: { 'Authorization': authHeader }
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    });
+                },
+
+                get: async (id) =>
+                    fetch(`${server}/api/territory/municipi/${id}/`, {
+                        headers: { 'Authorization': authHeader }
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                create: async (data) =>
+                    fetch(`${server}/api/territory/municipi/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': authHeader
+                        },
+                        body: JSON.stringify(data)
+                    }).then(async response => {
+                        const json = await response.json();
+                        if (!response.ok) {
+                            const errorMsg = Object.entries(json).map(([k, v]) => `${k}: ${v}`).join(', ');
+                            return { error: errorMsg };
+                        }
+                        return json;
+                    }).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                update: async (id, data) =>
+                    fetch(`${server}/api/territory/municipi/${id}/`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': authHeader
+                        },
+                        body: JSON.stringify(data)
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                delete: async (id) =>
+                    fetch(`${server}/api/territory/municipi/${id}/`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': authHeader }
+                    }).then(response => response.ok ? {} : response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                import: async (file) => {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    return fetch(`${server}/api/territory/municipi/import_csv/`, {
+                        method: 'POST',
+                        headers: { 'Authorization': authHeader },
+                        body: formData
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    });
+                }
+            },
+
+            // Sezioni Elettorali
+            sezioni: {
+                list: async (filters = {}) => {
+                    const params = new URLSearchParams();
+                    if (filters.comune) params.append('comune', filters.comune);
+                    if (filters.municipio) params.append('municipio', filters.municipio);
+                    if (filters.is_attiva !== undefined) params.append('is_attiva', filters.is_attiva);
+                    if (filters.comune__provincia) params.append('comune__provincia', filters.comune__provincia);
+                    if (filters.comune__provincia__regione) params.append('comune__provincia__regione', filters.comune__provincia__regione);
+                    const queryString = params.toString();
+                    return fetch(`${server}/api/territory/sezioni/${queryString ? `?${queryString}` : ''}`, {
+                        headers: { 'Authorization': authHeader }
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    });
+                },
+
+                get: async (id) =>
+                    fetch(`${server}/api/territory/sezioni/${id}/`, {
+                        headers: { 'Authorization': authHeader }
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                create: async (data) =>
+                    fetch(`${server}/api/territory/sezioni/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': authHeader
+                        },
+                        body: JSON.stringify(data)
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                update: async (id, data) =>
+                    fetch(`${server}/api/territory/sezioni/${id}/`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': authHeader
+                        },
+                        body: JSON.stringify(data)
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                delete: async (id) =>
+                    fetch(`${server}/api/territory/sezioni/${id}/`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': authHeader }
+                    }).then(response => response.ok ? {} : response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    }),
+
+                import: async (file) => {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    return fetch(`${server}/api/territory/sezioni/import_csv/`, {
+                        method: 'POST',
+                        headers: { 'Authorization': authHeader },
+                        body: formData
+                    }).then(response => response.json()).catch(error => {
+                        console.error(error);
+                        return { error: error.message };
+                    });
+                }
+            }
+        }
     };
 
     // API per la Mappatura RDL -> Sezioni (operativa, modificabile)

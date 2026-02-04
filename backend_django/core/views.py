@@ -59,8 +59,17 @@ class MagicLinkRequestView(APIView):
 
         email = serializer.validated_data['email'].lower()
 
-        # Generate signed token
-        token = signer.sign(email)
+        # Check if user exists
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'Email non registrata. Contatta il tuo delegato o sub-delegato per farti abilitare al sistema.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Generate signed token with user ID (not email)
+        token = signer.sign(str(user.id))
 
         # Build magic link URL
         magic_link = f"{settings.FRONTEND_URL}/?token={token}"
@@ -123,7 +132,7 @@ class MagicLinkVerifyView(APIView):
 
         try:
             # Verify token signature and expiry
-            email = signer.unsign(
+            user_id = signer.unsign(
                 token,
                 max_age=settings.MAGIC_LINK_TOKEN_EXPIRY
             )
@@ -138,11 +147,16 @@ class MagicLinkVerifyView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Find or create user
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={'display_name': email.split('@')[0]}
-        )
+        # Find user by ID
+        try:
+            user = User.objects.get(id=int(user_id))
+        except (User.DoesNotExist, ValueError):
+            return Response(
+                {'error': 'Utente non trovato.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        created = False
 
         # Update last login
         user.last_login = timezone.now()

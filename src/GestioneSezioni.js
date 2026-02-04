@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ComuneAutocomplete from './ComuneAutocomplete';
 
 /**
  * Converte un numero in numeri romani
@@ -42,15 +43,28 @@ function GestioneSezioni({ client, setError }) {
     // Add/Edit section state
     const [formData, setFormData] = useState({
         sezione: '',
-        comune: '',
         municipio: '',
-        indirizzo: ''
+        indirizzo: '',
+        // Range fields
+        sezioneInizio: '',
+        sezioneFine: ''
     });
+    const [selectedComune, setSelectedComune] = useState(null);
     const [saving, setSaving] = useState(false);
     const [saveResult, setSaveResult] = useState(null);
 
     // Expanded sections for drill-down
     const [expandedComune, setExpandedComune] = useState(null);
+    const [expandedComuneId, setExpandedComuneId] = useState(null);
+    const [comuneSezioni, setComuneSezioni] = useState([]);
+    const [loadingSezioni, setLoadingSezioni] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [sezioniPage, setSezioniPage] = useState(1);
+    const [sezioniHasMore, setSezioniHasMore] = useState(false);
+    const [sezioniTotal, setSezioniTotal] = useState(0);
+    const [editingSezione, setEditingSezione] = useState(null);
+    const [editForm, setEditForm] = useState({ indirizzo: '', denominazione: '' });
+    const [savingEdit, setSavingEdit] = useState(false);
 
     useEffect(() => {
         loadStats();
@@ -132,17 +146,26 @@ function GestioneSezioni({ client, setError }) {
 
     const handleFormChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleComuneChange = (comune) => {
+        setSelectedComune(comune);
+        // Reset municipio when comune changes
+        setFormData(prev => ({ ...prev, municipio: '' }));
     };
 
     const handleAddSection = async (e) => {
         e.preventDefault();
 
-        if (!formData.sezione || !formData.comune) {
+        if (!formData.sezione || !selectedComune) {
             setError('Sezione e Comune sono obbligatori');
+            return;
+        }
+
+        // Municipio required if comune has municipi
+        if (selectedComune.municipi?.length > 0 && !formData.municipio) {
+            setError('Seleziona un municipio');
             return;
         }
 
@@ -153,7 +176,7 @@ function GestioneSezioni({ client, setError }) {
         try {
             // Per ora usiamo l'upload con un singolo record
             // In futuro si può creare un endpoint dedicato
-            const csvContent = `SEZIONE,COMUNE,MUNICIPIO,INDIRIZZO\n${formData.sezione},${formData.comune},${formData.municipio || ''},"${formData.indirizzo || ''}"`;
+            const csvContent = `SEZIONE,COMUNE,MUNICIPIO,INDIRIZZO\n${formData.sezione},${selectedComune.nome},${formData.municipio || ''},"${formData.indirizzo || ''}"`;
             const blob = new Blob([csvContent], { type: 'text/csv' });
             const file = new File([blob], 'sezione.csv', { type: 'text/csv' });
 
@@ -163,15 +186,17 @@ function GestioneSezioni({ client, setError }) {
             } else {
                 setSaveResult({
                     success: true,
-                    message: `Sezione ${formData.sezione} di ${formData.comune} aggiunta con successo`
+                    message: `Sezione ${formData.sezione} di ${selectedComune.nome} aggiunta con successo`
                 });
                 // Reset form
                 setFormData({
                     sezione: '',
-                    comune: '',
                     municipio: '',
-                    indirizzo: ''
+                    indirizzo: '',
+                    sezioneInizio: '',
+                    sezioneFine: ''
                 });
+                setSelectedComune(null);
                 // Ricarica statistiche
                 loadStats();
             }
@@ -188,8 +213,14 @@ function GestioneSezioni({ client, setError }) {
         const startSection = parseInt(formData.sezioneInizio);
         const endSection = parseInt(formData.sezioneFine);
 
-        if (!startSection || !endSection || !formData.comune) {
+        if (!startSection || !endSection || !selectedComune) {
             setError('Sezione inizio, fine e Comune sono obbligatori');
+            return;
+        }
+
+        // Municipio required if comune has municipi
+        if (selectedComune.municipi?.length > 0 && !formData.municipio) {
+            setError('Seleziona un municipio');
             return;
         }
 
@@ -210,7 +241,7 @@ function GestioneSezioni({ client, setError }) {
         try {
             let csvContent = 'SEZIONE,COMUNE,MUNICIPIO,INDIRIZZO\n';
             for (let i = startSection; i <= endSection; i++) {
-                csvContent += `${i},${formData.comune},${formData.municipio || ''},"${formData.indirizzo || ''}"\n`;
+                csvContent += `${i},${selectedComune.nome},${formData.municipio || ''},"${formData.indirizzo || ''}"\n`;
             }
 
             const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -222,17 +253,17 @@ function GestioneSezioni({ client, setError }) {
             } else {
                 setSaveResult({
                     success: true,
-                    message: `Aggiunte ${endSection - startSection + 1} sezioni (${startSection}-${endSection}) per ${formData.comune}`
+                    message: `Aggiunte ${endSection - startSection + 1} sezioni (${startSection}-${endSection}) per ${selectedComune.nome}`
                 });
                 // Reset form
                 setFormData({
                     sezione: '',
-                    sezioneInizio: '',
-                    sezioneFine: '',
-                    comune: '',
                     municipio: '',
-                    indirizzo: ''
+                    indirizzo: '',
+                    sezioneInizio: '',
+                    sezioneFine: ''
                 });
+                setSelectedComune(null);
                 // Ricarica statistiche
                 loadStats();
             }
@@ -246,6 +277,116 @@ function GestioneSezioni({ client, setError }) {
     const calcPercentuale = (parte, totale) => {
         if (!totale) return 0;
         return Math.round((parte / totale) * 100);
+    };
+
+    // Load sezioni for a comune when expanded (first page)
+    const loadComuneSezioni = async (comuneId) => {
+        setLoadingSezioni(true);
+        setComuneSezioni([]);
+        setSezioniPage(1);
+        setSezioniHasMore(false);
+        setSezioniTotal(0);
+        try {
+            const data = await client.sections.list(comuneId, 1, 200);
+            if (data.error) {
+                setError(data.error);
+            } else {
+                const sezioni = data.results || [];
+                setComuneSezioni(sezioni);
+                setSezioniHasMore(data.has_next || false);
+                setSezioniTotal(data.count || sezioni.length);
+            }
+        } catch (err) {
+            setError(`Errore nel caricamento sezioni: ${err.message}`);
+        } finally {
+            setLoadingSezioni(false);
+        }
+    };
+
+    // Load more sezioni (next pages)
+    const loadMoreSezioni = async () => {
+        if (loadingMore || !sezioniHasMore || !expandedComuneId) return;
+
+        setLoadingMore(true);
+        const nextPage = sezioniPage + 1;
+        try {
+            const data = await client.sections.list(expandedComuneId, nextPage, 50);
+            if (data.error) {
+                setError(data.error);
+            } else {
+                const newSezioni = data.results || [];
+                setComuneSezioni(prev => [...prev, ...newSezioni]);
+                setSezioniPage(nextPage);
+                setSezioniHasMore(data.has_next || false);
+            }
+        } catch (err) {
+            setError(`Errore nel caricamento sezioni: ${err.message}`);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
+    // Handle scroll in sezioni table
+    const handleSezioniScroll = (e) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.target;
+        // Load more when scrolled near bottom (within 100px)
+        if (scrollHeight - scrollTop - clientHeight < 100) {
+            loadMoreSezioni();
+        }
+    };
+
+    // Handle comune expansion
+    const handleExpandComune = (comune, comuneId) => {
+        if (expandedComune === comune) {
+            setExpandedComune(null);
+            setExpandedComuneId(null);
+            setComuneSezioni([]);
+            setEditingSezione(null);
+        } else {
+            setExpandedComune(comune);
+            setExpandedComuneId(comuneId);
+            setEditingSezione(null);
+            if (comuneId) {
+                loadComuneSezioni(comuneId);
+            }
+        }
+    };
+
+    // Start editing a sezione
+    const handleEditSezione = (sezione) => {
+        setEditingSezione(sezione.id);
+        setEditForm({
+            indirizzo: sezione.indirizzo || '',
+            denominazione: sezione.denominazione || ''
+        });
+    };
+
+    // Cancel editing
+    const handleCancelEdit = () => {
+        setEditingSezione(null);
+        setEditForm({ indirizzo: '', denominazione: '' });
+    };
+
+    // Save sezione edit
+    const handleSaveEdit = async (sezioneId) => {
+        setSavingEdit(true);
+        try {
+            const result = await client.sections.update(sezioneId, editForm);
+            if (result.error) {
+                setError(result.error);
+            } else {
+                // Update local state
+                setComuneSezioni(prev => prev.map(s =>
+                    s.id === sezioneId ? { ...s, ...editForm } : s
+                ));
+                setEditingSezione(null);
+                setEditForm({ indirizzo: '', denominazione: '' });
+            }
+        } catch (err) {
+            setError(`Errore nel salvataggio: ${err.message}`);
+        } finally {
+            setSavingEdit(false);
+        }
     };
 
     if (loading) {
@@ -382,7 +523,7 @@ function GestioneSezioni({ client, setError }) {
                     </div>
 
                     {/* Dettaglio per Comune */}
-                    {stats.perComune && Object.keys(stats.perComune).length > 0 && (
+                    {stats.comuni && stats.comuni.length > 0 && (
                         <div className="card mb-4">
                             <div className="card-header">
                                 <h5 className="mb-0">
@@ -391,106 +532,215 @@ function GestioneSezioni({ client, setError }) {
                                 </h5>
                             </div>
                             <div className="list-group list-group-flush">
-                                {Object.entries(stats.perComune)
-                                    .sort((a, b) => b[1].totale - a[1].totale)
-                                    .map(([comune, data]) => {
+                                {stats.comuni
+                                    .sort((a, b) => b.totale - a.totale)
+                                    .map((comuneData) => {
+                                        const comuneNome = comuneData.nome;
+                                        const comuneId = comuneData.id;
                                         // Build display name with municipi if limited visibility
-                                        let displayName = comune;
-                                        const municipi = Object.keys(stats.perMunicipio || {}).filter(
-                                            m => stats.perMunicipio[m].visibili > 0
-                                        );
-                                        if (comune.toUpperCase() === 'ROMA' && municipi.length > 0 && municipi.length < 15) {
-                                            const municipiRoman = municipi.map(m => `Mun. ${toRoman(+m)}`).join(', ');
-                                            displayName = `${comune} - ${municipiRoman}`;
+                                        let displayName = comuneNome;
+                                        if (comuneData.municipi && comuneData.municipi.length > 0 && comuneData.municipi.length < 15) {
+                                            const municipiRoman = comuneData.municipi.map(m => `Mun. ${toRoman(m.numero)}`).join(', ');
+                                            displayName = `${comuneNome} - ${municipiRoman}`;
                                         }
+                                        const isExpanded = expandedComune === comuneNome;
                                         return (
-                                        <div key={comune}>
+                                        <div key={comuneId}>
                                             <button
                                                 className="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                                                onClick={() => setExpandedComune(expandedComune === comune ? null : comune)}
-                                                aria-expanded={expandedComune === comune}
+                                                onClick={() => handleExpandComune(comuneNome, comuneId)}
+                                                aria-expanded={isExpanded}
                                             >
                                                 <div>
                                                     <strong>{displayName}</strong>
                                                     <div className="small text-muted">
-                                                        {data.totale} sezioni
+                                                        {comuneData.totale} sezioni
                                                     </div>
                                                 </div>
                                                 <div className="d-flex align-items-center gap-2 gap-md-3">
                                                     <div className="text-end d-none d-sm-block">
                                                         <span className="badge bg-success me-1">
-                                                            {data.assegnate}
+                                                            {comuneData.assegnate}
                                                         </span>
                                                         <span className="badge bg-warning">
-                                                            {data.totale - data.assegnate}
+                                                            {comuneData.totale - comuneData.assegnate}
                                                         </span>
                                                     </div>
                                                     <div style={{ width: '60px' }} className="d-none d-sm-block">
                                                         <div className="progress" style={{ height: '8px' }}>
                                                             <div
                                                                 className="progress-bar bg-success"
-                                                                style={{ width: `${calcPercentuale(data.assegnate, data.totale)}%` }}
+                                                                style={{ width: `${calcPercentuale(comuneData.assegnate, comuneData.totale)}%` }}
                                                             ></div>
                                                         </div>
                                                     </div>
                                                     <span className="badge bg-primary d-sm-none">
-                                                        {calcPercentuale(data.assegnate, data.totale)}%
+                                                        {calcPercentuale(comuneData.assegnate, comuneData.totale)}%
                                                     </span>
-                                                    <i className={`fas fa-chevron-${expandedComune === comune ? 'up' : 'down'}`}></i>
+                                                    <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`}></i>
                                                 </div>
                                             </button>
 
-                                            {/* Expanded: Municipio details for ROMA */}
-                                            {expandedComune === comune && comune === 'ROMA' && stats.perMunicipio && (
+                                            {/* Expanded: Sezioni list with edit capability */}
+                                            {isExpanded && (
                                                 <div className="bg-light p-3">
-                                                    <h6 className="text-muted mb-2">Dettaglio Municipi</h6>
-                                                    <div className="row g-2">
-                                                        {Object.entries(stats.perMunicipio)
-                                                            .filter(([_, mdata]) => mdata.visibili > 0)
-                                                            .sort((a, b) => +a[0] - +b[0])
-                                                            .map(([municipio, mdata]) => (
-                                                                <div key={municipio} className="col-6 col-md-4 col-lg-3">
-                                                                    <div className="card">
-                                                                        <div className="card-body p-2 text-center">
-                                                                            <div className="fw-bold small">
-                                                                                Mun. {toRoman(+municipio)}
-                                                                            </div>
-                                                                            <div className="small">
-                                                                                <span className="text-success">{mdata.assegnate || 0}</span>
-                                                                                {' / '}
-                                                                                <span>{mdata.visibili || 0}</span>
-                                                                            </div>
-                                                                            <div className="progress mt-1" style={{ height: '4px' }}>
-                                                                                <div
-                                                                                    className="progress-bar bg-success"
-                                                                                    style={{ width: `${calcPercentuale(mdata.assegnate, mdata.visibili)}%` }}
-                                                                                ></div>
+                                                    {/* Municipio summary for cities with municipi */}
+                                                    {comuneData.municipi && comuneData.municipi.length > 0 && (
+                                                        <>
+                                                            <h6 className="text-muted mb-2">Riepilogo Municipi</h6>
+                                                            <div className="row g-2 mb-3">
+                                                                {comuneData.municipi.map((mun) => (
+                                                                    <div key={mun.numero} className="col-6 col-md-4 col-lg-3">
+                                                                        <div className="card">
+                                                                            <div className="card-body p-2 text-center">
+                                                                                <div className="fw-bold small">
+                                                                                    Mun. {toRoman(mun.numero)}
+                                                                                </div>
+                                                                                <div className="small">
+                                                                                    <span className="text-success">{mun.assegnate || 0}</span>
+                                                                                    {' / '}
+                                                                                    <span>{mun.visibili || 0}</span>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                </div>
-                                                            ))}
-                                                    </div>
-                                                </div>
-                                            )}
+                                                                ))}
+                                                            </div>
+                                                        </>
+                                                    )}
 
-                                            {/* Expanded: Summary for non-ROMA comuni */}
-                                            {expandedComune === comune && comune !== 'ROMA' && (
-                                                <div className="bg-light p-3">
-                                                    <div className="row">
-                                                        <div className="col-6">
-                                                            <div className="text-success">
-                                                                <i className="fas fa-check-circle me-1"></i>
-                                                                {data.assegnate} assegnate
-                                                            </div>
-                                                        </div>
-                                                        <div className="col-6">
-                                                            <div className="text-warning">
-                                                                <i className="fas fa-exclamation-circle me-1"></i>
-                                                                {data.totale - data.assegnate} da assegnare
-                                                            </div>
-                                                        </div>
+                                                    {/* Sezioni list */}
+                                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                                        <h6 className="text-muted mb-0">
+                                                            <i className="fas fa-list me-1"></i>
+                                                            Elenco Sezioni
+                                                        </h6>
+                                                        {sezioniTotal > 0 && (
+                                                            <small className="text-muted">
+                                                                {comuneSezioni.length} di {sezioniTotal} caricate
+                                                            </small>
+                                                        )}
                                                     </div>
+                                                    {loadingSezioni ? (
+                                                        <div className="text-center py-3">
+                                                            <div className="spinner-border spinner-border-sm text-primary me-2"></div>
+                                                            Caricamento sezioni...
+                                                        </div>
+                                                    ) : comuneSezioni.length === 0 ? (
+                                                        <div className="text-muted text-center py-2">
+                                                            Nessuna sezione trovata
+                                                        </div>
+                                                    ) : (
+                                                        <div
+                                                            className="table-responsive"
+                                                            style={{ maxHeight: '400px', overflowY: 'auto' }}
+                                                            onScroll={handleSezioniScroll}
+                                                        >
+                                                            <table className="table table-sm table-hover mb-0">
+                                                                <thead className="table-light sticky-top">
+                                                                    <tr>
+                                                                        <th style={{ width: '60px' }}>Sez.</th>
+                                                                        {comuneData.municipi?.length > 0 && (
+                                                                            <th style={{ width: '60px' }}>Mun.</th>
+                                                                        )}
+                                                                        <th>Indirizzo</th>
+                                                                        <th>Denominazione</th>
+                                                                        <th style={{ width: '80px' }}>Azioni</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {comuneSezioni.map((sez) => (
+                                                                        <tr key={sez.id}>
+                                                                            <td className="fw-bold">{sez.numero}</td>
+                                                                            {comuneData.municipi?.length > 0 && (
+                                                                                <td>
+                                                                                    {sez.municipio ? toRoman(sez.municipio.numero || sez.municipio) : '-'}
+                                                                                </td>
+                                                                            )}
+                                                                            {editingSezione === sez.id ? (
+                                                                                <>
+                                                                                    <td>
+                                                                                        <input
+                                                                                            type="text"
+                                                                                            className="form-control form-control-sm"
+                                                                                            value={editForm.indirizzo}
+                                                                                            onChange={(e) => setEditForm(prev => ({ ...prev, indirizzo: e.target.value }))}
+                                                                                            placeholder="Indirizzo..."
+                                                                                        />
+                                                                                    </td>
+                                                                                    <td>
+                                                                                        <input
+                                                                                            type="text"
+                                                                                            className="form-control form-control-sm"
+                                                                                            value={editForm.denominazione}
+                                                                                            onChange={(e) => setEditForm(prev => ({ ...prev, denominazione: e.target.value }))}
+                                                                                            placeholder="Denominazione..."
+                                                                                        />
+                                                                                    </td>
+                                                                                    <td>
+                                                                                        <div className="btn-group btn-group-sm">
+                                                                                            <button
+                                                                                                className="btn btn-success"
+                                                                                                onClick={() => handleSaveEdit(sez.id)}
+                                                                                                disabled={savingEdit}
+                                                                                                title="Salva"
+                                                                                            >
+                                                                                                {savingEdit ? (
+                                                                                                    <span className="spinner-border spinner-border-sm"></span>
+                                                                                                ) : (
+                                                                                                    <i className="fas fa-check"></i>
+                                                                                                )}
+                                                                                            </button>
+                                                                                            <button
+                                                                                                className="btn btn-secondary"
+                                                                                                onClick={handleCancelEdit}
+                                                                                                disabled={savingEdit}
+                                                                                                title="Annulla"
+                                                                                            >
+                                                                                                <i className="fas fa-times"></i>
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </td>
+                                                                                </>
+                                                                            ) : (
+                                                                                <>
+                                                                                    <td className={!sez.indirizzo ? 'text-muted' : ''}>
+                                                                                        {sez.indirizzo || '-'}
+                                                                                    </td>
+                                                                                    <td className={!sez.denominazione ? 'text-muted' : ''}>
+                                                                                        {sez.denominazione || '-'}
+                                                                                    </td>
+                                                                                    <td>
+                                                                                        <button
+                                                                                            className="btn btn-outline-primary btn-sm"
+                                                                                            onClick={() => handleEditSezione(sez)}
+                                                                                            title="Modifica"
+                                                                                        >
+                                                                                            <i className="fas fa-edit"></i>
+                                                                                        </button>
+                                                                                    </td>
+                                                                                </>
+                                                                            )}
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                            {/* Loading more indicator */}
+                                                            {loadingMore && (
+                                                                <div className="text-center py-2 bg-light">
+                                                                    <div className="spinner-border spinner-border-sm text-primary me-2"></div>
+                                                                    <small>Caricamento altre sezioni...</small>
+                                                                </div>
+                                                            )}
+                                                            {sezioniHasMore && !loadingMore && (
+                                                                <div className="text-center py-2 bg-light">
+                                                                    <small className="text-muted">
+                                                                        Scorri per caricare altre sezioni
+                                                                    </small>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -544,32 +794,45 @@ function GestioneSezioni({ client, setError }) {
                                     </div>
                                     <div className="col-6 col-md-3">
                                         <label htmlFor="comune" className="form-label">Comune *</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            id="comune"
-                                            name="comune"
-                                            value={formData.comune}
-                                            onChange={handleFormChange}
-                                            required
-                                            placeholder="ROMA"
-                                            style={{ textTransform: 'uppercase' }}
+                                        <ComuneAutocomplete
+                                            value={selectedComune}
+                                            onChange={handleComuneChange}
+                                            disabled={saving}
+                                            placeholder="Cerca comune..."
+                                            searchEndpoint="/api/sections/comuni/search"
                                         />
                                     </div>
                                     <div className="col-6 col-md-3">
-                                        <label htmlFor="municipio" className="form-label">Municipio</label>
-                                        <input
-                                            type="number"
-                                            className="form-control"
-                                            id="municipio"
-                                            name="municipio"
-                                            value={formData.municipio}
-                                            onChange={handleFormChange}
-                                            min="1"
-                                            max="15"
-                                            placeholder="1-15"
-                                        />
-                                        <div className="form-text small">Solo per Roma</div>
+                                        <label htmlFor="municipio" className="form-label">
+                                            Municipio {selectedComune?.has_municipi && selectedComune?.municipi?.length > 0 ? '*' : ''}
+                                        </label>
+                                        {selectedComune?.has_municipi && selectedComune?.municipi?.length > 0 ? (
+                                            <select
+                                                className="form-select"
+                                                id="municipio"
+                                                name="municipio"
+                                                value={formData.municipio}
+                                                onChange={handleFormChange}
+                                                required
+                                                disabled={saving}
+                                            >
+                                                <option value="">Seleziona municipio...</option>
+                                                {selectedComune.municipi.map(mun => (
+                                                    <option key={mun.numero} value={mun.numero}>
+                                                        {mun.nome || `Municipio ${toRoman(mun.numero)}`}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                id="municipio"
+                                                disabled
+                                                placeholder={selectedComune ? "Questo comune non ha municipi" : "Seleziona prima un comune"}
+                                            />
+                                        )}
+                                        <small className="text-muted">Solo per grandi città (Roma, Milano, Napoli, ecc.)</small>
                                     </div>
                                     <div className="col-12 col-md-6">
                                         <label htmlFor="indirizzo" className="form-label">Indirizzo seggio</label>
@@ -652,30 +915,45 @@ function GestioneSezioni({ client, setError }) {
                                     </div>
                                     <div className="col-12 col-md-3">
                                         <label htmlFor="comuneRange" className="form-label">Comune *</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            id="comuneRange"
-                                            name="comune"
-                                            value={formData.comune}
-                                            onChange={handleFormChange}
-                                            required
-                                            placeholder="MENTANA"
-                                            style={{ textTransform: 'uppercase' }}
+                                        <ComuneAutocomplete
+                                            value={selectedComune}
+                                            onChange={handleComuneChange}
+                                            disabled={saving}
+                                            placeholder="Cerca comune..."
+                                            searchEndpoint="/api/sections/comuni/search"
                                         />
                                     </div>
-                                    <div className="col-6 col-md-2">
-                                        <label htmlFor="municipioRange" className="form-label">Municipio</label>
-                                        <input
-                                            type="number"
-                                            className="form-control"
-                                            id="municipioRange"
-                                            name="municipio"
-                                            value={formData.municipio}
-                                            onChange={handleFormChange}
-                                            min="1"
-                                            max="15"
-                                        />
+                                    <div className="col-6 col-md-3">
+                                        <label htmlFor="municipioRange" className="form-label">
+                                            Municipio {selectedComune?.has_municipi && selectedComune?.municipi?.length > 0 ? '*' : ''}
+                                        </label>
+                                        {selectedComune?.has_municipi && selectedComune?.municipi?.length > 0 ? (
+                                            <select
+                                                className="form-select"
+                                                id="municipioRange"
+                                                name="municipio"
+                                                value={formData.municipio}
+                                                onChange={handleFormChange}
+                                                required
+                                                disabled={saving}
+                                            >
+                                                <option value="">Seleziona municipio...</option>
+                                                {selectedComune.municipi.map(mun => (
+                                                    <option key={mun.numero} value={mun.numero}>
+                                                        {mun.nome || `Municipio ${toRoman(mun.numero)}`}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                id="municipioRange"
+                                                disabled
+                                                placeholder={selectedComune ? "Questo comune non ha municipi" : "Seleziona prima un comune"}
+                                            />
+                                        )}
+                                        <small className="text-muted">Solo per grandi città (Roma, Milano, Napoli, ecc.)</small>
                                     </div>
                                     <div className="col-12 col-md-3 d-flex align-items-end">
                                         <button
@@ -717,23 +995,25 @@ function GestioneSezioni({ client, setError }) {
                     <div className="card">
                         <div className="card-header bg-info text-white">
                             <i className="fas fa-file-import me-2"></i>
-                            Importa Sezioni da CSV
+                            Arricchisci Sezioni da CSV
                         </div>
                         <div className="card-body">
-                            <p className="alert alert-secondary">
+                            <p className="alert alert-success">
                                 <i className="fas fa-info-circle me-2"></i>
-                                L'import CSV è utile per le grandi città con molte sezioni.
-                                Per piccoli comuni con poche sezioni, usa la tab "Aggiungi".
+                                <strong>Import in modalità MERGE:</strong> questo import aggiorna solo i campi compilati,
+                                senza sovrascrivere dati esistenti con valori vuoti.
+                                Utile per aggiungere denominazioni e indirizzi alle sezioni del tuo territorio.
                             </p>
 
                             <p className="text-muted">
-                                Il file CSV deve avere le seguenti colonne:
+                                Il file CSV deve avere le seguenti colonne (solo SEZIONE e COMUNE sono obbligatorie):
                             </p>
                             <ul className="text-muted">
-                                <li><strong>SEZIONE</strong>: Numero della sezione</li>
-                                <li><strong>COMUNE</strong>: Nome del comune (es. ROMA)</li>
+                                <li><strong>SEZIONE</strong> *: Numero della sezione</li>
+                                <li><strong>COMUNE</strong> *: Nome del comune (es. ROMA)</li>
                                 <li><strong>MUNICIPIO</strong>: Numero del municipio (opzionale)</li>
-                                <li><strong>INDIRIZZO</strong>: Indirizzo del seggio</li>
+                                <li><strong>INDIRIZZO</strong>: Indirizzo del seggio (opzionale)</li>
+                                <li><strong>DENOMINAZIONE</strong>: Nome del seggio, es. "Scuola Mazzini" (opzionale)</li>
                             </ul>
 
                             <div className="mb-3">
@@ -791,6 +1071,9 @@ function GestioneSezioni({ client, setError }) {
                             <ul className="mb-0">
                                 <li>Sezioni create: <strong>{result.created}</strong></li>
                                 <li>Sezioni aggiornate: <strong>{result.updated}</strong></li>
+                                {result.skipped > 0 && (
+                                    <li>Sezioni invariate/fuori territorio: <strong>{result.skipped}</strong></li>
+                                )}
                                 <li>Totale elaborato: <strong>{result.total}</strong></li>
                             </ul>
                             {result.errors?.length > 0 && (
@@ -813,12 +1096,23 @@ function GestioneSezioni({ client, setError }) {
                         </div>
                         <div className="card-body">
                             <pre className="mb-0 bg-light p-3 rounded" style={{ fontSize: '0.85em' }}>
-{`SEZIONE,COMUNE,MUNICIPIO,INDIRIZZO
-1,ROMA,3,"VIA DI SETTEBAGNI, 231"
-2,ROMA,1,"VIA DANIELE MANIN, 72"
-3,ROMA,1,"VIA DANIELE MANIN, 72"
-1,MENTANA,,"VIA ROMA, 1"
-2,MENTANA,,"VIA ROMA, 1"
+{`SEZIONE,COMUNE,MUNICIPIO,INDIRIZZO,DENOMINAZIONE
+1,ROMA,3,"VIA DI SETTEBAGNI, 231","Scuola Elementare Mazzini"
+2,ROMA,1,"VIA DANIELE MANIN, 72","IC Via Manin"
+3,ROMA,1,"VIA DANIELE MANIN, 72","IC Via Manin"
+1,MENTANA,,"VIA ROMA, 1","Scuola Media Garibaldi"
+2,MENTANA,,"VIA ROMA, 1","Scuola Media Garibaldi"
+...`}
+                            </pre>
+                            <p className="text-muted small mt-2 mb-0">
+                                <i className="fas fa-lightbulb me-1"></i>
+                                <strong>Tip:</strong> Puoi importare solo le colonne che ti servono.
+                                Ad esempio, per aggiungere solo le denominazioni:
+                            </p>
+                            <pre className="mb-0 bg-light p-3 rounded mt-2" style={{ fontSize: '0.85em' }}>
+{`SEZIONE,COMUNE,DENOMINAZIONE
+1,ROMA,"Scuola Elementare Mazzini"
+2,ROMA,"IC Via Manin"
 ...`}
                             </pre>
                         </div>

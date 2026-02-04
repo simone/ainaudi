@@ -143,7 +143,7 @@ class SubDelegaCreateSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        validated_data['created_by'] = self.context['request'].user
+        validated_data['created_by_email'] = self.context['request'].user.email
         return super().create(validated_data)
 
 
@@ -395,9 +395,9 @@ class MappaturaCreaSerializer(serializers.Serializer):
             email=reg.email,
             telefono=reg.telefono,
             stato=stato,
-            approvata_da=approvata_da,
+            approvata_da_email=approvata_da.email if approvata_da else '',
             data_approvazione=data_approvazione,
-            created_by=user,
+            created_by_email=user.email,
         )
         return designazione
 
@@ -484,7 +484,7 @@ class CampagnaReclutamentoCreateSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        validated_data['created_by'] = self.context['request'].user
+        validated_data['created_by_email'] = self.context['request'].user.email
         return super().create(validated_data)
 
 
