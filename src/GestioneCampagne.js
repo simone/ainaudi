@@ -42,6 +42,11 @@ function GestioneCampagne({ client, consultazione, setError }) {
         }
     }, [showCampagnaForm, client]);
 
+    // Debug: log campagnaForm changes
+    useEffect(() => {
+        console.log('campagnaForm updated:', campagnaForm);
+    }, [campagnaForm]);
+
     // Carica territorio per form campagna
     const loadRegioni = async () => {
         try {
@@ -122,6 +127,7 @@ function GestioneCampagne({ client, consultazione, setError }) {
         if (field === 'nome' && !editingCampagna) {
             newForm.slug = generateSlug(value);
         }
+        console.log('handleCampagnaFormChange:', field, '=', value, 'newForm:', newForm);
         setCampagnaForm(newForm);
     };
 
@@ -402,6 +408,7 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                         onChange={(e) => {
                                             console.log('Regione onChange:', e.target.value);
                                             const val = e.target.value;
+                                            console.log('campagnaForm before:', campagnaForm);
                                             if (val) {
                                                 handleCampagnaFormChange('regioni_ids', [parseInt(val)]);
                                                 handleCampagnaFormChange('province_ids', []);
@@ -416,6 +423,7 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                                 setProvince([]);
                                                 setComuni([]);
                                             }
+                                            setTimeout(() => console.log('campagnaForm after:', campagnaForm), 0);
                                         }}
                                     >
                                         <option value="">Tutte le regioni</option>
