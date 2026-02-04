@@ -401,10 +401,10 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                     </small>
                                 </div>
                                 <div className="col-md-4">
-                                    <label className="form-label small">Regione</label>
+                                    <label className="form-label small">Regione (debug: select value={String(campagnaForm.regioni_ids[0] || '')})</label>
                                     <select
                                         className="form-select form-select-sm"
-                                        value={campagnaForm.regioni_ids[0] ? String(campagnaForm.regioni_ids[0]) : ''}
+                                        value={String(campagnaForm.regioni_ids[0] || '')}
                                         onChange={(e) => {
                                             console.log('Regione onChange:', e.target.value);
                                             const val = e.target.value;
@@ -427,9 +427,10 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                         }}
                                     >
                                         <option value="">Tutte le regioni</option>
-                                        {regioni && regioni.map(r => (
-                                            <option key={r.id} value={r.id}>{r.nome}</option>
-                                        ))}
+                                        {regioni && regioni.map(r => {
+                                            console.log('Option:', 'r.id=', r.id, 'typeof=', typeof r.id, 'r.nome=', r.nome);
+                                            return <option key={r.id} value={String(r.id)}>{r.nome}</option>;
+                                        })}
                                     </select>
                                 </div>
                                 <div className="col-md-4">
