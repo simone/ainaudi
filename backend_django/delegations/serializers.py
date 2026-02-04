@@ -438,12 +438,12 @@ class CampagnaReclutamentoSerializer(serializers.ModelSerializer):
             'territorio',
             'stato', 'stato_display',
             'delegato', 'delegato_nome', 'sub_delega', 'sub_delegato_nome',
-            'created_by', 'created_by_nome',
+            'created_by_nome',
             'richiedi_approvazione', 'max_registrazioni', 'messaggio_conferma',
             'is_aperta', 'n_registrazioni', 'posti_disponibili',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'created_by']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'created_by_nome']
 
     def get_delegato_nome(self, obj):
         if obj.delegato:

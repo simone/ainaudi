@@ -20,6 +20,8 @@ function GestioneCampagne({ client, consultazione, setError }) {
         messaggio_conferma: ''
     });
     const [savingCampagna, setSavingCampagna] = useState(false);
+    const [successCampagna, setSuccessCampagna] = useState(null);
+    const [formError, setFormError] = useState(null);
 
     // Territorio per campagna
     const [regioni, setRegioni] = useState([]);
@@ -41,11 +43,6 @@ function GestioneCampagne({ client, consultazione, setError }) {
             loadRegioni();
         }
     }, [showCampagnaForm, client]);
-
-    // Debug: log campagnaForm changes
-    useEffect(() => {
-        console.log('campagnaForm updated:', campagnaForm);
-    }, [campagnaForm]);
 
     // Carica territorio per form campagna
     const loadRegioni = async () => {
@@ -122,13 +119,14 @@ function GestioneCampagne({ client, consultazione, setError }) {
     };
 
     const handleCampagnaFormChange = (field, value) => {
-        const newForm = { ...campagnaForm, [field]: value };
-        // Auto-genera slug dal nome
-        if (field === 'nome' && !editingCampagna) {
-            newForm.slug = generateSlug(value);
-        }
-        console.log('handleCampagnaFormChange:', field, '=', value, 'newForm:', newForm);
-        setCampagnaForm(newForm);
+        setCampagnaForm(prev => {
+            const newForm = { ...prev, [field]: value };
+            // Auto-genera slug dal nome
+            if (field === 'nome' && !editingCampagna) {
+                newForm.slug = generateSlug(value);
+            }
+            return newForm;
+        });
     };
 
     const resetCampagnaForm = () => {
@@ -141,6 +139,7 @@ function GestioneCampagne({ client, consultazione, setError }) {
         });
         setProvince([]);
         setComuni([]);
+        setFormError(null);
     };
 
     const handleEditCampagna = async (campagna) => {
@@ -176,8 +175,14 @@ function GestioneCampagne({ client, consultazione, setError }) {
 
     const handleSaveCampagna = async (e) => {
         e.preventDefault();
+        setFormError(null);
+
+        if (!consultazione?.id) {
+            setFormError('Consultazione attiva non trovata');
+            return;
+        }
         if (!campagnaForm.nome || !campagnaForm.data_apertura || !campagnaForm.data_chiusura) {
-            setError('Compila tutti i campi obbligatori');
+            setFormError('Compila tutti i campi obbligatori');
             return;
         }
 
@@ -189,11 +194,11 @@ function GestioneCampagne({ client, consultazione, setError }) {
                 descrizione: campagnaForm.descrizione,
                 data_apertura: campagnaForm.data_apertura,
                 data_chiusura: campagnaForm.data_chiusura,
-                territorio_regioni_ids: campagnaForm.regioni_ids,
-                territorio_province_ids: campagnaForm.province_ids,
-                territorio_comuni_ids: campagnaForm.comuni_ids,
+                territorio_regioni: campagnaForm.regioni_ids,
+                territorio_province: campagnaForm.province_ids,
+                territorio_comuni: campagnaForm.comuni_ids,
                 messaggio_conferma: campagnaForm.messaggio_conferma,
-                consultazione_id: consultazione?.id
+                consultazione: consultazione?.id
             };
 
             let result;
@@ -204,14 +209,16 @@ function GestioneCampagne({ client, consultazione, setError }) {
             }
 
             if (result?.error) {
-                setError(result.error);
+                setFormError(result.error);
             } else {
+                // Show success screen
+                setSuccessCampagna(result);
                 setShowCampagnaForm(false);
-                resetCampagnaForm();
+                setFormError(null);
                 loadCampagne();
             }
         } catch (err) {
-            setError(editingCampagna ? 'Errore nella modifica della campagna' : 'Errore nella creazione della campagna');
+            setFormError(editingCampagna ? 'Errore nella modifica della campagna' : 'Errore nella creazione della campagna');
         }
         setSavingCampagna(false);
     };
@@ -333,82 +340,123 @@ function GestioneCampagne({ client, consultazione, setError }) {
 
             {/* Form nuova/modifica campagna */}
             {showCampagnaForm && (
-                <div className="card mb-3 border-primary">
-                    <div className="card-header bg-primary text-white">
+                <div className="card mb-3">
+                    <div className="card-header bg-info text-white">
                         <strong>{editingCampagna ? 'Modifica Campagna' : 'Nuova Campagna'}</strong>
                     </div>
                     <div className="card-body">
+                        <p className="text-muted mb-3">
+                            Crea un link pubblico per raccogliere candidature come Rappresentante di Lista per la consultazione: <strong>{consultazione?.nome}</strong>
+                        </p>
+
+                        {formError && (
+                            <div className="alert alert-danger">{formError}</div>
+                        )}
+
                         <form onSubmit={handleSaveCampagna}>
-                            <div className="row g-3">
-                                <div className="col-md-8">
-                                    <label className="form-label">Nome *</label>
+                            {/* Informazioni campagna */}
+                            <h6 className="text-muted mb-3">Informazioni campagna</h6>
+                            <div className="row g-3 mb-3">
+                                <div className="col-md-6">
+                                    <label htmlFor="nome" className="form-label">Nome *</label>
                                     <input
+                                        id="nome"
                                         type="text"
                                         className="form-control"
                                         value={campagnaForm.nome}
                                         onChange={(e) => handleCampagnaFormChange('nome', e.target.value)}
                                         placeholder="Es: Referendum Giugno 2025 - Roma"
                                         required
+                                        disabled={savingCampagna}
+                                        aria-required="true"
+                                        aria-describedby="nome-help"
                                     />
+                                    <small id="nome-help" className="text-muted">Nome della campagna di reclutamento</small>
                                 </div>
-                                <div className="col-md-4">
-                                    <label className="form-label">Slug URL</label>
+                                <div className="col-md-6">
+                                    <label htmlFor="slug" className="form-label">Slug URL</label>
                                     <input
+                                        id="slug"
                                         type="text"
                                         className="form-control"
                                         value={campagnaForm.slug}
                                         onChange={(e) => handleCampagnaFormChange('slug', e.target.value)}
                                         placeholder="auto-generato"
+                                        disabled={savingCampagna}
+                                        aria-describedby="slug-help"
                                     />
-                                    <small className="text-muted">/campagna/{campagnaForm.slug || '...'}</small>
+                                    <small id="slug-help" className="text-muted">/campagna/{campagnaForm.slug || '...'}</small>
                                 </div>
+                            </div>
+
+                            <div className="row g-3 mb-3">
                                 <div className="col-12">
-                                    <label className="form-label">Descrizione</label>
+                                    <label htmlFor="descrizione" className="form-label">Descrizione</label>
                                     <textarea
+                                        id="descrizione"
                                         className="form-control"
                                         rows="2"
                                         value={campagnaForm.descrizione}
                                         onChange={(e) => handleCampagnaFormChange('descrizione', e.target.value)}
                                         placeholder="Descrizione opzionale della campagna"
+                                        disabled={savingCampagna}
+                                        aria-describedby="descrizione-help"
                                     />
+                                    <small id="descrizione-help" className="text-muted">Mostrata sulla pagina di registrazione</small>
                                 </div>
+                            </div>
+
+                            {/* Date */}
+                            <h6 className="text-muted mb-3 mt-3">Periodo di disponibilità</h6>
+                            <div className="row g-3 mb-3">
                                 <div className="col-md-6">
-                                    <label className="form-label">Data e ora apertura *</label>
+                                    <label htmlFor="data_apertura" className="form-label">Data e ora apertura *</label>
                                     <input
+                                        id="data_apertura"
                                         type="datetime-local"
                                         className="form-control"
                                         value={campagnaForm.data_apertura}
                                         onChange={(e) => handleCampagnaFormChange('data_apertura', e.target.value)}
                                         required
+                                        disabled={savingCampagna}
+                                        aria-required="true"
+                                        aria-describedby="data_apertura-help"
                                     />
+                                    <small id="data_apertura-help" className="text-muted">Da quando la campagna è accessibile</small>
                                 </div>
                                 <div className="col-md-6">
-                                    <label className="form-label">Data e ora chiusura *</label>
+                                    <label htmlFor="data_chiusura" className="form-label">Data e ora chiusura *</label>
                                     <input
+                                        id="data_chiusura"
                                         type="datetime-local"
                                         className="form-control"
                                         value={campagnaForm.data_chiusura}
                                         onChange={(e) => handleCampagnaFormChange('data_chiusura', e.target.value)}
                                         required
+                                        disabled={savingCampagna}
+                                        aria-required="true"
+                                        aria-describedby="data_chiusura-help"
                                     />
+                                    <small id="data_chiusura-help" className="text-muted">Quando la campagna si chiude</small>
                                 </div>
+                            </div>
 
-                                {/* Territorio */}
-                                <div className="col-12">
-                                    <label className="form-label">Territorio (opzionale)</label>
-                                    <small className="text-muted d-block mb-2">
-                                        Lascia vuoto per accettare registrazioni da tutti i comuni.
-                                    </small>
-                                </div>
-                                <div className="col-md-4">
-                                    <label className="form-label small">Regione (debug: select value={String(campagnaForm.regioni_ids[0] || '')})</label>
+                            {/* Territorio */}
+                            <h6 className="text-muted mb-3 mt-3">Territorio (opzionale)</h6>
+                            <div className="alert alert-light border small mb-3" role="note">
+                                <strong>Scegli per territorio:</strong> Lascia vuoto per accettare registrazioni da tutti i comuni,
+                                oppure seleziona regione, provincia e/o comune per limitare le candidature a specifiche aree.
+                            </div>
+
+                            <div className="row g-3 mb-3">
+                                <div className="col-md-6">
+                                    <label htmlFor="regione" className="form-label">Regione</label>
                                     <select
-                                        className="form-select form-select-sm"
+                                        id="regione"
+                                        className="form-select"
                                         value={String(campagnaForm.regioni_ids[0] || '')}
                                         onChange={(e) => {
-                                            console.log('Regione onChange:', e.target.value);
                                             const val = e.target.value;
-                                            console.log('campagnaForm before:', campagnaForm);
                                             if (val) {
                                                 handleCampagnaFormChange('regioni_ids', [parseInt(val)]);
                                                 handleCampagnaFormChange('province_ids', []);
@@ -423,20 +471,22 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                                 setProvince([]);
                                                 setComuni([]);
                                             }
-                                            setTimeout(() => console.log('campagnaForm after:', campagnaForm), 0);
                                         }}
+                                        disabled={savingCampagna}
+                                        aria-describedby="regione-help"
                                     >
                                         <option value="">Tutte le regioni</option>
-                                        {regioni && regioni.map(r => {
-                                            console.log('Option:', 'r.id=', r.id, 'typeof=', typeof r.id, 'r.nome=', r.nome);
-                                            return <option key={r.id} value={String(r.id)}>{r.nome}</option>;
-                                        })}
+                                        {regioni && regioni.map(r => (
+                                            <option key={r.id} value={String(r.id)}>{r.nome}</option>
+                                        ))}
                                     </select>
+                                    <small id="regione-help" className="text-muted">Accettare candidature da tutta l'Italia o da una regione specifica?</small>
                                 </div>
-                                <div className="col-md-4">
-                                    <label className="form-label small">Provincia</label>
+                                <div className="col-md-6">
+                                    <label htmlFor="provincia" className="form-label">Provincia</label>
                                     <select
-                                        className="form-select form-select-sm"
+                                        id="provincia"
+                                        className="form-select"
                                         value={String(campagnaForm.province_ids[0] || '')}
                                         onChange={(e) => {
                                             const val = e.target.value;
@@ -445,52 +495,112 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                             setComuni([]);
                                             if (val) loadComuni(val);
                                         }}
-                                        disabled={!campagnaForm.regioni_ids.length}
+                                        disabled={!campagnaForm.regioni_ids.length || savingCampagna}
+                                        aria-describedby="provincia-help"
                                     >
                                         <option value="">Tutte le province</option>
                                         {province.map(p => (
                                             <option key={p.id} value={String(p.id)}>{p.nome}</option>
                                         ))}
                                     </select>
+                                    <small id="provincia-help" className="text-muted">Disponibile dopo aver selezionato una regione</small>
                                 </div>
-                                <div className="col-md-4">
-                                    <label className="form-label small">Comune</label>
+                            </div>
+
+                            <div className="row g-3 mb-3">
+                                <div className="col-12">
+                                    <label htmlFor="comune" className="form-label">Comune</label>
                                     <select
-                                        className="form-select form-select-sm"
+                                        id="comune"
+                                        className="form-select"
                                         value={String(campagnaForm.comuni_ids[0] || '')}
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             handleCampagnaFormChange('comuni_ids', val ? [parseInt(val)] : []);
                                         }}
-                                        disabled={!campagnaForm.province_ids.length}
+                                        disabled={!campagnaForm.province_ids.length || savingCampagna}
+                                        aria-describedby="comune-help"
                                     >
                                         <option value="">Tutti i comuni</option>
                                         {comuni.map(c => (
                                             <option key={c.id} value={String(c.id)}>{c.nome}</option>
                                         ))}
                                     </select>
+                                    <small id="comune-help" className="text-muted">Disponibile dopo aver selezionato una provincia</small>
                                 </div>
+                            </div>
 
+                            {/* Messaggio di conferma */}
+                            <h6 className="text-muted mb-3 mt-3">Messaggio di conferma</h6>
+                            <div className="row g-3 mb-3">
                                 <div className="col-12">
-                                    <label className="form-label">Messaggio di conferma</label>
+                                    <label htmlFor="messaggio" className="form-label">Messaggio personalizzato</label>
                                     <textarea
+                                        id="messaggio"
                                         className="form-control"
                                         rows="2"
                                         value={campagnaForm.messaggio_conferma}
                                         onChange={(e) => handleCampagnaFormChange('messaggio_conferma', e.target.value)}
                                         placeholder="Messaggio mostrato dopo la registrazione (opzionale)"
+                                        disabled={savingCampagna}
+                                        aria-describedby="messaggio-help"
                                     />
+                                    <small id="messaggio-help" className="text-muted">Se vuoto, verrà mostrato il messaggio predefinito di completamento registrazione</small>
                                 </div>
                             </div>
-                            <div className="mt-3 d-flex gap-2">
-                                <button type="submit" className="btn btn-success" disabled={savingCampagna}>
-                                    {savingCampagna ? 'Salvataggio...' : (editingCampagna ? 'Salva Modifiche' : 'Crea Campagna')}
+
+                            {/* Buttons */}
+                            <div className="d-flex gap-2 mt-4 pt-3 border-top">
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary"
+                                    disabled={savingCampagna || !campagnaForm.nome || !campagnaForm.data_apertura || !campagnaForm.data_chiusura}
+                                >
+                                    {savingCampagna ? (
+                                        <>
+                                            <span className="spinner-border spinner-border-sm me-2"></span>
+                                            Salvataggio...
+                                        </>
+                                    ) : (editingCampagna ? 'Salva Modifiche' : 'Crea Campagna')}
                                 </button>
-                                <button type="button" className="btn btn-secondary" onClick={() => { setShowCampagnaForm(false); resetCampagnaForm(); }}>
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() => { setShowCampagnaForm(false); resetCampagnaForm(); }}
+                                    disabled={savingCampagna}
+                                >
                                     Annulla
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Success screen */}
+            {successCampagna && (
+                <div className="card mb-3 border-success">
+                    <div className="card-header bg-success text-white">
+                        <i className="fas fa-check-circle me-2"></i>
+                        {editingCampagna ? 'Campagna modificata' : 'Campagna creata'}
+                    </div>
+                    <div className="card-body">
+                        <p className="mb-2">
+                            {editingCampagna
+                                ? `La campagna "${successCampagna.nome}" è stata modificata con successo.`
+                                : `La campagna "${successCampagna.nome}" è stata creata con successo!`}
+                        </p>
+                        <p className="text-muted small mb-3">
+                            {successCampagna.stato === 'BOZZA'
+                                ? 'La campagna è attualmente in bozza e non visibile pubblicamente. Potrai attivarla quando sarai pronto.'
+                                : 'La campagna è attualmente attiva e visibile pubblicamente.'}
+                        </p>
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => setSuccessCampagna(null)}
+                        >
+                            Continua
+                        </button>
                     </div>
                 </div>
             )}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import SezzionePlessAutocomplete from './SezzionePlessAutocomplete';
 
 const SERVER_API = process.env.NODE_ENV === 'development' ? process.env.REACT_APP_API_URL : '';
 
@@ -36,7 +37,7 @@ const REQUISITI_ELETTORE = {
     }
 };
 
-function CampagnaRegistration({ slug, onClose }) {
+function CampagnaRegistration({ slug, onClose, isAuthenticated }) {
     const [formData, setFormData] = useState({
         email: '',
         cognome: '',
@@ -47,19 +48,32 @@ function CampagnaRegistration({ slug, onClose }) {
         indirizzo_residenza: '',
         seggio_preferenza: '',
         municipio: '',
-        telefono: ''
+        telefono: '',
+        fuorisede: null,
+        comune_domicilio: '',
+        indirizzo_domicilio: ''
     });
     const [selectedComune, setSelectedComune] = useState(null);
+    const [selectedSezione, setSelectedSezione] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
     const [campagna, setCampagna] = useState(null);
     const [checkingStatus, setCheckingStatus] = useState(true);
     const [comuneSearch, setComuneSearch] = useState('');
+    const [gdprAccepted, setGdprAccepted] = useState(false);
 
     useEffect(() => {
         loadCampagna();
     }, [slug]);
+
+    // Auto-select comune if only one is available
+    useEffect(() => {
+        if (campagna?.comuni_disponibili?.length === 1 && !selectedComune) {
+            setSelectedComune(campagna.comuni_disponibili[0]);
+            setComuneSearch(campagna.comuni_disponibili[0].label || campagna.comuni_disponibili[0].nome);
+        }
+    }, [campagna, selectedComune]);
 
     const loadCampagna = async () => {
         try {
@@ -89,7 +103,39 @@ function CampagnaRegistration({ slug, onClose }) {
     const handleComuneSelect = (comune) => {
         setSelectedComune(comune);
         setComuneSearch(comune.label || comune.nome);
-        setFormData(prev => ({ ...prev, municipio: '' }));
+        // Reset municipio and sezione when comune changes
+        setFormData(prev => ({ ...prev, municipio: '', seggio_preferenza: '' }));
+        setSelectedSezione(null);
+    };
+
+    // Monitor municipio changes and clear sezione if incoherent
+    useEffect(() => {
+        if (selectedSezione && selectedSezione.municipio && formData.municipio) {
+            // If sezione has a municipio and user selected a different one, clear the sezione
+            if (parseInt(formData.municipio) !== selectedSezione.municipio.numero) {
+                setSelectedSezione(null);
+                setFormData(prev => ({ ...prev, seggio_preferenza: '' }));
+            }
+        }
+    }, [formData.municipio, selectedSezione]);
+
+    const handleSezioneChange = (sezione) => {
+        if (!sezione) {
+            // Cleared selection
+            setSelectedSezione(null);
+            setFormData(prev => ({ ...prev, seggio_preferenza: '' }));
+        } else if (sezione.freeText) {
+            // Free text input (user typed something without selecting from suggestions)
+            setSelectedSezione(null);
+            setFormData(prev => ({ ...prev, seggio_preferenza: sezione.text }));
+        } else {
+            // Selected from autocomplete suggestions
+            setSelectedSezione(sezione);
+            const parts = [`Sez. ${sezione.numero}`];
+            if (sezione.denominazione) parts.push(sezione.denominazione);
+            if (sezione.indirizzo) parts.push(sezione.indirizzo);
+            setFormData(prev => ({ ...prev, seggio_preferenza: parts.join(' - ') }));
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -106,6 +152,34 @@ function CampagnaRegistration({ slug, onClose }) {
         // Municipio is required if the comune has municipalities
         if (selectedComune.has_municipi && selectedComune.municipi?.length > 0 && !formData.municipio) {
             setError('Seleziona un municipio');
+            setLoading(false);
+            return;
+        }
+
+        // Fuorisede selection is required
+        if (formData.fuorisede === null) {
+            setError('Devi indicare se sei un fuorisede');
+            setLoading(false);
+            return;
+        }
+
+        // If fuorisede is true, domicilio fields are required
+        if (formData.fuorisede === true) {
+            if (!formData.comune_domicilio) {
+                setError('Inserisci il comune di domicilio');
+                setLoading(false);
+                return;
+            }
+            if (!formData.indirizzo_domicilio) {
+                setError('Inserisci l\'indirizzo di domicilio');
+                setLoading(false);
+                return;
+            }
+        }
+
+        // GDPR acceptance is required
+        if (!gdprAccepted) {
+            setError('Devi accettare il trattamento dei dati personali per continuare');
             setLoading(false);
             return;
         }
@@ -160,9 +234,6 @@ function CampagnaRegistration({ slug, onClose }) {
                 </div>
                 <div className="card-body">
                     <p className="text-muted">{campagna.error}</p>
-                    <button className="btn btn-primary" onClick={onClose}>
-                        Torna alla home
-                    </button>
                 </div>
             </div>
         );
@@ -184,9 +255,6 @@ function CampagnaRegistration({ slug, onClose }) {
                             <strong>Periodo:</strong> {new Date(campagna.data_apertura).toLocaleDateString('it-IT')} - {new Date(campagna.data_chiusura).toLocaleDateString('it-IT')}
                         </p>
                     )}
-                    <button className="btn btn-primary" onClick={onClose}>
-                        Torna alla home
-                    </button>
                 </div>
             </div>
         );
@@ -203,9 +271,6 @@ function CampagnaRegistration({ slug, onClose }) {
                     <p className="text-muted">
                         I posti per questa campagna sono esauriti.
                     </p>
-                    <button className="btn btn-primary" onClick={onClose}>
-                        Torna alla home
-                    </button>
                 </div>
             </div>
         );
@@ -225,9 +290,12 @@ function CampagnaRegistration({ slug, onClose }) {
                     {success.richiede_approvazione && (
                         <p>Riceverai una notifica via email quando sarà approvata.</p>
                     )}
-                    <button className="btn btn-primary" onClick={onClose}>
-                        Torna alla home
-                    </button>
+                    {!isAuthenticated && (
+                        <p className="text-muted small mt-3">
+                            <i className="fas fa-info-circle me-1"></i>
+                            Puoi chiudere questa pagina.
+                        </p>
+                    )}
                 </div>
             </div>
         );
@@ -239,12 +307,70 @@ function CampagnaRegistration({ slug, onClose }) {
                 {campagna.nome}
             </div>
             <div className="card-body">
-                {campagna.descrizione && (
-                    <p className="text-muted mb-3">{campagna.descrizione}</p>
-                )}
-                <p className="text-muted mb-3">
-                    Compila il form per richiedere di diventare Rappresentante di Lista per la consultazione: <strong>{campagna.consultazione_nome}</strong>
-                </p>
+                {/* Hero section */}
+                <div className="text-center mb-4 pb-4 border-bottom">
+                    <h4 className="text-primary mb-3">
+                        <strong>Vuoi fare la differenza?</strong>
+                    </h4>
+                    <p className="text-muted mb-3">
+                        Compila il form per richiedere di diventare Rappresentante di Lista per la consultazione: <strong>{campagna.consultazione_nome}</strong>
+                    </p>
+                    <div className="alert alert- border mt-4 mb-0">
+                        {campagna.descrizione ? (
+                            <p className="text-muted mb-3">{campagna.descrizione}</p>
+                        ) : (
+                            <>
+                                <p className="mb-1 small">Basta essere elettori. Ti formeremo noi su tutto quello che c'è da sapere!</p>
+                                <p className="mb-0 small text-muted"><i className="fas fa-clock me-1"></i>La registrazione richiede solo 2 minuti</p>
+                            </>
+                        )}
+                    </div>
+                    <br/>
+                    <div className="row text-start justify-content-center">
+                        <div className="col-md-10">
+                            <div className="row g-3">
+                                <div className="col-md-6">
+                                    <div className="d-flex align-items-start">
+                                        <span className="text-success me-2"><i className="fas fa-check-circle"></i></span>
+                                        <div>
+                                            <strong>Tuteli la democrazia</strong>
+                                            <p className="small text-muted mb-0">Garantisci la regolarità delle operazioni di voto nel tuo seggio</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="col-md-6">
+                                    <div className="d-flex align-items-start">
+                                        <span className="text-success me-2"><i className="fas fa-check-circle"></i></span>
+                                        <div>
+                                            <strong>Partecipi attivamente</strong>
+                                            <p className="small text-muted mb-0">Non solo votante: diventi protagonista del processo elettorale</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="col-md-6">
+                                    <div className="d-flex align-items-start">
+                                        <span className="text-success me-2"><i className="fas fa-check-circle"></i></span>
+                                        <div>
+                                            <strong>Impari come funziona</strong>
+                                            <p className="small text-muted mb-0">Scopri dall'interno il meccanismo elettorale italiano</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="col-md-6">
+                                    <div className="d-flex align-items-start">
+                                        <span className="text-success me-2"><i className="fas fa-check-circle"></i></span>
+                                        <div>
+                                            <strong>Scegli dove operare</strong>
+                                            <p className="small text-muted mb-0">Vicino a casa, al lavoro, o dove preferisci</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
 
                 {/* Eligibility info based on election type */}
                 {campagna.consultazione_tipi_elezione?.length > 0 && (
@@ -291,6 +417,7 @@ function CampagnaRegistration({ slug, onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
+                                aria-required="true"
                             />
                         </div>
                         <div className="col-md-6 mb-3">
@@ -304,6 +431,7 @@ function CampagnaRegistration({ slug, onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
+                                aria-required="true"
                             />
                         </div>
                     </div>
@@ -320,6 +448,7 @@ function CampagnaRegistration({ slug, onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
+                                aria-required="true"
                             />
                         </div>
                         <div className="col-md-6 mb-3">
@@ -333,6 +462,7 @@ function CampagnaRegistration({ slug, onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
+                                aria-required="true"
                             />
                         </div>
                     </div>
@@ -351,6 +481,8 @@ function CampagnaRegistration({ slug, onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
+                                aria-required="true"
+                                aria-describedby="email-help"
                             />
                         </div>
                         <div className="col-md-6 mb-3">
@@ -364,6 +496,7 @@ function CampagnaRegistration({ slug, onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
+                                aria-required="true"
                             />
                         </div>
                     </div>
@@ -382,6 +515,7 @@ function CampagnaRegistration({ slug, onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
+                                aria-required="true"
                             />
                         </div>
                         <div className="col-md-6 mb-3">
@@ -395,9 +529,86 @@ function CampagnaRegistration({ slug, onClose }) {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
+                                aria-required="true"
                             />
                         </div>
                     </div>
+
+                    {/* Fuorisede */}
+                    <h6 className="text-muted mb-3 mt-3">Situazione abitativa</h6>
+                    <div className="row">
+                        <div className="col-12 mb-3">
+                            <label className="form-label">
+                                Sei un "fuorisede": lavori o studi in un comune italiano, diverso da quello della tua residenza anagrafica? *
+                            </label>
+                            <div className="btn-group w-100" role="group" aria-required="true">
+                                <input
+                                    type="radio"
+                                    className="btn-check"
+                                    name="fuorisede"
+                                    id="fuorisede_si"
+                                    value="true"
+                                    checked={formData.fuorisede === true}
+                                    onChange={() => setFormData(prev => ({ ...prev, fuorisede: true }))}
+                                    disabled={loading}
+                                />
+                                <label className="btn btn-outline-primary" htmlFor="fuorisede_si">
+                                    <i className="fas fa-check me-2"></i>SI
+                                </label>
+
+                                <input
+                                    type="radio"
+                                    className="btn-check"
+                                    name="fuorisede"
+                                    id="fuorisede_no"
+                                    value="false"
+                                    checked={formData.fuorisede === false}
+                                    onChange={() => setFormData(prev => ({ ...prev, fuorisede: false }))}
+                                    disabled={loading}
+                                />
+                                <label className="btn btn-outline-primary" htmlFor="fuorisede_no">
+                                    <i className="fas fa-times me-2"></i>NO
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Domicilio (shown only if fuorisede === true) */}
+                    {formData.fuorisede === true && (
+                        <>
+                            <h6 className="text-muted mb-3 mt-3">Domicilio</h6>
+                            <div className="row">
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="comune_domicilio" className="form-label">Comune di domicilio *</label>
+                                    <input
+                                        id="comune_domicilio"
+                                        type="text"
+                                        className="form-control"
+                                        name="comune_domicilio"
+                                        value={formData.comune_domicilio}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={loading}
+                                        aria-required="true"
+                                    />
+                                </div>
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="indirizzo_domicilio" className="form-label">Indirizzo di domicilio *</label>
+                                    <input
+                                        id="indirizzo_domicilio"
+                                        type="text"
+                                        className="form-control"
+                                        name="indirizzo_domicilio"
+                                        value={formData.indirizzo_domicilio}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={loading}
+                                        aria-required="true"
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    )}
 
                     {/* Dove vuoi fare il RDL */}
                     <h6 className="text-muted mb-3 mt-3">Dove vuoi fare il Rappresentante di Lista?</h6>
@@ -410,18 +621,16 @@ function CampagnaRegistration({ slug, onClose }) {
                         <div className="col-md-6 mb-3">
                             <label htmlFor="comune_seggio" className="form-label">Comune del seggio *</label>
                             {campagna.comuni_disponibili?.length === 1 ? (
-                                // Single comune: show as read-only and auto-select
-                                <>
-                                    <input
-                                        id="comune_seggio"
-                                        type="text"
-                                        className="form-control"
-                                        value={campagna.comuni_disponibili[0].label || campagna.comuni_disponibili[0].nome}
-                                        disabled
-                                        readOnly
-                                    />
-                                    {!selectedComune && setSelectedComune(campagna.comuni_disponibili[0])}
-                                </>
+                                // Single comune: show as read-only (auto-selected via useEffect)
+                                <input
+                                    id="comune_seggio"
+                                    type="text"
+                                    className="form-control"
+                                    value={campagna.comuni_disponibili[0].label || campagna.comuni_disponibili[0].nome}
+                                    disabled
+                                    readOnly
+                                    aria-describedby="comune-seggio-help"
+                                />
                             ) : (
                                 // Multiple comuni: show search/select
                                 <div className="position-relative">
@@ -439,6 +648,8 @@ function CampagnaRegistration({ slug, onClose }) {
                                         placeholder="Cerca comune..."
                                         disabled={loading}
                                         autoComplete="off"
+                                        aria-required="true"
+                                        aria-describedby="comune-seggio-help"
                                     />
                                     {comuneSearch && !selectedComune && filteredComuni.length > 0 && (
                                         <div className="position-absolute w-100 bg-white border rounded shadow-sm" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
@@ -458,7 +669,7 @@ function CampagnaRegistration({ slug, onClose }) {
                                     )}
                                 </div>
                             )}
-                            <small className="text-muted">
+                            <small id="comune-seggio-help" className="text-muted">
                                 {campagna.comuni_disponibili?.length === 1
                                     ? 'Comune pre-selezionato per questa campagna'
                                     : 'In quale comune vuoi operare come RDL?'}
@@ -477,6 +688,8 @@ function CampagnaRegistration({ slug, onClose }) {
                                     onChange={handleChange}
                                     required
                                     disabled={loading}
+                                    aria-required="true"
+                                    aria-describedby="municipio-help"
                                 >
                                     <option value="">-- Seleziona municipio --</option>
                                     {selectedComune.municipi.map((m) => (
@@ -492,9 +705,10 @@ function CampagnaRegistration({ slug, onClose }) {
                                     className="form-control"
                                     disabled
                                     placeholder={selectedComune ? "Questo comune non ha municipi" : "Seleziona prima un comune"}
+                                    aria-describedby="municipio-help"
                                 />
                             )}
-                            <small className="text-muted">
+                            <small id="municipio-help" className="text-muted">
                                 {selectedComune?.has_municipi ? 'In quale municipio vuoi operare?' : 'Solo per grandi città (Roma, Milano, Napoli, ecc.)'}
                             </small>
                         </div>
@@ -503,38 +717,72 @@ function CampagnaRegistration({ slug, onClose }) {
                     <div className="row">
                         <div className="col-md-12 mb-3">
                             <label htmlFor="seggio_preferenza" className="form-label">Seggio o plesso di preferenza</label>
-                            <input
-                                id="seggio_preferenza"
-                                type="text"
-                                className="form-control"
-                                name="seggio_preferenza"
-                                value={formData.seggio_preferenza}
-                                onChange={handleChange}
-                                placeholder="Es: Scuola Manzoni, Via Roma 15, vicino casa mia..."
-                                disabled={loading}
-                            />
-                            <small className="text-muted">
-                                Opzionale: indica una scuola, un indirizzo o una zona specifica dove preferiresti essere assegnato
+                            {selectedComune ? (
+                                <SezzionePlessAutocomplete
+                                    value={selectedSezione}
+                                    onChange={handleSezioneChange}
+                                    disabled={loading}
+                                    placeholder="Cerca sezione, plesso o indirizzo..."
+                                    comuneId={selectedComune.id}
+                                    municipio={formData.municipio ? parseInt(formData.municipio) : null}
+                                    onMunicipioChange={(mun) => setFormData(prev => ({ ...prev, municipio: String(mun) }))}
+                                />
+                            ) : (
+                                <input
+                                    id="seggio_preferenza"
+                                    type="text"
+                                    className="form-control"
+                                    disabled
+                                    placeholder="Seleziona prima un comune"
+                                />
+                            )}
+                            <small id="seggio-help" className="text-muted">
+                                Opzionale: digita per cercare una sezione, plesso, scuola o indirizzo dove preferiresti essere assegnato
                             </small>
                         </div>
+                    </div>
+
+                    {/* Privacy GDPR Acceptance */}
+                    <div className="form-check mt-4 pt-3 border-top">
+                        <input
+                            id="gdprAccepted"
+                            type="checkbox"
+                            className="form-check-input"
+                            checked={gdprAccepted}
+                            onChange={(e) => setGdprAccepted(e.target.checked)}
+                            disabled={loading}
+                            aria-required="true"
+                        />
+                        <label htmlFor="gdprAccepted" className="form-check-label">
+                            <strong>Autorizzo il trattamento dei miei dati personali</strong> inseriti in questo modulo.
+                            I dati saranno usati solo ai sensi del Decreto Legislativo 30 giugno 2003, n. 196 e del GDPR
+                            (Regolamento UE 2016/679) esclusivamente ai fini del coordinamento delle attività degli RDL *
+                        </label>
                     </div>
 
                     <div className="d-flex gap-2 mt-3">
                         <button
                             type="submit"
                             className="btn btn-primary"
-                            disabled={loading}
+                            disabled={loading || !gdprAccepted}
                         >
-                            {loading ? 'Invio in corso...' : 'Invia Richiesta'}
+                            {loading ? (
+                                <>
+                                    <span className="spinner-border spinner-border-sm me-2"></span>
+                                    Invio in corso...
+                                </>
+                            ) : 'ACCETTO'}
                         </button>
-                        <button
-                            type="button"
-                            className="btn btn-secondary"
-                            onClick={onClose}
-                            disabled={loading}
-                        >
-                            Annulla
-                        </button>
+                        {isAuthenticated && (
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                onClick={onClose}
+                                disabled={loading}
+                            >
+                                Torna alla Dashboard
+                            </button>
+                        )}
                     </div>
                 </form>
             </div>

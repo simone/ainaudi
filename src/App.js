@@ -292,6 +292,11 @@ function AppContent() {
     };
 
     const activate = (tab) => {
+        // Close campaign registration if open
+        if (campagnaSlug) {
+            setCampagnaSlug(null);
+            window.history.replaceState({}, document.title, '/');
+        }
         setActiveTab(tab);
         setIsMenuOpen(false);
     };
@@ -322,7 +327,17 @@ function AppContent() {
             <div className="main-content">
                 <nav className="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
                     <div className="container-fluid">
-                        <a className="navbar-brand" href="#" onClick={(e) => { e.preventDefault(); activate('dashboard'); }}>
+                        <a
+                            className="navbar-brand"
+                            href="#"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                if (isAuthenticated) {
+                                    activate('dashboard');
+                                }
+                            }}
+                            style={{ cursor: isAuthenticated ? 'pointer' : 'default' }}
+                        >
                             AInaudi
                         </a>
                         {isAuthenticated && client && (
@@ -630,7 +645,9 @@ function AppContent() {
                     <div className="alert alert-info">Nessuna consultazione elettorale attiva</div>
                 )}
                 {error && <div className="alert alert-danger mt-3">{error}</div>}
-                {isAuthenticated && client && consultazione ? (
+                {campagnaSlug ? (
+                    <CampagnaRegistration slug={campagnaSlug} onClose={handleCloseCampagna} isAuthenticated={isAuthenticated} />
+                ) : isAuthenticated && client && consultazione ? (
                     <div>
                         <div className="tab-content">
                             {activeTab === 'dashboard' && (
@@ -754,8 +771,6 @@ function AppContent() {
                             )}
                         </div>
                     </div>
-                ) : campagnaSlug ? (
-                    <CampagnaRegistration slug={campagnaSlug} onClose={handleCloseCampagna} />
                 ) : showRdlRegistration ? (
                     <RdlSelfRegistration onClose={() => setShowRdlRegistration(false)} />
                 ) : (
