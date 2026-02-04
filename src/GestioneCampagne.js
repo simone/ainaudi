@@ -305,36 +305,38 @@ function GestioneCampagne({ client, consultazione, setError, onOpenCampagna }) {
 
     return (
         <>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h5 className="mb-0">
-                        <i className="fas fa-bullhorn me-2"></i>
-                        Campagne di Reclutamento RDL
-                    </h5>
-                    <small className="text-muted">Crea link pubblici per raccogliere candidature</small>
-                </div>
-                <div className="d-flex gap-2">
-                    <button
-                        className="btn btn-outline-secondary btn-sm"
-                        onClick={loadCampagne}
-                        disabled={loadingCampagne}
-                    >
-                        <i className="fas fa-sync-alt me-1"></i>
-                        Aggiorna
-                    </button>
-                    <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => {
-                            if (showCampagnaForm) {
-                                setShowCampagnaForm(false);
-                                resetCampagnaForm();
-                            } else {
-                                setShowCampagnaForm(true);
-                            }
-                        }}
-                    >
-                        {showCampagnaForm ? 'Annulla' : '+ Nuova Campagna'}
-                    </button>
+            <div className="mb-3">
+                <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                    <div>
+                        <h5 className="mb-0">
+                            <i className="fas fa-bullhorn me-2"></i>
+                            Campagne di Reclutamento RDL
+                        </h5>
+                        <small className="text-muted">Crea link pubblici per raccogliere candidature</small>
+                    </div>
+                    <div className="d-flex gap-2 flex-shrink-0">
+                        <button
+                            className="btn btn-outline-secondary btn-sm"
+                            onClick={loadCampagne}
+                            disabled={loadingCampagne}
+                        >
+                            <i className="fas fa-sync-alt me-1"></i>
+                            Aggiorna
+                        </button>
+                        <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => {
+                                if (showCampagnaForm) {
+                                    setShowCampagnaForm(false);
+                                    resetCampagnaForm();
+                                } else {
+                                    setShowCampagnaForm(true);
+                                }
+                            }}
+                        >
+                            {showCampagnaForm ? 'Annulla' : '+ Nuova Campagna'}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -630,108 +632,115 @@ function GestioneCampagne({ client, consultazione, setError, onOpenCampagna }) {
                                 'border-warning'
                             }`}>
                                 <div className="card-body">
-                                    <div className="d-flex justify-content-between align-items-start">
-                                        <div className="flex-grow-1">
-                                            <h6 className="mb-1">
-                                                <i className="fas fa-bullhorn me-2 text-primary"></i>
-                                                {campagna.nome}
-                                            </h6>
-                                            <div className="mb-2">
-                                                <span className={`badge me-2 ${
-                                                    campagna.stato === 'ATTIVA' ? 'bg-success' :
-                                                    campagna.stato === 'CHIUSA' ? 'bg-secondary' :
-                                                    'bg-warning text-dark'
-                                                }`}>
-                                                    {campagna.stato === 'ATTIVA' ? '● Attiva' :
-                                                     campagna.stato === 'CHIUSA' ? '○ Chiusa' :
-                                                     '○ Bozza'}
-                                                </span>
-                                                <span className="badge bg-light text-dark me-2">
-                                                    {campagna.n_registrazioni || 0} registrazioni
-                                                </span>
-                                                {campagna.data_chiusura && (
-                                                    <span className="badge bg-light text-dark">
-                                                        Scade: {formatDate(campagna.data_chiusura)}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {campagna.stato === 'ATTIVA' && (
-                                                <div className="small">
-                                                    <i className="fas fa-link me-1 text-muted"></i>
-                                                    <a
-                                                        href={`/campagna/${campagna.slug}`}
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            if (onOpenCampagna) {
-                                                                onOpenCampagna(campagna.slug);
-                                                            }
-                                                        }}
-                                                        className="text-primary"
-                                                        title="Apri campagna"
-                                                    >
-                                                        {window.location.origin}/campagna/{campagna.slug}
-                                                    </a>
-                                                </div>
-                                            )}
-                                            {campagna.territorio_display && (
-                                                <div className="small text-muted mt-1">
-                                                    <i className="fas fa-map-marker-alt me-1"></i>
-                                                    {campagna.territorio_display}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="d-flex flex-wrap gap-1 justify-content-end" style={{ minWidth: '200px' }}>
-                                            {campagna.stato === 'ATTIVA' && (
-                                                <>
-                                                    <button
-                                                        className="btn btn-outline-success btn-sm"
-                                                        onClick={() => onOpenCampagna && onOpenCampagna(campagna.slug)}
-                                                        title="Apri campagna"
-                                                    >
-                                                        <i className="fas fa-external-link-alt"></i>
-                                                    </button>
-                                                    <button
-                                                        className="btn btn-outline-primary btn-sm"
-                                                        onClick={() => handleCopiaLink(campagna)}
-                                                        title="Copia link"
-                                                    >
-                                                        <i className="fas fa-copy"></i>
-                                                    </button>
-                                                </>
-                                            )}
-                                            <button
-                                                className="btn btn-outline-secondary btn-sm"
-                                                onClick={() => handleEditCampagna(campagna)}
-                                                title="Modifica"
+                                    {/* Header: titolo e stato */}
+                                    <div className="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 className="mb-0">
+                                            <i className="fas fa-bullhorn me-2 text-primary"></i>
+                                            {campagna.nome}
+                                        </h6>
+                                        <span className={`badge flex-shrink-0 ${
+                                            campagna.stato === 'ATTIVA' ? 'bg-success' :
+                                            campagna.stato === 'CHIUSA' ? 'bg-secondary' :
+                                            'bg-warning text-dark'
+                                        }`}>
+                                            {campagna.stato === 'ATTIVA' ? '● Attiva' :
+                                             campagna.stato === 'CHIUSA' ? '○ Chiusa' :
+                                             '○ Bozza'}
+                                        </span>
+                                    </div>
+
+                                    {/* Info badges */}
+                                    <div className="mb-2 d-flex flex-wrap gap-1">
+                                        <span className="badge bg-light text-dark">
+                                            {campagna.n_registrazioni || 0} registrazioni
+                                        </span>
+                                        {campagna.data_chiusura && (
+                                            <span className="badge bg-light text-dark">
+                                                Scade: {formatDate(campagna.data_chiusura)}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Link (solo se attiva) */}
+                                    {campagna.stato === 'ATTIVA' && (
+                                        <div className="small mb-2" style={{ wordBreak: 'break-all' }}>
+                                            <i className="fas fa-link me-1 text-muted"></i>
+                                            <a
+                                                href={`/campagna/${campagna.slug}`}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    if (onOpenCampagna) {
+                                                        onOpenCampagna(campagna.slug);
+                                                    }
+                                                }}
+                                                className="text-primary"
+                                                title="Apri campagna"
                                             >
-                                                <i className="fas fa-edit"></i>
-                                            </button>
-                                            {campagna.stato === 'BOZZA' && (
-                                                <button
-                                                    className="btn btn-success btn-sm"
-                                                    onClick={() => handleAttivaCampagna(campagna)}
-                                                    title="Attiva"
-                                                >
-                                                    <i className="fas fa-play me-1"></i>Attiva
-                                                </button>
-                                            )}
-                                            {campagna.stato === 'ATTIVA' && (
-                                                <button
-                                                    className="btn btn-outline-warning btn-sm"
-                                                    onClick={() => handleChiudiCampagna(campagna)}
-                                                    title="Chiudi"
-                                                >
-                                                    <i className="fas fa-pause me-1"></i>Chiudi
-                                                </button>
-                                            )}
-                                            <button
-                                                className="btn btn-outline-danger btn-sm"
-                                                onClick={() => handleDeleteCampagna(campagna)}
-                                                title="Elimina"
-                                            >
-                                                <i className="fas fa-trash"></i>
-                                            </button>
+                                                {window.location.origin}/campagna/{campagna.slug}
+                                            </a>
                                         </div>
+                                    )}
+
+                                    {/* Territorio */}
+                                    {campagna.territorio_display && (
+                                        <div className="small text-muted mb-2">
+                                            <i className="fas fa-map-marker-alt me-1"></i>
+                                            {campagna.territorio_display}
+                                        </div>
+                                    )}
+
+                                    {/* Azioni */}
+                                    <div className="d-flex flex-wrap gap-1 pt-2 border-top">
+                                        {campagna.stato === 'ATTIVA' && (
+                                            <>
+                                                <button
+                                                    className="btn btn-outline-success btn-sm"
+                                                    onClick={() => onOpenCampagna && onOpenCampagna(campagna.slug)}
+                                                    title="Apri campagna"
+                                                >
+                                                    <i className="fas fa-external-link-alt"></i>
+                                                </button>
+                                                <button
+                                                    className="btn btn-outline-primary btn-sm"
+                                                    onClick={() => handleCopiaLink(campagna)}
+                                                    title="Copia link"
+                                                >
+                                                    <i className="fas fa-copy"></i>
+                                                </button>
+                                            </>
+                                        )}
+                                        <button
+                                            className="btn btn-outline-secondary btn-sm"
+                                            onClick={() => handleEditCampagna(campagna)}
+                                            title="Modifica"
+                                        >
+                                            <i className="fas fa-edit"></i>
+                                        </button>
+                                        {campagna.stato === 'BOZZA' && (
+                                            <button
+                                                className="btn btn-success btn-sm"
+                                                onClick={() => handleAttivaCampagna(campagna)}
+                                                title="Attiva"
+                                            >
+                                                <i className="fas fa-play me-1"></i>Attiva
+                                            </button>
+                                        )}
+                                        {campagna.stato === 'ATTIVA' && (
+                                            <button
+                                                className="btn btn-outline-warning btn-sm"
+                                                onClick={() => handleChiudiCampagna(campagna)}
+                                                title="Chiudi"
+                                            >
+                                                <i className="fas fa-pause me-1"></i>Chiudi
+                                            </button>
+                                        )}
+                                        <button
+                                            className="btn btn-outline-danger btn-sm ms-auto"
+                                            onClick={() => handleDeleteCampagna(campagna)}
+                                            title="Elimina"
+                                        >
+                                            <i className="fas fa-trash"></i>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
