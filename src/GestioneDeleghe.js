@@ -185,6 +185,17 @@ function GestioneDeleghe({ client, user, consultazione, setError, initialTab }) 
 
     return (
         <>
+            {/* Page Header */}
+            <div className="page-header delegati">
+                <div className="page-header-title">
+                    <i className="fas fa-user-tie"></i>
+                    Delegati
+                </div>
+                <div className="page-header-subtitle">
+                    Gestione catena deleghe e designazioni RDL
+                </div>
+            </div>
+
             {/* Tabs */}
             <ul className="nav nav-tabs mb-3">
                 <li className="nav-item">

@@ -402,6 +402,20 @@ function GestioneSezioni({ client, setError }) {
 
     return (
         <>
+            {/* Page Header */}
+            <div className="page-header rdl">
+                <div className="page-header-title">
+                    <i className="fas fa-map-marker-alt"></i>
+                    Gestione Sezioni
+                </div>
+                <div className="page-header-subtitle">
+                    Panoramica e arricchimento dati sezioni elettorali
+                    {getTerritorioLabel() && (
+                        <span className="page-header-badge">{getTerritorioLabel()}</span>
+                    )}
+                </div>
+            </div>
+
             {/* Tab Navigation */}
             <ul className="nav nav-tabs mb-3">
                 <li className="nav-item">

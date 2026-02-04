@@ -98,7 +98,17 @@ const GeneraModuli = ({client, setError}) => {
 
     return (
         <>
-            <h4>Genera Moduli Nomine RDL</h4>
+            {/* Page Header */}
+            <div className="page-header delegati">
+                <div className="page-header-title">
+                    <i className="fas fa-file-signature"></i>
+                    Designazioni
+                </div>
+                <div className="page-header-subtitle">
+                    Generazione moduli PDF per nomine RDL
+                </div>
+            </div>
+
             <p className="alert alert-secondary">
                 A norma di legge i dati del subdelegato li deve inserire chi autentica la sua firma,
                 possono quindi essere lasciati in bianco.

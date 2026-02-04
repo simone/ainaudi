@@ -252,6 +252,17 @@ function Risorse({ client, consultazione, setError }) {
         <>
             <style>{docCardStyles}</style>
 
+            {/* Page Header */}
+            <div className="page-header assistenza">
+                <div className="page-header-title">
+                    <i className="fas fa-life-ring"></i>
+                    Assistenza
+                </div>
+                <div className="page-header-subtitle">
+                    Documenti, guide, FAQ e supporto per i Rappresentanti di Lista
+                </div>
+            </div>
+
             {/* Tabs */}
             <ul className="nav nav-tabs mb-3">
                 <li className="nav-item">

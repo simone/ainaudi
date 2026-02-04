@@ -47,6 +47,17 @@ function GestioneTerritorio({ client, setError }) {
 
     return (
         <>
+            {/* Page Header */}
+            <div className="page-header territorio">
+                <div className="page-header-title">
+                    <i className="fas fa-globe-europe"></i>
+                    Territorio
+                </div>
+                <div className="page-header-subtitle">
+                    Amministrazione dati territoriali italiani
+                </div>
+            </div>
+
             {/* Stats Boxes */}
             <div className="row g-3 mb-3">
                 <div className="col-6 col-md-3">

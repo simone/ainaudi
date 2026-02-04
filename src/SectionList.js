@@ -515,6 +515,18 @@ function SectionList({client, user, setError, referenti}) {
     return (
         <>
             <style>{listStyles}</style>
+
+            {/* Page Header */}
+            <div className="page-header scrutinio">
+                <div className="page-header-title">
+                    <i className="fas fa-clipboard-check"></i>
+                    Scrutinio
+                </div>
+                <div className="page-header-subtitle">
+                    Inserimento dati votazioni per le tue sezioni
+                </div>
+            </div>
+
             {/* Search */}
             {sections.length > 3 && (
                 <div className="sezioni-search">

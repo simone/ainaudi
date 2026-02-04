@@ -332,13 +332,20 @@ function Kpi({ client, setError, consultazione }) {
 
     return (
         <>
-            <div className="card">
-                <div className="card-header bg-info">
-                    {isReferendum ? (
-                        <>Visualizza i risultati del referendum in tempo reale. Analizza i voti SI e NO per sezione e territorio.</>
-                    ) : (
-                        <>Visualizza i grafici delle performance elettorali nella Diretta. Analizza i dati per le preferenze dei candidati e i voti di lista per valutare l'andamento elettorale.</>
-                    )}
+            {/* Page Header */}
+            <div className="page-header diretta">
+                <div className="page-header-title">
+                    <i className="fas fa-chart-line"></i>
+                    Diretta
+                    <span className="page-header-badge">
+                        <i className="fas fa-circle" style={{ fontSize: '0.5rem', marginRight: 4 }}></i>
+                        LIVE
+                    </span>
+                </div>
+                <div className="page-header-subtitle">
+                    {isReferendum
+                        ? 'Risultati referendum in tempo reale - Voti SI/NO per sezione e territorio'
+                        : 'Performance elettorali live - Preferenze candidati e voti di lista'}
                 </div>
             </div>
             <div className="small" style={{

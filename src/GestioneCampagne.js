@@ -604,39 +604,40 @@ function GestioneCampagne({ client, consultazione, setError, onOpenCampagna }) {
 
     return (
         <>
-            <div className="mb-3">
-                <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
-                    <div>
-                        <h5 className="mb-0">
-                            <i className="fas fa-bullhorn me-2"></i>
-                            Campagne di Reclutamento RDL
-                        </h5>
-                        <small className="text-muted">Crea link pubblici per raccogliere candidature</small>
-                    </div>
-                    <div className="d-flex gap-2 flex-shrink-0">
-                        <button
-                            className="btn btn-outline-secondary btn-sm"
-                            onClick={loadCampagne}
-                            disabled={loadingCampagne}
-                        >
-                            <i className="fas fa-sync-alt me-1"></i>
-                            Aggiorna
-                        </button>
-                        <button
-                            className="btn btn-primary btn-sm"
-                            onClick={() => {
-                                if (showCampagnaForm) {
-                                    setShowCampagnaForm(false);
-                                    resetCampagnaForm();
-                                } else {
-                                    setShowCampagnaForm(true);
-                                }
-                            }}
-                        >
-                            {showCampagnaForm ? 'Torna alla Lista' : '+ Nuova Campagna'}
-                        </button>
-                    </div>
+            {/* Page Header */}
+            <div className="page-header rdl">
+                <div className="page-header-title">
+                    <i className="fas fa-bullhorn"></i>
+                    Campagne di Reclutamento
                 </div>
+                <div className="page-header-subtitle">
+                    Crea link pubblici per raccogliere candidature RDL
+                </div>
+            </div>
+
+            {/* Actions */}
+            <div className="d-flex justify-content-end gap-2 mb-3">
+                <button
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={loadCampagne}
+                    disabled={loadingCampagne}
+                >
+                    <i className="fas fa-sync-alt me-1"></i>
+                    Aggiorna
+                </button>
+                <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                        if (showCampagnaForm) {
+                            setShowCampagnaForm(false);
+                            resetCampagnaForm();
+                        } else {
+                            setShowCampagnaForm(true);
+                        }
+                    }}
+                >
+                    {showCampagnaForm ? 'Torna alla Lista' : '+ Nuova Campagna'}
+                </button>
             </div>
 
             {/* Success screen */}

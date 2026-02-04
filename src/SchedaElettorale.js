@@ -130,6 +130,17 @@ function SchedaElettorale({ scheda, client, onClose, onUpdate }) {
 
     return (
         <div className="scheda-elettorale">
+            {/* Page Header */}
+            <div className="page-header consultazione">
+                <div className="page-header-title">
+                    <i className="fas fa-vote-yea"></i>
+                    Consultazione
+                </div>
+                <div className="page-header-subtitle">
+                    Dettaglio scheda elettorale: {scheda.nome || 'Scheda'}
+                </div>
+            </div>
+
             {error && (
                 <div className="alert alert-danger alert-dismissible">
                     {error}

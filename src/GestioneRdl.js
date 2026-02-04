@@ -344,16 +344,15 @@ function GestioneRdl({ client, setError }) {
                 {...modalConfig}
             />
 
-            {/* Header compatto */}
-            <div style={{
-                background: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)',
-                color: 'white',
-                padding: '12px 16px',
-                borderRadius: '8px',
-                marginBottom: '12px'
-            }}>
-                <div style={{ fontWeight: 600, fontSize: '1rem' }}>Gestione RDL</div>
-                <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>Approva e gestisci le registrazioni</div>
+            {/* Page Header */}
+            <div className="page-header rdl">
+                <div className="page-header-title">
+                    <i className="fas fa-users"></i>
+                    Gestione RDL
+                </div>
+                <div className="page-header-subtitle">
+                    Approva e gestisci le registrazioni dei Rappresentanti di Lista
+                </div>
             </div>
 
             {/* Filtri compatti */}
