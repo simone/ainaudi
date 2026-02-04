@@ -30,9 +30,17 @@ function GestioneCampagne({ client, consultazione, setError }) {
     const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null });
 
     useEffect(() => {
-        loadCampagne();
-        loadRegioni();
-    }, [consultazione]);
+        if (client) {
+            loadCampagne();
+        }
+    }, [client, consultazione]);
+
+    // Carica regioni quando il form viene aperto o al mount
+    useEffect(() => {
+        if (client && (showCampagnaForm || regioni.length === 0)) {
+            loadRegioni();
+        }
+    }, [showCampagnaForm, client]);
 
     // Carica territorio per form campagna
     const loadRegioni = async () => {
