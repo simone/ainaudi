@@ -181,6 +181,7 @@ function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, com
             {showSuggestions && (suggestions.length > 0 || loading) && (
                 <ul
                     className="list-group"
+                    onMouseDown={(e) => e.preventDefault()}
                     style={{
                         position: 'absolute',
                         top: '100%',
@@ -202,7 +203,10 @@ function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, com
                             <li
                                 key={sezione.id}
                                 className={`list-group-item list-group-item-action ${index === selectedIndex ? 'active' : ''}`}
-                                onClick={() => handleSelect(sezione)}
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    handleSelect(sezione);
+                                }}
                                 style={{ cursor: 'pointer' }}
                             >
                                 <div>
