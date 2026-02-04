@@ -1,6 +1,203 @@
-// App.js
+// SectionList.js - Mobile-first redesign
 import React, {useEffect, useState} from "react";
 import SectionForm from "./SectionForm";
+
+// Stili mobile-first per la lista sezioni
+const listStyles = `
+    .sezioni-search {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: white;
+        padding: 12px;
+        margin: -1rem -1rem 0 -1rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    .sezioni-search-input {
+        width: 100%;
+        padding: 12px 16px;
+        font-size: 1rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        transition: border-color 0.2s;
+    }
+
+    .sezioni-search-input:focus {
+        outline: none;
+        border-color: #0d6efd;
+    }
+
+    .sezioni-header {
+        padding: 16px;
+        text-align: center;
+    }
+
+    .sezioni-header-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 4px;
+    }
+
+    .sezioni-header-subtitle {
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    .sezioni-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .sezione-card {
+        display: flex;
+        align-items: center;
+        padding: 14px 16px;
+        background: white;
+        border-bottom: 1px solid #f0f0f0;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .sezione-card:hover {
+        background: #f8f9fa;
+    }
+
+    .sezione-card:active {
+        background: #e9ecef;
+    }
+
+    .sezione-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .sezione-title {
+        font-weight: 600;
+        font-size: 1rem;
+        color: #1a1a1a;
+        margin-bottom: 2px;
+    }
+
+    .sezione-subtitle {
+        font-size: 0.8rem;
+        color: #666;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .sezione-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .sezione-progress {
+        width: 50px;
+        height: 6px;
+        background: #e9ecef;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .sezione-progress-bar {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.3s;
+    }
+
+    .sezione-progress-bar.complete { background: #198754; }
+    .sezione-progress-bar.warning { background: #ffc107; }
+    .sezione-progress-bar.primary { background: #0d6efd; }
+
+    .sezione-badge {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .sezione-badge.complete {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .sezione-badge.warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .sezione-badge.primary {
+        background: #cfe2ff;
+        color: #084298;
+    }
+
+    .sezione-arrow {
+        color: #ccc;
+        font-size: 0.9rem;
+        margin-left: 8px;
+    }
+
+    .sezioni-empty {
+        text-align: center;
+        padding: 40px 20px;
+        color: #666;
+    }
+
+    .sezioni-empty-icon {
+        font-size: 3rem;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    .sezioni-empty-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .sezioni-empty-text {
+        font-size: 0.9rem;
+    }
+
+    .sezioni-section-header {
+        padding: 12px 16px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #eee;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .ballottaggio-alert {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #ffc107 0%, #ffca2c 100%);
+        color: #000;
+        margin: 0 -1rem;
+    }
+
+    .ballottaggio-alert i {
+        font-size: 1.25rem;
+    }
+
+    .ballottaggio-alert-text {
+        font-size: 0.9rem;
+    }
+
+    .ballottaggio-alert-title {
+        font-weight: 700;
+    }
+`;
 
 function SectionList({client, user, setError, referenti}) {
     const [loading, setLoading] = useState(true);
@@ -9,32 +206,22 @@ function SectionList({client, user, setError, referenti}) {
     const [selectedSection, setSelectedSection] = useState(null);
     const [lists, setLists] = useState([]);
     const [candidates, setCandidates] = useState([]);
-    const [dataLoaded, setDataLoaded] = useState(false); // Track if lists/candidates loaded
+    const [dataLoaded, setDataLoaded] = useState(false);
     const [searchText, setSearchText] = useState('');
-    const [selectedError, setSelectedError] = useState('');
     const [filteredSections, setFilteredSections] = useState([]);
     const [filteredAssignedSections, setFilteredAssignedSections] = useState([]);
     const [turnoInfo, setTurnoInfo] = useState(null);
 
     useEffect(() => {
         window.scrollTo(0, 0);
-        console.log("Loading data");
-        // Load lists and candidates in parallel, then mark as loaded
         Promise.all([loadLists(), loadCandidates()])
-            .then(() => {
-                setDataLoaded(true);
-            });
+            .then(() => setDataLoaded(true));
     }, []);
 
     const loadCandidates = () => {
         return client.election.candidates()
-            .then(data => {
-                setCandidates(Array.isArray(data.values) ? data.values : []);
-            }).catch(error => {
-            console.error('Error fetching Candidates data:', error);
-            // Don't block on error - referendum may not have candidates
-            setCandidates([]);
-        });
+            .then(data => setCandidates(Array.isArray(data.values) ? data.values : []))
+            .catch(() => setCandidates([]));
     }
 
     const loadLists = () => {
@@ -42,19 +229,12 @@ function SectionList({client, user, setError, referenti}) {
             .then(data => {
                 const values = Array.isArray(data.values) ? data.values : [];
                 setLists(values.map(row => row[0]));
-            }).catch(error => {
-            console.error('Error fetching Lists data:', error);
-            // Don't block on error - referendum may not have lists
-            setLists([]);
-        });
+            })
+            .catch(() => setLists([]));
     }
 
     useEffect(() => {
-        // Load sections once lists/candidates data is loaded
-        // For referendum: lists and candidates may be empty, that's OK
-        if (dataLoaded) {
-            listSections();
-        }
+        if (dataLoaded) listSections();
     }, [dataLoaded]);
 
     function adaptToSections(rows) {
@@ -74,7 +254,6 @@ function SectionList({client, user, setError, referenti}) {
                 schedeContestate: values[8] || ''
             };
 
-            // indici delle colonne preferenze e liste
             const fP = 9;
             const fL = fP + candidates.length;
             const lL = fL + lists.length;
@@ -88,7 +267,6 @@ function SectionList({client, user, setError, referenti}) {
             });
 
             section.incongruenze = values[lL] || '';
-
             return section;
         });
     }
@@ -100,14 +278,12 @@ function SectionList({client, user, setError, referenti}) {
                 setLoading(false);
                 setSections(adaptToSections(rows));
             }
-            // Extract turno info from response
-            if (response.turno) {
-                setTurnoInfo(response.turno);
-            }
+            if (response.turno) setTurnoInfo(response.turno);
         }).catch((error) => {
             console.error("Error reading Sheet:", error);
-            setError("Errore durante la lettura del foglio di calcolo: " + error.result.message);
+            setError("Errore durante la lettura: " + error.result?.message);
         });
+
         if (referenti) {
             client.sections.get({assigned: true}).then((response) => {
                 const rows = response.rows;
@@ -117,7 +293,6 @@ function SectionList({client, user, setError, referenti}) {
                 }
             }).catch((error) => {
                 console.error("Error reading Sheet:", error);
-                setError("Errore durante la lettura del foglio di calcolo: " + error.result.message);
             });
         }
     };
@@ -142,19 +317,18 @@ function SectionList({client, user, setError, referenti}) {
             sezione: newData.sezione,
             values: values,
         })
-            .then((response) => {
+            .then(() => {
                 listSections();
                 window.scrollTo(0, 0);
                 setSelectedSection(null);
             })
             .catch((error) => {
                 console.error("Error updating Sheet:", error);
-                setError("Errore durante l'aggiornamento del foglio di calcolo: " + error.result.message);
+                setError("Errore durante l'aggiornamento: " + error.result?.message);
             });
     };
 
     const isComplete = (section) => {
-        // Verifica che tutti i valori della section sono valorizzati
         for (let key in section) {
             if (section[key] === null || section[key] === undefined || section[key] === '') {
                 return false;
@@ -163,54 +337,35 @@ function SectionList({client, user, setError, referenti}) {
         return true;
     };
 
-    const hasErrors = (section) => {
-        return section.incongruenze !== '';
-    }
+    const hasErrors = (section) => section.incongruenze !== '';
 
     const progress = (section) => {
-        // Numero totale di proprietà nell'oggetto section
         const totalProperties = Object.keys(section).length - 4;
-        // Numero di proprietà valorizzate
         let filledProperties = 0;
-
-        // Itera su tutte le proprietà dell'oggetto section
         for (let key in section) {
-            if (key === 'comune' || key === 'sezione' || key === 'email' || key === 'incongruenze') {
-                continue;
-            }
+            if (key === 'comune' || key === 'sezione' || key === 'email' || key === 'incongruenze') continue;
             if (section[key] !== null && section[key] !== undefined && section[key] !== '') {
                 filledProperties++;
             }
         }
-
-        // Calcola la percentuale di completamento
-        const progressPercentage = (filledProperties / totalProperties) * 100;
-
-        return Math.round(progressPercentage);
+        return Math.round((filledProperties / totalProperties) * 100);
     };
 
     function filterSection(section) {
         let q = searchText.toLowerCase();
-        // Convert all fields to string before calling .toLowerCase()
         const comuneString = section.comune.toString().toLowerCase();
         const sezioneString = section.sezione.toString().toLowerCase();
         const emailString = section.email.toString().toLowerCase();
-        const incongruenzeString = section.incongruenze.toString().toLowerCase();
-        const matchesSearchText = comuneString.includes(q)
-            || sezioneString.includes(q)
-            || emailString.includes(q);
-        const matchesError = selectedError === '' || incongruenzeString.includes(selectedError.toLowerCase());
-        return matchesSearchText && matchesError;
+        return comuneString.includes(q) || sezioneString.includes(q) || emailString.includes(q);
     }
-
 
     useEffect(() => {
         setFilteredSections(sections.filter(filterSection));
-    }, [sections, searchText, selectedError]);
+    }, [sections, searchText]);
 
     useEffect(() => {
         setFilteredAssignedSections(assignedSections.filter(filterSection));
-    }, [assignedSections, searchText, selectedError]);
+    }, [assignedSections, searchText]);
 
     if (loading) {
         return (
@@ -235,158 +390,169 @@ function SectionList({client, user, setError, referenti}) {
         );
     }
 
+    const renderSectionCard = (section, index) => {
+        const prog = progress(section);
+        const complete = isComplete(section);
+        const errors = hasErrors(section);
+
+        let statusClass = 'primary';
+        if (complete && !errors) statusClass = 'complete';
+        else if (errors) statusClass = 'warning';
+
+        return (
+            <li
+                key={index}
+                className="sezione-card"
+                onClick={() => setSelectedSection(section)}
+            >
+                <div className="sezione-info">
+                    <div className="sezione-title">
+                        Sezione {section.sezione}
+                    </div>
+                    <div className="sezione-subtitle">
+                        {section.comune}
+                    </div>
+                </div>
+                <div className="sezione-status">
+                    {complete && !errors ? (
+                        <span className="sezione-badge complete">
+                            <i className="fas fa-check me-1"></i>
+                            Completo
+                        </span>
+                    ) : (
+                        <>
+                            <div className="sezione-progress">
+                                <div
+                                    className={`sezione-progress-bar ${statusClass}`}
+                                    style={{ width: `${prog}%` }}
+                                />
+                            </div>
+                            <span className={`sezione-badge ${statusClass}`}>
+                                {prog}%
+                            </span>
+                        </>
+                    )}
+                    <i className="fas fa-chevron-right sezione-arrow"></i>
+                </div>
+            </li>
+        );
+    };
+
+    const renderAssignedSectionCard = (section, index) => {
+        const prog = progress(section);
+        const complete = isComplete(section);
+        const errors = hasErrors(section);
+
+        let statusClass = 'primary';
+        if (complete && !errors) statusClass = 'complete';
+        else if (errors) statusClass = 'warning';
+
+        return (
+            <li
+                key={index}
+                className="sezione-card"
+                onClick={() => setSelectedSection(section)}
+            >
+                <div className="sezione-info">
+                    <div className="sezione-title">
+                        {section.comune} - Sez. {section.sezione}
+                    </div>
+                    <div className="sezione-subtitle">
+                        {section.email}
+                    </div>
+                </div>
+                <div className="sezione-status">
+                    {complete && !errors ? (
+                        <span className="sezione-badge complete">
+                            <i className="fas fa-check me-1"></i>
+                            OK
+                        </span>
+                    ) : (
+                        <span className={`sezione-badge ${statusClass}`}>
+                            {errors && <i className="fas fa-exclamation-triangle me-1"></i>}
+                            {prog}%
+                        </span>
+                    )}
+                    <i className="fas fa-chevron-right sezione-arrow"></i>
+                </div>
+            </li>
+        );
+    };
+
     return (
         <>
-            <div className="card mb-3">
-                <div className="card-body">
-                    <label htmlFor="search-sections" className="visually-hidden">Cerca sezioni</label>
+            <style>{listStyles}</style>
+
+            {/* Search */}
+            {(sections.length > 3 || assignedSections.length > 3) && (
+                <div className="sezioni-search">
                     <input
-                        id="search-sections"
                         type="search"
-                        className="form-control mb-2"
-                        placeholder="Cerca per comune, sezione o email"
+                        className="sezioni-search-input"
+                        placeholder="Cerca sezione..."
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
-                        aria-label="Cerca per comune, sezione o email"
                     />
-                    <label htmlFor="filter-errors" className="visually-hidden">Filtra per tipo di errore</label>
-                    <select
-                        id="filter-errors"
-                        className="form-select"
-                        value={selectedError}
-                        onChange={(e) => setSelectedError(e.target.value)}
-                        aria-label="Filtra per tipo di errore"
-                    >
-                        <option value=""></option>
-                        <option value="Il presidente deve fare la richiesta per avere le schede sufficienti a tutti gli elettori">Richiesta schede per elettori</option>
-                        <option value="Impossibile autenticare più schede di quelle ricevute">Autenticazione schede limitata</option>
-                        <option value="Il presidente non deve autenticare più schede del numero di elettori ">Limite schede autenticabili</option>
-                        <option value="Il totale delle schede scrutinate (Bianche, Nulle, Contestate e totale voti di lista) NON DEVE ESSERE maggiore al numero dei votanti">Schede scrutinate ≤ votanti</option>
-                        <option value="Probabilmente mancano dei voti di lista o delle schede perché il totale delle schede scrutinate (Bianche, Nulle, Contestate e totale voti di lista) non è uguale al numero dei votanti">Verifica voti mancanti</option>
-                        <option value="Il totale dei voti di lista non può essere maggiore del numero dei votanti">Voti lista ≤ votanti</option>
-                        <option value="Visto che un elettore può votare fino a 3 candidati, il totale dei voti di preferenza non può essere maggiore del triplo del numero dei votanti">Preferenze ≤ 3x votanti</option>
-                        <option value="Il totale dei votanti non può essere maggiore del numero degli elettori">Votanti ≤ elettori</option>
-                    </select>
-                </div>
-            </div>
-            {turnoInfo && turnoInfo.is_ballottaggio && (
-                <div className="alert alert-warning mb-3">
-                    <strong><i className="fas fa-redo me-2"></i>BALLOTTAGGIO</strong>
-                    <span className="ms-2">
-                        Stai inserendo i dati del secondo turno (ballottaggio) per: <strong>{turnoInfo.scheda_nome}</strong>
-                    </span>
                 </div>
             )}
-            {filteredSections.length === 0 && (
-                <div className="card">
-                    <div className="card-header alert alert-warning mt-3">
-                        Non hai sezioni assegnate. Contatta il Referente RDL della tua Zona.
+
+            {/* Ballottaggio Alert */}
+            {turnoInfo?.is_ballottaggio && (
+                <div className="ballottaggio-alert">
+                    <i className="fas fa-redo"></i>
+                    <div className="ballottaggio-alert-text">
+                        <span className="ballottaggio-alert-title">BALLOTTAGGIO</span>
+                        <span> - {turnoInfo.scheda_nome}</span>
                     </div>
-                </div>)
-            }
-            {filteredSections.length > 0 && (
-                <div className="card">
-                <div className="card-header bg-info">
-                    Questa applicazione è destinata agli RDL del Movimento 5 Stelle e
-                    serve per inviare al movimento i dati raccolti nelle sezioni. Si
-                    prega di scegliere una delle sezioni assegnate e di compilare
-                    tutti i campi richiesti con i numeri corretti.
                 </div>
-                <div className="card-body">
-                    <h2>Scegli una sezione assegnata a te</h2>
-                    <ul className="list-group">
-                        {sections.map((section, index) => (
-                            <li
-                                className="list-group-item d-flex justify-content-between align-items-center"
-                                key={index}
-                            >
-                                <span className="col-6 col-md-4 col-lg-3">{section.comune} - {section.sezione}</span>
-                                {hasErrors(section) ? (
-                                    <button
-                                        className="btn btn-warning col-6 col-md-4 col-lg-3"
-                                        onClick={() => {
-                                            setSelectedSection(section);
-                                        }}
-                                    >
-                                        Apri {progress(section)}%
-                                    </button>
-                                ) : isComplete(section) ? (
-                                    <button
-                                        className="btn btn-success col-6 col-md-4 col-lg-3"
-                                        onClick={() => {
-                                            setSelectedSection(section);
-                                        }}
-                                    >
-                                        Completo
-                                    </button>
-                                ) : (
-                                    <button
-                                        className="btn btn-primary col-6 col-md-4 col-lg-3"
-                                        onClick={() => {
-                                            setSelectedSection(section);
-                                        }}
-                                    >
-                                        Apri {progress(section)}%
-                                    </button>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            </div>
             )}
-            {referenti && (<div className="card">
-                <div className="card-header bg-secondary">
-                    Questa sezione è per i subdelegati che possono accedere ai dati raccolti dai propri RDL.
+
+            {/* No sections assigned */}
+            {filteredSections.length === 0 && !referenti && (
+                <div className="sezioni-empty">
+                    <div className="sezioni-empty-icon">
+                        <i className="fas fa-inbox"></i>
+                    </div>
+                    <div className="sezioni-empty-title">
+                        Nessuna sezione assegnata
+                    </div>
+                    <div className="sezioni-empty-text">
+                        Contatta il Referente RDL della tua zona per ricevere l'assegnazione.
+                    </div>
                 </div>
-                <div className="card-body">
-                    <h2>Apri una sezione che hai assegnato</h2>
-                    <ul className="list-group">
-                        {filteredAssignedSections.map((section, index) => (
-                            <li
-                                className="list-group-item d-flex justify-content-between align-items-center"
-                                key={index}
-                            >
-                                <div className="col-6 col-md-8 col-lg-9 row">
-                                    <span className="col-12 col-md-4 col-lg-3">{section.comune} - {section.sezione}</span>
-                                    <span className="col-12 col-md-8 col-lg-9">
-                                        <span className="email">{section.email.split('@')[0]}</span>
-                                        <span className="email domain">@{section.email.split('@')[1]}</span>
-                                    </span>
-                                </div>
-                                {hasErrors(section) ? (
-                                    <button
-                                        className="btn btn-warning col-6 col-md-4 col-lg-3"
-                                        onClick={() => {
-                                            setSelectedSection(section);
-                                        }}
-                                    >
-                                        Apri {progress(section)}%
-                                    </button>
-                                ) : isComplete(section) ? (
-                                    <button
-                                        className="btn btn-success col-6 col-md-4 col-lg-3"
-                                        onClick={() => {
-                                            setSelectedSection(section);
-                                        }}
-                                    >
-                                        Completo
-                                    </button>
-                                ) : (
-                                    <button
-                                        className="btn btn-primary col-6 col-md-4 col-lg-3"
-                                        onClick={() => {
-                                            setSelectedSection(section);
-                                        }}
-                                    >
-                                        Apri {progress(section)}%
-                                    </button>
-                                )}
-                            </li>
-                        ))}
+            )}
+
+            {/* My sections */}
+            {filteredSections.length > 0 && (
+                <>
+                    <div className="sezioni-section-header">
+                        <i className="fas fa-user"></i>
+                        Le mie sezioni
+                        <span style={{ marginLeft: 'auto', fontWeight: 400 }}>
+                            {filteredSections.length}
+                        </span>
+                    </div>
+                    <ul className="sezioni-list">
+                        {filteredSections.map(renderSectionCard)}
                     </ul>
-                </div>
-            </div>)}
+                </>
+            )}
+
+            {/* Assigned sections (for referenti) */}
+            {referenti && filteredAssignedSections.length > 0 && (
+                <>
+                    <div className="sezioni-section-header" style={{ marginTop: 16 }}>
+                        <i className="fas fa-users"></i>
+                        Sezioni dei miei RDL
+                        <span style={{ marginLeft: 'auto', fontWeight: 400 }}>
+                            {filteredAssignedSections.length}
+                        </span>
+                    </div>
+                    <ul className="sezioni-list">
+                        {filteredAssignedSections.map(renderAssignedSectionCard)}
+                    </ul>
+                </>
+            )}
         </>
     );
 }
