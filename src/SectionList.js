@@ -1,4 +1,4 @@
-// SectionList.js - Mobile-first redesign
+// SectionList.js - Mobile-first redesign with wizard support
 import React, {useEffect, useState} from "react";
 import SectionForm from "./SectionForm";
 
@@ -176,231 +176,144 @@ const listStyles = `
         gap: 8px;
     }
 
-    .ballottaggio-alert {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
-        background: linear-gradient(135deg, #ffc107 0%, #ffca2c 100%);
-        color: #000;
-        margin: 0 -1rem;
+    .consultazione-info {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        color: white;
+        padding: 16px;
+        margin: -1rem -1rem 16px -1rem;
+        text-align: center;
     }
 
-    .ballottaggio-alert i {
-        font-size: 1.25rem;
+    .consultazione-nome {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 4px;
     }
 
-    .ballottaggio-alert-text {
-        font-size: 0.9rem;
-    }
-
-    .ballottaggio-alert-title {
-        font-weight: 700;
+    .consultazione-schede {
+        font-size: 0.8rem;
+        opacity: 0.9;
     }
 `;
 
 function SectionList({client, user, setError, referenti}) {
     const [loading, setLoading] = useState(true);
+    const [consultazione, setConsultazione] = useState(null);
+    const [schede, setSchede] = useState([]);
     const [sections, setSections] = useState([]);
-    const [assignedSections, setAssignedSections] = useState([]);
     const [selectedSection, setSelectedSection] = useState(null);
-    const [lists, setLists] = useState([]);
-    const [candidates, setCandidates] = useState([]);
-    const [dataLoaded, setDataLoaded] = useState(false);
     const [searchText, setSearchText] = useState('');
     const [filteredSections, setFilteredSections] = useState([]);
-    const [filteredAssignedSections, setFilteredAssignedSections] = useState([]);
-    const [turnoInfo, setTurnoInfo] = useState(null);
 
+    // Load scrutinio info (consultazione + schede)
     useEffect(() => {
         window.scrollTo(0, 0);
-        Promise.all([loadLists(), loadCandidates()])
-            .then(() => setDataLoaded(true));
+        loadScrutinioInfo();
     }, []);
 
-    const loadCandidates = () => {
-        return client.election.candidates()
-            .then(data => setCandidates(Array.isArray(data.values) ? data.values : []))
-            .catch(() => setCandidates([]));
-    }
-
-    const loadLists = () => {
-        return client.election.lists()
-            .then(data => {
-                const values = Array.isArray(data.values) ? data.values : [];
-                setLists(values.map(row => row[0]));
-            })
-            .catch(() => setLists([]));
-    }
-
-    useEffect(() => {
-        if (dataLoaded) listSections();
-    }, [dataLoaded]);
-
-    function adaptToSections(rows) {
-        return rows.map(({comune, sezione, email, values}) => {
-            const section = {
-                comune,
-                sezione,
-                email: email,
-                nElettoriMaschi: values[0] || '',
-                nElettoriDonne: values[1] || '',
-                schedeRicevute: values[2] || '',
-                schedeAutenticate: values[3] || '',
-                nVotantiMaschi: values[4] || '',
-                nVotantiDonne: values[5] || '',
-                schedeBianche: values[6] || '',
-                schedeNulle: values[7] || '',
-                schedeContestate: values[8] || ''
-            };
-
-            const isReferendum = candidates.length === 0 && lists.length === 0;
-            const fP = 9;
-
-            if (isReferendum) {
-                // Referendum: votiSi at index 9, votiNo at index 10
-                section.votiSi = values[fP] || '';
-                section.votiNo = values[fP + 1] || '';
-                section.incongruenze = values[fP + 2] || '';
-            } else {
-                // Regular election: candidates then lists
-                const fL = fP + candidates.length;
-                const lL = fL + lists.length;
-
-                candidates.forEach((name, index) => {
-                    section[name] = values[fP + index] || '';
-                });
-
-                lists.forEach((name, index) => {
-                    section[name] = values[fL + index] || '';
-                });
-
-                section.incongruenze = values[lL] || '';
-            }
-
-            return section;
-        });
-    }
-
-    const listSections = () => {
-        client.sections.get({assigned: false}).then((response) => {
-            const rows = response.rows;
-            if (rows) {
+    const loadScrutinioInfo = async () => {
+        try {
+            const info = await client.scrutinio.info();
+            if (info?.error) {
+                setError(info.error);
                 setLoading(false);
-                setSections(adaptToSections(rows));
+                return;
             }
-            if (response.turno) setTurnoInfo(response.turno);
-        }).catch((error) => {
-            console.error("Error reading Sheet:", error);
-            setError("Errore durante la lettura: " + error.result?.message);
-        });
+            setConsultazione(info.consultazione);
+            setSchede(info.schede || []);
 
-        if (referenti) {
-            client.sections.get({assigned: true}).then((response) => {
-                const rows = response.rows;
-                if (rows) {
-                    setLoading(false);
-                    setAssignedSections(adaptToSections(rows));
-                }
-            }).catch((error) => {
-                console.error("Error reading Sheet:", error);
-            });
+            // Now load sections
+            await loadSections();
+        } catch (err) {
+            console.error('Error loading scrutinio info:', err);
+            setError('Errore nel caricamento dati');
+            setLoading(false);
         }
     };
 
-    const updateSection = (newData, errors) => {
-        // Build preferenze object from candidates
-        const preferenze = {};
-        candidates.forEach(name => {
-            if (newData[name] !== '' && newData[name] !== undefined) {
-                preferenze[name] = parseInt(newData[name]) || 0;
+    const loadSections = async () => {
+        try {
+            const result = await client.scrutinio.sezioni();
+            if (result?.error) {
+                setError(result.error);
+            } else {
+                setSections(result.sezioni || []);
             }
-        });
+        } catch (err) {
+            console.error('Error loading sections:', err);
+        }
+        setLoading(false);
+    };
 
-        // Build liste object from lists
-        const liste = {};
-        lists.forEach(name => {
-            if (newData[name] !== '' && newData[name] !== undefined) {
-                liste[name] = parseInt(newData[name]) || 0;
-            }
-        });
-
-        // Build structured payload
-        const payload = {
-            comune: newData.comune,
-            sezione: newData.sezione,
-            dati_sezione: {
-                elettori_maschi: newData.nElettoriMaschi !== '' ? parseInt(newData.nElettoriMaschi) : null,
-                elettori_femmine: newData.nElettoriDonne !== '' ? parseInt(newData.nElettoriDonne) : null,
-                votanti_maschi: newData.nVotantiMaschi !== '' ? parseInt(newData.nVotantiMaschi) : null,
-                votanti_femmine: newData.nVotantiDonne !== '' ? parseInt(newData.nVotantiDonne) : null,
-            },
-            dati_scheda: {
-                schede_ricevute: newData.schedeRicevute !== '' ? parseInt(newData.schedeRicevute) : null,
-                schede_autenticate: newData.schedeAutenticate !== '' ? parseInt(newData.schedeAutenticate) : null,
-                schede_bianche: newData.schedeBianche !== '' ? parseInt(newData.schedeBianche) : null,
-                schede_nulle: newData.schedeNulle !== '' ? parseInt(newData.schedeNulle) : null,
-                schede_contestate: newData.schedeContestate !== '' ? parseInt(newData.schedeContestate) : null,
-                // Referendum votes
-                voti_si: newData.votiSi !== '' && newData.votiSi !== undefined ? parseInt(newData.votiSi) : null,
-                voti_no: newData.votiNo !== '' && newData.votiNo !== undefined ? parseInt(newData.votiNo) : null,
-                // Election votes
-                preferenze: Object.keys(preferenze).length > 0 ? preferenze : null,
-                liste: Object.keys(liste).length > 0 ? liste : null,
-            },
-            errori: errors.length > 0 ? errors : null,
-        };
-
-        client.sections.save(payload)
-            .then(() => {
-                listSections();
+    const updateSection = async (payload) => {
+        try {
+            const result = await client.scrutinio.save(payload);
+            if (result?.error) {
+                setError(result.error);
+            } else {
+                // Reload sections and close form
+                await loadSections();
                 window.scrollTo(0, 0);
                 setSelectedSection(null);
-            })
-            .catch((error) => {
-                console.error("Error updating Sheet:", error);
-                setError("Errore durante l'aggiornamento: " + error.result?.message);
-            });
-    };
-
-    const isComplete = (section) => {
-        for (let key in section) {
-            if (section[key] === null || section[key] === undefined || section[key] === '') {
-                return false;
             }
+        } catch (err) {
+            console.error('Error saving section:', err);
+            setError('Errore durante il salvataggio');
         }
-        return true;
     };
 
-    const hasErrors = (section) => section.incongruenze !== '';
+    // Calculate progress for a section
+    const calculateProgress = (sectionData) => {
+        if (!sectionData) return 0;
 
-    const progress = (section) => {
-        const totalProperties = Object.keys(section).length - 4;
-        let filledProperties = 0;
-        for (let key in section) {
-            if (key === 'comune' || key === 'sezione' || key === 'email' || key === 'incongruenze') continue;
-            if (section[key] !== null && section[key] !== undefined && section[key] !== '') {
-                filledProperties++;
+        let filled = 0;
+        let total = 4; // elettori M/F, votanti M/F
+
+        const seggio = sectionData.dati_seggio || {};
+        if (seggio.elettori_maschi != null) filled++;
+        if (seggio.elettori_femmine != null) filled++;
+        if (seggio.votanti_maschi != null) filled++;
+        if (seggio.votanti_femmine != null) filled++;
+
+        // Add schede fields
+        schede.forEach(scheda => {
+            const schedaData = sectionData.schede?.[String(scheda.id)];
+            total += 5; // ricevute, autenticate, bianche, nulle, contestate
+            if (schedaData) {
+                if (schedaData.schede_ricevute != null) filled++;
+                if (schedaData.schede_autenticate != null) filled++;
+                if (schedaData.schede_bianche != null) filled++;
+                if (schedaData.schede_nulle != null) filled++;
+                if (schedaData.schede_contestate != null) filled++;
+
+                // Referendum votes
+                if (scheda.schema?.tipo === 'si_no') {
+                    total += 2;
+                    if (schedaData.voti?.si != null) filled++;
+                    if (schedaData.voti?.no != null) filled++;
+                }
             }
-        }
-        return Math.round((filledProperties / totalProperties) * 100);
+        });
+
+        return Math.round((filled / total) * 100);
     };
 
+    const isComplete = (sectionData) => {
+        return calculateProgress(sectionData) === 100;
+    };
+
+    // Filter sections
     function filterSection(section) {
-        let q = searchText.toLowerCase();
-        const comuneString = section.comune.toString().toLowerCase();
-        const sezioneString = section.sezione.toString().toLowerCase();
-        const emailString = section.email.toString().toLowerCase();
-        return comuneString.includes(q) || sezioneString.includes(q) || emailString.includes(q);
+        if (!searchText) return true;
+        const q = searchText.toLowerCase();
+        const comuneString = section.comune?.toString().toLowerCase() || '';
+        const sezioneString = section.sezione?.toString().toLowerCase() || '';
+        return comuneString.includes(q) || sezioneString.includes(q);
     }
 
     useEffect(() => {
         setFilteredSections(sections.filter(filterSection));
     }, [sections, searchText]);
-
-    useEffect(() => {
-        setFilteredAssignedSections(assignedSections.filter(filterSection));
-    }, [assignedSections, searchText]);
 
     if (loading) {
         return (
@@ -414,11 +327,16 @@ function SectionList({client, user, setError, referenti}) {
     }
 
     if (selectedSection) {
+        // Find section data
+        const sectionData = sections.find(
+            s => s.comune === selectedSection.comune && s.sezione === selectedSection.sezione
+        );
+
         return (
             <SectionForm
-                lists={lists}
-                candidates={candidates}
+                schede={schede}
                 section={selectedSection}
+                sectionData={sectionData}
                 updateSection={updateSection}
                 cancel={() => setSelectedSection(null)}
             />
@@ -426,13 +344,12 @@ function SectionList({client, user, setError, referenti}) {
     }
 
     const renderSectionCard = (section, index) => {
-        const prog = progress(section);
+        const prog = calculateProgress(section);
         const complete = isComplete(section);
-        const errors = hasErrors(section);
 
         let statusClass = 'primary';
-        if (complete && !errors) statusClass = 'complete';
-        else if (errors) statusClass = 'warning';
+        if (complete) statusClass = 'complete';
+        else if (prog > 50) statusClass = 'warning';
 
         return (
             <li
@@ -449,7 +366,7 @@ function SectionList({client, user, setError, referenti}) {
                     </div>
                 </div>
                 <div className="sezione-status">
-                    {complete && !errors ? (
+                    {complete ? (
                         <span className="sezione-badge complete">
                             <i className="fas fa-check me-1"></i>
                             Completo
@@ -473,53 +390,22 @@ function SectionList({client, user, setError, referenti}) {
         );
     };
 
-    const renderAssignedSectionCard = (section, index) => {
-        const prog = progress(section);
-        const complete = isComplete(section);
-        const errors = hasErrors(section);
-
-        let statusClass = 'primary';
-        if (complete && !errors) statusClass = 'complete';
-        else if (errors) statusClass = 'warning';
-
-        return (
-            <li
-                key={index}
-                className="sezione-card"
-                onClick={() => setSelectedSection(section)}
-            >
-                <div className="sezione-info">
-                    <div className="sezione-title">
-                        {section.comune} - Sez. {section.sezione}
-                    </div>
-                    <div className="sezione-subtitle">
-                        {section.email}
-                    </div>
-                </div>
-                <div className="sezione-status">
-                    {complete && !errors ? (
-                        <span className="sezione-badge complete">
-                            <i className="fas fa-check me-1"></i>
-                            OK
-                        </span>
-                    ) : (
-                        <span className={`sezione-badge ${statusClass}`}>
-                            {errors && <i className="fas fa-exclamation-triangle me-1"></i>}
-                            {prog}%
-                        </span>
-                    )}
-                    <i className="fas fa-chevron-right sezione-arrow"></i>
-                </div>
-            </li>
-        );
-    };
-
     return (
         <>
             <style>{listStyles}</style>
 
+            {/* Consultazione info */}
+            {consultazione && (
+                <div className="consultazione-info">
+                    <div className="consultazione-nome">{consultazione.nome}</div>
+                    <div className="consultazione-schede">
+                        {schede.length} {schede.length === 1 ? 'scheda' : 'schede'} da compilare
+                    </div>
+                </div>
+            )}
+
             {/* Search */}
-            {(sections.length > 3 || assignedSections.length > 3) && (
+            {sections.length > 3 && (
                 <div className="sezioni-search">
                     <input
                         type="search"
@@ -531,19 +417,8 @@ function SectionList({client, user, setError, referenti}) {
                 </div>
             )}
 
-            {/* Ballottaggio Alert */}
-            {turnoInfo?.is_ballottaggio && (
-                <div className="ballottaggio-alert">
-                    <i className="fas fa-redo"></i>
-                    <div className="ballottaggio-alert-text">
-                        <span className="ballottaggio-alert-title">BALLOTTAGGIO</span>
-                        <span> - {turnoInfo.scheda_nome}</span>
-                    </div>
-                </div>
-            )}
-
             {/* No sections assigned */}
-            {filteredSections.length === 0 && !referenti && (
+            {filteredSections.length === 0 && (
                 <div className="sezioni-empty">
                     <div className="sezioni-empty-icon">
                         <i className="fas fa-inbox"></i>
@@ -557,7 +432,7 @@ function SectionList({client, user, setError, referenti}) {
                 </div>
             )}
 
-            {/* My sections */}
+            {/* Sections list */}
             {filteredSections.length > 0 && (
                 <>
                     <div className="sezioni-section-header">
@@ -569,22 +444,6 @@ function SectionList({client, user, setError, referenti}) {
                     </div>
                     <ul className="sezioni-list">
                         {filteredSections.map(renderSectionCard)}
-                    </ul>
-                </>
-            )}
-
-            {/* Assigned sections (for referenti) */}
-            {referenti && filteredAssignedSections.length > 0 && (
-                <>
-                    <div className="sezioni-section-header" style={{ marginTop: 16 }}>
-                        <i className="fas fa-users"></i>
-                        Sezioni dei miei RDL
-                        <span style={{ marginLeft: 'auto', fontWeight: 400 }}>
-                            {filteredAssignedSections.length}
-                        </span>
-                    </div>
-                    <ul className="sezioni-list">
-                        {filteredAssignedSections.map(renderAssignedSectionCard)}
                     </ul>
                 </>
             )}

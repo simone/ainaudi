@@ -1,43 +1,33 @@
 import React, {useEffect, useState} from "react";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
-// Stili per il form mobile-first
-const formStyles = `
-    .scrutinio-container {
-        padding-bottom: 80px; /* Spazio per bottom bar */
+// Stili per il wizard mobile-first
+const wizardStyles = `
+    .wizard-container {
+        min-height: 100vh;
+        padding-bottom: 100px;
+        background: #f5f5f5;
     }
 
-    .scrutinio-header {
+    .wizard-header {
         position: sticky;
         top: 0;
         z-index: 100;
         background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
         color: white;
         padding: 12px 16px;
-        margin: -1rem -1rem 16px -1rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+        margin: -1rem -1rem 0 -1rem;
         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
 
-    .scrutinio-header-info {
+    .wizard-header-top {
         display: flex;
         align-items: center;
-        gap: 12px;
+        justify-content: space-between;
+        margin-bottom: 12px;
     }
 
-    .scrutinio-header-sezione {
-        font-size: 1.25rem;
-        font-weight: 700;
-    }
-
-    .scrutinio-header-comune {
-        font-size: 0.85rem;
-        opacity: 0.9;
-    }
-
-    .scrutinio-header-back {
+    .wizard-header-back {
         background: rgba(255,255,255,0.2);
         border: none;
         color: white;
@@ -51,182 +41,218 @@ const formStyles = `
         transition: background 0.2s;
     }
 
-    .scrutinio-header-back:hover {
+    .wizard-header-back:hover {
         background: rgba(255,255,255,0.3);
     }
 
-    .scrutinio-section {
-        background: white;
-        border-radius: 12px;
-        margin-bottom: 12px;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    .wizard-header-title {
+        text-align: center;
+        flex: 1;
     }
 
-    .scrutinio-section-header {
+    .wizard-header-sezione {
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+
+    .wizard-header-comune {
+        font-size: 0.8rem;
+        opacity: 0.9;
+    }
+
+    /* Step indicator */
+    .wizard-steps {
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 12px 16px;
-        background: #f8f9fa;
-        cursor: pointer;
-        user-select: none;
-        border-bottom: 1px solid #eee;
-    }
-
-    .scrutinio-section-header:hover {
-        background: #f0f1f2;
-    }
-
-    .scrutinio-section-title {
-        display: flex;
-        align-items: center;
+        justify-content: center;
         gap: 8px;
-        font-weight: 600;
-        font-size: 0.9rem;
-        color: #333;
+        padding: 8px 0;
     }
 
-    .scrutinio-section-badge {
-        background: #e9ecef;
-        color: #495057;
-        padding: 2px 8px;
-        border-radius: 12px;
+    .wizard-step {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.3);
+        transition: all 0.3s;
+    }
+
+    .wizard-step.active {
+        background: white;
+        transform: scale(1.2);
+    }
+
+    .wizard-step.completed {
+        background: rgba(255,255,255,0.8);
+    }
+
+    .wizard-step-label {
         font-size: 0.75rem;
-        font-weight: 500;
+        opacity: 0.9;
+        text-align: center;
+        margin-top: 4px;
     }
 
-    .scrutinio-section-badge.complete {
-        background: #d1e7dd;
-        color: #0f5132;
-    }
-
-    .scrutinio-section-content {
+    /* Content area */
+    .wizard-content {
         padding: 16px;
     }
 
-    .scrutinio-row {
-        display: flex;
-        gap: 12px;
-        margin-bottom: 12px;
+    .wizard-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
 
-    .scrutinio-field {
-        flex: 1;
-    }
-
-    .scrutinio-field.full {
-        flex: none;
-        width: 100%;
-    }
-
-    .scrutinio-label {
-        font-size: 0.8rem;
-        color: #666;
+    .wizard-card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #333;
         margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .wizard-card-subtitle {
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 16px;
+    }
+
+    /* Form fields */
+    .wizard-field-group {
+        margin-bottom: 16px;
+    }
+
+    .wizard-field-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 6px;
         display: block;
     }
 
-    .scrutinio-input {
-        width: 100%;
-        padding: 10px 12px;
-        font-size: 1.1rem;
-        font-weight: 500;
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
-        text-align: center;
-        transition: border-color 0.2s, box-shadow 0.2s;
+    .wizard-field-row {
+        display: flex;
+        gap: 12px;
     }
 
-    .scrutinio-input:focus {
+    .wizard-field-col {
+        flex: 1;
+    }
+
+    .wizard-field-col label {
+        font-size: 0.75rem;
+        color: #888;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .wizard-input {
+        width: 100%;
+        padding: 12px 16px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        text-align: center;
+        transition: border-color 0.2s;
+    }
+
+    .wizard-input:focus {
         outline: none;
         border-color: #0d6efd;
-        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
     }
 
-    .scrutinio-input.has-error {
+    .wizard-input.error {
         border-color: #dc3545;
     }
 
-    .scrutinio-input:read-only {
-        background: #f8f9fa;
-        border-color: transparent;
-        color: #495057;
-    }
-
-    .scrutinio-total {
+    /* Totals */
+    .wizard-total {
         display: flex;
-        align-items: center;
         justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
         background: #f8f9fa;
-        padding: 8px 12px;
-        border-radius: 8px;
-        margin-top: 8px;
+        border-radius: 12px;
+        margin-top: 12px;
     }
 
-    .scrutinio-total-label {
-        font-size: 0.8rem;
+    .wizard-total-label {
+        font-size: 0.9rem;
         color: #666;
     }
 
-    .scrutinio-total-value {
-        font-size: 1.1rem;
+    .wizard-total-value {
+        font-size: 1.25rem;
         font-weight: 700;
-        color: #0d6efd;
-    }
-
-    .scrutinio-error {
-        font-size: 0.75rem;
-        color: #dc3545;
-        margin-top: 4px;
-        padding: 4px 8px;
-        background: #fff5f5;
-        border-radius: 4px;
-    }
-
-    .scrutinio-list-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 0;
-        border-bottom: 1px solid #f0f0f0;
-    }
-
-    .scrutinio-list-item:last-child {
-        border-bottom: none;
-    }
-
-    .scrutinio-list-label {
-        flex: 1;
-        font-size: 0.85rem;
         color: #333;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
     }
 
-    .scrutinio-list-label.highlight {
+    .wizard-total-value.highlight {
         color: #0d6efd;
-        font-weight: 600;
     }
 
-    .scrutinio-list-input {
-        width: 80px;
-        padding: 8px;
-        font-size: 1rem;
-        font-weight: 600;
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
+    /* Referendum vote buttons */
+    .referendum-votes {
+        display: flex;
+        gap: 16px;
+        margin-top: 8px;
+    }
+
+    .referendum-vote-card {
+        flex: 1;
+        background: #f8f9fa;
+        border-radius: 16px;
+        padding: 16px;
         text-align: center;
     }
 
-    .scrutinio-list-input:focus {
-        outline: none;
-        border-color: #0d6efd;
+    .referendum-vote-card.si {
+        border: 2px solid #198754;
     }
 
-    .scrutinio-bottom-bar {
+    .referendum-vote-card.no {
+        border: 2px solid #dc3545;
+    }
+
+    .referendum-vote-label {
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin-bottom: 8px;
+    }
+
+    .referendum-vote-label.si { color: #198754; }
+    .referendum-vote-label.no { color: #dc3545; }
+
+    .referendum-vote-input {
+        width: 100%;
+        padding: 12px;
+        font-size: 1.5rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 10px;
+        text-align: center;
+        background: white;
+    }
+
+    .referendum-vote-input:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+    }
+
+    /* Scheda header with color */
+    .scheda-color-bar {
+        height: 6px;
+        border-radius: 3px;
+        margin-bottom: 12px;
+    }
+
+    /* Bottom navigation */
+    .wizard-nav {
         position: fixed;
         bottom: 0;
         left: 0;
@@ -234,181 +260,153 @@ const formStyles = `
         background: white;
         padding: 12px 16px;
         box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        z-index: 200;
         display: flex;
         gap: 12px;
+        z-index: 100;
     }
 
-    .scrutinio-btn {
+    .wizard-nav-btn {
         flex: 1;
         padding: 14px 20px;
-        border: none;
-        border-radius: 10px;
+        border-radius: 12px;
         font-size: 1rem;
         font-weight: 600;
+        border: none;
         cursor: pointer;
-        transition: transform 0.1s, opacity 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s;
     }
 
-    .scrutinio-btn:active {
-        transform: scale(0.98);
-    }
-
-    .scrutinio-btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
-    .scrutinio-btn-secondary {
+    .wizard-nav-btn.secondary {
         background: #f0f0f0;
         color: #333;
     }
 
-    .scrutinio-btn-primary {
+    .wizard-nav-btn.primary {
+        background: #0d6efd;
+        color: white;
+    }
+
+    .wizard-nav-btn.success {
         background: #198754;
         color: white;
     }
 
-    .scrutinio-warnings {
-        background: #fff3cd;
-        border-radius: 8px;
-        padding: 12px;
+    .wizard-nav-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Summary */
+    .summary-section {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 16px;
         margin-bottom: 12px;
     }
 
-    .scrutinio-warnings-title {
+    .summary-section-title {
         font-size: 0.85rem;
         font-weight: 600;
-        color: #856404;
+        color: #666;
         margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
     }
 
-    .scrutinio-warnings-list {
-        font-size: 0.8rem;
-        color: #856404;
-        margin: 0;
-        padding-left: 16px;
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 1px solid #e9ecef;
     }
 
-    .scrutinio-warnings-list li {
-        margin-bottom: 4px;
+    .summary-row:last-child {
+        border-bottom: none;
     }
 
-    /* Referendum specific */
-    .referendum-btn {
-        flex: 1;
-        padding: 20px;
-        border: 3px solid #e0e0e0;
-        border-radius: 12px;
-        background: white;
-        cursor: pointer;
-        transition: all 0.2s;
+    .summary-label {
+        color: #666;
+        font-size: 0.9rem;
     }
 
-    .referendum-btn.active {
-        border-color: #0d6efd;
-        background: #f0f7ff;
+    .summary-value {
+        font-weight: 600;
+        color: #333;
     }
 
-    .referendum-btn-label {
-        font-size: 1.5rem;
-        font-weight: 700;
-        display: block;
-        margin-bottom: 4px;
-    }
+    .summary-value.si { color: #198754; }
+    .summary-value.no { color: #dc3545; }
 
-    .referendum-btn-label.si { color: #198754; }
-    .referendum-btn-label.no { color: #dc3545; }
-
-    .referendum-input {
-        width: 100%;
-        padding: 8px;
-        font-size: 1.25rem;
-        font-weight: 700;
-        border: none;
-        background: transparent;
-        text-align: center;
-    }
-
-    .referendum-input:focus {
-        outline: none;
+    /* Error message */
+    .wizard-error {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        margin-bottom: 12px;
     }
 `;
 
-function SectionForm({lists, candidates, section, updateSection, cancel}) {
-    const initialState = {...section, ...
-            {
-                totalElettori: +section.nElettoriMaschi + +section.nElettoriDonne,
-                totalVotanti: +section.nVotantiMaschi + +section.nVotantiDonne,
-                totalVotiDiLista: lists.reduce((sum, name) => sum + (parseInt(section[name]) || 0), 0),
-                totalVotiDiPreferenza: candidates.reduce((sum, name) => sum + (parseInt(section[name]) || 0), 0),
-            }
-    };
-    const [formData, setFormData] = useState(initialState);
-    const [errors, setErrors] = useState({});
+function SectionForm({schede, section, sectionData, updateSection, cancel}) {
+    // Steps: 0 = Dati Seggio, 1..N = Schede, N+1 = Riepilogo
+    const totalSteps = schede.length + 2; // seggio + N schede + riepilogo
+    const [currentStep, setCurrentStep] = useState(0);
     const [isSaving, setIsSaving] = useState(false);
-    const [expandedSections, setExpandedSections] = useState({
-        preparazione: true,
-        votanti: false,
-        referendum: false,
-        preferenze: false,
-        liste: false,
-        schede: false,
+
+    // Initialize form data from sectionData
+    const [datiSeggio, setDatiSeggio] = useState({
+        elettori_maschi: sectionData?.dati_seggio?.elettori_maschi ?? '',
+        elettori_femmine: sectionData?.dati_seggio?.elettori_femmine ?? '',
+        votanti_maschi: sectionData?.dati_seggio?.votanti_maschi ?? '',
+        votanti_femmine: sectionData?.dati_seggio?.votanti_femmine ?? '',
     });
 
-    const validation = (field, value) => {
-        let error = '';
-        switch (field) {
-            case "schedeRicevute":
-                if (value && +value < +formData.totalElettori) {
-                    error = 'Schede ricevute < elettori';
-                }
-                break;
-            case "schedeAutenticate":
-                if (value && +value > +formData.schedeRicevute) {
-                    error = 'Autenticate > ricevute';
-                }
-                if (value && +value > +formData.totalElettori) {
-                    error = 'Autenticate > elettori';
-                }
-                break;
-            case "schedeContestate":
-                const schedeBianche = parseInt(formData.schedeBianche) || 0;
-                const schedeNulle = parseInt(formData.schedeNulle) || 0;
-                const schedeContestate = parseInt(formData.schedeContestate) || 0;
-                const totalSchede = schedeBianche + schedeNulle + schedeContestate + formData.totalVotiDiLista;
-                if (totalSchede > +formData.totalVotanti) {
-                    error = 'Totale schede > votanti';
-                }
-                if (totalSchede < +formData.totalVotanti && formData.totalVotanti > 0) {
-                    error = 'Totale schede < votanti';
-                }
-                break;
-            case "totalVotiDiLista":
-                if (value > 0 && +value > +formData.totalVotanti) {
-                    error = 'Voti lista > votanti';
-                }
-                break;
-            case "totalVotiDiPreferenza":
-                if (value > 0 && +value > +formData.totalVotanti * 3) {
-                    error = 'Preferenze > 3x votanti';
-                }
-                break;
-            case "totalVotanti":
-                if (value > 0 && +value > +formData.totalElettori) {
-                    error = 'Votanti > elettori';
-                }
-                break;
-            default:
-                break;
-        }
-        return error;
-    };
+    // Initialize schede data
+    const [schedeData, setSchedeData] = useState(() => {
+        const initial = {};
+        schede.forEach(scheda => {
+            const existing = sectionData?.schede?.[String(scheda.id)];
+            initial[scheda.id] = {
+                schede_ricevute: existing?.schede_ricevute ?? '',
+                schede_autenticate: existing?.schede_autenticate ?? '',
+                schede_bianche: existing?.schede_bianche ?? '',
+                schede_nulle: existing?.schede_nulle ?? '',
+                schede_contestate: existing?.schede_contestate ?? '',
+                voti: existing?.voti ?? {},
+            };
+        });
+        return initial;
+    });
 
     useEffect(() => {
         window.scrollTo(0, 0);
+    }, [currentStep]);
+
+    // Handle back button
+    useEffect(() => {
+        window.history.pushState(null, null, window.location.pathname);
+        const onPopState = () => {
+            if (currentStep > 0) {
+                setCurrentStep(currentStep - 1);
+                window.history.pushState(null, null, window.location.pathname);
+            } else {
+                cancel();
+            }
+        };
+        window.addEventListener('popstate', onPopState);
+        return () => window.removeEventListener('popstate', onPopState);
+    }, [currentStep, cancel]);
+
+    // Prevent scroll on number input wheel
+    useEffect(() => {
         const handleWheel = (e) => {
-            if (document.activeElement.type === "number" && document.activeElement === e.target) {
+            if (document.activeElement.type === "number") {
                 e.preventDefault();
             }
         };
@@ -416,465 +414,486 @@ function SectionForm({lists, candidates, section, updateSection, cancel}) {
         return () => window.removeEventListener('wheel', handleWheel);
     }, []);
 
-    useEffect(() => {
-        const newErrors = {};
-        for (const key in formData) {
-            newErrors[key] = validation(key, formData[key]);
-        }
-        setErrors(newErrors);
-    }, [formData]);
+    // Calculate totals
+    const totalElettori = (+datiSeggio.elettori_maschi || 0) + (+datiSeggio.elettori_femmine || 0);
+    const totalVotanti = (+datiSeggio.votanti_maschi || 0) + (+datiSeggio.votanti_femmine || 0);
+    const affluenza = totalElettori > 0 ? ((totalVotanti / totalElettori) * 100).toFixed(1) : 0;
 
-    const handleChange = (e, field) => {
-        let value = e.target.value;
-        if (value !== "") {
-            if (value < 0) value = 0;
-            value = parseInt(value, 10);
-        }
-        const newFormData = {
-            ...formData,
-            [field]: value && parseInt(value, 10) >= 0 ? parseInt(value, 10) : ''
-        };
-
-        newFormData.totalElettori = +newFormData.nElettoriMaschi + +newFormData.nElettoriDonne;
-        newFormData.totalVotanti = +newFormData.nVotantiMaschi + +newFormData.nVotantiDonne;
-        newFormData.totalVotiDiLista = lists.reduce((sum, name) => sum + (parseInt(newFormData[name]) || 0), 0);
-        newFormData.totalVotiDiPreferenza = candidates.reduce((sum, name) => sum + (parseInt(newFormData[name]) || 0), 0);
-
-        setFormData(newFormData);
+    const handleSeggioChange = (field, value) => {
+        const numValue = value === '' ? '' : Math.max(0, parseInt(value) || 0);
+        setDatiSeggio(prev => ({ ...prev, [field]: numValue }));
     };
 
-    const handleSave = () => {
-        if (isSaving) return;
-        setIsSaving(true);
-        if (Object.values(formData).every(value => value === '')) {
-            cancel();
-            return;
-        }
-        updateSection(formData, errorsList);
-    };
-
-    useEffect(() => {
-        window.history.pushState(null, null, window.location.pathname);
-        const onPopState = () => cancel();
-        window.addEventListener('popstate', onPopState);
-        return () => window.removeEventListener('popstate', onPopState);
-    }, []);
-
-    const toggleSection = (sectionName) => {
-        setExpandedSections(prev => ({
+    const handleSchedaChange = (schedaId, field, value) => {
+        const numValue = value === '' ? '' : Math.max(0, parseInt(value) || 0);
+        setSchedeData(prev => ({
             ...prev,
-            [sectionName]: !prev[sectionName]
+            [schedaId]: {
+                ...prev[schedaId],
+                [field]: numValue,
+            }
         }));
     };
 
-    const errorsList = Object.values(errors).filter(value => value !== '');
+    const handleVotiChange = (schedaId, votoKey, value) => {
+        const numValue = value === '' ? '' : Math.max(0, parseInt(value) || 0);
+        setSchedeData(prev => ({
+            ...prev,
+            [schedaId]: {
+                ...prev[schedaId],
+                voti: {
+                    ...prev[schedaId].voti,
+                    [votoKey]: numValue,
+                }
+            }
+        }));
+    };
 
-    // Check section completion
-    const isPreparazioneComplete = formData.nElettoriMaschi !== '' && formData.nElettoriDonne !== ''
-        && formData.schedeRicevute !== '' && formData.schedeAutenticate !== '';
-    const isVotantiComplete = formData.nVotantiMaschi !== '' && formData.nVotantiDonne !== '';
-    const isSchedeComplete = formData.schedeBianche !== '' && formData.schedeNulle !== ''
-        && formData.schedeContestate !== '';
+    const goNext = () => {
+        if (currentStep < totalSteps - 1) {
+            setCurrentStep(currentStep + 1);
+        }
+    };
 
-    const isReferendum = lists.length === 0 && candidates.length === 0;
+    const goPrev = () => {
+        if (currentStep > 0) {
+            setCurrentStep(currentStep - 1);
+        } else {
+            cancel();
+        }
+    };
 
-    return (
-        <>
-            <style>{formStyles}</style>
-            <div className="scrutinio-container">
-                {/* Sticky Header */}
-                <div className="scrutinio-header">
-                    <button className="scrutinio-header-back" onClick={cancel}>
-                        <i className="fas fa-arrow-left"></i>
-                    </button>
-                    <div className="scrutinio-header-info">
-                        <div>
-                            <div className="scrutinio-header-sezione">Sezione {formData.sezione}</div>
-                            <div className="scrutinio-header-comune">{formData.comune}</div>
+    const handleSave = async () => {
+        if (isSaving) return;
+        setIsSaving(true);
+
+        // Build payload
+        const payload = {
+            comune: section.comune,
+            sezione: section.sezione,
+            dati_seggio: {
+                elettori_maschi: datiSeggio.elettori_maschi === '' ? null : datiSeggio.elettori_maschi,
+                elettori_femmine: datiSeggio.elettori_femmine === '' ? null : datiSeggio.elettori_femmine,
+                votanti_maschi: datiSeggio.votanti_maschi === '' ? null : datiSeggio.votanti_maschi,
+                votanti_femmine: datiSeggio.votanti_femmine === '' ? null : datiSeggio.votanti_femmine,
+            },
+            schede: {},
+        };
+
+        // Add each scheda
+        schede.forEach(scheda => {
+            const data = schedeData[scheda.id];
+            payload.schede[scheda.id] = {
+                schede_ricevute: data.schede_ricevute === '' ? null : data.schede_ricevute,
+                schede_autenticate: data.schede_autenticate === '' ? null : data.schede_autenticate,
+                schede_bianche: data.schede_bianche === '' ? null : data.schede_bianche,
+                schede_nulle: data.schede_nulle === '' ? null : data.schede_nulle,
+                schede_contestate: data.schede_contestate === '' ? null : data.schede_contestate,
+                voti: data.voti,
+            };
+        });
+
+        await updateSection(payload);
+        setIsSaving(false);
+    };
+
+    // Get step name for indicator
+    const getStepName = (index) => {
+        if (index === 0) return 'Seggio';
+        if (index === totalSteps - 1) return 'Invio';
+        return `Scheda ${index}`;
+    };
+
+    // Render step content
+    const renderStepContent = () => {
+        // Step 0: Dati Seggio
+        if (currentStep === 0) {
+            return (
+                <div className="wizard-card">
+                    <div className="wizard-card-title">
+                        <i className="fas fa-users"></i>
+                        Dati del Seggio
+                    </div>
+                    <div className="wizard-card-subtitle">
+                        Inserisci i dati relativi agli elettori e ai votanti
+                    </div>
+
+                    {/* Elettori */}
+                    <div className="wizard-field-group">
+                        <span className="wizard-field-label">Elettori Iscritti</span>
+                        <div className="wizard-field-row">
+                            <div className="wizard-field-col">
+                                <label>Maschi</label>
+                                <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    className="wizard-input"
+                                    value={datiSeggio.elettori_maschi}
+                                    onChange={(e) => handleSeggioChange('elettori_maschi', e.target.value)}
+                                    placeholder="0"
+                                />
+                            </div>
+                            <div className="wizard-field-col">
+                                <label>Femmine</label>
+                                <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    className="wizard-input"
+                                    value={datiSeggio.elettori_femmine}
+                                    onChange={(e) => handleSeggioChange('elettori_femmine', e.target.value)}
+                                    placeholder="0"
+                                />
+                            </div>
+                        </div>
+                        <div className="wizard-total">
+                            <span className="wizard-total-label">Totale Elettori</span>
+                            <span className="wizard-total-value">{totalElettori}</span>
                         </div>
                     </div>
-                    <div style={{ width: 40 }}></div> {/* Spacer for centering */}
+
+                    {/* Votanti */}
+                    <div className="wizard-field-group">
+                        <span className="wizard-field-label">Votanti</span>
+                        <div className="wizard-field-row">
+                            <div className="wizard-field-col">
+                                <label>Maschi</label>
+                                <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    className="wizard-input"
+                                    value={datiSeggio.votanti_maschi}
+                                    onChange={(e) => handleSeggioChange('votanti_maschi', e.target.value)}
+                                    placeholder="0"
+                                />
+                            </div>
+                            <div className="wizard-field-col">
+                                <label>Femmine</label>
+                                <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    className="wizard-input"
+                                    value={datiSeggio.votanti_femmine}
+                                    onChange={(e) => handleSeggioChange('votanti_femmine', e.target.value)}
+                                    placeholder="0"
+                                />
+                            </div>
+                        </div>
+                        <div className="wizard-total">
+                            <span className="wizard-total-label">Totale Votanti</span>
+                            <span className="wizard-total-value">{totalVotanti}</span>
+                        </div>
+                        <div className="wizard-total" style={{ marginTop: 8 }}>
+                            <span className="wizard-total-label">Affluenza</span>
+                            <span className="wizard-total-value highlight">{affluenza}%</span>
+                        </div>
+                    </div>
                 </div>
+            );
+        }
 
-                {/* Warnings */}
-                {errorsList.length > 0 && (
-                    <div className="scrutinio-warnings">
-                        <div className="scrutinio-warnings-title">
-                            <i className="fas fa-exclamation-triangle me-1"></i>
-                            Verificare i dati
-                        </div>
-                        <ul className="scrutinio-warnings-list">
-                            {errorsList.map((error, i) => <li key={i}>{error}</li>)}
-                        </ul>
+        // Last step: Riepilogo
+        if (currentStep === totalSteps - 1) {
+            return (
+                <div className="wizard-card">
+                    <div className="wizard-card-title">
+                        <i className="fas fa-clipboard-check"></i>
+                        Riepilogo Dati
                     </div>
-                )}
-
-                {/* 1. Preparazione Seggio */}
-                <div className="scrutinio-section">
-                    <div
-                        className="scrutinio-section-header"
-                        onClick={() => toggleSection('preparazione')}
-                    >
-                        <div className="scrutinio-section-title">
-                            <i className="fas fa-clipboard-list"></i>
-                            Preparazione Seggio
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            {isPreparazioneComplete && (
-                                <span className="scrutinio-section-badge complete">
-                                    <i className="fas fa-check me-1"></i>OK
-                                </span>
-                            )}
-                            <i className={`fas fa-chevron-${expandedSections.preparazione ? 'up' : 'down'}`}></i>
-                        </div>
+                    <div className="wizard-card-subtitle">
+                        Verifica i dati prima dell'invio
                     </div>
-                    {expandedSections.preparazione && (
-                        <div className="scrutinio-section-content">
-                            <div className="scrutinio-row">
-                                <div className="scrutinio-field">
-                                    <label className="scrutinio-label">Elettori M</label>
-                                    <input
-                                        type="number"
-                                        className={`scrutinio-input ${errors.nElettoriMaschi ? 'has-error' : ''}`}
-                                        value={formData.nElettoriMaschi}
-                                        onChange={(e) => handleChange(e, "nElettoriMaschi")}
-                                        inputMode="numeric"
-                                    />
-                                </div>
-                                <div className="scrutinio-field">
-                                    <label className="scrutinio-label">Elettori F</label>
-                                    <input
-                                        type="number"
-                                        className={`scrutinio-input ${errors.nElettoriDonne ? 'has-error' : ''}`}
-                                        value={formData.nElettoriDonne}
-                                        onChange={(e) => handleChange(e, "nElettoriDonne")}
-                                        inputMode="numeric"
-                                    />
-                                </div>
-                            </div>
-                            <div className="scrutinio-total">
-                                <span className="scrutinio-total-label">Totale Elettori</span>
-                                <span className="scrutinio-total-value">{formData.totalElettori || 0}</span>
-                            </div>
 
-                            <div className="scrutinio-row" style={{ marginTop: 16 }}>
-                                <div className="scrutinio-field">
-                                    <label className="scrutinio-label">Schede Ricevute</label>
-                                    <input
-                                        type="number"
-                                        className={`scrutinio-input ${errors.schedeRicevute ? 'has-error' : ''}`}
-                                        value={formData.schedeRicevute}
-                                        onChange={(e) => handleChange(e, "schedeRicevute")}
-                                        inputMode="numeric"
-                                    />
-                                    {errors.schedeRicevute && (
-                                        <div className="scrutinio-error">{errors.schedeRicevute}</div>
-                                    )}
-                                </div>
-                                <div className="scrutinio-field">
-                                    <label className="scrutinio-label">Schede Autenticate</label>
-                                    <input
-                                        type="number"
-                                        className={`scrutinio-input ${errors.schedeAutenticate ? 'has-error' : ''}`}
-                                        value={formData.schedeAutenticate}
-                                        onChange={(e) => handleChange(e, "schedeAutenticate")}
-                                        inputMode="numeric"
-                                    />
-                                    {errors.schedeAutenticate && (
-                                        <div className="scrutinio-error">{errors.schedeAutenticate}</div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* 2. Votanti */}
-                <div className="scrutinio-section">
-                    <div
-                        className="scrutinio-section-header"
-                        onClick={() => toggleSection('votanti')}
-                    >
-                        <div className="scrutinio-section-title">
+                    {/* Dati Seggio Summary */}
+                    <div className="summary-section">
+                        <div className="summary-section-title">
                             <i className="fas fa-users"></i>
-                            Affluenza
+                            Dati Seggio
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            {isVotantiComplete && (
-                                <span className="scrutinio-section-badge complete">
-                                    <i className="fas fa-check me-1"></i>OK
-                                </span>
-                            )}
-                            <i className={`fas fa-chevron-${expandedSections.votanti ? 'up' : 'down'}`}></i>
+                        <div className="summary-row">
+                            <span className="summary-label">Elettori</span>
+                            <span className="summary-value">
+                                {datiSeggio.elettori_maschi || 0} M + {datiSeggio.elettori_femmine || 0} F = {totalElettori}
+                            </span>
+                        </div>
+                        <div className="summary-row">
+                            <span className="summary-label">Votanti</span>
+                            <span className="summary-value">
+                                {datiSeggio.votanti_maschi || 0} M + {datiSeggio.votanti_femmine || 0} F = {totalVotanti}
+                            </span>
+                        </div>
+                        <div className="summary-row">
+                            <span className="summary-label">Affluenza</span>
+                            <span className="summary-value">{affluenza}%</span>
                         </div>
                     </div>
-                    {expandedSections.votanti && (
-                        <div className="scrutinio-section-content">
-                            <div className="scrutinio-row">
-                                <div className="scrutinio-field">
-                                    <label className="scrutinio-label">Votanti M</label>
-                                    <input
-                                        type="number"
-                                        className={`scrutinio-input ${errors.nVotantiMaschi ? 'has-error' : ''}`}
-                                        value={formData.nVotantiMaschi}
-                                        onChange={(e) => handleChange(e, "nVotantiMaschi")}
-                                        inputMode="numeric"
-                                    />
-                                </div>
-                                <div className="scrutinio-field">
-                                    <label className="scrutinio-label">Votanti F</label>
-                                    <input
-                                        type="number"
-                                        className={`scrutinio-input ${errors.nVotantiDonne ? 'has-error' : ''}`}
-                                        value={formData.nVotantiDonne}
-                                        onChange={(e) => handleChange(e, "nVotantiDonne")}
-                                        inputMode="numeric"
-                                    />
-                                </div>
-                            </div>
-                            <div className="scrutinio-total">
-                                <span className="scrutinio-total-label">Totale Votanti</span>
-                                <span className="scrutinio-total-value">
-                                    {formData.totalVotanti || 0}
-                                    {formData.totalElettori > 0 && (
-                                        <span style={{ fontSize: '0.8rem', fontWeight: 400, marginLeft: 8, color: '#666' }}>
-                                            ({Math.round((formData.totalVotanti / formData.totalElettori) * 100)}%)
-                                        </span>
-                                    )}
-                                </span>
-                            </div>
-                            {errors.totalVotanti && (
-                                <div className="scrutinio-error">{errors.totalVotanti}</div>
-                            )}
-                        </div>
-                    )}
-                </div>
 
-                {/* 3. Voti Referendum (if applicable) */}
-                {isReferendum && (
-                    <div className="scrutinio-section">
-                        <div
-                            className="scrutinio-section-header"
-                            onClick={() => toggleSection('referendum')}
-                        >
-                            <div className="scrutinio-section-title">
-                                <i className="fas fa-vote-yea"></i>
-                                Voti Referendum
-                            </div>
-                            <i className={`fas fa-chevron-${expandedSections.referendum ? 'up' : 'down'}`}></i>
-                        </div>
-                        {expandedSections.referendum && (
-                            <div className="scrutinio-section-content">
-                                <div className="scrutinio-row">
-                                    <div className="referendum-btn">
-                                        <span className="referendum-btn-label si">SÌ</span>
-                                        <input
-                                            type="number"
-                                            className="referendum-input"
-                                            value={formData.votiSi || ''}
-                                            onChange={(e) => handleChange(e, "votiSi")}
-                                            inputMode="numeric"
-                                            placeholder="0"
-                                        />
-                                    </div>
-                                    <div className="referendum-btn">
-                                        <span className="referendum-btn-label no">NO</span>
-                                        <input
-                                            type="number"
-                                            className="referendum-input"
-                                            value={formData.votiNo || ''}
-                                            onChange={(e) => handleChange(e, "votiNo")}
-                                            inputMode="numeric"
-                                            placeholder="0"
-                                        />
-                                    </div>
+                    {/* Schede Summary */}
+                    {schede.map(scheda => {
+                        const data = schedeData[scheda.id];
+                        const isReferendum = scheda.schema?.tipo === 'si_no';
+                        const votiSi = data.voti?.si || 0;
+                        const votiNo = data.voti?.no || 0;
+
+                        return (
+                            <div key={scheda.id} className="summary-section">
+                                <div className="summary-section-title">
+                                    <span
+                                        style={{
+                                            width: 12,
+                                            height: 12,
+                                            borderRadius: 3,
+                                            background: scheda.colore || '#ccc',
+                                            display: 'inline-block'
+                                        }}
+                                    ></span>
+                                    {scheda.nome}
                                 </div>
-                                <div className="scrutinio-total">
-                                    <span className="scrutinio-total-label">Totale Voti Validi</span>
-                                    <span className="scrutinio-total-value">
-                                        {(parseInt(formData.votiSi) || 0) + (parseInt(formData.votiNo) || 0)}
+                                <div className="summary-row">
+                                    <span className="summary-label">Schede ricevute</span>
+                                    <span className="summary-value">{data.schede_ricevute || '-'}</span>
+                                </div>
+                                <div className="summary-row">
+                                    <span className="summary-label">Schede autenticate</span>
+                                    <span className="summary-value">{data.schede_autenticate || '-'}</span>
+                                </div>
+                                {isReferendum && (
+                                    <>
+                                        <div className="summary-row">
+                                            <span className="summary-label">Voti SI</span>
+                                            <span className="summary-value si">{votiSi || '-'}</span>
+                                        </div>
+                                        <div className="summary-row">
+                                            <span className="summary-label">Voti NO</span>
+                                            <span className="summary-value no">{votiNo || '-'}</span>
+                                        </div>
+                                    </>
+                                )}
+                                <div className="summary-row">
+                                    <span className="summary-label">Bianche / Nulle / Contestate</span>
+                                    <span className="summary-value">
+                                        {data.schede_bianche || 0} / {data.schede_nulle || 0} / {data.schede_contestate || 0}
                                     </span>
                                 </div>
                             </div>
-                        )}
-                    </div>
-                )}
+                        );
+                    })}
+                </div>
+            );
+        }
 
-                {/* 4. Preferenze (if applicable) */}
-                {candidates.length > 0 && (
-                    <div className="scrutinio-section">
-                        <div
-                            className="scrutinio-section-header"
-                            onClick={() => toggleSection('preferenze')}
-                        >
-                            <div className="scrutinio-section-title">
-                                <i className="fas fa-user-check"></i>
-                                Preferenze
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span className="scrutinio-section-badge">
-                                    Tot: {formData.totalVotiDiPreferenza || 0}
-                                </span>
-                                <i className={`fas fa-chevron-${expandedSections.preferenze ? 'up' : 'down'}`}></i>
-                            </div>
-                        </div>
-                        {expandedSections.preferenze && (
-                            <div className="scrutinio-section-content">
-                                {candidates.map((name) => (
-                                    <div className="scrutinio-list-item" key={name}>
-                                        <span className="scrutinio-list-label">{name}</span>
-                                        <input
-                                            type="number"
-                                            className="scrutinio-list-input"
-                                            value={formData[name]}
-                                            onChange={(e) => handleChange(e, name)}
-                                            inputMode="numeric"
-                                            min="0"
-                                        />
-                                    </div>
-                                ))}
-                                <div className="scrutinio-total">
-                                    <span className="scrutinio-total-label">Totale Preferenze</span>
-                                    <span className="scrutinio-total-value">{formData.totalVotiDiPreferenza || 0}</span>
-                                </div>
-                                {errors.totalVotiDiPreferenza && (
-                                    <div className="scrutinio-error">{errors.totalVotiDiPreferenza}</div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )}
+        // Steps 1..N: Schede
+        const schedaIndex = currentStep - 1;
+        const scheda = schede[schedaIndex];
+        const data = schedeData[scheda.id];
+        const isReferendum = scheda.schema?.tipo === 'si_no';
 
-                {/* 5. Voti di Lista (if applicable) */}
-                {lists.length > 0 && (
-                    <div className="scrutinio-section">
-                        <div
-                            className="scrutinio-section-header"
-                            onClick={() => toggleSection('liste')}
-                        >
-                            <div className="scrutinio-section-title">
-                                <i className="fas fa-list-ol"></i>
-                                Voti di Lista
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span className="scrutinio-section-badge">
-                                    Tot: {formData.totalVotiDiLista || 0}
-                                </span>
-                                <i className={`fas fa-chevron-${expandedSections.liste ? 'up' : 'down'}`}></i>
-                            </div>
-                        </div>
-                        {expandedSections.liste && (
-                            <div className="scrutinio-section-content">
-                                {lists.map((name) => (
-                                    <div className="scrutinio-list-item" key={name}>
-                                        <span className={`scrutinio-list-label ${name === "MOVIMENTO 5 STELLE" ? 'highlight' : ''}`}>
-                                            {name === "MOVIMENTO 5 STELLE" && (
-                                                <i className="fas fa-star me-1" style={{ color: '#ffc107' }}></i>
-                                            )}
-                                            {name}
-                                        </span>
-                                        <input
-                                            type="number"
-                                            className="scrutinio-list-input"
-                                            value={formData[name]}
-                                            onChange={(e) => handleChange(e, name)}
-                                            inputMode="numeric"
-                                            min="0"
-                                        />
-                                    </div>
-                                ))}
-                                <div className="scrutinio-total">
-                                    <span className="scrutinio-total-label">Totale Voti Lista</span>
-                                    <span className="scrutinio-total-value">{formData.totalVotiDiLista || 0}</span>
-                                </div>
-                                {errors.totalVotiDiLista && (
-                                    <div className="scrutinio-error">{errors.totalVotiDiLista}</div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* 6. Schede */}
-                <div className="scrutinio-section">
+        return (
+            <div className="wizard-card">
+                {/* Color bar */}
+                {scheda.colore && (
                     <div
-                        className="scrutinio-section-header"
-                        onClick={() => toggleSection('schede')}
-                    >
-                        <div className="scrutinio-section-title">
-                            <i className="fas fa-file-alt"></i>
-                            Schede Speciali
+                        className="scheda-color-bar"
+                        style={{ background: scheda.colore }}
+                    ></div>
+                )}
+
+                <div className="wizard-card-title">
+                    <i className="fas fa-file-alt"></i>
+                    {scheda.nome}
+                </div>
+                {scheda.testo_quesito && (
+                    <div className="wizard-card-subtitle" style={{ fontStyle: 'italic' }}>
+                        {scheda.testo_quesito.length > 150
+                            ? scheda.testo_quesito.substring(0, 150) + '...'
+                            : scheda.testo_quesito}
+                    </div>
+                )}
+
+                {/* Schede consegnate */}
+                <div className="wizard-field-group">
+                    <span className="wizard-field-label">Schede</span>
+                    <div className="wizard-field-row">
+                        <div className="wizard-field-col">
+                            <label>Ricevute</label>
+                            <input
+                                type="number"
+                                inputMode="numeric"
+                                className="wizard-input"
+                                value={data.schede_ricevute}
+                                onChange={(e) => handleSchedaChange(scheda.id, 'schede_ricevute', e.target.value)}
+                                placeholder="0"
+                            />
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            {isSchedeComplete && (
-                                <span className="scrutinio-section-badge complete">
-                                    <i className="fas fa-check me-1"></i>OK
-                                </span>
-                            )}
-                            <i className={`fas fa-chevron-${expandedSections.schede ? 'up' : 'down'}`}></i>
+                        <div className="wizard-field-col">
+                            <label>Autenticate</label>
+                            <input
+                                type="number"
+                                inputMode="numeric"
+                                className="wizard-input"
+                                value={data.schede_autenticate}
+                                onChange={(e) => handleSchedaChange(scheda.id, 'schede_autenticate', e.target.value)}
+                                placeholder="0"
+                            />
                         </div>
                     </div>
-                    {expandedSections.schede && (
-                        <div className="scrutinio-section-content">
-                            <div className="scrutinio-list-item">
-                                <span className="scrutinio-list-label">Schede Bianche</span>
-                                <input
-                                    type="number"
-                                    className="scrutinio-list-input"
-                                    value={formData.schedeBianche}
-                                    onChange={(e) => handleChange(e, "schedeBianche")}
-                                    inputMode="numeric"
-                                    min="0"
-                                />
-                            </div>
-                            <div className="scrutinio-list-item">
-                                <span className="scrutinio-list-label">Schede Nulle</span>
-                                <input
-                                    type="number"
-                                    className="scrutinio-list-input"
-                                    value={formData.schedeNulle}
-                                    onChange={(e) => handleChange(e, "schedeNulle")}
-                                    inputMode="numeric"
-                                    min="0"
-                                />
-                            </div>
-                            <div className="scrutinio-list-item">
-                                <span className="scrutinio-list-label">Schede Contestate</span>
-                                <input
-                                    type="number"
-                                    className="scrutinio-list-input"
-                                    value={formData.schedeContestate}
-                                    onChange={(e) => handleChange(e, "schedeContestate")}
-                                    inputMode="numeric"
-                                    min="0"
-                                />
-                            </div>
-                            {errors.schedeContestate && (
-                                <div className="scrutinio-error">{errors.schedeContestate}</div>
-                            )}
-                        </div>
-                    )}
                 </div>
 
-                {/* Bottom Bar */}
-                <div className="scrutinio-bottom-bar">
+                {/* Voti Referendum */}
+                {isReferendum && (
+                    <div className="wizard-field-group">
+                        <span className="wizard-field-label">Voti Espressi</span>
+                        <div className="referendum-votes">
+                            <div className="referendum-vote-card si">
+                                <div className="referendum-vote-label si">SI</div>
+                                <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    className="referendum-vote-input"
+                                    value={data.voti?.si ?? ''}
+                                    onChange={(e) => handleVotiChange(scheda.id, 'si', e.target.value)}
+                                    placeholder="0"
+                                />
+                            </div>
+                            <div className="referendum-vote-card no">
+                                <div className="referendum-vote-label no">NO</div>
+                                <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    className="referendum-vote-input"
+                                    value={data.voti?.no ?? ''}
+                                    onChange={(e) => handleVotiChange(scheda.id, 'no', e.target.value)}
+                                    placeholder="0"
+                                />
+                            </div>
+                        </div>
+                        <div className="wizard-total" style={{ marginTop: 12 }}>
+                            <span className="wizard-total-label">Totale Voti Validi</span>
+                            <span className="wizard-total-value">
+                                {(+data.voti?.si || 0) + (+data.voti?.no || 0)}
+                            </span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Schede speciali */}
+                <div className="wizard-field-group">
+                    <span className="wizard-field-label">Schede Speciali</span>
+                    <div className="wizard-field-row">
+                        <div className="wizard-field-col">
+                            <label>Bianche</label>
+                            <input
+                                type="number"
+                                inputMode="numeric"
+                                className="wizard-input"
+                                value={data.schede_bianche}
+                                onChange={(e) => handleSchedaChange(scheda.id, 'schede_bianche', e.target.value)}
+                                placeholder="0"
+                            />
+                        </div>
+                        <div className="wizard-field-col">
+                            <label>Nulle</label>
+                            <input
+                                type="number"
+                                inputMode="numeric"
+                                className="wizard-input"
+                                value={data.schede_nulle}
+                                onChange={(e) => handleSchedaChange(scheda.id, 'schede_nulle', e.target.value)}
+                                placeholder="0"
+                            />
+                        </div>
+                        <div className="wizard-field-col">
+                            <label>Contestate</label>
+                            <input
+                                type="number"
+                                inputMode="numeric"
+                                className="wizard-input"
+                                value={data.schede_contestate}
+                                onChange={(e) => handleSchedaChange(scheda.id, 'schede_contestate', e.target.value)}
+                                placeholder="0"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <>
+            <style>{wizardStyles}</style>
+            <div className="wizard-container">
+                {/* Header */}
+                <div className="wizard-header">
+                    <div className="wizard-header-top">
+                        <button className="wizard-header-back" onClick={goPrev}>
+                            <i className="fas fa-arrow-left"></i>
+                        </button>
+                        <div className="wizard-header-title">
+                            <div className="wizard-header-sezione">Sezione {section.sezione}</div>
+                            <div className="wizard-header-comune">{section.comune}</div>
+                        </div>
+                        <div style={{ width: 40 }}></div>
+                    </div>
+
+                    {/* Step indicators */}
+                    <div className="wizard-steps">
+                        {Array.from({ length: totalSteps }).map((_, index) => (
+                            <div
+                                key={index}
+                                className={`wizard-step ${
+                                    index === currentStep ? 'active' :
+                                    index < currentStep ? 'completed' : ''
+                                }`}
+                            ></div>
+                        ))}
+                    </div>
+                    <div className="wizard-step-label">
+                        {getStepName(currentStep)} ({currentStep + 1}/{totalSteps})
+                    </div>
+                </div>
+
+                {/* Content */}
+                <div className="wizard-content">
+                    {renderStepContent()}
+                </div>
+
+                {/* Bottom navigation */}
+                <div className="wizard-nav">
                     <button
-                        className="scrutinio-btn scrutinio-btn-primary"
-                        onClick={handleSave}
-                        disabled={isSaving}
+                        className="wizard-nav-btn secondary"
+                        onClick={goPrev}
                     >
-                        {isSaving ? (
-                            <>
-                                <i className="fas fa-spinner fa-spin me-2"></i>
-                                Invio...
-                            </>
-                        ) : (
-                            <>
-                                <i className="fas fa-paper-plane me-2"></i>
-                                Invia Dati
-                            </>
-                        )}
+                        <i className="fas fa-chevron-left"></i>
+                        {currentStep === 0 ? 'Esci' : 'Indietro'}
                     </button>
+
+                    {currentStep === totalSteps - 1 ? (
+                        <button
+                            className="wizard-nav-btn success"
+                            onClick={handleSave}
+                            disabled={isSaving}
+                        >
+                            {isSaving ? (
+                                <>
+                                    <span className="spinner-border spinner-border-sm"></span>
+                                    Invio...
+                                </>
+                            ) : (
+                                <>
+                                    <i className="fas fa-paper-plane"></i>
+                                    Invia Dati
+                                </>
+                            )}
+                        </button>
+                    ) : (
+                        <button
+                            className="wizard-nav-btn primary"
+                            onClick={goNext}
+                        >
+                            Avanti
+                            <i className="fas fa-chevron-right"></i>
+                        </button>
+                    )}
                 </div>
             </div>
         </>
