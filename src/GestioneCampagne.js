@@ -17,7 +17,6 @@ function GestioneCampagne({ client, consultazione, setError }) {
         nome: '', slug: '', descrizione: '',
         data_apertura: '', data_chiusura: '',
         regioni_ids: [], province_ids: [], comuni_ids: [],
-        richiedi_approvazione: true, max_registrazioni: '',
         messaggio_conferma: ''
     });
     const [savingCampagna, setSavingCampagna] = useState(false);
@@ -112,14 +111,17 @@ function GestioneCampagne({ client, consultazione, setError }) {
             nome: '', slug: '', descrizione: '',
             data_apertura: '', data_chiusura: '',
             regioni_ids: [], province_ids: [], comuni_ids: [],
-            richiedi_approvazione: true, max_registrazioni: '',
             messaggio_conferma: ''
         });
         setProvince([]);
         setComuni([]);
     };
 
-    const handleEditCampagna = (campagna) => {
+    const handleEditCampagna = async (campagna) => {
+        const regioneIds = campagna.territorio_regioni?.map(r => r.id) || [];
+        const provinceIds = campagna.territorio_province?.map(p => p.id) || [];
+        const comuniIds = campagna.territorio_comuni?.map(c => c.id) || [];
+
         setEditingCampagna(campagna.id);
         setCampagnaForm({
             nome: campagna.nome || '',
@@ -127,13 +129,22 @@ function GestioneCampagne({ client, consultazione, setError }) {
             descrizione: campagna.descrizione || '',
             data_apertura: campagna.data_apertura ? campagna.data_apertura.substring(0, 16) : '',
             data_chiusura: campagna.data_chiusura ? campagna.data_chiusura.substring(0, 16) : '',
-            regioni_ids: campagna.territorio_regioni?.map(r => r.id) || [],
-            province_ids: campagna.territorio_province?.map(p => p.id) || [],
-            comuni_ids: campagna.territorio_comuni?.map(c => c.id) || [],
-            richiedi_approvazione: campagna.richiedi_approvazione ?? true,
-            max_registrazioni: campagna.max_registrazioni || '',
+            regioni_ids: regioneIds,
+            province_ids: provinceIds,
+            comuni_ids: comuniIds,
             messaggio_conferma: campagna.messaggio_conferma || ''
         });
+
+        // Carica province se c'è una regione
+        if (regioneIds.length > 0) {
+            await loadProvince(regioneIds[0]);
+        }
+
+        // Carica comuni se c'è una provincia
+        if (provinceIds.length > 0) {
+            await loadComuni(provinceIds[0]);
+        }
+
         setShowCampagnaForm(true);
     };
 
@@ -155,8 +166,6 @@ function GestioneCampagne({ client, consultazione, setError }) {
                 territorio_regioni_ids: campagnaForm.regioni_ids,
                 territorio_province_ids: campagnaForm.province_ids,
                 territorio_comuni_ids: campagnaForm.comuni_ids,
-                richiedi_approvazione: campagnaForm.richiedi_approvazione,
-                max_registrazioni: campagnaForm.max_registrazioni ? parseInt(campagnaForm.max_registrazioni) : null,
                 messaggio_conferma: campagnaForm.messaggio_conferma,
                 consultazione_id: consultazione?.id
             };
@@ -424,35 +433,6 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                     </select>
                                 </div>
 
-                                {/* Opzioni */}
-                                <div className="col-md-6">
-                                    <div className="form-check">
-                                        <input
-                                            type="checkbox"
-                                            className="form-check-input"
-                                            id="richiedi_approvazione"
-                                            checked={campagnaForm.richiedi_approvazione}
-                                            onChange={(e) => handleCampagnaFormChange('richiedi_approvazione', e.target.checked)}
-                                        />
-                                        <label className="form-check-label" htmlFor="richiedi_approvazione">
-                                            Richiedi approvazione manuale
-                                        </label>
-                                    </div>
-                                    <small className="text-muted">
-                                        Se attivo, le registrazioni dovranno essere approvate da un delegato
-                                    </small>
-                                </div>
-                                <div className="col-md-6">
-                                    <label className="form-label">Max registrazioni</label>
-                                    <input
-                                        type="number"
-                                        className="form-control"
-                                        value={campagnaForm.max_registrazioni}
-                                        onChange={(e) => handleCampagnaFormChange('max_registrazioni', e.target.value)}
-                                        placeholder="Illimitato"
-                                        min="1"
-                                    />
-                                </div>
                                 <div className="col-12">
                                     <label className="form-label">Messaggio di conferma</label>
                                     <textarea
