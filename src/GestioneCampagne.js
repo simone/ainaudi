@@ -398,20 +398,29 @@ function GestioneCampagne({ client, consultazione, setError }) {
                                     <label className="form-label small">Regione</label>
                                     <select
                                         className="form-select form-select-sm"
-                                        value={String(campagnaForm.regioni_ids[0] || '')}
+                                        value={campagnaForm.regioni_ids[0] ? String(campagnaForm.regioni_ids[0]) : ''}
                                         onChange={(e) => {
+                                            console.log('Regione onChange:', e.target.value);
                                             const val = e.target.value;
-                                            handleCampagnaFormChange('regioni_ids', val ? [parseInt(val)] : []);
-                                            handleCampagnaFormChange('province_ids', []);
-                                            handleCampagnaFormChange('comuni_ids', []);
-                                            setProvince([]);
-                                            setComuni([]);
-                                            if (val) loadProvince(val);
+                                            if (val) {
+                                                handleCampagnaFormChange('regioni_ids', [parseInt(val)]);
+                                                handleCampagnaFormChange('province_ids', []);
+                                                handleCampagnaFormChange('comuni_ids', []);
+                                                setProvince([]);
+                                                setComuni([]);
+                                                loadProvince(val);
+                                            } else {
+                                                handleCampagnaFormChange('regioni_ids', []);
+                                                handleCampagnaFormChange('province_ids', []);
+                                                handleCampagnaFormChange('comuni_ids', []);
+                                                setProvince([]);
+                                                setComuni([]);
+                                            }
                                         }}
                                     >
                                         <option value="">Tutte le regioni</option>
-                                        {regioni.map(r => (
-                                            <option key={r.id} value={String(r.id)}>{r.nome}</option>
+                                        {regioni && regioni.map(r => (
+                                            <option key={r.id} value={r.id}>{r.nome}</option>
                                         ))}
                                     </select>
                                 </div>
