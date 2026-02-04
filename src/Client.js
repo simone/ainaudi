@@ -75,14 +75,14 @@ const Client = (server, pdfServer, token) => {
                 console.error(error);
                 return {error: error.message};
             }),
-        save: async ({comune, sezione, values}) =>
+        save: async (data) =>
             fetchAndInvalidate(['assigned', 'own'])(`${server}/api/sections/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': authHeader
                 },
-                body: JSON.stringify({comune, sezione, values})
+                body: JSON.stringify(data)
             }).then(response => response.json()).catch(error => {
                 console.error(error);
                 return {error: error.message};

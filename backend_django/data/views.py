@@ -143,7 +143,7 @@ def section_to_legacy_values(dati_sezione, candidate_names, list_names, scheda_a
         6: schedeBianche,
         7: schedeNulle,
         8: schedeContestate,
-        9...: candidate votes,
+        9...: candidate votes OR votiSi/votiNo for referendum,
         ...: list votes,
         last: incongruenze
     ]
@@ -180,22 +180,37 @@ def section_to_legacy_values(dati_sezione, candidate_names, list_names, scheda_a
         values[7] = dati_scheda.schede_nulle or ''
         values[8] = dati_scheda.schede_contestate or ''
 
-        # Extract candidate/list votes from JSON voti
+        # Extract votes from JSON voti
         voti = dati_scheda.voti or {}
-        preferenze = voti.get('preferenze', {})
-        liste = voti.get('liste', {})
 
-        # Candidate votes in order
-        for name in candidate_names:
-            values.append(preferenze.get(name, ''))
+        # Check if referendum (no candidates/lists)
+        is_referendum = len(candidate_names) == 0 and len(list_names) == 0
 
-        # List votes in order
-        for name in list_names:
-            values.append(liste.get(name, ''))
+        if is_referendum:
+            # Referendum: add votiSi and votiNo at indices 9 and 10
+            referendum_voti = voti.get('referendum', {})
+            values.append(referendum_voti.get('si') if referendum_voti.get('si') is not None else '')
+            values.append(referendum_voti.get('no') if referendum_voti.get('no') is not None else '')
+        else:
+            # Regular election: candidate and list votes
+            preferenze = voti.get('preferenze', {})
+            liste = voti.get('liste', {})
+
+            # Candidate votes in order
+            for name in candidate_names:
+                values.append(preferenze.get(name, ''))
+
+            # List votes in order
+            for name in list_names:
+                values.append(liste.get(name, ''))
     else:
-        # No data yet - add empty values for candidates and lists
-        values.extend(['' for _ in candidate_names])
-        values.extend(['' for _ in list_names])
+        # No data yet - add empty values
+        is_referendum = len(candidate_names) == 0 and len(list_names) == 0
+        if is_referendum:
+            values.extend(['', ''])  # votiSi, votiNo
+        else:
+            values.extend(['' for _ in candidate_names])
+            values.extend(['' for _ in list_names])
 
     # Add incongruenze at the end
     values.append(dati_scheda.errori_validazione if dati_scheda else '')
@@ -620,13 +635,42 @@ class SectionsSaveView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        """
+        Save section voting data.
+
+        Expected JSON format:
+        {
+            "comune": "Roma",
+            "sezione": 123,
+            "dati_sezione": {
+                "elettori_maschi": 100,
+                "elettori_femmine": 90,
+                "votanti_maschi": 50,
+                "votanti_femmine": 45
+            },
+            "dati_scheda": {
+                "schede_ricevute": 200,
+                "schede_autenticate": 195,
+                "schede_bianche": 2,
+                "schede_nulle": 1,
+                "schede_contestate": 0,
+                "voti_si": 45,           // Referendum only
+                "voti_no": 50,           // Referendum only
+                "preferenze": {...},     // Elections with candidates
+                "liste": {...}           // Elections with lists
+            },
+            "errori": ["error1", "error2"]
+        }
+        """
         consultazione = get_consultazione_attiva()
         if not consultazione:
             return Response({'error': 'Nessuna consultazione attiva'}, status=400)
 
         comune_nome = request.data.get('comune')
         sezione_numero = request.data.get('sezione')
-        values = request.data.get('values', [])
+        dati_sezione_input = request.data.get('dati_sezione', {})
+        dati_scheda_input = request.data.get('dati_scheda', {})
+        errori = request.data.get('errori')
 
         if not comune_nome or sezione_numero is None:
             return Response({'error': 'comune e sezione sono obbligatori'}, status=400)
@@ -644,33 +688,17 @@ class SectionsSaveView(APIView):
         if not can_enter_section_data(request.user, sezione, consultazione.id):
             return Response({'error': 'Non hai i permessi per questa sezione'}, status=403)
 
-        # Get candidates and lists to parse values array
-        candidate_names, list_names = get_candidates_and_lists(consultazione)
-
-        # Parse values array (legacy format)
-        def parse_int(val):
-            if val == '' or val is None:
-                return None
-            try:
-                return int(val)
-            except (ValueError, TypeError):
-                return None
-
         # Get or create DatiSezione
         dati_sezione, created = DatiSezione.objects.get_or_create(
             sezione=sezione,
             consultazione=consultazione
         )
 
-        # Update DatiSezione fields from values array
-        if len(values) > 0:
-            dati_sezione.elettori_maschi = parse_int(values[0])
-        if len(values) > 1:
-            dati_sezione.elettori_femmine = parse_int(values[1])
-        if len(values) > 4:
-            dati_sezione.votanti_maschi = parse_int(values[4])
-        if len(values) > 5:
-            dati_sezione.votanti_femmine = parse_int(values[5])
+        # Update DatiSezione fields from structured input
+        dati_sezione.elettori_maschi = dati_sezione_input.get('elettori_maschi')
+        dati_sezione.elettori_femmine = dati_sezione_input.get('elettori_femmine')
+        dati_sezione.votanti_maschi = dati_sezione_input.get('votanti_maschi')
+        dati_sezione.votanti_femmine = dati_sezione_input.get('votanti_femmine')
 
         dati_sezione.inserito_da_email = request.user.email
         dati_sezione.inserito_at = timezone.now()
@@ -694,41 +722,42 @@ class SectionsSaveView(APIView):
                 scheda=scheda
             )
 
-            # Parse ballot-level data
-            if len(values) > 2:
-                dati_scheda.schede_ricevute = parse_int(values[2])
-            if len(values) > 3:
-                dati_scheda.schede_autenticate = parse_int(values[3])
-            if len(values) > 6:
-                dati_scheda.schede_bianche = parse_int(values[6])
-            if len(values) > 7:
-                dati_scheda.schede_nulle = parse_int(values[7])
-            if len(values) > 8:
-                dati_scheda.schede_contestate = parse_int(values[8])
+            # Update ballot-level data from structured input
+            dati_scheda.schede_ricevute = dati_scheda_input.get('schede_ricevute')
+            dati_scheda.schede_autenticate = dati_scheda_input.get('schede_autenticate')
+            dati_scheda.schede_bianche = dati_scheda_input.get('schede_bianche')
+            dati_scheda.schede_nulle = dati_scheda_input.get('schede_nulle')
+            dati_scheda.schede_contestate = dati_scheda_input.get('schede_contestate')
 
-            # Parse candidate and list votes
-            fP = 9  # First preference index
-            fL = fP + len(candidate_names)  # First list index
+            # Build voti object
+            voti = {}
 
-            preferenze = {}
-            for i, name in enumerate(candidate_names):
-                if fP + i < len(values) and values[fP + i] != '':
-                    preferenze[name] = parse_int(values[fP + i])
+            # Referendum votes (voti_si, voti_no)
+            voti_si = dati_scheda_input.get('voti_si')
+            voti_no = dati_scheda_input.get('voti_no')
+            if voti_si is not None or voti_no is not None:
+                voti['referendum'] = {
+                    'si': voti_si,
+                    'no': voti_no,
+                }
 
-            liste = {}
-            for i, name in enumerate(list_names):
-                if fL + i < len(values) and values[fL + i] != '':
-                    liste[name] = parse_int(values[fL + i])
+            # Election preferenze (candidates)
+            preferenze = dati_scheda_input.get('preferenze')
+            if preferenze:
+                voti['preferenze'] = preferenze
 
-            dati_scheda.voti = {
-                'preferenze': preferenze,
-                'liste': liste,
-            }
+            # Election liste (lists)
+            liste = dati_scheda_input.get('liste')
+            if liste:
+                voti['liste'] = liste
 
-            # Get incongruenze (last value)
-            lL = fL + len(list_names)
-            if lL < len(values):
-                dati_scheda.errori_validazione = values[lL] if values[lL] else None
+            dati_scheda.voti = voti if voti else None
+
+            # Save errors
+            if errori:
+                dati_scheda.errori_validazione = ', '.join(errori) if isinstance(errori, list) else errori
+            else:
+                dati_scheda.errori_validazione = None
 
             dati_scheda.inserito_at = timezone.now()
             dati_scheda.save()

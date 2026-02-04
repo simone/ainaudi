@@ -254,19 +254,30 @@ function SectionList({client, user, setError, referenti}) {
                 schedeContestate: values[8] || ''
             };
 
+            const isReferendum = candidates.length === 0 && lists.length === 0;
             const fP = 9;
-            const fL = fP + candidates.length;
-            const lL = fL + lists.length;
 
-            candidates.forEach((name, index) => {
-                section[name] = values[fP + index] || '';
-            });
+            if (isReferendum) {
+                // Referendum: votiSi at index 9, votiNo at index 10
+                section.votiSi = values[fP] || '';
+                section.votiNo = values[fP + 1] || '';
+                section.incongruenze = values[fP + 2] || '';
+            } else {
+                // Regular election: candidates then lists
+                const fL = fP + candidates.length;
+                const lL = fL + lists.length;
 
-            lists.forEach((name, index) => {
-                section[name] = values[fL + index] || '';
-            });
+                candidates.forEach((name, index) => {
+                    section[name] = values[fP + index] || '';
+                });
 
-            section.incongruenze = values[lL] || '';
+                lists.forEach((name, index) => {
+                    section[name] = values[fL + index] || '';
+                });
+
+                section.incongruenze = values[lL] || '';
+            }
+
             return section;
         });
     }
@@ -298,25 +309,49 @@ function SectionList({client, user, setError, referenti}) {
     };
 
     const updateSection = (newData, errors) => {
-        const values = [
-            newData.nElettoriMaschi,
-            newData.nElettoriDonne,
-            newData.schedeRicevute,
-            newData.schedeAutenticate,
-            newData.nVotantiMaschi,
-            newData.nVotantiDonne,
-            newData.schedeBianche,
-            newData.schedeNulle,
-            newData.schedeContestate,
-            ...candidates.map(name => newData[name] || ''),
-            ...lists.map(name => newData[name] || ''),
-            errors.join(', ')
-        ];
-        client.sections.save({
+        // Build preferenze object from candidates
+        const preferenze = {};
+        candidates.forEach(name => {
+            if (newData[name] !== '' && newData[name] !== undefined) {
+                preferenze[name] = parseInt(newData[name]) || 0;
+            }
+        });
+
+        // Build liste object from lists
+        const liste = {};
+        lists.forEach(name => {
+            if (newData[name] !== '' && newData[name] !== undefined) {
+                liste[name] = parseInt(newData[name]) || 0;
+            }
+        });
+
+        // Build structured payload
+        const payload = {
             comune: newData.comune,
             sezione: newData.sezione,
-            values: values,
-        })
+            dati_sezione: {
+                elettori_maschi: newData.nElettoriMaschi !== '' ? parseInt(newData.nElettoriMaschi) : null,
+                elettori_femmine: newData.nElettoriDonne !== '' ? parseInt(newData.nElettoriDonne) : null,
+                votanti_maschi: newData.nVotantiMaschi !== '' ? parseInt(newData.nVotantiMaschi) : null,
+                votanti_femmine: newData.nVotantiDonne !== '' ? parseInt(newData.nVotantiDonne) : null,
+            },
+            dati_scheda: {
+                schede_ricevute: newData.schedeRicevute !== '' ? parseInt(newData.schedeRicevute) : null,
+                schede_autenticate: newData.schedeAutenticate !== '' ? parseInt(newData.schedeAutenticate) : null,
+                schede_bianche: newData.schedeBianche !== '' ? parseInt(newData.schedeBianche) : null,
+                schede_nulle: newData.schedeNulle !== '' ? parseInt(newData.schedeNulle) : null,
+                schede_contestate: newData.schedeContestate !== '' ? parseInt(newData.schedeContestate) : null,
+                // Referendum votes
+                voti_si: newData.votiSi !== '' && newData.votiSi !== undefined ? parseInt(newData.votiSi) : null,
+                voti_no: newData.votiNo !== '' && newData.votiNo !== undefined ? parseInt(newData.votiNo) : null,
+                // Election votes
+                preferenze: Object.keys(preferenze).length > 0 ? preferenze : null,
+                liste: Object.keys(liste).length > 0 ? liste : null,
+            },
+            errori: errors.length > 0 ? errors : null,
+        };
+
+        client.sections.save(payload)
             .then(() => {
                 listSections();
                 window.scrollTo(0, 0);
