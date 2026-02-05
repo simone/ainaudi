@@ -79,15 +79,25 @@ function MarkdownModal({ isOpen, onClose, markdownUrl, title }) {
                                 components={{
                                     // Custom code block styling
                                     code({node, inline, className, children, ...props}) {
-                                        return inline ? (
-                                            <code className="inline-code" {...props}>
-                                                {children}
-                                            </code>
-                                        ) : (
-                                            <pre className="code-block">
-                                                <code className={className} {...props}>
+                                        if (inline) {
+                                            return (
+                                                <code className="inline-code" {...props}>
                                                     {children}
                                                 </code>
+                                            );
+                                        }
+                                        // Block code - return as is (will be wrapped in <pre> by markdown)
+                                        return (
+                                            <code className={className} {...props}>
+                                                {children}
+                                            </code>
+                                        );
+                                    },
+                                    // Custom pre styling for code blocks
+                                    pre({node, children, ...props}) {
+                                        return (
+                                            <pre className="code-block" {...props}>
+                                                {children}
                                             </pre>
                                         );
                                     },
@@ -98,6 +108,21 @@ function MarkdownModal({ isOpen, onClose, markdownUrl, title }) {
                                                 <table className="markdown-table" {...props} />
                                             </div>
                                         );
+                                    },
+                                    // Prevent wrapping certain elements in <p>
+                                    p({node, children, ...props}) {
+                                        // Check if children contain block elements
+                                        const hasBlockElement = node.children.some(
+                                            child => child.tagName === 'pre' ||
+                                                     child.tagName === 'div' ||
+                                                     child.tagName === 'table'
+                                        );
+
+                                        if (hasBlockElement) {
+                                            return <>{children}</>;
+                                        }
+
+                                        return <p {...props}>{children}</p>;
                                     }
                                 }}
                             >
