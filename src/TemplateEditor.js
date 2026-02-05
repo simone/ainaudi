@@ -48,6 +48,9 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
     const [isSelecting, setIsSelecting] = useState(false);
     const [selectionStart, setSelectionStart] = useState(null);
     const [currentSelection, setCurrentSelection] = useState(null);
+    const renderTaskRef = useRef(null);
+    const animationFrameRef = useRef(null);
+    const canvasSnapshotRef = useRef(null);
 
     // Load available templates on mount
     useEffect(() => {
@@ -74,6 +77,26 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             renderPage(currentPage);
         }
     }, [pdfDoc, currentPage, scale, fieldMappings]);
+
+    // Draw selection overlay on canvas without re-rendering PDF
+    useEffect(() => {
+        if (!isSelecting || !currentSelection || !canvasRef.current || !canvasSnapshotRef.current) return;
+
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+
+        // Restore the saved canvas state
+        ctx.putImageData(canvasSnapshotRef.current, 0, 0);
+
+        // Draw selection on top
+        const scaledSelection = {
+            x: currentSelection.x * scale,
+            y: currentSelection.y * scale,
+            width: currentSelection.width * scale,
+            height: currentSelection.height * scale
+        };
+        drawSelection(ctx, scaledSelection);
+    }, [currentSelection, isSelecting]);
 
     const loadTemplates = async () => {
         try {
@@ -120,6 +143,11 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
     const renderPage = async (pageNum) => {
         if (!pdfDoc || !canvasRef.current) return;
 
+        // Cancel previous render if in progress
+        if (renderTaskRef.current) {
+            renderTaskRef.current.cancel();
+        }
+
         try {
             const page = await pdfDoc.getPage(pageNum);
             const canvas = canvasRef.current;
@@ -129,18 +157,24 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             canvas.width = viewport.width;
             canvas.height = viewport.height;
 
-            // Render PDF page
-            await page.render({ canvasContext: ctx, viewport }).promise;
+            // Render PDF page and store the task
+            const renderTask = page.render({ canvasContext: ctx, viewport });
+            renderTaskRef.current = renderTask;
+
+            await renderTask.promise;
+            renderTaskRef.current = null;
 
             // Draw existing field mappings as overlays
             drawFieldMappingsOverlay(ctx, pageNum - 1);
 
-            // Draw current selection if active
-            if (isSelecting && currentSelection) {
-                drawSelection(ctx, currentSelection);
-            }
+            // Save canvas snapshot for selection drawing
+            canvasSnapshotRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
         } catch (err) {
-            console.error('Page render error:', err);
+            if (err.name === 'RenderingCancelledException') {
+                console.log('Render cancelled');
+            } else {
+                console.error('Page render error:', err);
+            }
         }
     };
 
@@ -223,10 +257,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             height: Math.abs(height)
         });
 
-        // Re-render with selection
-        if (pdfDoc) {
-            renderPage(currentPage);
-        }
+        // Selection overlay will be drawn by effect
     };
 
     const handleCanvasMouseUp = () => {
@@ -237,7 +268,11 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             setIsSelecting(false);
             setCurrentSelection(null);
             setSelectionStart(null);
-            if (pdfDoc) renderPage(currentPage);
+            // Restore canvas without selection
+            if (canvasRef.current && canvasSnapshotRef.current) {
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.putImageData(canvasSnapshotRef.current, 0, 0);
+            }
             return;
         }
 
@@ -252,9 +287,8 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         });
         setShowNewFieldForm(true);
 
-        // Clear selection
+        // Keep selection visible until form is submitted/cancelled
         setIsSelecting(false);
-        setCurrentSelection(null);
         setSelectionStart(null);
     };
 
@@ -284,6 +318,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
 
         setFieldMappings([...fieldMappings, newMapping]);
         setShowNewFieldForm(false);
+        setCurrentSelection(null);
         setNewField({
             jsonpath: '',
             type: 'text',
@@ -304,6 +339,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
 
     const handleCancelNewField = () => {
         setShowNewFieldForm(false);
+        setCurrentSelection(null);
         setNewField({
             jsonpath: '',
             type: 'text',
@@ -314,9 +350,10 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             page: 0
         });
 
-        // Re-render PDF to clear selection
-        if (pdfDoc) {
-            setTimeout(() => renderPage(currentPage), 100);
+        // Restore canvas without selection
+        if (canvasRef.current && canvasSnapshotRef.current) {
+            const ctx = canvasRef.current.getContext('2d');
+            ctx.putImageData(canvasSnapshotRef.current, 0, 0);
         }
     };
 
