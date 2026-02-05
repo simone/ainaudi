@@ -53,6 +53,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
     const renderTaskRef = useRef(null);
     const animationFrameRef = useRef(null);
     const canvasSnapshotRef = useRef(null);
+    const isRenderingRef = useRef(false);
 
     // Load available templates on mount
     useEffect(() => {
@@ -98,7 +99,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             height: currentSelection.height * scale
         };
         drawSelection(ctx, scaledSelection);
-    }, [currentSelection, isSelecting]);
+    }, [currentSelection, isSelecting, scale]);
 
     const loadTemplates = async () => {
         try {
@@ -145,12 +146,20 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
     const renderPage = async (pageNum) => {
         if (!pdfDoc || !canvasRef.current) return;
 
+        // Skip if already rendering
+        if (isRenderingRef.current) {
+            console.log('Render already in progress, skipping');
+            return;
+        }
+
         // Cancel previous render if in progress
         if (renderTaskRef.current) {
             renderTaskRef.current.cancel();
         }
 
         try {
+            isRenderingRef.current = true;
+
             const page = await pdfDoc.getPage(pageNum);
             const canvas = canvasRef.current;
             const ctx = canvas.getContext('2d');
@@ -177,6 +186,8 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             } else {
                 console.error('Page render error:', err);
             }
+        } finally {
+            isRenderingRef.current = false;
         }
     };
 
@@ -333,10 +344,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         setSuccess('Campo aggiunto!');
         setTimeout(() => setSuccess(null), 2000);
 
-        // Re-render PDF to show new field overlay
-        if (pdfDoc) {
-            setTimeout(() => renderPage(currentPage), 100);
-        }
+        // PDF will re-render automatically via effect when fieldMappings changes
     };
 
     const handleCancelNewField = () => {
