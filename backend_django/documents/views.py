@@ -263,10 +263,16 @@ class TemplateEditorView(APIView):
 
     def get(self, request, pk):
         template = get_object_or_404(Template, pk=pk)
+
+        # Build absolute URL for template file
+        template_file_url = None
+        if template.template_file:
+            template_file_url = request.build_absolute_uri(template.template_file.url)
+
         return Response({
             'id': template.id,
             'name': template.name,
-            'template_file_url': template.template_file.url if template.template_file else None,
+            'template_file_url': template_file_url,
             'field_mappings': template.field_mappings,
             'loop_config': template.loop_config,
             'merge_mode': template.merge_mode,

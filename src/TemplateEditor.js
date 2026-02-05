@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import './TemplateEditor.css';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configure PDF.js worker (use local worker from /public folder)
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 
 /**
  * Template Editor - Admin only
@@ -182,9 +182,17 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
     };
 
     const handleCanvasMouseDown = (e) => {
-        const rect = canvasRef.current.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / scale;
-        const y = (e.clientY - rect.top) / scale;
+        const canvas = canvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+
+        // Convert mouse coordinates to canvas coordinates
+        // Account for both canvas internal scale and CSS scaling
+        const canvasX = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const canvasY = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+        // Convert to PDF coordinates (unscaled)
+        const x = canvasX / scale;
+        const y = canvasY / scale;
 
         setSelectionStart({ x, y });
         setCurrentSelection({ x, y, width: 0, height: 0 });
@@ -194,9 +202,16 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
     const handleCanvasMouseMove = (e) => {
         if (!isSelecting || !selectionStart) return;
 
-        const rect = canvasRef.current.getBoundingClientRect();
-        const currentX = (e.clientX - rect.left) / scale;
-        const currentY = (e.clientY - rect.top) / scale;
+        const canvas = canvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+
+        // Convert mouse coordinates to canvas coordinates
+        const canvasX = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const canvasY = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+        // Convert to PDF coordinates (unscaled)
+        const currentX = canvasX / scale;
+        const currentY = canvasY / scale;
 
         const width = currentX - selectionStart.x;
         const height = currentY - selectionStart.y;
@@ -556,17 +571,19 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                         <div className="card-body">
                             <form onSubmit={handleSaveNewField}>
                                 <div className="form-group">
-                                    <label>JSONPath *</label>
+                                    <label>JSONPath * <a href="/LOOP_GUIDE.md" target="_blank" style={{fontSize: '0.9em'}}>(Guida)</a></label>
                                     <input
                                         type="text"
                                         className="form-control"
                                         value={newField.jsonpath}
                                         onChange={(e) => setNewField({...newField, jsonpath: e.target.value})}
-                                        placeholder="es: $.delegato.cognome"
+                                        placeholder='es: $.delegato.cognome + " " + $.delegato.nome'
                                         required
                                     />
                                     <small className="text-muted">
-                                        Percorso del dato (inizia con $.)
+                                        <strong>Semplice:</strong> <code>$.delegato.cognome</code><br/>
+                                        <strong>Concatenato:</strong> <code>$.cognome + " " + $.nome</code><br/>
+                                        <strong>Loop:</strong> <code>$.designazioni</code> (array)
                                     </small>
                                 </div>
 
@@ -725,8 +742,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                 style={{
                                     border: '1px solid #dee2e6',
                                     cursor: isSelecting ? 'crosshair' : 'pointer',
-                                    maxWidth: '100%',
-                                    height: 'auto'
+                                    display: 'block'
                                 }}
                             />
                             <div className="pdf-instructions">
