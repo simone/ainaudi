@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import MarkdownModal from './MarkdownModal';
 import './TemplateEditor.css';
 
 // Configure PDF.js worker (use local worker from /public folder)
@@ -27,6 +28,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         file: null
     });
     const [showNewFieldForm, setShowNewFieldForm] = useState(false);
+    const [showLoopGuide, setShowLoopGuide] = useState(false);
     const [newField, setNewField] = useState({
         jsonpath: '',
         type: 'text',
@@ -608,7 +610,24 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                         <div className="card-body">
                             <form onSubmit={handleSaveNewField}>
                                 <div className="form-group">
-                                    <label>JSONPath * <a href="/LOOP_GUIDE.md" target="_blank" style={{fontSize: '0.9em'}}>(Guida)</a></label>
+                                    <label>
+                                        JSONPath *
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowLoopGuide(true)}
+                                            style={{
+                                                marginLeft: '10px',
+                                                fontSize: '0.9em',
+                                                background: 'none',
+                                                border: 'none',
+                                                color: '#0d6efd',
+                                                cursor: 'pointer',
+                                                textDecoration: 'underline'
+                                            }}
+                                        >
+                                            📖 Guida Loop & JSONPath
+                                        </button>
+                                    </label>
                                     <input
                                         type="text"
                                         className="form-control"
@@ -945,6 +964,14 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                     <p><strong>Workflow:</strong> Seleziona area → Compila form → Salva configurazione → Testa generazione PDF</p>
                 </div>
             </div>
+
+            {/* Markdown Guide Modal */}
+            <MarkdownModal
+                isOpen={showLoopGuide}
+                onClose={() => setShowLoopGuide(false)}
+                markdownUrl="/LOOP_GUIDE.md"
+                title="📚 Guida Loop & JSONPath"
+            />
         </div>
     );
 }
