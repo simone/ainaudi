@@ -529,10 +529,13 @@ function GestioneRdl({ client, setError }) {
             // Show error modal if there are failed records
             if (result.failed_records && result.failed_records.length > 0) {
                 setFailedRecords(result.failed_records);
-                // Deep copy and convert dates to ISO format
+                // Deep copy and convert dates to ISO format, add error to notes
                 setEditingRecords(result.failed_records.map(r => ({
                     ...r,
-                    data_nascita: convertDateToISO(r.data_nascita)
+                    data_nascita: convertDateToISO(r.data_nascita),
+                    note_correzione: `Errore CSV: ${r.error_message}` +
+                        (r.comune_seggio ? `\nValore originale: ${r.comune_seggio}` : '') +
+                        (r.provincia_seggio ? ` (${r.provincia_seggio})` : '')
                 })));
                 setUserTerritory(result.user_territory || []);
                 setShowErrorModal(true);
@@ -596,17 +599,6 @@ function GestioneRdl({ client, setError }) {
     const handleUpdateRecord = (index, field, value) => {
         const updated = [...editingRecords];
         updated[index] = { ...updated[index], [field]: value };
-
-        // If correcting comune_seggio, add automatic note
-        if (field === 'comune_seggio' && value !== updated[index].comune_seggio) {
-            const originalValue = failedRecords[index].comune_seggio;
-            if (!updated[index].note_correzione || !updated[index].note_correzione.includes(originalValue)) {
-                updated[index].note_correzione = (updated[index].note_correzione || '') +
-                    (updated[index].note_correzione ? '\n' : '') +
-                    `CSV originale: "${originalValue}"`;
-            }
-        }
-
         setEditingRecords(updated);
     };
 
@@ -622,10 +614,10 @@ function GestioneRdl({ client, setError }) {
 
         // Add automatic note about the correction
         if (comune.nome !== originalValue) {
-            if (!updated[index].note_correzione || !updated[index].note_correzione.includes(originalValue)) {
-                updated[index].note_correzione = (updated[index].note_correzione || '') +
-                    (updated[index].note_correzione ? '\n' : '') +
-                    `CSV originale: "${originalValue}" → corretto in "${comune.nome}"`;
+            const correctionNote = `\n→ Corretto in: ${comune.nome}`;
+            // Append correction to existing note (which already has the error)
+            if (!updated[index].note_correzione.includes('Corretto in:')) {
+                updated[index].note_correzione = (updated[index].note_correzione || '') + correctionNote;
             }
         }
 
