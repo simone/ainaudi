@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, status
 
+from core.permissions import CanAskToAIAssistant
 from .models import KnowledgeSource, ChatSession, ChatMessage
 
 
@@ -22,7 +23,7 @@ class ChatView(APIView):
         "context": "SCRUTINY"  // optional
     }
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanAskToAIAssistant]
 
     def post(self, request):
         # Check feature flag
@@ -93,7 +94,7 @@ class ChatSessionsView(APIView):
 
     GET /api/ai/sessions/
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanAskToAIAssistant]
 
     def get(self, request):
         sessions = ChatSession.objects.filter(user=request.user).order_by('-updated_at')[:20]

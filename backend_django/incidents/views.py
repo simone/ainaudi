@@ -8,6 +8,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 
+from core.permissions import CanManageIncidents
 from .models import IncidentReport, IncidentComment, IncidentAttachment
 from .serializers import (
     IncidentReportSerializer, IncidentReportCreateSerializer,
@@ -33,7 +34,7 @@ class IncidentReportViewSet(viewsets.ModelViewSet):
         'consultazione', 'sezione', 'sezione__comune',
         'reporter', 'resolved_by', 'assigned_to'
     ).prefetch_related('comments', 'attachments').all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageIncidents]
     filterset_fields = [
         'consultazione', 'sezione', 'category', 'severity', 'status',
         'reporter', 'assigned_to'
@@ -167,7 +168,7 @@ class IncidentCommentViewSet(viewsets.ModelViewSet):
     POST /api/incidents/comments/ - Create comment
     """
     queryset = IncidentComment.objects.select_related('incident', 'author').all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageIncidents]
     filterset_fields = ['incident', 'author', 'is_internal']
 
     def get_serializer_class(self):
@@ -193,7 +194,7 @@ class IncidentAttachmentViewSet(viewsets.ModelViewSet):
     """
     queryset = IncidentAttachment.objects.select_related('incident', 'uploaded_by').all()
     serializer_class = IncidentAttachmentSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageIncidents]
     parser_classes = [MultiPartParser, FormParser]
     filterset_fields = ['incident', 'file_type', 'uploaded_by']
 
