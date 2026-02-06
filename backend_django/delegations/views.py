@@ -379,6 +379,111 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
 
+    @action(detail=False, methods=['post'])
+    def upload_csv(self, request):
+        """
+        POST /api/delegations/designazioni/upload_csv/
+
+        Carica un CSV con le designazioni RDL -> Sezione.
+        Formato CSV: SEZIONE,COMUNE,MUNICIPIO,EFFETTIVO_EMAIL,SUPPLENTE_EMAIL
+
+        Ritorna: { created: N, updated: N, errors: [], total: N }
+        """
+        import csv
+        import io
+
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'error': 'Nessun file caricato'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Leggi CSV
+        try:
+            decoded_file = file.read().decode('utf-8')
+            csv_data = csv.DictReader(io.StringIO(decoded_file))
+        except Exception as e:
+            return Response({'error': f'Errore lettura CSV: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        created = 0
+        updated = 0
+        errors = []
+        total = 0
+
+        for row_num, row in enumerate(csv_data, start=2):  # Start from 2 (header is row 1)
+            total += 1
+
+            try:
+                sezione_numero = row.get('SEZIONE', '').strip()
+                comune_nome = row.get('COMUNE', '').strip().upper()
+                municipio_num = row.get('MUNICIPIO', '').strip()
+                effettivo_email = row.get('EFFETTIVO_EMAIL', '').strip().lower()
+                supplente_email = row.get('SUPPLENTE_EMAIL', '').strip().lower()
+
+                if not sezione_numero or not comune_nome:
+                    errors.append(f'Riga {row_num}: SEZIONE e COMUNE obbligatori')
+                    continue
+
+                if not effettivo_email and not supplente_email:
+                    errors.append(f'Riga {row_num}: Almeno un RDL (effettivo o supplente) obbligatorio')
+                    continue
+
+                # Trova sezione
+                from territory.models import Comune, Municipio
+
+                try:
+                    comune = Comune.objects.get(nome__iexact=comune_nome)
+                except Comune.DoesNotExist:
+                    errors.append(f'Riga {row_num}: Comune {comune_nome} non trovato')
+                    continue
+
+                sezione_qs = SezioneElettorale.objects.filter(
+                    numero=sezione_numero,
+                    comune=comune
+                )
+
+                if municipio_num:
+                    try:
+                        municipio = Municipio.objects.get(numero=int(municipio_num), comune=comune)
+                        sezione_qs = sezione_qs.filter(municipio=municipio)
+                    except (Municipio.DoesNotExist, ValueError):
+                        errors.append(f'Riga {row_num}: Municipio {municipio_num} non trovato per {comune_nome}')
+                        continue
+
+                sezione = sezione_qs.first()
+                if not sezione:
+                    errors.append(f'Riga {row_num}: Sezione {sezione_numero} non trovata in {comune_nome}')
+                    continue
+
+                # Crea designazioni
+                for email, ruolo in [(effettivo_email, 'EFFETTIVO'), (supplente_email, 'SUPPLENTE')]:
+                    if not email:
+                        continue
+
+                    # Usa la stessa logica di mappatura()
+                    serializer = MappaturaCreaSerializer(
+                        data={
+                            'sezione_id': sezione.id,
+                            'rdl_email': email,
+                            'ruolo': ruolo
+                        },
+                        context={'request': request}
+                    )
+
+                    if serializer.is_valid():
+                        serializer.save()
+                        created += 1
+                    else:
+                        errors.append(f'Riga {row_num} ({ruolo}): {serializer.errors}')
+
+            except Exception as e:
+                errors.append(f'Riga {row_num}: Errore imprevisto: {str(e)}')
+
+        return Response({
+            'created': created,
+            'updated': updated,
+            'errors': errors,
+            'total': total
+        })
+
     @action(detail=False, methods=['get'])
     def bozze_da_confermare(self, request):
         """

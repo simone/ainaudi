@@ -33,6 +33,12 @@ function GestioneDesignazioni({ client, setError }) {
     const [stats, setStats] = useState(null);
     const [designazioni, setDesignazioni] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [activeView, setActiveView] = useState('panoramica'); // 'panoramica' | 'importa'
+
+    // Upload state
+    const [file, setFile] = useState(null);
+    const [uploading, setUploading] = useState(false);
+    const [uploadResult, setUploadResult] = useState(null);
 
     useEffect(() => {
         loadData();
@@ -103,6 +109,44 @@ function GestioneDesignazioni({ client, setError }) {
         return ruolo === 'EFFETTIVO' ? 'bg-primary' : 'bg-info';
     };
 
+    const handleFileChange = (e) => {
+        const selectedFile = e.target.files[0];
+        if (selectedFile) {
+            if (!selectedFile.name.endsWith('.csv')) {
+                setError('Seleziona un file CSV');
+                return;
+            }
+            setFile(selectedFile);
+            setUploadResult(null);
+        }
+    };
+
+    const handleUpload = async () => {
+        if (!file) {
+            setError('Seleziona un file prima di caricare');
+            return;
+        }
+
+        setUploading(true);
+        setError(null);
+        setUploadResult(null);
+
+        try {
+            const res = await client.deleghe.designazioni.uploadCsv(file);
+            if (res.error) {
+                setError(res.error);
+            } else {
+                setUploadResult(res);
+                // Ricarica i dati dopo l'upload
+                loadData();
+            }
+        } catch (err) {
+            setError(`Errore durante il caricamento: ${err.message}`);
+        } finally {
+            setUploading(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="loading-container" role="status" aria-live="polite">
@@ -134,7 +178,32 @@ function GestioneDesignazioni({ client, setError }) {
                 </div>
             </div>
 
-            {stats && (
+            {/* Tab Navigation */}
+            <ul className="nav nav-tabs mb-3">
+                <li className="nav-item">
+                    <button
+                        className={`nav-link ${activeView === 'panoramica' ? 'active' : ''}`}
+                        onClick={() => setActiveView('panoramica')}
+                        aria-selected={activeView === 'panoramica'}
+                    >
+                        <i className="fas fa-chart-pie me-2"></i>
+                        Panoramica
+                    </button>
+                </li>
+                <li className="nav-item">
+                    <button
+                        className={`nav-link ${activeView === 'importa' ? 'active' : ''}`}
+                        onClick={() => setActiveView('importa')}
+                        aria-selected={activeView === 'importa'}
+                    >
+                        <i className="fas fa-file-import me-2"></i>
+                        Importa CSV
+                    </button>
+                </li>
+            </ul>
+
+            {/* Panoramica View */}
+            {activeView === 'panoramica' && stats && (
                 <>
                     {/* Summary Cards */}
                     <div className="row g-3 mb-4">
@@ -235,14 +304,14 @@ function GestioneDesignazioni({ client, setError }) {
                 </>
             )}
 
-            {/* Designazioni List */}
-            <div className="card">
-                <div className="card-header">
-                    <h5 className="mb-0">
-                        <i className="fas fa-list me-2"></i>
-                        Elenco Designazioni
-                    </h5>
-                </div>
+                    {/* Designazioni List */}
+                    <div className="card">
+                        <div className="card-header">
+                            <h5 className="mb-0">
+                                <i className="fas fa-list me-2"></i>
+                                Elenco Designazioni
+                            </h5>
+                        </div>
                 {designazioni.length === 0 ? (
                     <div className="card-body text-center text-muted py-4">
                         <i className="fas fa-inbox fa-3x mb-3"></i>
@@ -321,19 +390,150 @@ function GestioneDesignazioni({ client, setError }) {
                         </table>
                     </div>
                 )}
-            </div>
+                    </div>
 
-            {/* Refresh Button */}
-            <div className="text-center mt-3">
-                <button
-                    className="btn btn-outline-secondary"
-                    onClick={loadData}
-                    disabled={loading}
-                >
-                    <i className="fas fa-sync-alt me-2"></i>
-                    Aggiorna dati
-                </button>
-            </div>
+                    {/* Refresh Button */}
+                    <div className="text-center mt-3">
+                        <button
+                            className="btn btn-outline-secondary"
+                            onClick={loadData}
+                            disabled={loading}
+                        >
+                            <i className="fas fa-sync-alt me-2"></i>
+                            Aggiorna dati
+                        </button>
+                    </div>
+                </>
+            )}
+
+            {/* Import CSV View */}
+            {activeView === 'importa' && (
+                <>
+                    <div className="card">
+                        <div className="card-header bg-info text-white">
+                            <i className="fas fa-file-import me-2"></i>
+                            Importa Designazioni da CSV
+                        </div>
+                        <div className="card-body">
+                            <p className="alert alert-info">
+                                <i className="fas fa-info-circle me-2"></i>
+                                <strong>Mappatura del territorio:</strong> Carica un file CSV con le designazioni RDL create dai Sub-Delegati.
+                                <br/>
+                                Il sistema creerà automaticamente le designazioni per ogni sezione specificata.
+                            </p>
+
+                            <p className="text-muted">
+                                Il file CSV deve avere le seguenti colonne:
+                            </p>
+                            <ul className="text-muted">
+                                <li><strong>SEZIONE</strong> *: Numero della sezione</li>
+                                <li><strong>COMUNE</strong> *: Nome del comune (es. ROMA)</li>
+                                <li><strong>MUNICIPIO</strong>: Numero del municipio (opzionale, per città con municipi)</li>
+                                <li><strong>EFFETTIVO_EMAIL</strong>: Email del RDL effettivo (opzionale se c'è supplente)</li>
+                                <li><strong>SUPPLENTE_EMAIL</strong>: Email del RDL supplente (opzionale se c'è effettivo)</li>
+                            </ul>
+
+                            <div className="mb-3">
+                                <label htmlFor="csvFile" className="form-label">Seleziona file CSV</label>
+                                <input
+                                    type="file"
+                                    className="form-control"
+                                    id="csvFile"
+                                    accept=".csv"
+                                    onChange={handleFileChange}
+                                    disabled={uploading}
+                                    aria-describedby="csvHelp"
+                                />
+                                <div id="csvHelp" className="form-text">
+                                    Formati supportati: .csv (separatore virgola)
+                                </div>
+                            </div>
+
+                            {file && (
+                                <div className="alert alert-info d-flex align-items-center">
+                                    <i className="fas fa-file-csv me-2"></i>
+                                    <div>
+                                        <strong>{file.name}</strong>
+                                        <span className="text-muted ms-2">({(file.size / 1024).toFixed(1)} KB)</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            <button
+                                className="btn btn-primary"
+                                onClick={handleUpload}
+                                disabled={!file || uploading}
+                            >
+                                {uploading ? (
+                                    <>
+                                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        Caricamento in corso...
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fas fa-cloud-upload-alt me-2"></i>
+                                        Importa Designazioni
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+
+                    {uploadResult && (
+                        <div className={`alert ${uploadResult.errors?.length ? 'alert-warning' : 'alert-success'} mt-3`}>
+                            <h5>
+                                <i className={`fas ${uploadResult.errors?.length ? 'fa-exclamation-triangle' : 'fa-check-circle'} me-2`}></i>
+                                Importazione completata
+                            </h5>
+                            <ul className="mb-0">
+                                <li>Designazioni create: <strong>{uploadResult.created}</strong></li>
+                                <li>Designazioni aggiornate: <strong>{uploadResult.updated}</strong></li>
+                                <li>Totale elaborato: <strong>{uploadResult.total}</strong></li>
+                            </ul>
+                            {uploadResult.errors?.length > 0 && (
+                                <div className="mt-2">
+                                    <strong>Errori:</strong>
+                                    <ul className="mb-0">
+                                        {uploadResult.errors.slice(0, 10).map((err, i) => (
+                                            <li key={i} className="text-danger small">{err}</li>
+                                        ))}
+                                        {uploadResult.errors.length > 10 && (
+                                            <li className="text-muted small">... e altri {uploadResult.errors.length - 10} errori</li>
+                                        )}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="card mt-3">
+                        <div className="card-header">
+                            <i className="fas fa-code me-2"></i>
+                            Esempio formato CSV
+                        </div>
+                        <div className="card-body">
+                            <pre className="mb-0 bg-light p-3 rounded" style={{ fontSize: '0.85em' }}>
+{`SEZIONE,COMUNE,MUNICIPIO,EFFETTIVO_EMAIL,SUPPLENTE_EMAIL
+1,ROMA,3,mario.rossi@example.com,anna.bianchi@example.com
+2,ROMA,1,luigi.verdi@example.com,
+3,ROMA,1,,maria.gialli@example.com
+1,MENTANA,,paolo.neri@example.com,carla.blu@example.com
+...`}
+                            </pre>
+                            <p className="text-muted small mt-2 mb-0">
+                                <i className="fas fa-lightbulb me-1"></i>
+                                <strong>Note:</strong>
+                            </p>
+                            <ul className="text-muted small">
+                                <li>Almeno una email (effettivo o supplente) deve essere presente</li>
+                                <li>Se il comune non ha municipi, lascia vuota la colonna MUNICIPIO</li>
+                                <li>Gli RDL devono essere già registrati nel sistema e approvati</li>
+                                <li>Se la designazione esiste già, verrà aggiornata</li>
+                            </ul>
+                        </div>
+                    </div>
+                </>
+            )}
         </>
     );
 }

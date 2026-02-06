@@ -593,6 +593,20 @@ const Client = (server, pdfServer, token) => {
                     return { error: error.message };
                 }),
 
+            // Upload CSV con designazioni
+            uploadCsv: async (file) => {
+                const formData = new FormData();
+                formData.append('file', file);
+                return fetch(`${server}/api/delegations/designazioni/upload_csv/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': authHeader },
+                    body: formData
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                });
+            },
+
             // Lista bozze da confermare
             bozzeDaConfermare: async (filters = {}) => {
                 const params = new URLSearchParams();
