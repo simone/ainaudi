@@ -12,6 +12,16 @@ const fetchWithCacheAndRetry = (key, ttl = 60) => async (url, options, retries =
     for (let i = 0; i < retries; i++) {
         try {
             const response = await fetch(url, options);
+
+            // Handle permission errors (403) without retry
+            if (response.status === 403) {
+                const errorData = await response.json().catch(() => ({}));
+                const error = new Error(errorData.error || errorData.detail || 'Non hai i permessi necessari per questa operazione');
+                error.status = 403;
+                error.isPermissionError = true;
+                throw error;
+            }
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -19,6 +29,11 @@ const fetchWithCacheAndRetry = (key, ttl = 60) => async (url, options, retries =
             cache.set(key, { data, timestamp: now });
             return data;
         } catch (error) {
+            // Don't retry permission errors
+            if (error.isPermissionError) {
+                throw error;
+            }
+
             console.error(`Attempt ${i + 1} failed: ${error.message}`);
             if (i < retries - 1) {
                 await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
@@ -35,6 +50,16 @@ const fetchAndInvalidate = (keys) => async (url, options) => {
     }
     try {
         const response = await fetch(url, options);
+
+        // Handle permission errors (403)
+        if (response.status === 403) {
+            const errorData = await response.json().catch(() => ({}));
+            const error = new Error(errorData.error || errorData.detail || 'Non hai i permessi necessari per questa operazione');
+            error.status = 403;
+            error.isPermissionError = true;
+            throw error;
+        }
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }

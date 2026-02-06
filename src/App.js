@@ -37,10 +37,30 @@ function AppContent() {
     const [activeTab, setActiveTab] = useState(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [permissions, setPermissions] = useState({
+        // Nuovi permessi granulari Django
+        is_superuser: false,
+        can_manage_territory: false,
+        can_view_kpi: false,
+        can_manage_elections: false,
+        can_manage_delegations: false,
+        can_manage_rdl: false,
+        has_scrutinio_access: false,
+        can_view_resources: false,
+        can_ask_to_ai_assistant: false,
+        can_generate_documents: false,
+        can_manage_incidents: false,
+
+        // Info catena deleghe
+        is_delegato: false,
+        is_sub_delegato: false,
+        is_rdl: false,
+
+        // Backwards compatibility (deprecati)
         sections: false,
         referenti: false,
         kpi: false,
-        gestione_rdl: false
+        gestione_rdl: false,
+        upload_sezioni: false
     });
     const [showRdlRegistration, setShowRdlRegistration] = useState(false);
     const [campagnaSlug, setCampagnaSlug] = useState(null);
@@ -119,15 +139,29 @@ function AppContent() {
                     return;
                 }
                 setPermissions(perms);
-                if (!perms.sections && !perms.referenti && !perms.kpi) {
+
+                // Verifica se l'utente ha almeno un permesso significativo
+                const hasAnyPermission = (
+                    perms.is_superuser ||
+                    perms.can_manage_territory ||
+                    perms.can_view_kpi ||
+                    perms.can_manage_elections ||
+                    perms.can_manage_delegations ||
+                    perms.can_manage_rdl ||
+                    perms.has_scrutinio_access ||
+                    perms.can_generate_documents ||
+                    perms.can_manage_incidents
+                );
+
+                if (!hasAnyPermission) {
                     setError(`La mail ${user.email} non ha permessi per accedere ad alcuna sezione`);
                     setTimeout(() => {
                         handleSignoutClick();
                     }, 2000);
-                } else if (perms.referenti || perms.kpi) {
+                } else if (perms.can_manage_delegations || perms.can_view_kpi || perms.is_superuser) {
                     // Delegati/Sub-delegati/Admin vedono la dashboard
                     setActiveTab('dashboard');
-                } else if (perms.sections) {
+                } else if (perms.has_scrutinio_access) {
                     // RDL semplici vanno direttamente a Scrutinio
                     setActiveTab('sections');
                 }
@@ -367,7 +401,7 @@ function AppContent() {
                                 <div className={`collapse navbar-collapse ${isMenuOpen ? 'show' : ''}`} id="navbarNav">
                                     <ul className="navbar-nav me-auto mb-2 mb-lg-0">
                                         {/* 1. HOME - solo per delegati/sub-delegati/admin, non per RDL semplici */}
-                                        {(permissions.referenti || permissions.kpi) && (
+                                        {(permissions.can_manage_delegations || permissions.can_view_kpi || permissions.is_superuser) && (
                                             <li className="nav-item">
                                                 <a className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
                                                    onClick={() => activate('dashboard')} href="#">
@@ -377,8 +411,8 @@ function AppContent() {
                                             </li>
                                         )}
 
-                                        {/* 2. TERRITORIO - solo superuser */}
-                                        {user?.is_superuser && (
+                                        {/* 2. TERRITORIO - solo superuser o can_manage_territory */}
+                                        {(permissions.is_superuser || permissions.can_manage_territory) && (
                                             <li className="nav-item">
                                                 <a className={`nav-link ${activeTab === 'territorio_admin' ? 'active' : ''}`}
                                                    onClick={() => activate('territorio_admin')} href="#">
@@ -388,8 +422,8 @@ function AppContent() {
                                             </li>
                                         )}
 
-                                        {/* 3. CONSULTAZIONE - Menu dinamico con tipologie elezione */}
-                                        {consultazione && permissions.referenti && consultazione.schede && consultazione.schede.length > 0 && (
+                                        {/* 3. CONSULTAZIONE - Menu dinamico con tipologie elezione (solo per chi gestisce elezioni) */}
+                                        {consultazione && permissions.can_manage_elections && consultazione.schede && consultazione.schede.length > 0 && (
                                             <li className="nav-item dropdown">
                                                 <a className={`nav-link dropdown-toggle ${activeTab === 'scheda' ? 'active' : ''}`}
                                                    href="#"
@@ -420,7 +454,7 @@ function AppContent() {
                                         )}
 
                                         {/* 4. DELEGATI - Catena deleghe e designazioni */}
-                                        {(permissions.referenti || pdf) && (
+                                        {(permissions.can_manage_delegations || permissions.can_generate_documents) && (
                                             <li className="nav-item dropdown">
                                                 <a className={`nav-link dropdown-toggle ${['deleghe', 'designazioni', 'pdf', 'template_list', 'template_editor'].includes(activeTab) ? 'active' : ''}`}
                                                    href="#"
@@ -431,7 +465,7 @@ function AppContent() {
                                                     Delegati
                                                 </a>
                                                 <ul className={`dropdown-menu dropdown-menu-dark ${isDelegheDropdownOpen ? 'show' : ''}`}>
-                                                    {permissions.referenti && (
+                                                    {permissions.can_manage_delegations && (
                                                         <li>
                                                             <a className={`dropdown-item ${activeTab === 'deleghe' ? 'active' : ''}`}
                                                                onClick={() => { activate('deleghe'); closeAllDropdowns(); }} href="#">
@@ -440,7 +474,7 @@ function AppContent() {
                                                             </a>
                                                         </li>
                                                     )}
-                                                    {permissions.referenti && (
+                                                    {permissions.can_manage_delegations && (
                                                         <li>
                                                             <a className={`dropdown-item ${activeTab === 'designazioni' ? 'active' : ''}`}
                                                                onClick={() => { activate('designazioni'); closeAllDropdowns(); }} href="#">
@@ -449,7 +483,7 @@ function AppContent() {
                                                             </a>
                                                         </li>
                                                     )}
-                                                    {consultazione && permissions.referenti && (
+                                                    {consultazione && permissions.can_generate_documents && (
                                                         <li>
                                                             <a className={`dropdown-item ${activeTab === 'template_list' ? 'active' : ''}`}
                                                                onClick={() => { activate('template_list'); setTemplateIdToEdit(null); closeAllDropdowns(); }} href="#">
@@ -458,7 +492,7 @@ function AppContent() {
                                                             </a>
                                                         </li>
                                                     )}
-                                                    {consultazione && pdf && (
+                                                    {consultazione && permissions.can_generate_documents && (
                                                         <li>
                                                             <a className={`dropdown-item ${activeTab === 'pdf' ? 'active' : ''}`}
                                                                onClick={() => { activate('pdf'); closeAllDropdowns(); }} href="#">
@@ -472,7 +506,7 @@ function AppContent() {
                                         )}
 
                                         {/* 5. RDL - Gestione RDL */}
-                                        {(permissions.referenti || permissions.gestione_rdl) && (
+                                        {(permissions.can_manage_rdl || permissions.can_manage_territory || permissions.can_manage_delegations) && (
                                             <li className="nav-item dropdown">
                                                 <a className={`nav-link dropdown-toggle ${['campagne', 'gestione_rdl', 'designazione', 'sezioni'].includes(activeTab) ? 'active' : ''}`}
                                                    href="#"
@@ -483,7 +517,7 @@ function AppContent() {
                                                     RDL
                                                 </a>
                                                 <ul className={`dropdown-menu dropdown-menu-dark ${isRdlDropdownOpen ? 'show' : ''}`}>
-                                                    {permissions.referenti && (
+                                                    {permissions.can_manage_rdl && (
                                                         <li>
                                                             <a className={`dropdown-item ${activeTab === 'campagne' ? 'active' : ''}`}
                                                                onClick={() => { activate('campagne'); closeAllDropdowns(); }} href="#">
@@ -492,7 +526,7 @@ function AppContent() {
                                                             </a>
                                                         </li>
                                                     )}
-                                                    {permissions.gestione_rdl && (
+                                                    {permissions.can_manage_rdl && (
                                                         <li>
                                                             <a className={`dropdown-item ${activeTab === 'gestione_rdl' ? 'active' : ''}`}
                                                                onClick={() => { activate('gestione_rdl'); closeAllDropdowns(); }} href="#">
@@ -501,7 +535,7 @@ function AppContent() {
                                                             </a>
                                                         </li>
                                                     )}
-                                                    {permissions.referenti && (
+                                                    {permissions.can_manage_territory && (
                                                         <li>
                                                             <a className={`dropdown-item ${activeTab === 'sezioni' ? 'active' : ''}`}
                                                                onClick={() => { activate('sezioni'); closeAllDropdowns(); }} href="#">
@@ -510,7 +544,7 @@ function AppContent() {
                                                             </a>
                                                         </li>
                                                     )}
-                                                    {consultazione && permissions.referenti && (
+                                                    {consultazione && permissions.can_manage_delegations && (
                                                         <li>
                                                             <a className={`dropdown-item ${activeTab === 'designazione' ? 'active' : ''}`}
                                                                onClick={() => { activate('designazione'); closeAllDropdowns(); }} href="#">
@@ -524,7 +558,7 @@ function AppContent() {
                                         )}
 
                                         {/* 6. SCRUTINIO */}
-                                        {consultazione && permissions.sections && (
+                                        {consultazione && permissions.has_scrutinio_access && (
                                             <li className="nav-item">
                                                 <a className={`nav-link ${activeTab === 'sections' ? 'active' : ''}`}
                                                    onClick={() => activate('sections')} href="#">
@@ -535,7 +569,7 @@ function AppContent() {
                                         )}
 
                                         {/* 7. DIRETTA (KPI) - visibile solo quando ci sono contributi */}
-                                        {consultazione && permissions.kpi && hasContributions && (
+                                        {consultazione && permissions.can_view_kpi && hasContributions && (
                                             <li className="nav-item">
                                                 <a className={`nav-link ${activeTab === 'kpi' ? 'active' : ''}`}
                                                    onClick={() => activate('kpi')} href="#">
@@ -615,8 +649,8 @@ function AppContent() {
                 )}
                 {consultazione && (
                     <div className="consultazione-switcher position-relative">
-                        {/* Solo delegati/sub-delegati/admin possono switchare consultazione */}
-                        {permissions.referenti ? (
+                        {/* Solo chi può gestire elezioni o delegazioni può switchare consultazione */}
+                        {(permissions.can_manage_elections || permissions.can_manage_delegations || permissions.is_superuser) ? (
                             <>
                                 <div
                                     className="alert alert-primary d-flex align-items-center justify-content-between mb-3"
