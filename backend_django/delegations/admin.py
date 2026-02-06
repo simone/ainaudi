@@ -24,13 +24,25 @@ class SubDelegaInline(admin.TabularInline):
 
 
 class DesignazioneRDLInline(admin.TabularInline):
-    """Inline per vedere le designazioni fatte da una sub-delega."""
+    """Inline per vedere le designazioni fatte da una sub-delega (SNAPSHOT FIELDS)."""
     model = DesignazioneRDL
     extra = 0
-    fields = ['sezione', 'ruolo', 'cognome', 'nome', 'email', 'stato', 'is_attiva']
-    readonly_fields = ['sezione', 'ruolo', 'cognome', 'nome', 'email', 'stato', 'is_attiva']
+    fields = ['sezione', 'effettivo_display', 'supplente_display', 'stato', 'is_attiva']
+    readonly_fields = ['sezione', 'effettivo_display', 'supplente_display', 'stato', 'is_attiva']
     show_change_link = True
     can_delete = False
+
+    def effettivo_display(self, obj):
+        if obj.effettivo_email:
+            return f"{obj.effettivo_cognome} {obj.effettivo_nome}"
+        return "-"
+    effettivo_display.short_description = _('Effettivo')
+
+    def supplente_display(self, obj):
+        if obj.supplente_email:
+            return f"{obj.supplente_cognome} {obj.supplente_nome}"
+        return "-"
+    supplente_display.short_description = _('Supplente')
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -210,14 +222,20 @@ class SubDelegaAdmin(admin.ModelAdmin):
 
 @admin.register(DesignazioneRDL)
 class DesignazioneRDLAdmin(admin.ModelAdmin):
+    """Admin per DesignazioneRDL (SNAPSHOT FIELDS: campi diretti immutabili)."""
     list_display = [
-        'sezione', 'ruolo_display', 'nome_completo', 'email',
-        'stato_display', 'designante_display', 'has_documento', 'is_attiva'
+        'sezione', 'effettivo_display', 'supplente_display',
+        'stato_display', 'designante_display', 'batch_pdf', 'is_attiva'
     ]
-    list_filter = ['stato', 'ruolo', 'is_attiva', 'sub_delega__delegato__consultazione']
-    search_fields = ['cognome', 'nome', 'email', 'sezione__numero']
-    ordering = ['stato', 'sezione', 'ruolo']
-    autocomplete_fields = ['delegato', 'sub_delega', 'sezione']
+    list_filter = ['stato', 'is_attiva', 'sub_delega__delegato__consultazione']
+    search_fields = [
+        'sezione__numero',
+        'sezione__comune__nome',
+        'effettivo_cognome', 'effettivo_nome', 'effettivo_email',
+        'supplente_cognome', 'supplente_nome', 'supplente_email'
+    ]
+    ordering = ['stato', 'sezione']
+    autocomplete_fields = ['delegato', 'sub_delega', 'sezione', 'batch_pdf']
     actions = ['approva_bozze', 'rifiuta_bozze']
 
     fieldsets = (
@@ -225,21 +243,22 @@ class DesignazioneRDLAdmin(admin.ModelAdmin):
             'fields': ('delegato', 'sub_delega'),
             'description': _('Specificare il Delegato (designazione diretta) OPPURE il Sub-Delegato')
         }),
-        (_('Sezione e Ruolo'), {
-            'fields': ('sezione', 'ruolo')
+        (_('Sezione'), {
+            'fields': ('sezione',)
+        }),
+        (_('RDL Effettivo (snapshot dati)'), {
+            'fields': ('effettivo_cognome', 'effettivo_nome', 'effettivo_email', 'effettivo_telefono',
+                      'effettivo_luogo_nascita', 'effettivo_data_nascita', 'effettivo_domicilio'),
+            'classes': ('collapse',)
+        }),
+        (_('RDL Supplente (snapshot dati)'), {
+            'fields': ('supplente_cognome', 'supplente_nome', 'supplente_email', 'supplente_telefono',
+                      'supplente_luogo_nascita', 'supplente_data_nascita', 'supplente_domicilio'),
+            'classes': ('collapse',)
         }),
         (_('Stato designazione'), {
-            'fields': ('stato',),
+            'fields': ('stato', 'batch_pdf'),
             'description': _('BOZZA = in attesa approvazione Delegato, CONFERMATA = designazione valida')
-        }),
-        (_('Dati anagrafici RDL'), {
-            'fields': ('cognome', 'nome', 'luogo_nascita', 'data_nascita', 'domicilio')
-        }),
-        (_('Contatti'), {
-            'fields': ('email', 'telefono')
-        }),
-        (_('Documento'), {
-            'fields': ('documento_designazione', 'data_generazione_documento')
         }),
         (_('Approvazione'), {
             'fields': ('approvata_da_email', 'data_approvazione'),
@@ -252,15 +271,23 @@ class DesignazioneRDLAdmin(admin.ModelAdmin):
     )
     readonly_fields = ['approvata_da_email', 'data_approvazione']
 
-    def nome_completo(self, obj):
-        return f"{obj.cognome} {obj.nome}"
-    nome_completo.short_description = _('RDL')
-    nome_completo.admin_order_field = 'cognome'
+    def effettivo_display(self, obj):
+        if obj.effettivo_email:
+            return format_html(
+                '<strong>{} {}</strong><br><small>{}</small>',
+                obj.effettivo_cognome, obj.effettivo_nome, obj.effettivo_email
+            )
+        return format_html('<span class="text-muted">-</span>')
+    effettivo_display.short_description = _('Effettivo')
 
-    def ruolo_display(self, obj):
-        color = 'primary' if obj.ruolo == 'EFFETTIVO' else 'secondary'
-        return format_html('<span class="badge bg-{}">{}</span>', color, obj.get_ruolo_display())
-    ruolo_display.short_description = _('Ruolo')
+    def supplente_display(self, obj):
+        if obj.supplente_email:
+            return format_html(
+                '<strong>{} {}</strong><br><small>{}</small>',
+                obj.supplente_cognome, obj.supplente_nome, obj.supplente_email
+            )
+        return format_html('<span class="text-muted">-</span>')
+    supplente_display.short_description = _('Supplente')
 
     def stato_display(self, obj):
         colors = {
@@ -275,12 +302,6 @@ class DesignazioneRDLAdmin(admin.ModelAdmin):
     def designante_display(self, obj):
         return obj.designante_nome
     designante_display.short_description = _('Designato da')
-
-    def has_documento(self, obj):
-        if obj.documento_designazione:
-            return format_html('<a href="{}" target="_blank">PDF</a>', obj.documento_designazione.url)
-        return '-'
-    has_documento.short_description = _('Doc')
 
     @admin.action(description=_('Approva bozze selezionate'))
     def approva_bozze(self, request, queryset):
@@ -303,9 +324,11 @@ class DesignazioneRDLAdmin(admin.ModelAdmin):
 
 @admin.register(BatchGenerazioneDocumenti)
 class BatchGenerazioneDocumentiAdmin(admin.ModelAdmin):
-    list_display = ['sub_delega', 'tipo', 'stato', 'n_designazioni', 'created_at']
-    list_filter = ['tipo', 'stato']
+    list_display = ['consultazione', 'tipo', 'stato', 'n_designazioni', 'created_at']
+    list_filter = ['tipo', 'stato', 'consultazione']
+    search_fields = ['consultazione__nome', 'created_by_email']
     ordering = ['-created_at']
+    autocomplete_fields = ['consultazione']
     readonly_fields = ['n_designazioni', 'n_pagine', 'data_generazione', 'created_at', 'created_by_email']
 
     def save_model(self, request, obj, form, change):

@@ -17,7 +17,7 @@ from .serializers import (
     DesignazioneRDLSerializer, DesignazioneRDLCreateSerializer, DesignazioneRDLListSerializer,
     BatchGenerazioneDocumentiSerializer,
     MiaCatenaSerializer, SezioneDisponibileSerializer,
-    RdlRegistrationForMappatura, MappaturaCreaSerializer,
+    RdlRegistrationForMappatura,
     ConfermaDesignazioneSerializer, RifiutaDesignazioneSerializer,
 )
 
@@ -91,7 +91,10 @@ class MiaCatenaView(views.APIView):
                 )
 
         # RDL?
-        designazioni_ricevute = DesignazioneRDL.objects.filter(email=user.email, is_attiva=True)
+        designazioni_ricevute = DesignazioneRDL.objects.filter(
+            Q(effettivo_email=user.email) | Q(supplente_email=user.email),
+            is_attiva=True
+        )
         if consultazione:
             designazioni_ricevute = designazioni_ricevute.filter(
                 sub_delega__delegato__consultazione=consultazione
@@ -267,9 +270,17 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         # Per ogni sezione, verifica se ha gia' effettivo/supplente
         result = []
         for sez in sezioni:
-            designazioni = DesignazioneRDL.objects.filter(sezione=sez, is_attiva=True)
-            ha_effettivo = designazioni.filter(ruolo='EFFETTIVO').exists()
-            ha_supplente = designazioni.filter(ruolo='SUPPLENTE').exists()
+            designazione = DesignazioneRDL.objects.filter(
+                sezione=sez,
+                is_attiva=True,
+                stato='CONFERMATA'
+            ).first()
+
+            ha_effettivo = False
+            ha_supplente = False
+            if designazione:
+                ha_effettivo = bool(designazione.effettivo_email)
+                ha_supplente = bool(designazione.supplente_email)
 
             result.append({
                 'id': sez.id,
@@ -335,13 +346,15 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         result = []
         for reg in qs:
             # Cerca designazioni esistenti per questo RDL (per email)
-            designazioni = DesignazioneRDL.objects.filter(
-                email=reg.email,
+            designazione_effettivo = DesignazioneRDL.objects.filter(
+                effettivo_email=reg.email,
                 is_attiva=True
-            ).exclude(stato='REVOCATA')
+            ).exclude(stato='REVOCATA').first()
 
-            eff = designazioni.filter(ruolo='EFFETTIVO').first()
-            sup = designazioni.filter(ruolo='SUPPLENTE').first()
+            designazione_supplente = DesignazioneRDL.objects.filter(
+                supplente_email=reg.email,
+                is_attiva=True
+            ).exclude(stato='REVOCATA').first()
 
             result.append({
                 'id': reg.id,
@@ -356,28 +369,13 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
                 'comune': {'id': reg.comune.id, 'nome': reg.comune.nome},
                 'municipio': {'id': reg.municipio.id, 'nome': reg.municipio.nome} if reg.municipio else None,
                 'seggio_preferenza': reg.seggio_preferenza,
-                'designazione_effettivo_id': eff.id if eff else None,
-                'designazione_supplente_id': sup.id if sup else None,
+                'designazione_effettivo_id': designazione_effettivo.id if designazione_effettivo else None,
+                'designazione_supplente_id': designazione_supplente.id if designazione_supplente else None,
             })
 
         return Response(result)
 
-    @action(detail=False, methods=['post'])
-    def mappatura(self, request):
-        """
-        POST /api/deleghe/designazioni/mappatura/
-
-        Crea una nuova designazione (mappatura RDL -> Sezione).
-        Se l'utente ha firma autenticata, la designazione è CONFERMATA.
-        Altrimenti è in stato BOZZA e richiede conferma.
-        """
-        serializer = MappaturaCreaSerializer(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        designazione = serializer.save()
-        return Response(
-            DesignazioneRDLSerializer(designazione).data,
-            status=status.HTTP_201_CREATED
-        )
+    # mappatura endpoint removed - use carica_mappatura instead
 
     @action(detail=False, methods=['post'])
     def carica_mappatura(self, request):
@@ -387,9 +385,13 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         "Fotografa" tutte le assegnazioni (SectionAssignment) nel territorio del delegato
         e crea le designazioni formali (DesignazioneRDL) corrispondenti.
 
-        Questo converte la mappatura operativa fatta tramite app in designazioni formali.
+        NUOVO COMPORTAMENTO (1 record per seggio):
+        - Raggruppa SectionAssignment per sezione (effettivo + supplente)
+        - Crea 1 DesignazioneRDL per seggio con entrambi i ruoli
+        - BOZZE: Sovrascritte sempre
+        - CONFERMATE: Skippa se identiche, segnala se discrepanza
 
-        Ritorna: { created: N, skipped: N, errors: [], total: N }
+        Ritorna: { created: N, updated: N, skipped: N, warnings: [], errors: [], total: N }
         """
         from data.models import SectionAssignment
 
@@ -428,91 +430,250 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
 
         # Ottieni ruoli per trovare sub-deleghe e delegati
         roles = get_user_delegation_roles(user, consultazione_id)
-        sub_deleghe = roles['sub_deleghe']
-        delegati = roles['deleghe_lista']
+        sub_deleghe = roles['sub_deleghe'].prefetch_related('regioni', 'province', 'comuni')
+        delegati = roles['deleghe_lista'].prefetch_related('territorio_regioni', 'territorio_province', 'territorio_comuni')
 
         # Prendi tutte le SectionAssignment nel territorio
         assignments = SectionAssignment.objects.filter(
             sezione_id__in=sezioni_ids,
             consultazione=consultazione
-        ).select_related('rdl_registration', 'sezione', 'sezione__comune')
+        ).select_related('rdl_registration', 'sezione', 'sezione__comune', 'sezione__comune__provincia', 'sezione__comune__provincia__regione', 'sezione__municipio')
+
+        # NUOVO: Raggruppa per sezione: {sezione_id: {'effettivo': rdl, 'supplente': rdl}}
+        sezioni_map = {}
+        for assignment in assignments:
+            if not assignment.rdl_registration:
+                continue
+
+            sezione_id = assignment.sezione_id
+            if sezione_id not in sezioni_map:
+                sezioni_map[sezione_id] = {
+                    'sezione': assignment.sezione,
+                    'effettivo': None,
+                    'supplente': None
+                }
+
+            if assignment.role == 'RDL':
+                sezioni_map[sezione_id]['effettivo'] = assignment.rdl_registration
+            elif assignment.role == 'SUPPLENTE':
+                sezioni_map[sezione_id]['supplente'] = assignment.rdl_registration
 
         created = 0
+        updated = 0
         skipped = 0
+        warnings = []
         errors = []
-        total = 0
 
-        for assignment in assignments:
-            total += 1
+        # Helper function per verificare se una sezione matcha una sub-delega
+        def sezione_matches_subdelega(sezione, sd):
+            """Verifica se una sezione è coperta da una sub-delega usando la stessa logica di get_sezioni_filter_for_user"""
+            # Check regioni
+            regioni_ids = list(sd.regioni.values_list('id', flat=True))
+            if regioni_ids:
+                if sezione.comune and sezione.comune.provincia and sezione.comune.provincia.regione_id in regioni_ids:
+                    return True
+
+            # Check province
+            province_ids = list(sd.province.values_list('id', flat=True))
+            if province_ids:
+                if sezione.comune and sezione.comune.provincia_id in province_ids:
+                    return True
+
+            # Check comuni + municipi (con logica AND/OR corretta)
+            comuni_ids = list(sd.comuni.values_list('id', flat=True))
+            municipi_nums = sd.municipi
+
+            if comuni_ids and municipi_nums:
+                # Comuni E municipi: solo quei municipi di quei comuni
+                if sezione.comune_id in comuni_ids and sezione.municipio and sezione.municipio.numero in municipi_nums:
+                    return True
+            elif comuni_ids:
+                # Solo comuni: tutte le sezioni di quei comuni
+                if sezione.comune_id in comuni_ids:
+                    return True
+            elif municipi_nums:
+                # Solo municipi: tutte le sezioni in quei municipi
+                if sezione.municipio and sezione.municipio.numero in municipi_nums:
+                    return True
+
+            return False
+
+        # Helper function per verificare se una sezione matcha un delegato
+        def sezione_matches_delegato(sezione, delegato):
+            """Verifica se una sezione è coperta da un delegato"""
+            # Check regioni (territorio_regioni)
+            regioni_ids = list(delegato.territorio_regioni.values_list('id', flat=True))
+            if regioni_ids:
+                if sezione.comune and sezione.comune.provincia and sezione.comune.provincia.regione_id in regioni_ids:
+                    return True
+
+            # Check province (territorio_province)
+            province_ids = list(delegato.territorio_province.values_list('id', flat=True))
+            if province_ids:
+                if sezione.comune and sezione.comune.provincia_id in province_ids:
+                    return True
+
+            # Check comuni + municipi
+            comuni_ids = list(delegato.territorio_comuni.values_list('id', flat=True))
+            municipi_nums = delegato.territorio_municipi
+
+            if comuni_ids and municipi_nums:
+                if sezione.comune_id in comuni_ids and sezione.municipio and sezione.municipio.numero in municipi_nums:
+                    return True
+            elif comuni_ids:
+                if sezione.comune_id in comuni_ids:
+                    return True
+            elif municipi_nums:
+                if sezione.municipio and sezione.municipio.numero in municipi_nums:
+                    return True
+
+            return False
+
+        for sezione_id, data in sezioni_map.items():
+            sezione = data['sezione']
+            effettivo = data['effettivo']
+            supplente = data['supplente']
+
+            if not effettivo and not supplente:
+                continue  # Nessun RDL da importare
 
             try:
-                # Mappa role: SectionAssignment usa 'RDL'/'SUPPLENTE', DesignazioneRDL usa 'EFFETTIVO'/'SUPPLENTE'
-                ruolo_rdl = 'EFFETTIVO' if assignment.role == 'RDL' else 'SUPPLENTE'
-
-                # Controlla se esiste già una designazione
-                existing = DesignazioneRDL.objects.filter(
-                    sezione=assignment.sezione,
-                    email=assignment.rdl_registration.email,
-                    ruolo=ruolo_rdl,
-                    is_attiva=True
-                ).first()
-
-                if existing:
-                    skipped += 1
-                    continue
-
                 # Trova sub-delega o delegato appropriato
                 sub_delega = None
                 delegato_diretto = None
 
-                # Cerca sub-delega che copre questo territorio
                 for sd in sub_deleghe:
-                    if assignment.sezione.comune in sd.comuni.all():
-                        # Verifica municipi se necessario
-                        if sd.municipi and isinstance(sd.municipi, list) and len(sd.municipi) > 0:
-                            # sd.municipi è una lista di numeri, verifica se il municipio della sezione è nella lista
-                            if assignment.sezione.municipio and assignment.sezione.municipio.numero in sd.municipi:
-                                sub_delega = sd
-                                break
-                        else:
-                            # Nessun municipio specifico, sub-delega copre tutto il comune
-                            sub_delega = sd
-                            break
+                    if sezione_matches_subdelega(sezione, sd):
+                        sub_delega = sd
+                        break
 
-                # Se non trova sub-delega, cerca delegato diretto
                 if not sub_delega:
                     for delegato in delegati:
-                        if assignment.sezione.comune.provincia.regione in delegato.regioni.all():
+                        if sezione_matches_delegato(sezione, delegato):
                             delegato_diretto = delegato
                             break
 
                 if not sub_delega and not delegato_diretto:
-                    errors.append(f'Sezione {assignment.sezione}: nessuna delega trovata')
+                    errors.append(f'Sezione {sezione}: nessuna delega trovata')
                     continue
 
-                # Crea designazione
-                designazione = DesignazioneRDL.objects.create(
-                    sezione=assignment.sezione,
-                    sub_delega=sub_delega,
-                    delegato=delegato_diretto,
-                    email=assignment.rdl_registration.email,
-                    nome=assignment.rdl_registration.nome,
-                    cognome=assignment.rdl_registration.cognome,
-                    telefono=assignment.rdl_registration.telefono or '',
-                    ruolo=ruolo_rdl,
-                    stato='CONFERMATA' if (sub_delega and sub_delega.tipo_delega == 'FIRMA_AUTENTICATA') or delegato_diretto else 'BOZZA',
+                # Controlla se esiste già una designazione per questa sezione
+                existing = DesignazioneRDL.objects.filter(
+                    sezione=sezione,
                     is_attiva=True
-                )
+                ).first()
+
+                if existing:
+                    if existing.stato == 'CONFERMATA':
+                        # Verifica se identica (confronta per email)
+                        effettivo_match = (not effettivo and not existing.effettivo_email) or \
+                                         (effettivo and existing.effettivo_email == effettivo.email)
+                        supplente_match = (not supplente and not existing.supplente_email) or \
+                                         (supplente and existing.supplente_email == supplente.email)
+
+                        if effettivo_match and supplente_match:
+                            skipped += 1
+                            continue
+                        else:
+                            # Discrepanza
+                            warnings.append(
+                                f'Sezione {sezione}: designazione confermata diversa dalla mappatura attuale. '
+                                f'Cancella manualmente per re-importare.'
+                            )
+                            skipped += 1
+                            continue
+                    else:
+                        # BOZZA: sovrascrivi copiando i dati
+                        if effettivo:
+                            existing.effettivo_cognome = effettivo.cognome
+                            existing.effettivo_nome = effettivo.nome
+                            existing.effettivo_email = effettivo.email
+                            existing.effettivo_telefono = effettivo.telefono or ''
+                            existing.effettivo_luogo_nascita = effettivo.comune_nascita or ''
+                            existing.effettivo_data_nascita = effettivo.data_nascita
+                            existing.effettivo_domicilio = f"{effettivo.indirizzo_residenza}, {effettivo.comune_residenza}"
+                        else:
+                            # Cancella effettivo
+                            existing.effettivo_cognome = ''
+                            existing.effettivo_nome = ''
+                            existing.effettivo_email = ''
+                            existing.effettivo_telefono = ''
+                            existing.effettivo_luogo_nascita = ''
+                            existing.effettivo_data_nascita = None
+                            existing.effettivo_domicilio = ''
+
+                        if supplente:
+                            existing.supplente_cognome = supplente.cognome
+                            existing.supplente_nome = supplente.nome
+                            existing.supplente_email = supplente.email
+                            existing.supplente_telefono = supplente.telefono or ''
+                            existing.supplente_luogo_nascita = supplente.comune_nascita or ''
+                            existing.supplente_data_nascita = supplente.data_nascita
+                            existing.supplente_domicilio = f"{supplente.indirizzo_residenza}, {supplente.comune_residenza}"
+                        else:
+                            # Cancella supplente
+                            existing.supplente_cognome = ''
+                            existing.supplente_nome = ''
+                            existing.supplente_email = ''
+                            existing.supplente_telefono = ''
+                            existing.supplente_luogo_nascita = ''
+                            existing.supplente_data_nascita = None
+                            existing.supplente_domicilio = ''
+
+                        existing.sub_delega = sub_delega
+                        existing.delegato = delegato_diretto
+                        existing.save()
+                        updated += 1
+                        continue
+
+                # Crea nuova designazione con snapshot dei dati
+                stato_iniziale = 'CONFERMATA' if (
+                    (sub_delega and sub_delega.tipo_delega == 'FIRMA_AUTENTICATA') or delegato_diretto
+                ) else 'BOZZA'
+
+                # Prepara dati designazione
+                designazione_data = {
+                    'sezione': sezione,
+                    'sub_delega': sub_delega,
+                    'delegato': delegato_diretto,
+                    'stato': stato_iniziale,
+                    'is_attiva': True,
+                    'created_by_email': user.email
+                }
+
+                # Copia dati effettivo
+                if effettivo:
+                    designazione_data['effettivo_cognome'] = effettivo.cognome
+                    designazione_data['effettivo_nome'] = effettivo.nome
+                    designazione_data['effettivo_email'] = effettivo.email
+                    designazione_data['effettivo_telefono'] = effettivo.telefono or ''
+                    designazione_data['effettivo_luogo_nascita'] = effettivo.comune_nascita or ''
+                    designazione_data['effettivo_data_nascita'] = effettivo.data_nascita
+                    designazione_data['effettivo_domicilio'] = f"{effettivo.indirizzo_residenza}, {effettivo.comune_residenza}"
+
+                # Copia dati supplente
+                if supplente:
+                    designazione_data['supplente_cognome'] = supplente.cognome
+                    designazione_data['supplente_nome'] = supplente.nome
+                    designazione_data['supplente_email'] = supplente.email
+                    designazione_data['supplente_telefono'] = supplente.telefono or ''
+                    designazione_data['supplente_luogo_nascita'] = supplente.comune_nascita or ''
+                    designazione_data['supplente_data_nascita'] = supplente.data_nascita
+                    designazione_data['supplente_domicilio'] = f"{supplente.indirizzo_residenza}, {supplente.comune_residenza}"
+
+                DesignazioneRDL.objects.create(**designazione_data)
                 created += 1
 
             except Exception as e:
-                errors.append(f'Sezione {assignment.sezione}: {str(e)}')
+                errors.append(f'Sezione {sezione}: {str(e)}')
 
         return Response({
             'created': created,
+            'updated': updated,
             'skipped': skipped,
+            'warnings': warnings,
             'errors': errors,
-            'total': total
+            'total': len(sezioni_map)
         })
 
     @action(detail=False, methods=['post'])
@@ -799,33 +960,151 @@ class BatchGenerazioneDocumentiViewSet(viewsets.ModelViewSet):
     ViewSet per la generazione batch di documenti.
 
     GET /api/deleghe/batch/ - Lista batch
-    POST /api/deleghe/batch/ - Crea batch
-    POST /api/deleghe/batch/{id}/genera/ - Genera i documenti del batch
+    POST /api/deleghe/batch/ - Crea batch e collega designazioni
+    POST /api/deleghe/batch/{id}/genera/ - Genera i documenti PDF del batch
+    POST /api/deleghe/batch/{id}/approva/ - Approva batch e conferma designazioni
     """
     serializer_class = BatchGenerazioneDocumentiSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        return BatchGenerazioneDocumenti.objects.filter(
-            Q(sub_delega__email=user.email) | Q(created_by_email=user.email)
-        ).select_related('sub_delega')
+        consultazione_id = self.request.query_params.get('consultazione')
 
-    def perform_create(self, serializer):
-        serializer.save(created_by_email=self.request.user.email)
+        qs = BatchGenerazioneDocumenti.objects.filter(
+            created_by_email=user.email
+        ).select_related('consultazione')
+
+        if consultazione_id:
+            qs = qs.filter(consultazione_id=consultazione_id)
+
+        return qs
+
+    def create(self, request, *args, **kwargs):
+        """
+        POST /api/deleghe/batch/
+
+        Crea un batch e collega le designazioni selezionate.
+        Body: { consultazione_id, designazione_ids: [], tipo }
+        """
+        consultazione_id = request.data.get('consultazione_id')
+        designazione_ids = request.data.get('designazione_ids', [])
+        tipo = request.data.get('tipo', 'INDIVIDUALE')
+
+        if not consultazione_id:
+            return Response({'error': 'consultazione_id obbligatorio'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not designazione_ids:
+            return Response({'error': 'designazione_ids obbligatorio'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            consultazione = ConsultazioneElettorale.objects.get(id=consultazione_id)
+        except ConsultazioneElettorale.DoesNotExist:
+            return Response({'error': 'Consultazione non trovata'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Valida che designazioni esistano e siano BOZZA
+        designazioni = DesignazioneRDL.objects.filter(
+            id__in=designazione_ids,
+            stato='BOZZA',
+            is_attiva=True
+        )
+
+        if designazioni.count() != len(designazione_ids):
+            return Response(
+                {'error': 'Alcune designazioni non sono in stato BOZZA o non esistono'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Crea batch
+        batch = BatchGenerazioneDocumenti.objects.create(
+            consultazione=consultazione,
+            tipo=tipo,
+            stato='BOZZA',
+            created_by_email=request.user.email,
+            n_designazioni=designazioni.count()
+        )
+
+        # Collega designazioni al batch
+        designazioni.update(batch_pdf=batch)
+
+        return Response(
+            BatchGenerazioneDocumentiSerializer(batch).data,
+            status=status.HTTP_201_CREATED
+        )
 
     @action(detail=True, methods=['post'])
     def genera(self, request, pk=None):
         """
         POST /api/deleghe/batch/{id}/genera/
 
-        Genera i documenti PDF per il batch.
+        Genera PDF per il batch e invia email.
         """
         batch = self.get_object()
 
-        # Qui andrebbe la logica di generazione PDF
-        # Per ora restituiamo un placeholder
+        if batch.stato != 'BOZZA':
+            return Response({'error': 'Batch già generato'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Ottieni designazioni
+        designazioni = batch.designazioni.all().select_related(
+            'sezione', 'sezione__comune',
+            'delegato', 'sub_delega', 'sub_delega__delegato'
+        )
+
+        if not designazioni.exists():
+            return Response({'error': 'Nessuna designazione collegata al batch'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Prepara dati per template (placeholder - da implementare con documents app)
+        template_data = {
+            'delegato': None,  # Da popolare
+            'subdelegato': None,  # Da popolare
+            'designazioni': [
+                {
+                    'sezione_numero': des.sezione.numero,
+                    'sezione_comune': des.sezione.comune.nome,
+                    'sezione_indirizzo': des.sezione.indirizzo,
+                    'effettivo_cognome': des.effettivo_cognome if des.effettivo_email else '',
+                    'effettivo_nome': des.effettivo_nome if des.effettivo_email else '',
+                    'supplente_cognome': des.supplente_cognome if des.supplente_email else '',
+                    'supplente_nome': des.supplente_nome if des.supplente_email else '',
+                }
+                for des in designazioni
+            ]
+        }
+
+        # TODO: Integrare con documents app per generazione PDF
+        # from documents.views import RequestPDFPreviewView
+        # pdf_view = RequestPDFPreviewView()
+        # response = pdf_view.post(...)
+
+        # Aggiorna stato batch
+        from django.utils import timezone
+        batch.stato = 'GENERATO'
+        batch.data_generazione = timezone.now()
+        batch.save()
+
         return Response({
-            'status': 'in_progress',
-            'message': 'Generazione documenti avviata'
+            'status': 'PDF generato (placeholder)',
+            'message': 'Controlla email per confermare',
+            'batch_id': batch.id
+        })
+
+    @action(detail=True, methods=['post'])
+    def approva(self, request, pk=None):
+        """
+        POST /api/deleghe/batch/{id}/approva/
+
+        Conferma batch PDF e aggiorna designazioni a CONFERMATA.
+        """
+        batch = self.get_object()
+
+        if batch.stato != 'GENERATO':
+            return Response({'error': 'Batch non generato'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Approva batch (questo conferma anche tutte le designazioni)
+        batch.approva(request.user.email)
+
+        return Response({
+            'message': f'Batch approvato. {batch.designazioni.count()} designazioni confermate.',
+            'batch_id': batch.id,
+            'stato': batch.stato
         })

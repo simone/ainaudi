@@ -62,16 +62,58 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
 
             // Combine all designations (both made and received)
             const allDesignazioni = [
-                ...chain.designazioni_fatte.map(d => ({ ...d, ruolo: 'designante' })),
-                ...chain.designazioni_ricevute.map(d => ({ ...d, ruolo: 'designato' }))
+                ...chain.designazioni_fatte.map(d => ({ ...d, ruolo: 'designante', tipo: 'designazione' })),
+                ...chain.designazioni_ricevute.map(d => ({ ...d, ruolo: 'designato', tipo: 'designazione' }))
             ];
+
+            // Get section stats to check for unmapped assignments
+            const statsData = await client.sections.stats();
+            const sezioniAssegnate = statsData?.visibili?.assegnate || 0;
+            const sezioniVisibili = statsData?.visibili?.sezioni || 0;
 
             // Calculate stats
             const totale = allDesignazioni.length;
-            const effettivo = allDesignazioni.filter(d => d.ruolo_rdl === 'EFFETTIVO').length;
-            const supplente = allDesignazioni.filter(d => d.ruolo_rdl === 'SUPPLENTE').length;
+            // Nel nuovo modello, ogni designazione può avere effettivo E supplente
+            const effettivo = allDesignazioni.filter(d => d.effettivo).length;
+            const supplente = allDesignazioni.filter(d => d.supplente).length;
             const confermate = allDesignazioni.filter(d => d.stato === 'CONFERMATA').length;
             const bozze = allDesignazioni.filter(d => d.stato === 'BOZZA').length;
+
+            // Extract territory from sub-delegations
+            let territorioLabel = '';
+            if (chain.sub_deleghe_ricevute && chain.sub_deleghe_ricevute.length > 0) {
+                const subDelega = chain.sub_deleghe_ricevute[0];
+
+                // Build territory label
+                const parti = [];
+
+                // Comuni
+                if (subDelega.comuni && subDelega.comuni.length > 0) {
+                    const comuniNames = subDelega.comuni.map(c => c.nome);
+                    if (comuniNames.length <= 2) {
+                        parti.push(comuniNames.join(', '));
+                    } else {
+                        parti.push(`${comuniNames[0]} (+${comuniNames.length - 1} comuni)`);
+                    }
+                }
+
+                // Municipi
+                if (subDelega.municipi && subDelega.municipi.length > 0) {
+                    const municString = subDelega.municipi
+                        .map(m => `Mun. ${toRoman(m)}`)
+                        .join(', ');
+                    if (parti.length > 0) {
+                        parti[0] = `${parti[0]} - ${municString}`;
+                    } else {
+                        parti.push(municString);
+                    }
+                }
+
+                territorioLabel = parti.join(', ');
+            } else if (chain.delega_ricevuta) {
+                // Delegato di lista - show circoscrizione
+                territorioLabel = chain.delega_ricevuta.circoscrizione || 'Nazionale';
+            }
 
             setStats({
                 totale,
@@ -81,7 +123,11 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
                 bozze,
                 is_delegato: chain.is_delegato,
                 is_sub_delegato: chain.is_sub_delegato,
-                is_rdl: chain.is_rdl
+                is_rdl: chain.is_rdl,
+                sezioni_assegnate: sezioniAssegnate,
+                sezioni_visibili: sezioniVisibili,
+                assegnazioni_non_convertite: Math.max(0, sezioniAssegnate - totale),
+                territorio: territorioLabel
             });
 
             setDesignazioni(allDesignazioni);
@@ -108,10 +154,6 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
             default:
                 return 'bg-secondary';
         }
-    };
-
-    const getRuoloBadgeClass = (ruolo) => {
-        return ruolo === 'EFFETTIVO' ? 'bg-primary' : 'bg-info';
     };
 
     const handleFileChange = (e) => {
@@ -195,16 +237,14 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
             {/* Page Header */}
             <div className="page-header rdl">
                 <div className="page-header-title">
-                    <i className="fas fa-user-check"></i>
+                    <i className="fas fa-clipboard-list"></i>
                     Designazioni RDL
                 </div>
                 <div className="page-header-subtitle">
-                    Le tue designazioni come Rappresentante di Lista
-                    {stats && (
+                    Gestione e monitoraggio designazioni Rappresentanti di Lista
+                    {stats && stats.territorio && (
                         <span className="page-header-badge">
-                            {stats.is_delegato && 'Delegato'}
-                            {stats.is_sub_delegato && 'Sub-Delegato'}
-                            {stats.is_rdl && 'RDL'}
+                            {stats.territorio}
                         </span>
                     )}
                 </div>
@@ -237,6 +277,22 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
             {/* Panoramica View */}
             {activeView === 'panoramica' && stats && (
                 <>
+                    {/* Alert: Assegnazioni da convertire */}
+                    {stats.assegnazioni_non_convertite > 0 && (
+                        <div className="alert alert-warning mb-4">
+                            <div className="d-flex align-items-center">
+                                <i className="fas fa-exclamation-triangle fa-2x me-3"></i>
+                                <div className="flex-grow-1">
+                                    <strong>Hai {stats.assegnazioni_non_convertite} assegnazioni RDL non ancora convertite in designazioni formali</strong>
+                                    <p className="mb-0 small mt-1">
+                                        Le assegnazioni sono state fatte tramite app mobile, ma non sono ancora state
+                                        convertite in designazioni formali. Clicca su "Carica Mappatura" qui sotto per convertirle.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Carica Mappatura Button */}
                     <div className="alert alert-primary mb-4">
                         <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
@@ -290,44 +346,66 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
 
                     {/* Summary Cards */}
                     <div className="row g-3 mb-4">
+                        {/* Card Assegnazioni Territorio */}
+                        <div className="col-6 col-lg-3">
+                            <div className="card h-100 border-info">
+                                <div className="card-body text-center p-2 p-md-3">
+                                    <div className="text-muted small">Assegnazioni Territorio</div>
+                                    <div className="fs-3 fw-bold text-info">
+                                        {stats.sezioni_assegnate}
+                                    </div>
+                                    <div className="text-muted small">
+                                        su {stats.sezioni_visibili} sezioni
+                                    </div>
+                                    {stats.assegnazioni_non_convertite > 0 && (
+                                        <div className="small text-warning mt-1">
+                                            {stats.assegnazioni_non_convertite} da convertire
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Card Totale Designazioni */}
                         <div className="col-6 col-lg-3">
                             <div className="card h-100 border-primary">
                                 <div className="card-body text-center p-2 p-md-3">
-                                    <div className="text-muted small">Totale</div>
+                                    <div className="text-muted small">Designazioni Formali</div>
                                     <div className="fs-3 fw-bold text-primary">
                                         {stats.totale}
                                     </div>
-                                    <div className="text-muted small">designazioni</div>
+                                    <div className="text-muted small">create</div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Card Effettivi */}
+                        {/* Card Effettivi e Supplenti */}
                         <div className="col-6 col-lg-3">
-                            <div className="card h-100 border-info">
-                                <div className="card-body text-center p-2 p-md-3">
-                                    <div className="text-muted small">Effettivo</div>
-                                    <div className="fs-3 fw-bold text-info">
-                                        {stats.effettivo}
-                                    </div>
-                                    <div className="text-muted small">
-                                        {calcPercentuale(stats.effettivo, stats.totale)}%
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Card Supplenti */}
-                        <div className="col-6 col-lg-3">
-                            <div className="card h-100 border-info">
-                                <div className="card-body text-center p-2 p-md-3">
-                                    <div className="text-muted small">Supplente</div>
-                                    <div className="fs-3 fw-bold text-info">
-                                        {stats.supplente}
-                                    </div>
-                                    <div className="text-muted small">
-                                        {calcPercentuale(stats.supplente, stats.totale)}%
+                            <div className="card h-100 border-secondary">
+                                <div className="card-body p-2 p-md-3">
+                                    <div className="row g-2">
+                                        <div className="col-6">
+                                            <div className="text-center">
+                                                <div className="text-muted small">Effettivi</div>
+                                                <div className="fs-3 fw-bold text-primary">
+                                                    {stats.effettivo}
+                                                </div>
+                                                <div className="text-muted small">
+                                                    {calcPercentuale(stats.effettivo, stats.totale)}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="col-6">
+                                            <div className="text-center">
+                                                <div className="text-muted small">Supplenti</div>
+                                                <div className="fs-3 fw-bold text-info">
+                                                    {stats.supplente}
+                                                </div>
+                                                <div className="text-muted small">
+                                                    {calcPercentuale(stats.supplente, stats.totale)}%
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -634,7 +712,6 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
                                     <th>Plesso</th>
                                     <th>Effettivo</th>
                                     <th>Supplente</th>
-                                    <th>Ruolo</th>
                                     <th>Stato</th>
                                     <th>Tuo Ruolo</th>
                                 </tr>
@@ -643,47 +720,42 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
                                 {designazioni.map((des, index) => (
                                     <tr key={index}>
                                         <td className="fw-bold">
-                                            {des.sezione?.comune?.nome || '-'}
-                                            {des.sezione?.municipio && (
+                                            {des.sezione_comune || '-'}
+                                            {des.sezione_municipio && (
                                                 <small className="text-muted ms-1">
-                                                    (Mun. {toRoman(des.sezione.municipio.numero)})
+                                                    (Mun. {toRoman(des.sezione_municipio)})
                                                 </small>
                                             )}
                                         </td>
                                         <td>
-                                            {des.sezione?.numero || '-'}
+                                            {des.sezione_numero || '-'}
                                         </td>
                                         <td className="small">
-                                            {des.sezione?.denominazione || des.sezione?.indirizzo || '-'}
+                                            {des.sezione_indirizzo || '-'}
                                         </td>
                                         <td>
-                                            {des.ruolo_rdl === 'EFFETTIVO' ? (
+                                            {des.effettivo ? (
                                                 <div>
-                                                    <div className="fw-bold">{des.cognome} {des.nome}</div>
-                                                    {des.email && <small className="text-muted">{des.email}</small>}
+                                                    <div className="fw-bold">{des.effettivo.cognome} {des.effettivo.nome}</div>
+                                                    {des.effettivo.email && <small className="text-muted">{des.effettivo.email}</small>}
                                                 </div>
                                             ) : (
                                                 <span className="text-muted">-</span>
                                             )}
                                         </td>
                                         <td>
-                                            {des.ruolo_rdl === 'SUPPLENTE' ? (
+                                            {des.supplente ? (
                                                 <div>
-                                                    <div className="fw-bold">{des.cognome} {des.nome}</div>
-                                                    {des.email && <small className="text-muted">{des.email}</small>}
+                                                    <div className="fw-bold">{des.supplente.cognome} {des.supplente.nome}</div>
+                                                    {des.supplente.email && <small className="text-muted">{des.supplente.email}</small>}
                                                 </div>
                                             ) : (
                                                 <span className="text-muted">-</span>
                                             )}
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${getRuoloBadgeClass(des.ruolo_rdl)}`}>
-                                                {des.ruolo_rdl}
-                                            </span>
                                         </td>
                                         <td>
                                             <span className={`badge ${getStatoBadgeClass(des.stato)}`}>
-                                                {des.stato}
+                                                {des.stato_display || des.stato}
                                             </span>
                                         </td>
                                         <td>

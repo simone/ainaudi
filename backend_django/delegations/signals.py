@@ -432,110 +432,99 @@ def provision_subdelegato_user(sender, instance, created, **kwargs):
 
 
 # =============================================================================
-# DESIGNAZIONE RDL SIGNALS
+# DESIGNAZIONE RDL SIGNALS (SNAPSHOT FIELDS: campi diretti)
 # =============================================================================
 
-@receiver(pre_save, sender=DesignazioneRDL)
-def designazione_rdl_pre_save(sender, instance, **kwargs):
-    """Cache current email before save for change detection."""
-    cache_pre_save_email('DesignazioneRDL', instance)
-
-
 @receiver(post_save, sender=DesignazioneRDL)
-def provision_rdl_user(sender, instance, created, **kwargs):
+def provision_rdl_users(sender, instance, created, **kwargs):
     """
-    When a DesignazioneRDL is created or updated, ensure user exists and has RDL role.
+    When a DesignazioneRDL is created or updated, ensure users exist for both effettivo and supplente.
+
+    SNAPSHOT MODEL:
+    - DesignazioneRDL now has direct fields (effettivo_email, supplente_email, etc.)
+    - Provision user per effettivo (if email present)
+    - Provision user per supplente (if email present)
 
     Triggered on: DesignazioneRDL creation or update
     Actions:
-        1. On create: Create user if not exists (using email), link, assign role
-        2. On update with email change: Unlink old user, create/link new user, assign role
-        3. On update without email change: Update user data if needed
-        4. Log action
+        1. Check effettivo_email and supplente_email
+        2. For each email: Create user if not exists, assign RDL role
+        3. Log action
 
     Note: This is separate from RdlRegistration approval flow.
-    DesignazioneRDL is the formal designation, RdlRegistration is self-registration.
+    DesignazioneRDL is the formal designation (immutable snapshot).
     """
-    old_data = get_cached_pre_save('DesignazioneRDL', instance.pk) if not created else None
-
-    if not instance.email:
-        if created:
-            logger.warning(f"DesignazioneRDL {instance.id} created without email, skipping provisioning")
-        return
-
-    # Get scope value for RDL role
+    # Get scope value for RDL role (sezione)
     scope_value = str(instance.sezione.numero) if instance.sezione else None
 
-    if created:
-        # New entity - provision user
+    # Provision effettivo RDL
+    if instance.effettivo_email:
         defaults = {
-            'display_name': instance.nome_completo,
-            'first_name': instance.nome,
-            'last_name': instance.cognome,
-            'phone_number': instance.telefono,
+            'display_name': f"{instance.effettivo_cognome} {instance.effettivo_nome}",
+            'first_name': instance.effettivo_nome,
+            'last_name': instance.effettivo_cognome,
+            'phone_number': instance.effettivo_telefono or '',
         }
 
-        user, user_created = ensure_user_exists(instance.email, defaults)
+        user, user_created = ensure_user_exists(instance.effettivo_email, defaults)
 
-        if not user:
-            logger.error(f"Failed to provision user for DesignazioneRDL {instance.id}")
-            return
-
-        # Assign RDL role with section scope
-        ensure_role_assigned(
-            user=user,
-            role=RoleAssignment.Role.RDL,
-            scope_type=RoleAssignment.ScopeType.SEZIONE,
-            scope_value=scope_value,
-        )
-
-        # Log action
-        log_provisioning_action(
-            action=AuditLog.Action.CREATE,
-            user=user,
-            target_model='DesignazioneRDL',
-            target_id=instance.id,
-            details={
-                'provisioning': 'auto',
-                'user_created': user_created,
-                'sezione': str(instance.sezione),
-                'ruolo': instance.ruolo,
-            }
-        )
-    else:
-        # Update - check for email change
-        old_email = old_data.get('email') if old_data else None
-        new_email = instance.email.lower().strip() if instance.email else None
-
-        if old_email != new_email:
-            # Email changed
-            user, user_created = handle_email_change(
-                instance=instance,
-                model_name='DesignazioneRDL',
+        if user:
+            # Assign RDL role with section scope
+            ensure_role_assigned(
+                user=user,
                 role=RoleAssignment.Role.RDL,
-                old_data=old_data,
                 scope_type=RoleAssignment.ScopeType.SEZIONE,
                 scope_value=scope_value,
             )
 
-            if user:
-                log_provisioning_action(
-                    action=AuditLog.Action.UPDATE,
-                    user=user,
-                    target_model='DesignazioneRDL',
-                    target_id=instance.id,
-                    details={
-                        'provisioning': 'auto',
-                        'email_changed': True,
-                        'old_email': old_email,
-                        'new_email': new_email,
-                        'user_created': user_created,
-                        'sezione': str(instance.sezione),
-                        'ruolo': instance.ruolo,
-                    }
-                )
+            # Log action
+            log_provisioning_action(
+                action=AuditLog.Action.CREATE if created else AuditLog.Action.UPDATE,
+                user=user,
+                target_model='DesignazioneRDL',
+                target_id=instance.id,
+                details={
+                    'provisioning': 'auto',
+                    'user_created': user_created,
+                    'sezione': str(instance.sezione),
+                    'ruolo': 'EFFETTIVO',
+                }
+            )
         else:
-            # No email change - just update user data if needed
-            user = User.objects.filter(email=instance.email).first()
-            if user:
-                update_user_data(user, instance)
+            logger.error(f"Failed to provision user for effettivo RDL in DesignazioneRDL {instance.id}")
+
+    # Provision supplente RDL
+    if instance.supplente_email:
+        defaults = {
+            'display_name': f"{instance.supplente_cognome} {instance.supplente_nome}",
+            'first_name': instance.supplente_nome,
+            'last_name': instance.supplente_cognome,
+            'phone_number': instance.supplente_telefono or '',
+        }
+
+        user, user_created = ensure_user_exists(instance.supplente_email, defaults)
+
+        if user:
+            # Assign RDL role with section scope
+            ensure_role_assigned(
+                user=user,
+                role=RoleAssignment.Role.RDL,
+                scope_type=RoleAssignment.ScopeType.SEZIONE,
+                scope_value=scope_value,
+            )
+
+            # Log action
+            log_provisioning_action(
+                action=AuditLog.Action.CREATE if created else AuditLog.Action.UPDATE,
+                user=user,
+                target_model='DesignazioneRDL',
+                target_id=instance.id,
+                details={
+                    'provisioning': 'auto',
+                    'user_created': user_created,
+                    'sezione': str(instance.sezione),
+                    'ruolo': 'SUPPLENTE',
+                }
+            )
+        else:
+            logger.error(f"Failed to provision user for supplente RDL in DesignazioneRDL {instance.id}")

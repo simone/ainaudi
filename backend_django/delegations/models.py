@@ -326,18 +326,18 @@ class SubDelega(models.Model):
 
 class DesignazioneRDL(models.Model):
     """
-    Designazione di un RDL (Responsabile Di Lista) per una sezione elettorale.
+    Designazione di RDL (Responsabili Di Lista) per una sezione elettorale.
     Ogni sezione ha un RDL Effettivo e un RDL Supplente.
+
+    MODELLO FINALE: 1 record per seggio con SNAPSHOT dei dati RDL.
+    I dati sono copiati al momento della designazione per garantire immutabilità
+    del documento formale (anche se l'RDL viene cancellato o modificato).
 
     La designazione può essere fatta:
     - Direttamente dal Delegato di Lista (delegato è valorizzato, sub_delega è null)
     - Dal Sub-Delegato con firma autenticata (sub_delega è valorizzato, stato=CONFERMATA)
     - Dal Sub-Delegato solo mappatura (sub_delega è valorizzato, stato=BOZZA fino ad approvazione Delegato)
     """
-    class Ruolo(models.TextChoices):
-        EFFETTIVO = 'EFFETTIVO', _('Effettivo')
-        SUPPLENTE = 'SUPPLENTE', _('Supplente')
-
     class Stato(models.TextChoices):
         BOZZA = 'BOZZA', _('Bozza (in attesa approvazione Delegato)')
         CONFERMATA = 'CONFERMATA', _('Confermata')
@@ -369,38 +369,34 @@ class DesignazioneRDL(models.Model):
         verbose_name=_('sezione')
     )
 
-    # Ruolo
-    ruolo = models.CharField(_('ruolo'), max_length=10, choices=Ruolo.choices)
+    # =========================================================================
+    # RDL EFFETTIVO - Snapshot dei dati al momento della designazione
+    # =========================================================================
+    effettivo_cognome = models.CharField(_('effettivo cognome'), max_length=100, blank=True)
+    effettivo_nome = models.CharField(_('effettivo nome'), max_length=100, blank=True)
+    effettivo_email = models.EmailField(_('effettivo email'), blank=True)
+    effettivo_telefono = models.CharField(_('effettivo telefono'), max_length=20, blank=True)
+    effettivo_luogo_nascita = models.CharField(_('effettivo luogo nascita'), max_length=100, blank=True)
+    effettivo_data_nascita = models.DateField(_('effettivo data nascita'), null=True, blank=True)
+    effettivo_domicilio = models.CharField(_('effettivo domicilio'), max_length=255, blank=True)
 
-    # Dati anagrafici RDL
-    cognome = models.CharField(_('cognome'), max_length=100)
-    nome = models.CharField(_('nome'), max_length=100)
-    luogo_nascita = models.CharField(_('luogo di nascita'), max_length=100, blank=True)
-    data_nascita = models.DateField(_('data di nascita'), null=True, blank=True)
-    domicilio = models.CharField(_('domicilio'), max_length=255, blank=True)
-
-    # Contatti
-    email = models.EmailField(_('email'))
-    telefono = models.CharField(_('telefono'), max_length=20, blank=True)
-
-    # Documento di designazione generato
-    documento_designazione = models.FileField(
-        _('documento designazione'),
-        upload_to='deleghe/designazioni_rdl/',
-        null=True, blank=True,
-        help_text=_('PDF della designazione con catena deleghe')
-    )
-    data_generazione_documento = models.DateTimeField(
-        _('data generazione documento'),
-        null=True, blank=True
-    )
+    # =========================================================================
+    # RDL SUPPLENTE - Snapshot dei dati al momento della designazione
+    # =========================================================================
+    supplente_cognome = models.CharField(_('supplente cognome'), max_length=100, blank=True)
+    supplente_nome = models.CharField(_('supplente nome'), max_length=100, blank=True)
+    supplente_email = models.EmailField(_('supplente email'), blank=True)
+    supplente_telefono = models.CharField(_('supplente telefono'), max_length=20, blank=True)
+    supplente_luogo_nascita = models.CharField(_('supplente luogo nascita'), max_length=100, blank=True)
+    supplente_data_nascita = models.DateField(_('supplente data nascita'), null=True, blank=True)
+    supplente_domicilio = models.CharField(_('supplente domicilio'), max_length=255, blank=True)
 
     # Stato della designazione
     stato = models.CharField(
         _('stato'),
         max_length=15,
         choices=Stato.choices,
-        default=Stato.CONFERMATA,
+        default=Stato.BOZZA,
         help_text=_('BOZZA = mappatura in attesa di approvazione del Delegato')
     )
     data_designazione = models.DateField(_('data designazione'), auto_now_add=True)
@@ -414,6 +410,16 @@ class DesignazioneRDL(models.Model):
     )
     data_approvazione = models.DateTimeField(_('data approvazione'), null=True, blank=True)
 
+    # Batch PDF (per tracking conferma via PDF)
+    batch_pdf = models.ForeignKey(
+        'BatchGenerazioneDocumenti',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='designazioni',
+        verbose_name=_('batch PDF'),
+        help_text=_('Batch di generazione PDF associato')
+    )
+
     # Revoca
     revocata_il = models.DateField(_('revocata il'), null=True, blank=True)
     motivo_revoca = models.TextField(_('motivo revoca'), blank=True)
@@ -426,33 +432,35 @@ class DesignazioneRDL(models.Model):
     class Meta:
         verbose_name = _('Designazione RDL')
         verbose_name_plural = _('Designazioni RDL')
-        ordering = ['sezione', 'ruolo']
+        ordering = ['sezione']
         constraints = [
-            # Una sola designazione attiva e confermata per sezione/ruolo
+            # Una sola designazione attiva e confermata per sezione
             models.UniqueConstraint(
-                fields=['sezione', 'ruolo'],
+                fields=['sezione'],
                 condition=models.Q(is_attiva=True, stato='CONFERMATA'),
-                name='unique_rdl_confermato_per_sezione_ruolo'
+                name='unique_designazione_confermata_per_sezione'
             ),
             # Almeno uno tra delegato e sub_delega deve essere valorizzato
             models.CheckConstraint(
                 check=models.Q(delegato__isnull=False) | models.Q(sub_delega__isnull=False),
                 name='designazione_ha_delegante'
             ),
+            # Almeno uno tra effettivo e supplente deve avere email
+            models.CheckConstraint(
+                check=~models.Q(effettivo_email='', supplente_email=''),
+                name='designazione_ha_almeno_un_rdl'
+            ),
         ]
 
     def __str__(self):
         stato_label = f" [{self.get_stato_display()}]" if self.stato != self.Stato.CONFERMATA else ""
-        return f"RDL {self.ruolo} {self.cognome} {self.nome} - Sez. {self.sezione}{stato_label}"
-
-    @property
-    def nome_completo(self):
-        return f"{self.cognome} {self.nome}"
-
-    @property
-    def user(self):
-        """Restituisce l'utente associato a questa email (per login/permessi)."""
-        return get_user_by_email(self.email)
+        rdl_info = []
+        if self.effettivo_email:
+            rdl_info.append(f"Eff: {self.effettivo_cognome}")
+        if self.supplente_email:
+            rdl_info.append(f"Sup: {self.supplente_cognome}")
+        rdl_str = ", ".join(rdl_info) if rdl_info else "Nessun RDL"
+        return f"Sez. {self.sezione} - {rdl_str}{stato_label}"
 
     @property
     def approvata_da(self):
@@ -542,24 +550,38 @@ class DesignazioneRDL(models.Model):
 
         Usata per generare il PDF.
         """
-        rdl_data = {
-            'cognome': self.cognome,
-            'nome': self.nome,
-            'luogo_nascita': self.luogo_nascita,
-            'data_nascita': self.data_nascita,
-            'domicilio': self.domicilio,
-            'ruolo': self.get_ruolo_display(),
-            'sezione': {
-                'numero': self.sezione.numero,
-                'comune': str(self.sezione.comune),
-                'indirizzo': self.sezione.indirizzo,
-            }
+        sezione_data = {
+            'numero': self.sezione.numero,
+            'comune': str(self.sezione.comune),
+            'indirizzo': self.sezione.indirizzo,
         }
+
+        effettivo_data = None
+        if self.effettivo_email:
+            effettivo_data = {
+                'cognome': self.effettivo_cognome,
+                'nome': self.effettivo_nome,
+                'luogo_nascita': self.effettivo_luogo_nascita,
+                'data_nascita': self.effettivo_data_nascita,
+                'domicilio': self.effettivo_domicilio,
+            }
+
+        supplente_data = None
+        if self.supplente_email:
+            supplente_data = {
+                'cognome': self.supplente_cognome,
+                'nome': self.supplente_nome,
+                'luogo_nascita': self.supplente_luogo_nascita,
+                'data_nascita': self.supplente_data_nascita,
+                'domicilio': self.supplente_domicilio,
+            }
 
         if self.sub_delega:
             # Catena completa: Partito → Delegato → Sub-Delegato → RDL
             catena = self.sub_delega.get_catena_deleghe()
-            catena['rdl'] = rdl_data
+            catena['sezione'] = sezione_data
+            catena['rdl_effettivo'] = effettivo_data
+            catena['rdl_supplente'] = supplente_data
         else:
             # Catena diretta: Partito → Delegato → RDL
             catena = {
@@ -571,8 +593,10 @@ class DesignazioneRDL(models.Model):
                     'circoscrizione': self.delegato.circoscrizione,
                     'data_nomina': self.delegato.data_nomina,
                 },
-                'sub_delegato': None,  # Nessun sub-delegato
-                'rdl': rdl_data,
+                'sub_delegato': None,
+                'sezione': sezione_data,
+                'rdl_effettivo': effettivo_data,
+                'rdl_supplente': supplente_data,
             }
 
         return catena
@@ -594,13 +618,15 @@ class BatchGenerazioneDocumenti(models.Model):
     class Stato(models.TextChoices):
         BOZZA = 'BOZZA', _('Bozza')
         GENERATO = 'GENERATO', _('Generato')
+        APPROVATO = 'APPROVATO', _('Approvato')
         INVIATO = 'INVIATO', _('Inviato')
 
-    sub_delega = models.ForeignKey(
-        SubDelega,
+    # Consultazione elettorale di riferimento
+    consultazione = models.ForeignKey(
+        'elections.ConsultazioneElettorale',
         on_delete=models.CASCADE,
         related_name='batch_documenti',
-        verbose_name=_('sub-delega')
+        verbose_name=_('consultazione')
     )
 
     tipo = models.CharField(_('tipo'), max_length=20, choices=Tipo.choices)
@@ -641,9 +667,37 @@ class BatchGenerazioneDocumenti(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"Batch {self.tipo} - {self.sub_delega} ({self.stato})"
+        return f"Batch {self.tipo} - {self.consultazione.nome} ({self.stato})"
 
     @property
     def created_by(self):
         """Restituisce l'utente che ha creato questo record."""
         return get_user_by_email(self.created_by_email)
+
+    def approva(self, user_email):
+        """
+        Approva il batch e tutte le designazioni associate.
+        Passa lo stato del batch a APPROVATO e le designazioni da BOZZA a CONFERMATA.
+
+        Args:
+            user_email: Email dell'utente che approva (str o User object)
+        """
+        from django.utils import timezone
+
+        if self.stato != self.Stato.GENERATO:
+            raise ValueError("Solo i batch generati possono essere approvati")
+
+        # Accetta sia stringa email che oggetto User
+        if hasattr(user_email, 'email'):
+            user_email = user_email.email
+
+        # Aggiorna stato batch
+        self.stato = self.Stato.APPROVATO
+        self.save(update_fields=['stato', 'updated_at'])
+
+        # Conferma tutte le designazioni BOZZA associate a questo batch
+        self.designazioni.filter(stato='BOZZA').update(
+            stato='CONFERMATA',
+            approvata_da_email=user_email,
+            data_approvazione=timezone.now()
+        )

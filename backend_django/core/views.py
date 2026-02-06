@@ -352,7 +352,10 @@ class PermissionsView(APIView):
         is_sub_delegato = sub_deleghe.exists()
 
         # 3. Is user an RDL?
-        designazioni = DesignazioneRDL.objects.filter(email=user.email, is_attiva=True)
+        designazioni = DesignazioneRDL.objects.filter(
+            Q(effettivo_email=user.email) | Q(supplente_email=user.email),
+            is_attiva=True
+        )
         if consultazione_id:
             designazioni = designazioni.filter(
                 Q(delegato__consultazione_id=consultazione_id) |

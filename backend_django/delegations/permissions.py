@@ -34,8 +34,11 @@ def get_user_delegation_roles(user, consultazione_id=None):
     if consultazione_id:
         sub_deleghe = sub_deleghe.filter(delegato__consultazione_id=consultazione_id)
 
-    # RDL?
-    designazioni = DesignazioneRDL.objects.filter(email=user.email, is_attiva=True)
+    # RDL? (cerca se l'utente è effettivo O supplente)
+    designazioni = DesignazioneRDL.objects.filter(
+        Q(effettivo_email=user.email) | Q(supplente_email=user.email),
+        is_attiva=True
+    )
     if consultazione_id:
         designazioni = designazioni.filter(
             Q(delegato__consultazione_id=consultazione_id) |

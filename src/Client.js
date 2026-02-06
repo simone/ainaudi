@@ -437,10 +437,25 @@ const Client = (server, pdfServer, token) => {
                 return { error: error.message };
             }),
 
-        // Import CSV
-        import: async (file) => {
+        // Analyze CSV for column mapping
+        analyzeCSV: async (file) => {
             const formData = new FormData();
             formData.append('file', file);
+            return fetch(`${server}/api/rdl/registrations/import?analyze=true`, {
+                method: 'POST',
+                headers: { 'Authorization': authHeader },
+                body: formData
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            });
+        },
+
+        // Import CSV with mapping
+        import: async (file, mapping) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('mapping', JSON.stringify(mapping));
             return fetch(`${server}/api/rdl/registrations/import`, {
                 method: 'POST',
                 headers: { 'Authorization': authHeader },

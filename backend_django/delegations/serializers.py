@@ -148,20 +148,31 @@ class SubDelegaCreateSerializer(serializers.ModelSerializer):
 
 
 class DesignazioneRDLSerializer(serializers.ModelSerializer):
-    """Serializer per Designazione RDL."""
-    nome_completo = serializers.CharField(read_only=True)
-    ruolo_display = serializers.CharField(source='get_ruolo_display', read_only=True)
-    stato_display = serializers.CharField(source='get_stato_display', read_only=True)
-    designante_nome = serializers.CharField(read_only=True)
-    delegato_nome = serializers.SerializerMethodField()
-    sub_delegato_nome = serializers.SerializerMethodField()
+    """Serializer per Designazione RDL (snapshot fields: campi diretti)."""
+    # Nested serializers per RDL (costruiti dai campi diretti)
+    effettivo = serializers.SerializerMethodField()
+    supplente = serializers.SerializerMethodField()
+
+    # Sezione info
     sezione_numero = serializers.IntegerField(source='sezione.numero', read_only=True)
     sezione_comune = serializers.CharField(source='sezione.comune.nome', read_only=True)
     sezione_indirizzo = serializers.CharField(source='sezione.indirizzo', read_only=True)
     sezione_municipio = serializers.SerializerMethodField()
-    catena_deleghe = serializers.SerializerMethodField()
+
+    # Designante
+    designante_nome = serializers.CharField(read_only=True)
+    delegato_nome = serializers.SerializerMethodField()
+    sub_delegato_nome = serializers.SerializerMethodField()
+
+    # Stato
+    stato_display = serializers.CharField(source='get_stato_display', read_only=True)
     is_bozza = serializers.BooleanField(read_only=True)
+
+    # Approvazione
     approvata_da_nome = serializers.CharField(source='approvata_da.get_full_name', read_only=True, allow_null=True)
+
+    # Catena deleghe
+    catena_deleghe = serializers.SerializerMethodField()
 
     class Meta:
         model = DesignazioneRDL
@@ -169,17 +180,39 @@ class DesignazioneRDLSerializer(serializers.ModelSerializer):
             'id', 'delegato', 'delegato_nome', 'sub_delega', 'sub_delegato_nome',
             'designante_nome',
             'sezione', 'sezione_numero', 'sezione_comune', 'sezione_indirizzo', 'sezione_municipio',
-            'ruolo', 'ruolo_display',
+            'effettivo', 'supplente',
             'stato', 'stato_display', 'is_bozza',
-            'cognome', 'nome', 'nome_completo',
-            'luogo_nascita', 'data_nascita', 'domicilio',
-            'email', 'telefono',
-            'documento_designazione', 'data_generazione_documento',
             'data_designazione', 'is_attiva',
-            'approvata_da', 'approvata_da_nome', 'data_approvazione',
+            'approvata_da_email', 'approvata_da_nome', 'data_approvazione',
+            'batch_pdf',
             'catena_deleghe'
         ]
-        read_only_fields = ['id', 'data_designazione', 'created_at', 'approvata_da', 'data_approvazione']
+        read_only_fields = ['id', 'data_designazione', 'created_at', 'data_approvazione']
+
+    def get_effettivo(self, obj):
+        if not obj.effettivo_email:
+            return None
+        return {
+            'cognome': obj.effettivo_cognome,
+            'nome': obj.effettivo_nome,
+            'email': obj.effettivo_email,
+            'telefono': obj.effettivo_telefono or '',
+        }
+
+    def get_supplente(self, obj):
+        if not obj.supplente_email:
+            return None
+        return {
+            'cognome': obj.supplente_cognome,
+            'nome': obj.supplente_nome,
+            'email': obj.supplente_email,
+            'telefono': obj.supplente_telefono or '',
+        }
+
+    def get_sezione_municipio(self, obj):
+        if obj.sezione and obj.sezione.municipio:
+            return obj.sezione.municipio.numero
+        return None
 
     def get_delegato_nome(self, obj):
         if obj.delegato:
@@ -191,24 +224,22 @@ class DesignazioneRDLSerializer(serializers.ModelSerializer):
             return obj.sub_delega.nome_completo
         return None
 
-    def get_sezione_municipio(self, obj):
-        if obj.sezione and obj.sezione.municipio:
-            return obj.sezione.municipio.numero
-        return None
-
     def get_catena_deleghe(self, obj):
         return obj.get_catena_deleghe_completa()
 
 
 class DesignazioneRDLCreateSerializer(serializers.ModelSerializer):
-    """Serializer per creare una Designazione RDL."""
+    """Serializer per creare una Designazione RDL con snapshot dei dati."""
+    # Input: email per lookup RdlRegistration
+    effettivo_email_input = serializers.EmailField(required=False, allow_blank=True, write_only=True)
+    supplente_email_input = serializers.EmailField(required=False, allow_blank=True, write_only=True)
 
     class Meta:
         model = DesignazioneRDL
         fields = [
-            'delegato', 'sub_delega', 'sezione', 'ruolo',
-            'cognome', 'nome', 'luogo_nascita', 'data_nascita', 'domicilio',
-            'email', 'telefono'
+            'delegato', 'sub_delega', 'sezione',
+            'effettivo_email_input', 'supplente_email_input',
+            'stato'
         ]
 
     def validate(self, data):
@@ -217,24 +248,89 @@ class DesignazioneRDLCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Deve essere specificato almeno uno tra 'delegato' e 'sub_delega'"
             )
+
+        # Almeno uno tra effettivo e supplente
+        if not data.get('effettivo_email_input') and not data.get('supplente_email_input'):
+            raise serializers.ValidationError(
+                'Specificare almeno un RDL (effettivo o supplente)'
+            )
+
         return data
+
+    def create(self, validated_data):
+        from campaign.models import RdlRegistration
+
+        # Estrai email input
+        effettivo_email = validated_data.pop('effettivo_email_input', None)
+        supplente_email = validated_data.pop('supplente_email_input', None)
+
+        # Prepara campi designazione
+        designazione_data = validated_data.copy()
+
+        # Lookup e copia dati effettivo
+        if effettivo_email:
+            effettivo = RdlRegistration.objects.filter(
+                email=effettivo_email, status='APPROVED'
+            ).first()
+            if not effettivo:
+                raise serializers.ValidationError(
+                    f'RDL effettivo {effettivo_email} non trovato o non approvato'
+                )
+
+            # Copia snapshot dei dati
+            designazione_data['effettivo_cognome'] = effettivo.cognome
+            designazione_data['effettivo_nome'] = effettivo.nome
+            designazione_data['effettivo_email'] = effettivo.email
+            designazione_data['effettivo_telefono'] = effettivo.telefono or ''
+            designazione_data['effettivo_luogo_nascita'] = effettivo.comune_nascita or ''
+            designazione_data['effettivo_data_nascita'] = effettivo.data_nascita
+            designazione_data['effettivo_domicilio'] = f"{effettivo.indirizzo_residenza}, {effettivo.comune_residenza}"
+
+        # Lookup e copia dati supplente
+        if supplente_email:
+            supplente = RdlRegistration.objects.filter(
+                email=supplente_email, status='APPROVED'
+            ).first()
+            if not supplente:
+                raise serializers.ValidationError(
+                    f'RDL supplente {supplente_email} non trovato o non approvato'
+                )
+
+            # Copia snapshot dei dati
+            designazione_data['supplente_cognome'] = supplente.cognome
+            designazione_data['supplente_nome'] = supplente.nome
+            designazione_data['supplente_email'] = supplente.email
+            designazione_data['supplente_telefono'] = supplente.telefono or ''
+            designazione_data['supplente_luogo_nascita'] = supplente.comune_nascita or ''
+            designazione_data['supplente_data_nascita'] = supplente.data_nascita
+            designazione_data['supplente_domicilio'] = f"{supplente.indirizzo_residenza}, {supplente.comune_residenza}"
+
+        # Crea designazione con snapshot
+        designazione = DesignazioneRDL.objects.create(**designazione_data)
+
+        return designazione
 
 
 class DesignazioneRDLListSerializer(serializers.ModelSerializer):
-    """Serializer leggero per lista designazioni."""
-    ruolo_display = serializers.CharField(source='get_ruolo_display', read_only=True)
+    """Serializer leggero per lista designazioni (snapshot fields)."""
     stato_display = serializers.CharField(source='get_stato_display', read_only=True)
     designante_nome = serializers.CharField(read_only=True)
     sezione_numero = serializers.IntegerField(source='sezione.numero', read_only=True)
     sezione_comune = serializers.CharField(source='sezione.comune.nome', read_only=True)
+    sezione_indirizzo = serializers.CharField(source='sezione.indirizzo', read_only=True)
     sezione_municipio = serializers.SerializerMethodField()
+
+    # Nested RDL info
+    effettivo = serializers.SerializerMethodField()
+    supplente = serializers.SerializerMethodField()
 
     class Meta:
         model = DesignazioneRDL
         fields = [
-            'id', 'sezione', 'sezione_numero', 'sezione_comune', 'sezione_municipio',
-            'ruolo', 'ruolo_display', 'stato', 'stato_display', 'designante_nome',
-            'cognome', 'nome', 'email', 'is_attiva'
+            'id', 'sezione', 'sezione_numero', 'sezione_comune', 'sezione_indirizzo', 'sezione_municipio',
+            'effettivo', 'supplente',
+            'stato', 'stato_display', 'designante_nome',
+            'is_attiva', 'batch_pdf'
         ]
 
     def get_sezione_municipio(self, obj):
@@ -242,17 +338,35 @@ class DesignazioneRDLListSerializer(serializers.ModelSerializer):
             return obj.sezione.municipio.numero
         return None
 
+    def get_effettivo(self, obj):
+        if not obj.effettivo_email:
+            return None
+        return {
+            'cognome': obj.effettivo_cognome,
+            'nome': obj.effettivo_nome,
+            'email': obj.effettivo_email,
+        }
+
+    def get_supplente(self, obj):
+        if not obj.supplente_email:
+            return None
+        return {
+            'cognome': obj.supplente_cognome,
+            'nome': obj.supplente_nome,
+            'email': obj.supplente_email,
+        }
+
 
 class BatchGenerazioneDocumentiSerializer(serializers.ModelSerializer):
     """Serializer per Batch Generazione Documenti."""
     tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
     stato_display = serializers.CharField(source='get_stato_display', read_only=True)
-    sub_delegato_nome = serializers.CharField(source='sub_delega.nome_completo', read_only=True)
+    consultazione_nome = serializers.CharField(source='consultazione.nome', read_only=True)
 
     class Meta:
         model = BatchGenerazioneDocumenti
         fields = [
-            'id', 'sub_delega', 'sub_delegato_nome',
+            'id', 'consultazione', 'consultazione_nome',
             'tipo', 'tipo_display', 'stato', 'stato_display',
             'solo_sezioni', 'documento', 'data_generazione',
             'n_designazioni', 'n_pagine', 'created_at'
@@ -308,98 +422,7 @@ class RdlRegistrationForMappatura(serializers.Serializer):
     designazione_supplente_id = serializers.IntegerField(allow_null=True)
 
 
-class MappaturaCreaSerializer(serializers.Serializer):
-    """
-    Serializer per creare una mappatura (DesignazioneRDL in stato BOZZA).
-    Crea la designazione a partire da una RdlRegistration approvata.
-    """
-    rdl_registration_id = serializers.IntegerField()
-    sezione_id = serializers.IntegerField()
-    ruolo = serializers.ChoiceField(choices=['EFFETTIVO', 'SUPPLENTE'])
-
-    def validate_rdl_registration_id(self, value):
-        try:
-            reg = RdlRegistration.objects.get(id=value, status='APPROVED')
-        except RdlRegistration.DoesNotExist:
-            raise serializers.ValidationError("RdlRegistration non trovata o non approvata")
-        return value
-
-    def validate_sezione_id(self, value):
-        from territory.models import SezioneElettorale
-        try:
-            SezioneElettorale.objects.get(id=value)
-        except SezioneElettorale.DoesNotExist:
-            raise serializers.ValidationError("Sezione non trovata")
-        return value
-
-    def validate(self, data):
-        """Verifica che non esista già una designazione attiva per lo stesso ruolo sulla stessa sezione."""
-        existing = DesignazioneRDL.objects.filter(
-            sezione_id=data['sezione_id'],
-            ruolo=data['ruolo'],
-            is_attiva=True
-        ).exclude(stato='REVOCATA').exists()
-        if existing:
-            raise serializers.ValidationError(
-                f"Esiste già un {data['ruolo']} attivo per questa sezione"
-            )
-        return data
-
-    def create(self, validated_data):
-        from territory.models import SezioneElettorale
-
-        reg = RdlRegistration.objects.get(id=validated_data['rdl_registration_id'])
-        sezione = SezioneElettorale.objects.get(id=validated_data['sezione_id'])
-        user = self.context['request'].user
-
-        # Trova la sub_delega dell'utente per questo territorio
-        sub_delega = SubDelega.objects.filter(
-            email=user.email,
-            is_attiva=True
-        ).filter(
-            models.Q(comuni=sezione.comune) |
-            models.Q(municipi__contains=[sezione.municipio_id])
-        ).first()
-
-        # Se non è sub-delegato, cerca se è delegato
-        delegato = None
-        if not sub_delega:
-            delegato = DelegatoDiLista.objects.filter(email=user.email).first()
-
-        # Determina lo stato in base al tipo_delega
-        if sub_delega and sub_delega.puo_designare_direttamente:
-            stato = 'CONFERMATA'
-            approvata_da = user
-            from django.utils import timezone
-            data_approvazione = timezone.now()
-        elif delegato:
-            stato = 'CONFERMATA'
-            approvata_da = user
-            from django.utils import timezone
-            data_approvazione = timezone.now()
-        else:
-            stato = 'BOZZA'
-            approvata_da = None
-            data_approvazione = None
-
-        designazione = DesignazioneRDL.objects.create(
-            delegato=delegato,
-            sub_delega=sub_delega,
-            sezione=sezione,
-            ruolo=validated_data['ruolo'],
-            cognome=reg.cognome,
-            nome=reg.nome,
-            luogo_nascita=reg.comune_nascita,
-            data_nascita=reg.data_nascita,
-            domicilio=f"{reg.indirizzo_residenza}, {reg.comune_residenza}",
-            email=reg.email,
-            telefono=reg.telefono,
-            stato=stato,
-            approvata_da_email=approvata_da.email if approvata_da else '',
-            data_approvazione=data_approvazione,
-            created_by_email=user.email,
-        )
-        return designazione
+# MappaturaCreaSerializer removed - logic moved to carica_mappatura view
 
 
 class ConfermaDesignazioneSerializer(serializers.Serializer):

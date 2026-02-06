@@ -707,12 +707,15 @@ small.text-muted {
 }
 
 .page-header-badge {
-  display: inline-block;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 2px 10px;
+  display: block;
+  background: #d4e6f1;
+  color: #1a5276;
+  padding: 4px 10px;
   border-radius: 12px;
-  font-size: 0.8rem;
-  margin-left: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-top: 4px;
+  margin-left: 0;
 }
 
 /* Color variants matching dashboard boxes */

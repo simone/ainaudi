@@ -154,7 +154,9 @@ class Command(BaseCommand):
         if SubDelega.objects.filter(email=user.email).exists():
             return True
 
-        if DesignazioneRDL.objects.filter(email=user.email).exists():
+        if DesignazioneRDL.objects.filter(
+            Q(effettivo_email=user.email) | Q(supplente_email=user.email)
+        ).exists():
             return True
 
         # Check RDL registrations
