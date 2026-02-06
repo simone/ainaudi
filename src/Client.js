@@ -607,6 +607,21 @@ const Client = (server, pdfServer, token) => {
                 });
             },
 
+            // Carica mappatura da SectionAssignment
+            caricaMappatura: async (consultazioneId) => {
+                return fetch(`${server}/api/delegations/designazioni/carica_mappatura/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': authHeader
+                    },
+                    body: JSON.stringify({ consultazione_id: consultazioneId })
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                });
+            },
+
             // Lista bozze da confermare
             bozzeDaConfermare: async (filters = {}) => {
                 const params = new URLSearchParams();

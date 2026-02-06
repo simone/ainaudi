@@ -781,6 +781,7 @@ function AppContent() {
                                 <div className="tab-pane active">
                                     <GestioneDesignazioni
                                         client={client}
+                                        consultazione={consultazione}
                                         setError={setError}
                                     />
                                 </div>

@@ -380,6 +380,145 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         )
 
     @action(detail=False, methods=['post'])
+    def carica_mappatura(self, request):
+        """
+        POST /api/delegations/designazioni/carica_mappatura/
+
+        "Fotografa" tutte le assegnazioni (SectionAssignment) nel territorio del delegato
+        e crea le designazioni formali (DesignazioneRDL) corrispondenti.
+
+        Questo converte la mappatura operativa fatta tramite app in designazioni formali.
+
+        Ritorna: { created: N, skipped: N, errors: [], total: N }
+        """
+        from data.models import SectionAssignment
+
+        user = request.user
+        consultazione_id = request.data.get('consultazione_id')
+
+        if not consultazione_id:
+            return Response({'error': 'consultazione_id obbligatorio'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            consultazione = ConsultazioneElettorale.objects.get(id=consultazione_id)
+        except ConsultazioneElettorale.DoesNotExist:
+            return Response({'error': 'Consultazione non trovata'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Trova il territorio di competenza del delegato
+        sub_deleghe = SubDelega.objects.filter(email=user.email, is_attiva=True)
+        delegati = DelegatoDiLista.objects.filter(email=user.email, consultazione=consultazione)
+
+        # Determina quali sezioni può vedere
+        sezioni_ids = set()
+
+        # Se è delegato, vede tutto il suo territorio
+        for delegato in delegati:
+            # Per ora prendiamo tutte le sezioni nelle sue regioni/circoscrizioni
+            sezioni_ids.update(
+                SezioneElettorale.objects.filter(
+                    comune__provincia__regione__in=delegato.regioni.all()
+                ).values_list('id', flat=True)
+            )
+
+        # Se è sub-delegato, vede solo il suo territorio specifico
+        for sd in sub_deleghe:
+            # Comuni
+            sezioni_comuni = SezioneElettorale.objects.filter(comune__in=sd.comuni.all())
+
+            # Se ha municipi specifici, filtra ulteriormente
+            if sd.municipi.exists():
+                sezioni_comuni = sezioni_comuni.filter(municipio__in=sd.municipi.all())
+
+            sezioni_ids.update(sezioni_comuni.values_list('id', flat=True))
+
+        if not sezioni_ids:
+            return Response({
+                'error': 'Nessun territorio di competenza trovato per questo utente'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # Prendi tutte le SectionAssignment nel territorio
+        assignments = SectionAssignment.objects.filter(
+            sezione_id__in=sezioni_ids,
+            consultazione=consultazione
+        ).select_related('rdl_registration', 'sezione', 'sezione__comune')
+
+        created = 0
+        skipped = 0
+        errors = []
+        total = 0
+
+        for assignment in assignments:
+            total += 1
+
+            try:
+                # Mappa role: SectionAssignment usa 'RDL'/'SUPPLENTE', DesignazioneRDL usa 'EFFETTIVO'/'SUPPLENTE'
+                ruolo_rdl = 'EFFETTIVO' if assignment.role == 'RDL' else 'SUPPLENTE'
+
+                # Controlla se esiste già una designazione
+                existing = DesignazioneRDL.objects.filter(
+                    sezione=assignment.sezione,
+                    email=assignment.rdl_registration.email,
+                    ruolo=ruolo_rdl,
+                    is_attiva=True
+                ).first()
+
+                if existing:
+                    skipped += 1
+                    continue
+
+                # Trova sub-delega o delegato appropriato
+                sub_delega = None
+                delegato_diretto = None
+
+                # Cerca sub-delega che copre questo territorio
+                for sd in sub_deleghe:
+                    if assignment.sezione.comune in sd.comuni.all():
+                        # Verifica municipi se necessario
+                        if sd.municipi.exists():
+                            if assignment.sezione.municipio in sd.municipi.all():
+                                sub_delega = sd
+                                break
+                        else:
+                            sub_delega = sd
+                            break
+
+                # Se non trova sub-delega, cerca delegato diretto
+                if not sub_delega:
+                    for delegato in delegati:
+                        if assignment.sezione.comune.provincia.regione in delegato.regioni.all():
+                            delegato_diretto = delegato
+                            break
+
+                if not sub_delega and not delegato_diretto:
+                    errors.append(f'Sezione {assignment.sezione}: nessuna delega trovata')
+                    continue
+
+                # Crea designazione
+                designazione = DesignazioneRDL.objects.create(
+                    sezione=assignment.sezione,
+                    sub_delega=sub_delega,
+                    delegato=delegato_diretto,
+                    email=assignment.rdl_registration.email,
+                    nome=assignment.rdl_registration.nome,
+                    cognome=assignment.rdl_registration.cognome,
+                    telefono=assignment.rdl_registration.telefono or '',
+                    ruolo=ruolo_rdl,
+                    stato='CONFERMATA' if (sub_delega and sub_delega.tipo_delega == 'FIRMA_AUTENTICATA') or delegato_diretto else 'BOZZA',
+                    is_attiva=True
+                )
+                created += 1
+
+            except Exception as e:
+                errors.append(f'Sezione {assignment.sezione}: {str(e)}')
+
+        return Response({
+            'created': created,
+            'skipped': skipped,
+            'errors': errors,
+            'total': total
+        })
+
+    @action(detail=False, methods=['post'])
     def upload_csv(self, request):
         """
         POST /api/delegations/designazioni/upload_csv/

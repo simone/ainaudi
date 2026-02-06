@@ -29,7 +29,7 @@ const toRoman = (num) => {
     return result;
 };
 
-function GestioneDesignazioni({ client, setError }) {
+function GestioneDesignazioni({ client, setError, consultazione }) {
     const [stats, setStats] = useState(null);
     const [designazioni, setDesignazioni] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -39,6 +39,10 @@ function GestioneDesignazioni({ client, setError }) {
     const [file, setFile] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [uploadResult, setUploadResult] = useState(null);
+
+    // Carica mappatura state
+    const [loadingMappatura, setLoadingMappatura] = useState(false);
+    const [mappaturaResult, setMappaturaResult] = useState(null);
 
     useEffect(() => {
         loadData();
@@ -147,6 +151,40 @@ function GestioneDesignazioni({ client, setError }) {
         }
     };
 
+    const handleCaricaMappatura = async () => {
+        if (!consultazione || !consultazione.id) {
+            setError('Nessuna consultazione attiva selezionata');
+            return;
+        }
+
+        const confirm = window.confirm(
+            'Questa operazione creerà le designazioni formali per tutte le assegnazioni presenti nel tuo territorio.\n\n' +
+            'Le assegnazioni già convertite in designazioni verranno saltate.\n\n' +
+            'Vuoi procedere?'
+        );
+
+        if (!confirm) return;
+
+        setLoadingMappatura(true);
+        setError(null);
+        setMappaturaResult(null);
+
+        try {
+            const res = await client.deleghe.designazioni.caricaMappatura(consultazione.id);
+            if (res.error) {
+                setError(res.error);
+            } else {
+                setMappaturaResult(res);
+                // Ricarica i dati dopo il caricamento
+                loadData();
+            }
+        } catch (err) {
+            setError(`Errore durante il caricamento mappatura: ${err.message}`);
+        } finally {
+            setLoadingMappatura(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="loading-container" role="status" aria-live="polite">
@@ -205,6 +243,66 @@ function GestioneDesignazioni({ client, setError }) {
             {/* Panoramica View */}
             {activeView === 'panoramica' && stats && (
                 <>
+                    {/* Carica Mappatura Button */}
+                    <div className="alert alert-primary mb-4">
+                        <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div className="d-flex align-items-center">
+                                <i className="fas fa-map-marked-alt fa-2x me-3"></i>
+                                <div>
+                                    <strong>Carica Mappatura dal Territorio</strong>
+                                    <p className="mb-0 small">
+                                        Converte le assegnazioni RDL-Sezione fatte tramite app in designazioni formali
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                className="btn btn-primary"
+                                onClick={handleCaricaMappatura}
+                                disabled={loadingMappatura || !consultazione}
+                            >
+                                {loadingMappatura ? (
+                                    <>
+                                        <span className="spinner-border spinner-border-sm me-2"></span>
+                                        Caricamento...
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fas fa-download me-2"></i>
+                                        Carica Mappatura
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Mappatura Result */}
+                    {mappaturaResult && (
+                        <div className={`alert ${mappaturaResult.errors?.length ? 'alert-warning' : 'alert-success'} mb-4`}>
+                            <h5>
+                                <i className={`fas ${mappaturaResult.errors?.length ? 'fa-exclamation-triangle' : 'fa-check-circle'} me-2`}></i>
+                                Mappatura caricata
+                            </h5>
+                            <ul className="mb-0">
+                                <li>Designazioni create: <strong>{mappaturaResult.created}</strong></li>
+                                <li>Già esistenti (saltate): <strong>{mappaturaResult.skipped}</strong></li>
+                                <li>Totale elaborato: <strong>{mappaturaResult.total}</strong></li>
+                            </ul>
+                            {mappaturaResult.errors?.length > 0 && (
+                                <div className="mt-2">
+                                    <strong>Errori:</strong>
+                                    <ul className="mb-0">
+                                        {mappaturaResult.errors.slice(0, 10).map((err, i) => (
+                                            <li key={i} className="text-danger small">{err}</li>
+                                        ))}
+                                        {mappaturaResult.errors.length > 10 && (
+                                            <li className="text-muted small">... e altri {mappaturaResult.errors.length - 10} errori</li>
+                                        )}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Summary Cards */}
                     <div className="row g-3 mb-4">
                         {/* Card Totale Designazioni */}
@@ -409,6 +507,21 @@ function GestioneDesignazioni({ client, setError }) {
             {/* Import CSV View */}
             {activeView === 'importa' && (
                 <>
+                    <div className="alert alert-warning mb-3">
+                        <h6 className="alert-heading">
+                            <i className="fas fa-lightbulb me-2"></i>
+                            Due modi per caricare le designazioni
+                        </h6>
+                        <p className="mb-2">
+                            <strong>1. Carica Mappatura (consigliato):</strong> Usa il pulsante nella tab "Panoramica" per caricare
+                            automaticamente tutte le assegnazioni fatte tramite app mobile nel tuo territorio.
+                        </p>
+                        <p className="mb-0">
+                            <strong>2. Import CSV (manuale):</strong> Usa questa tab se hai un CSV preparato manualmente
+                            o se vuoi integrare designazioni da altre fonti.
+                        </p>
+                    </div>
+
                     <div className="card">
                         <div className="card-header bg-info text-white">
                             <i className="fas fa-file-import me-2"></i>
@@ -417,7 +530,7 @@ function GestioneDesignazioni({ client, setError }) {
                         <div className="card-body">
                             <p className="alert alert-info">
                                 <i className="fas fa-info-circle me-2"></i>
-                                <strong>Mappatura del territorio:</strong> Carica un file CSV con le designazioni RDL create dai Sub-Delegati.
+                                <strong>Import manuale:</strong> Carica un file CSV con le designazioni RDL.
                                 <br/>
                                 Il sistema creerà automaticamente le designazioni per ogni sezione specificata.
                             </p>
