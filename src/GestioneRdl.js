@@ -56,6 +56,7 @@ function GestioneRdl({ client, setError }) {
     const [failedRecords, setFailedRecords] = useState([]);
     const [editingRecords, setEditingRecords] = useState([]);
     const [comuniOptions, setComuniOptions] = useState({});
+    const [userTerritory, setUserTerritory] = useState([]);
 
     // Territory filter states
     const [regioni, setRegioni] = useState([]);
@@ -528,7 +529,12 @@ function GestioneRdl({ client, setError }) {
             // Show error modal if there are failed records
             if (result.failed_records && result.failed_records.length > 0) {
                 setFailedRecords(result.failed_records);
-                setEditingRecords(result.failed_records.map(r => ({ ...r }))); // Deep copy
+                // Deep copy and convert dates to ISO format
+                setEditingRecords(result.failed_records.map(r => ({
+                    ...r,
+                    data_nascita: convertDateToISO(r.data_nascita)
+                })));
+                setUserTerritory(result.user_territory || []);
                 setShowErrorModal(true);
             }
 
@@ -558,6 +564,24 @@ function GestioneRdl({ client, setError }) {
 
     const toggleExpand = (id) => {
         setExpandedId(expandedId === id ? null : id);
+    };
+
+    const convertDateToISO = (dateStr) => {
+        if (!dateStr) return '';
+
+        // Already in ISO format (YYYY-MM-DD)
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            return dateStr;
+        }
+
+        // Italian format: DD/MM/YYYY or DD-MM-YYYY
+        const match = dateStr.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+        if (match) {
+            const [, day, month, year] = match;
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+
+        return dateStr; // Return as-is if can't parse
     };
 
     const handleSearchComune = async (query, recordIndex) => {
@@ -1510,6 +1534,28 @@ function GestioneRdl({ client, setError }) {
                                 I seguenti record non sono stati importati a causa di errori. Correggi i campi evidenziati in rosso e riprova.
                             </p>
 
+                            {/* User Territory Info */}
+                            {userTerritory.length > 0 && (
+                                <div style={{
+                                    background: '#e7f3ff',
+                                    border: '1px solid #b6d4fe',
+                                    borderRadius: '6px',
+                                    padding: '12px',
+                                    marginBottom: '16px',
+                                    fontSize: '0.85rem'
+                                }}>
+                                    <div style={{ fontWeight: 600, marginBottom: '6px' }}>
+                                        <i className="fas fa-info-circle me-2"></i>
+                                        La tua area di competenza:
+                                    </div>
+                                    <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                                        {userTerritory.map((territory, idx) => (
+                                            <li key={idx}>{territory}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
                             {editingRecords.map((record, index) => (
                                 <div key={index} style={{
                                     border: '2px solid #ffc107',
@@ -1672,6 +1718,11 @@ function GestioneRdl({ client, setError }) {
                                         <div>
                                             <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
                                                 Data Nascita *
+                                                {record.error_fields?.includes('data_nascita') && (
+                                                    <span style={{ color: '#dc3545', fontSize: '0.75rem', marginLeft: '8px' }}>
+                                                        Formato errato
+                                                    </span>
+                                                )}
                                             </label>
                                             <input
                                                 type="date"
@@ -1683,6 +1734,11 @@ function GestioneRdl({ client, setError }) {
                                                     borderWidth: record.error_fields?.includes('data_nascita') ? '2px' : undefined
                                                 }}
                                             />
+                                            {record.data_nascita && (
+                                                <small style={{ color: '#6c757d', fontSize: '0.7rem', display: 'block', marginTop: '2px' }}>
+                                                    {new Date(record.data_nascita).toLocaleDateString('it-IT')}
+                                                </small>
+                                            )}
                                         </div>
 
                                         <div>

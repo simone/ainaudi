@@ -2205,9 +2205,10 @@ class RdlRegistrationRetryView(APIView):
                     except Municipio.DoesNotExist:
                         pass
 
-                # Check permission
-                if not RdlRegistrationImportView()._has_permission(request.user, comune, municipio):
-                    errors.append(f'Riga {row_number}: Non autorizzato')
+                # Check permission using the same logic as import
+                import_view = RdlRegistrationImportView()
+                if not import_view._has_permission(request.user, comune, municipio):
+                    errors.append(f'Riga {row_number}: Non autorizzato per {comune.nome}')
                     continue
 
                 # Create or update
@@ -2451,6 +2452,43 @@ class RdlRegistrationImportView(APIView):
         errors = []
         failed_records = []  # Store full record data for correction modal
 
+        # Get user territory summary for better error messages
+        from delegations.permissions import get_user_delegation_roles
+        delegation_roles = get_user_delegation_roles(request.user)
+        user_territory_info = []
+
+        if delegation_roles['is_delegato']:
+            for delega in delegation_roles['deleghe_lista'].prefetch_related(
+                'territorio_regioni', 'territorio_province', 'territorio_comuni'
+            ):
+                territori = []
+                if delega.territorio_regioni.exists():
+                    territori.append(f"Regioni: {', '.join(delega.territorio_regioni.values_list('nome', flat=True))}")
+                if delega.territorio_province.exists():
+                    territori.append(f"Province: {', '.join(delega.territorio_province.values_list('nome', flat=True))}")
+                if delega.territorio_comuni.exists():
+                    territori.append(f"Comuni: {', '.join(delega.territorio_comuni.values_list('nome', flat=True)[:5])}")
+                if territori:
+                    user_territory_info.append(' - '.join(territori))
+
+        if delegation_roles['is_sub_delegato']:
+            for sub_delega in delegation_roles['sub_deleghe'].prefetch_related('regioni', 'province', 'comuni'):
+                territori = []
+                if sub_delega.regioni.exists():
+                    territori.append(f"Regioni: {', '.join(sub_delega.regioni.values_list('nome', flat=True))}")
+                if sub_delega.province.exists():
+                    territori.append(f"Province: {', '.join(sub_delega.province.values_list('nome', flat=True))}")
+                if sub_delega.comuni.exists():
+                    comuni_names = list(sub_delega.comuni.values_list('nome', flat=True))
+                    if len(comuni_names) <= 3:
+                        territori.append(f"Comuni: {', '.join(comuni_names)}")
+                    else:
+                        territori.append(f"Comuni: {', '.join(comuni_names[:3])} e altri {len(comuni_names)-3}")
+                if sub_delega.municipi:
+                    territori.append(f"Municipi: {', '.join(map(str, sub_delega.municipi))}")
+                if territori:
+                    user_territory_info.append(' - '.join(territori))
+
         # Helper function to get mapped value
         def get_mapped_value(row, key):
             col = mapping.get(key)
@@ -2572,8 +2610,13 @@ class RdlRegistrationImportView(APIView):
 
                 # Check permission (with municipio for proper scope checking)
                 if not self._has_permission(request.user, comune, municipio):
-                    errors.append(f'Riga {i}: Non autorizzato per {comune_nome}')
-                    failed_records.append({**record_data, 'error_fields': ['comune_seggio'], 'error_message': f'Non autorizzato per {comune_nome}'})
+                    error_msg = f'Fuori dalla tua area di competenza'
+                    if municipio:
+                        error_msg = f'{comune.nome} (Municipio {municipio.numero}) non è nella tua area di competenza'
+                    else:
+                        error_msg = f'{comune.nome} non è nella tua area di competenza'
+                    errors.append(f'Riga {i}: {error_msg}')
+                    failed_records.append({**record_data, 'error_fields': ['comune_seggio'], 'error_message': error_msg})
                     continue
 
                 # Create or update registration
@@ -2638,18 +2681,83 @@ class RdlRegistrationImportView(APIView):
         if failed_records:
             result['failed_records'] = failed_records
 
+        # Add user territory info for context
+        if user_territory_info:
+            result['user_territory'] = user_territory_info
+
         return Response(result)
 
     def _has_permission(self, user, comune, municipio=None):
         """
         Check if user has permission to import RDL for this comune/municipio.
-        Follows the same scope logic as other registration views.
+        Uses both DelegatoDiLista/SubDelega and RoleAssignment systems.
         """
         if user.is_superuser:
             return True
 
         from core.models import RoleAssignment
+        from delegations.permissions import get_user_delegation_roles
 
+        # 1. Check delegation chain (DelegatoDiLista / SubDelega) - PREFERRED
+        delegation_roles = get_user_delegation_roles(user)
+
+        # Check as Delegato
+        if delegation_roles['is_delegato']:
+            for delega in delegation_roles['deleghe_lista'].prefetch_related(
+                'territorio_regioni', 'territorio_province', 'territorio_comuni'
+            ):
+                regioni_ids = list(delega.territorio_regioni.values_list('id', flat=True))
+                province_ids = list(delega.territorio_province.values_list('id', flat=True))
+                comuni_ids = list(delega.territorio_comuni.values_list('id', flat=True))
+                municipi_nums = delega.territorio_municipi
+
+                # No territory restriction = global access
+                if not regioni_ids and not province_ids and not comuni_ids and not municipi_nums:
+                    return True
+
+                # Check regione
+                if regioni_ids and comune.provincia.regione_id in regioni_ids:
+                    return True
+
+                # Check provincia
+                if province_ids and comune.provincia_id in province_ids:
+                    return True
+
+                # Check comune
+                if comuni_ids and comune.id in comuni_ids:
+                    # If municipi specified, must match
+                    if municipi_nums and municipio:
+                        if municipio.numero in municipi_nums:
+                            return True
+                    elif not municipi_nums:
+                        return True
+
+        # Check as SubDelegato
+        if delegation_roles['is_sub_delegato']:
+            for sub_delega in delegation_roles['sub_deleghe'].prefetch_related('regioni', 'province', 'comuni'):
+                regioni_ids = list(sub_delega.regioni.values_list('id', flat=True))
+                province_ids = list(sub_delega.province.values_list('id', flat=True))
+                comuni_ids = list(sub_delega.comuni.values_list('id', flat=True))
+                municipi_nums = sub_delega.municipi
+
+                # Check regione
+                if regioni_ids and comune.provincia.regione_id in regioni_ids:
+                    return True
+
+                # Check provincia
+                if province_ids and comune.provincia_id in province_ids:
+                    return True
+
+                # Check comune
+                if comuni_ids and comune.id in comuni_ids:
+                    # If municipi specified, must match
+                    if municipi_nums and municipio:
+                        if municipio.numero in municipi_nums:
+                            return True
+                    elif not municipi_nums:
+                        return True
+
+        # 2. Fallback: Check RoleAssignment (legacy system)
         # Check ADMIN or global scope
         if RoleAssignment.objects.filter(
             user=user,
@@ -2658,11 +2766,11 @@ class RdlRegistrationImportView(APIView):
         ).exists():
             return True
 
-        # Get user's delegate roles (import only allowed for DELEGATE, not SUBDELEGATE)
+        # Get user's delegate roles
         user_roles = RoleAssignment.objects.filter(
             user=user,
             is_active=True,
-            role='DELEGATE'
+            role__in=['DELEGATE', 'SUBDELEGATE']
         ).select_related('scope_regione', 'scope_provincia', 'scope_comune')
 
         for role in user_roles:
