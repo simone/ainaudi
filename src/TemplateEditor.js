@@ -705,6 +705,38 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             const selW = Math.round(currentSelection.width);
             const selH = Math.round(currentSelection.height);
 
+            // Ask for number of rows in this page
+            const rowsInput = window.prompt(
+                `Quante righe del loop ci sono in questa pagina (pagina ${currentPage})?\n\n` +
+                `Suggerimento: Calcola in base all'altezza disponibile.\n` +
+                `- Altezza area selezionata: ${selH}px\n` +
+                `- Altezza singola riga: ${fieldMappings[currentLoopIndex].area.height}px\n` +
+                `- Righe stimate: ${Math.floor(selH / fieldMappings[currentLoopIndex].area.height)}`,
+                Math.floor(selH / fieldMappings[currentLoopIndex].area.height).toString()
+            );
+
+            if (!rowsInput) {
+                // User cancelled
+                setIsSelecting(false);
+                setSelectionStart(null);
+                setCurrentSelection(null);
+                setIsAddingLoopPage(false);
+                setError('Aggiunta pagina annullata');
+                setTimeout(() => setError(null), 2000);
+                return;
+            }
+
+            const rows = parseInt(rowsInput);
+            if (isNaN(rows) || rows < 1) {
+                setIsSelecting(false);
+                setSelectionStart(null);
+                setCurrentSelection(null);
+                setIsAddingLoopPage(false);
+                setError('Numero di righe non valido');
+                setTimeout(() => setError(null), 2000);
+                return;
+            }
+
             const updatedMappings = [...fieldMappings];
             const loopMapping = updatedMappings[currentLoopIndex];
 
@@ -714,7 +746,8 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
 
             loopMapping.loop_pages.push({
                 page: currentPage - 1,
-                area: { x: selX, y: selY, width: selW, height: selH }
+                area: { x: selX, y: selY, width: selW, height: selH },
+                rows: rows
             });
 
             setFieldMappings(updatedMappings);
@@ -722,7 +755,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             setSelectionStart(null);
             setCurrentSelection(null);
             setIsAddingLoopPage(false);
-            setSuccess(`Pagina ${currentPage} aggiunta al loop!`);
+            setSuccess(`Pagina ${currentPage} aggiunta al loop con ${rows} righe!`);
             setTimeout(() => setSuccess(null), 2000);
             return;
         }
@@ -1428,7 +1461,8 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                 {isAddingLoopPage ? (
                                     <div className="alert alert-success">
                                         <strong>📄 Modalità: Aggiungi Pagina Loop</strong>
-                                        <p className="mb-0">Disegna il rettangolo dove il loop continua in questa pagina. Le colonne saranno le stesse della prima pagina.</p>
+                                        <p className="mb-1">Disegna il rettangolo dove il loop continua in questa pagina. Le colonne saranno le stesse della prima pagina.</p>
+                                        <p className="mb-0 small">Dopo aver disegnato l'area, ti verrà chiesto <strong>quante righe</strong> del loop ci sono in questa pagina.</p>
                                         <button
                                             className="btn btn-sm btn-secondary mt-2"
                                             onClick={() => {
@@ -1532,9 +1566,14 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                         </td>
                                         <td>
                                             p:{mapping.page}, x:{mapping.area.x}, y:{mapping.area.y}
+                                            {mapping.type === 'loop' && (
+                                                <div className="badge bg-info ms-2" title="Righe in questa pagina">
+                                                    {mapping.rows || template?.loop_config?.rows_first_page || 6}r
+                                                </div>
+                                            )}
                                             {mapping.loop_pages && mapping.loop_pages.length > 0 && (
-                                                <div className="badge bg-success ms-2">
-                                                    +{mapping.loop_pages.length} pag
+                                                <div className="badge bg-success ms-2" title={`+${mapping.loop_pages.length} pagine aggiuntive (${mapping.loop_pages.map(lp => lp.rows || '?').join(', ')} righe)`}>
+                                                    +{mapping.loop_pages.length}pag
                                                 </div>
                                             )}
                                         </td>
@@ -1648,9 +1687,10 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                     <hr className="my-2" />
                     <p className="mb-1"><strong>Loop Multi-Pagina (2+ pagine):</strong></p>
                     <ol className="mb-0 ps-3">
-                        <li><strong>Prima pagina</strong>: Crea loop con page=0 (es. Y=200 se c'è header)</li>
-                        <li><strong>Pagine successive</strong>: Crea secondo loop con stesso JSONPath, page=1, Y diverso (es. Y=50 senza header)</li>
-                        <li>Il sistema userà page=0 per la prima pagina, page=1 per tutte le altre</li>
+                        <li><strong>Prima pagina</strong>: Crea loop, poi usa il modal "📝 Campi" per configurare quante righe ci sono</li>
+                        <li><strong>Pagine successive</strong>: Click "📄 +Pagina", vai alla pagina, disegna l'area, specifica il numero di righe</li>
+                        <li>Ogni pagina può avere un <strong>numero di righe diverso</strong> (es: prima 6, altre 13, ultima 10)</li>
+                        <li>Il numero di righe è modificabile nel modal "📝 Campi" nella tabella delle pagine</li>
                     </ol>
                 </div>
 
@@ -1709,7 +1749,9 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                     <>
                                         <h6>📄 Pagine Aggiuntive ({fieldMappings[currentLoopIndex].loop_pages.length})</h6>
                                         <div className="alert alert-info mb-3">
-                                            Il loop continua su più pagine con le stesse colonne ma posizioni diverse.
+                                            <strong>Loop Multi-Pagina:</strong> Il loop continua su più pagine con le stesse colonne ma posizioni e numero di righe diverse.
+                                            <br/>
+                                            <small>Modifica il numero di righe per ogni pagina nella colonna "Righe".</small>
                                         </div>
                                         <table className="table table-sm table-bordered">
                                             <thead>
@@ -1717,6 +1759,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                                     <th>Pagina</th>
                                                     <th>Posizione</th>
                                                     <th>Dimensioni</th>
+                                                    <th>Righe</th>
                                                     <th>Azioni</th>
                                                 </tr>
                                             </thead>
@@ -1725,6 +1768,20 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                                     <td><strong>Pagina {fieldMappings[currentLoopIndex].page + 1}</strong> (principale)</td>
                                                     <td>({fieldMappings[currentLoopIndex].area.x}, {fieldMappings[currentLoopIndex].area.y})</td>
                                                     <td>{fieldMappings[currentLoopIndex].area.width}×{fieldMappings[currentLoopIndex].area.height}</td>
+                                                    <td>
+                                                        <input
+                                                            type="number"
+                                                            className="form-control form-control-sm"
+                                                            style={{ width: '80px' }}
+                                                            value={fieldMappings[currentLoopIndex].rows || template?.loop_config?.rows_first_page || 6}
+                                                            min="1"
+                                                            onChange={(e) => {
+                                                                const updatedMappings = [...fieldMappings];
+                                                                updatedMappings[currentLoopIndex].rows = parseInt(e.target.value) || 1;
+                                                                setFieldMappings(updatedMappings);
+                                                            }}
+                                                        />
+                                                    </td>
                                                     <td>-</td>
                                                 </tr>
                                                 {fieldMappings[currentLoopIndex].loop_pages.map((lp, lpIndex) => (
@@ -1732,6 +1789,21 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                                         <td>Pagina {lp.page + 1}</td>
                                                         <td>({lp.area.x}, {lp.area.y})</td>
                                                         <td>{lp.area.width}×{lp.area.height}</td>
+                                                        <td>
+                                                            <input
+                                                                type="number"
+                                                                className="form-control form-control-sm"
+                                                                style={{ width: '80px' }}
+                                                                value={lp.rows || 1}
+                                                                min="1"
+                                                                onChange={(e) => {
+                                                                    const updatedMappings = [...fieldMappings];
+                                                                    const loopMapping = updatedMappings[currentLoopIndex];
+                                                                    loopMapping.loop_pages[lpIndex].rows = parseInt(e.target.value) || 1;
+                                                                    setFieldMappings(updatedMappings);
+                                                                }}
+                                                            />
+                                                        </td>
                                                         <td>
                                                             <button
                                                                 className="btn btn-sm btn-danger"
