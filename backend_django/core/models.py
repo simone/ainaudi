@@ -337,3 +337,37 @@ class AuditLog(models.Model):
     def user(self):
         """Restituisce l'utente che ha eseguito l'azione."""
         return get_user_by_email(self.user_email)
+
+
+class CustomPermission(models.Model):
+    """
+    Proxy model per definire custom permissions per il sistema.
+    Non crea tabella, usa django.contrib.auth.Permission.
+
+    Permessi definiti:
+    - can_manage_territory: Gestione territorio (solo superuser)
+    - can_view_kpi: Visualizzazione dashboard KPI
+    - can_manage_elections: Gestione consultazioni elettorali
+    - can_manage_delegations: Gestione catena deleghe
+    - can_manage_rdl: Gestione RDL registrations
+    - has_scrutinio_access: Inserimento dati scrutinio
+    - can_view_resources: Accesso risorse/documenti
+    - can_ask_to_ai_assistant: Uso chatbot AI
+    - can_generate_documents: Generazione PDF
+    - can_manage_incidents: Gestione segnalazioni
+    """
+    class Meta:
+        managed = False
+        default_permissions = ()
+        permissions = [
+            ('can_manage_territory', 'Can manage territory (regions, provinces, comuni, sections)'),
+            ('can_view_kpi', 'Can view KPI dashboard'),
+            ('can_manage_elections', 'Can manage elections and ballots'),
+            ('can_manage_delegations', 'Can manage delegations chain'),
+            ('can_manage_rdl', 'Can manage RDL registrations'),
+            ('has_scrutinio_access', 'Can enter section scrutinio data'),
+            ('can_view_resources', 'Can view resources and documents'),
+            ('can_ask_to_ai_assistant', 'Can use AI assistant chatbot'),
+            ('can_generate_documents', 'Can generate PDF documents'),
+            ('can_manage_incidents', 'Can manage incident reports'),
+        ]

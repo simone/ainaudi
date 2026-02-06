@@ -120,6 +120,90 @@ def ensure_role_assigned(user, role, scope_type=None, scope_value=None, assigned
         return assignment, False
 
 
+def assign_permissions_for_role(user, role):
+    """
+    Assegna permessi Django basati sul ruolo.
+
+    Mapping ruolo → permessi:
+    - DELEGATO: tutti tranne can_manage_territory
+    - SUB_DELEGATO: gestione deleghe, RDL, scrutinio, resources
+    - RDL: solo scrutinio, resources, AI, incidents
+    - KPI_VIEWER: solo KPI e resources
+
+    Args:
+        user: User instance
+        role: Role string (da RoleAssignment.Role)
+    """
+    if not user or user.is_superuser:
+        return
+
+    from django.contrib.auth.models import Permission
+    from django.contrib.contenttypes.models import ContentType
+
+    # Mapping ruolo → codenames permessi
+    role_permissions = {
+        RoleAssignment.Role.DELEGATE: [
+            'can_view_kpi',
+            'can_manage_elections',
+            'can_manage_delegations',
+            'can_manage_rdl',
+            'has_scrutinio_access',
+            'can_view_resources',
+            'can_ask_to_ai_assistant',
+            'can_generate_documents',
+            'can_manage_incidents',
+        ],
+        RoleAssignment.Role.SUBDELEGATE: [
+            'can_view_kpi',
+            'can_manage_delegations',
+            'can_manage_rdl',
+            'has_scrutinio_access',
+            'can_view_resources',
+            'can_ask_to_ai_assistant',
+            'can_generate_documents',
+            'can_manage_incidents',
+        ],
+        RoleAssignment.Role.RDL: [
+            'has_scrutinio_access',
+            'can_view_resources',
+            'can_ask_to_ai_assistant',
+            'can_manage_incidents',
+        ],
+        RoleAssignment.Role.KPI_VIEWER: [
+            'can_view_kpi',
+            'can_view_resources',
+        ],
+    }
+
+    codenames = role_permissions.get(role, [])
+    if not codenames:
+        logger.warning(f"No permissions defined for role: {role}")
+        return
+
+    try:
+        # Get content type per CustomPermission
+        content_type = ContentType.objects.get(
+            app_label='core',
+            model='custompermission'
+        )
+
+        # Get permissions to assign
+        permissions = Permission.objects.filter(
+            codename__in=codenames,
+            content_type=content_type
+        )
+
+        # Assegna permessi (add è idempotente, non duplica)
+        user.user_permissions.add(*permissions)
+
+        logger.info(f"Assigned {len(permissions)} permissions to {user.email} for role {role}")
+
+    except ContentType.DoesNotExist:
+        logger.error("CustomPermission content type not found. Run migrations first.")
+    except Exception as e:
+        logger.error(f"Failed to assign permissions for {user.email}: {e}")
+
+
 def log_provisioning_action(action, user, target_model, target_id, details=None):
     """Log a provisioning action to the audit log."""
     try:
@@ -285,6 +369,9 @@ def provision_delegato_user(sender, instance, created, **kwargs):
             scope_type=RoleAssignment.ScopeType.GLOBAL,
         )
 
+        # Assign permissions basati sul ruolo
+        assign_permissions_for_role(user, RoleAssignment.Role.DELEGATE)
+
         # Log action
         log_provisioning_action(
             action=AuditLog.Action.CREATE,
@@ -383,6 +470,9 @@ def provision_subdelegato_user(sender, instance, created, **kwargs):
             role=RoleAssignment.Role.SUBDELEGATE,
         )
 
+        # Assign permissions basati sul ruolo
+        assign_permissions_for_role(user, RoleAssignment.Role.SUBDELEGATE)
+
         # Log action
         log_provisioning_action(
             action=AuditLog.Action.CREATE,
@@ -477,6 +567,9 @@ def provision_rdl_users(sender, instance, created, **kwargs):
                 scope_value=scope_value,
             )
 
+            # Assign permissions basati sul ruolo
+            assign_permissions_for_role(user, RoleAssignment.Role.RDL)
+
             # Log action
             log_provisioning_action(
                 action=AuditLog.Action.CREATE if created else AuditLog.Action.UPDATE,
@@ -512,6 +605,9 @@ def provision_rdl_users(sender, instance, created, **kwargs):
                 scope_type=RoleAssignment.ScopeType.SEZIONE,
                 scope_value=scope_value,
             )
+
+            # Assign permissions basati sul ruolo
+            assign_permissions_for_role(user, RoleAssignment.Role.RDL)
 
             # Log action
             log_provisioning_action(
