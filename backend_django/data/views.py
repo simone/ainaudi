@@ -1926,14 +1926,75 @@ class RdlRegistrationApproveView(APIView):
 
     def _has_permission(self, user, comune, municipio=None):
         """
-        Check if user has permission to approve RDL for this comune/municipio.
-        Follows the same scope logic as the registration list view.
+        Check if user has permission to approve/reject RDL for this comune/municipio.
+        Uses both DelegatoDiLista/SubDelega and RoleAssignment systems.
         """
         if user.is_superuser:
             return True
 
         from core.models import RoleAssignment
+        from delegations.permissions import get_user_delegation_roles
 
+        # 1. Check delegation chain (DelegatoDiLista / SubDelega) - PREFERRED
+        delegation_roles = get_user_delegation_roles(user)
+
+        # Check as Delegato
+        if delegation_roles['is_delegato']:
+            for delega in delegation_roles['deleghe_lista'].prefetch_related(
+                'territorio_regioni', 'territorio_province', 'territorio_comuni'
+            ):
+                regioni_ids = list(delega.territorio_regioni.values_list('id', flat=True))
+                province_ids = list(delega.territorio_province.values_list('id', flat=True))
+                comuni_ids = list(delega.territorio_comuni.values_list('id', flat=True))
+                municipi_nums = delega.territorio_municipi
+
+                # No territory restriction = global access
+                if not regioni_ids and not province_ids and not comuni_ids and not municipi_nums:
+                    return True
+
+                # Check regione
+                if regioni_ids and comune.provincia.regione_id in regioni_ids:
+                    return True
+
+                # Check provincia
+                if province_ids and comune.provincia_id in province_ids:
+                    return True
+
+                # Check comune
+                if comuni_ids and comune.id in comuni_ids:
+                    # If municipi specified, must match
+                    if municipi_nums and municipio:
+                        if municipio.numero in municipi_nums:
+                            return True
+                    elif not municipi_nums:
+                        return True
+
+        # Check as SubDelegato
+        if delegation_roles['is_sub_delegato']:
+            for sub_delega in delegation_roles['sub_deleghe'].prefetch_related('regioni', 'province', 'comuni'):
+                regioni_ids = list(sub_delega.regioni.values_list('id', flat=True))
+                province_ids = list(sub_delega.province.values_list('id', flat=True))
+                comuni_ids = list(sub_delega.comuni.values_list('id', flat=True))
+                municipi_nums = sub_delega.municipi
+
+                # Check regione
+                if regioni_ids and comune.provincia.regione_id in regioni_ids:
+                    return True
+
+                # Check provincia
+                if province_ids and comune.provincia_id in province_ids:
+                    return True
+
+                # Check comune
+                if comuni_ids and comune.id in comuni_ids:
+                    # If municipi specified, must match
+                    if municipi_nums and municipio:
+                        if municipio.numero in municipi_nums:
+                            return True
+                    elif not municipi_nums:
+                        return True
+
+        # 2. Fallback: Check RoleAssignment (legacy system)
         # Check ADMIN or global scope
         if RoleAssignment.objects.filter(
             user=user,
@@ -1969,8 +2030,6 @@ class RdlRegistrationApproveView(APIView):
                     if municipio:
                         if municipio.numero == parse_municipio_number(role.scope_value):
                             return True
-                    # If registration has no municipio but delegate is municipio-scoped, deny
-                    # (they can only manage their specific municipio)
 
         return False
 
