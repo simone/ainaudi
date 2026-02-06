@@ -2321,6 +2321,7 @@ class RdlRegistrationImportView(APIView):
         ]
 
         optional_fields = [
+            {'key': 'PROVINCIA_SEGGIO', 'label': 'Provincia seggio', 'required': False},
             {'key': 'MUNICIPIO', 'label': 'Municipio (per Roma)', 'required': False},
             {'key': 'SEGGIO_PREFERENZA', 'label': 'Seggio preferenza', 'required': False},
             {'key': 'FUORISEDE', 'label': 'Fuorisede (SI/NO)', 'required': False},
@@ -2379,6 +2380,9 @@ class RdlRegistrationImportView(APIView):
                     break
                 # Comune seggio/domicilio
                 elif field['key'] == 'COMUNE_SEGGIO' and ('comune' in col_lower and ('lazio' in col_lower or 'vorresti' in col_lower or 'funzione' in col_lower)):
+                    suggested_mapping[field['key']] = col
+                    break
+                elif field['key'] == 'PROVINCIA_SEGGIO' and ('provincia' in col_lower and ('lazio' in col_lower or 'seggio' in col_lower or 'funzione' in col_lower)):
                     suggested_mapping[field['key']] = col
                     break
                 elif field['key'] == 'COMUNE_DOMICILIO' and ('domicilio' in col_lower and 'comune' in col_lower):
@@ -2507,6 +2511,7 @@ class RdlRegistrationImportView(APIView):
                 comune_residenza = get_mapped_value(row, 'COMUNE_RESIDENZA')
                 indirizzo_residenza = get_mapped_value(row, 'INDIRIZZO_RESIDENZA')
                 comune_nome = get_mapped_value(row, 'COMUNE_SEGGIO').upper()
+                provincia_nome = get_mapped_value(row, 'PROVINCIA_SEGGIO').upper() if get_mapped_value(row, 'PROVINCIA_SEGGIO') else None
                 municipio_str = get_mapped_value(row, 'MUNICIPIO')
                 seggio_preferenza = get_mapped_value(row, 'SEGGIO_PREFERENZA')
                 fuorisede_str = get_mapped_value(row, 'FUORISEDE').upper()
@@ -2537,6 +2542,7 @@ class RdlRegistrationImportView(APIView):
                     'comune_residenza': comune_residenza,
                     'indirizzo_residenza': indirizzo_residenza,
                     'comune_seggio': comune_nome,
+                    'provincia_seggio': provincia_nome if provincia_nome else '',
                     'municipio': municipio_str,
                     'seggio_preferenza': seggio_preferenza,
                     'fuorisede': fuorisede_str,
@@ -2582,21 +2588,43 @@ class RdlRegistrationImportView(APIView):
                 comune = None
                 comune_nome_clean = comune_nome.split('(')[0].strip()  # Remove province suffix like "(FR)"
 
-                # Try 1: Exact match (case-insensitive)
-                try:
-                    comune = Comune.objects.select_related(
-                        'provincia', 'provincia__regione'
-                    ).prefetch_related('municipi').get(nome__iexact=comune_nome_clean)
-                except Comune.DoesNotExist:
-                    pass
-                except Comune.MultipleObjectsReturned:
-                    # Multiple comuni with same name - need to disambiguate
-                    comuni_list = list(Comune.objects.filter(nome__iexact=comune_nome_clean).select_related('provincia').values_list('nome', 'provincia__nome'))
-                    errors.append(f'Riga {i}: Comune ambiguo "{comune_nome_clean}" (trovati: {", ".join([f"{c[0]} ({c[1]})" for c in comuni_list[:3]])}). Specifica la provincia tra parentesi.')
-                    failed_records.append({**record_data, 'error_fields': ['comune_seggio'], 'error_message': f'Comune ambiguo. Specifica provincia es: "{comune_nome_clean} (RM)"'})
-                    continue
+                # Try 1: Exact match with provincia filter (if available)
+                if provincia_nome:
+                    try:
+                        # Search by comune name + provincia name or sigla
+                        comune = Comune.objects.select_related(
+                            'provincia', 'provincia__regione'
+                        ).prefetch_related('municipi').filter(
+                            nome__iexact=comune_nome_clean
+                        ).filter(
+                            Q(provincia__nome__iexact=provincia_nome) | Q(provincia__sigla__iexact=provincia_nome)
+                        ).first()
+                    except Exception:
+                        pass
 
-                # Try 2: Normalize and retry (handle extra spaces, case issues)
+                # Try 2: Exact match without provincia (case-insensitive)
+                if not comune:
+                    try:
+                        comune = Comune.objects.select_related(
+                            'provincia', 'provincia__regione'
+                        ).prefetch_related('municipi').get(nome__iexact=comune_nome_clean)
+                    except Comune.DoesNotExist:
+                        pass
+                    except Comune.MultipleObjectsReturned:
+                        # Multiple comuni with same name - check if provincia was provided
+                        if provincia_nome:
+                            # Already tried with provincia above, so this shouldn't happen
+                            comuni_list = list(Comune.objects.filter(nome__iexact=comune_nome_clean).select_related('provincia').values_list('nome', 'provincia__nome'))
+                            errors.append(f'Riga {i}: Comune ambiguo "{comune_nome_clean}" (trovati: {", ".join([f"{c[0]} ({c[1]})" for c in comuni_list[:3]])})')
+                            failed_records.append({**record_data, 'error_fields': ['comune_seggio'], 'error_message': f'Comune ambiguo'})
+                        else:
+                            # No provincia provided, ask for it
+                            comuni_list = list(Comune.objects.filter(nome__iexact=comune_nome_clean).select_related('provincia').values_list('nome', 'provincia__nome'))
+                            errors.append(f'Riga {i}: Comune ambiguo "{comune_nome_clean}" (trovati: {", ".join([f"{c[0]} ({c[1]})" for c in comuni_list[:3]])}). Aggiungi colonna PROVINCIA_SEGGIO al CSV.')
+                            failed_records.append({**record_data, 'error_fields': ['comune_seggio'], 'error_message': f'Comune ambiguo. Serve provincia'})
+                        continue
+
+                # Try 3: Normalize and retry (handle extra spaces, case issues)
                 if not comune:
                     # Normalize: remove extra spaces, standardize case
                     comune_normalized = ' '.join(comune_nome_clean.split()).strip()
@@ -2609,12 +2637,20 @@ class RdlRegistrationImportView(APIView):
                     except (Comune.DoesNotExist, Comune.MultipleObjectsReturned):
                         pass
 
-                # Try 3: Partial match - "Guidonia" → "Guidonia Montecelio"
+                # Try 4: Partial match - "Guidonia" → "Guidonia Montecelio"
                 if not comune and len(comune_nome_clean) >= 4:
                     # Search for comuni that contain the search term as a complete word
-                    possibili = Comune.objects.filter(
+                    query = Comune.objects.filter(
                         nome__icontains=comune_nome_clean
                     ).select_related('provincia', 'provincia__regione').prefetch_related('municipi')
+
+                    # Filter by provincia if available
+                    if provincia_nome:
+                        query = query.filter(
+                            Q(provincia__nome__iexact=provincia_nome) | Q(provincia__sigla__iexact=provincia_nome)
+                        )
+
+                    possibili = query
 
                     # Filter: the search term must be a complete word in the comune name
                     # "Guidonia" matches "Guidonia Montecelio" ✓
@@ -2635,15 +2671,23 @@ class RdlRegistrationImportView(APIView):
                         failed_records.append({**record_data, 'error_fields': ['comune_seggio'], 'error_message': f'Comune ambiguo: {", ".join([c.nome for c in matches[:3]])}'})
                         continue
 
-                # Try 4: Fuzzy search (prefix + similarity) for typos like "SERRRONE" → "Serrone"
+                # Try 5: Fuzzy search (prefix + similarity) for typos like "SERRRONE" → "Serrone"
                 if not comune:
                     # Search by prefix (at least 5 chars or 80% of name)
                     min_chars = min(5, int(len(comune_nome_clean) * 0.8))
                     if len(comune_nome_clean) >= min_chars:
                         prefix = comune_nome_clean[:min_chars]
-                        possibili = Comune.objects.filter(
+                        query = Comune.objects.filter(
                             nome__istartswith=prefix
                         ).select_related('provincia', 'provincia__regione').prefetch_related('municipi')
+
+                        # Filter by provincia if available
+                        if provincia_nome:
+                            query = query.filter(
+                                Q(provincia__nome__iexact=provincia_nome) | Q(provincia__sigla__iexact=provincia_nome)
+                            )
+
+                        possibili = query
 
                         # Filter by Levenshtein-like similarity
                         matches = []
