@@ -12,6 +12,10 @@ from django.utils import timezone
 from django.db.models import Q
 from django.db import transaction
 
+from core.permissions import (
+    CanManageRDL, HasScrutinioAccess, CanManageDelegations,
+    CanManageTerritory
+)
 from .models import SectionAssignment, DatiSezione, DatiScheda
 from campaign.models import RdlRegistration
 from elections.models import ConsultazioneElettorale
@@ -794,8 +798,10 @@ class ScrutinioInfoView(APIView):
             ...
         ]
     }
+
+    Permission: has_scrutinio_access (RDL, Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasScrutinioAccess]
 
     def get(self, request):
         from elections.models import SchedaElettorale, TipoElezione
@@ -856,8 +862,10 @@ class ScrutinioSezioniView(APIView):
         "page_size": 50,
         "has_more": true
     }
+
+    Permission: has_scrutinio_access (RDL, Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasScrutinioAccess]
 
     def get(self, request):
         from elections.models import SchedaElettorale
@@ -1009,8 +1017,10 @@ class ScrutinioSaveView(APIView):
             ...
         }
     }
+
+    Permission: has_scrutinio_access (RDL, Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasScrutinioAccess]
 
     def post(self, request):
         from elections.models import SchedaElettorale
