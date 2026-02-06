@@ -399,96 +399,6 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
                             </div>
                         </div>
                     </div>
-                </>
-            )}
-
-                    {/* Designazioni List */}
-                    <div className="card">
-                        <div className="card-header">
-                            <h5 className="mb-0">
-                                <i className="fas fa-list me-2"></i>
-                                Elenco Designazioni
-                            </h5>
-                        </div>
-                {designazioni.length === 0 ? (
-                    <div className="card-body text-center text-muted py-4">
-                        <i className="fas fa-inbox fa-3x mb-3"></i>
-                        <p className="mb-0">Nessuna designazione presente</p>
-                    </div>
-                ) : (
-                    <div className="table-responsive">
-                        <table className="table table-hover mb-0">
-                            <thead className="table-light">
-                                <tr>
-                                    <th>Comune</th>
-                                    <th>Sezione</th>
-                                    <th>Plesso</th>
-                                    <th>Effettivo</th>
-                                    <th>Supplente</th>
-                                    <th>Ruolo</th>
-                                    <th>Stato</th>
-                                    <th>Tuo Ruolo</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {designazioni.map((des, index) => (
-                                    <tr key={index}>
-                                        <td className="fw-bold">
-                                            {des.sezione?.comune?.nome || '-'}
-                                            {des.sezione?.municipio && (
-                                                <small className="text-muted ms-1">
-                                                    (Mun. {toRoman(des.sezione.municipio.numero)})
-                                                </small>
-                                            )}
-                                        </td>
-                                        <td>
-                                            {des.sezione?.numero || '-'}
-                                        </td>
-                                        <td className="small">
-                                            {des.sezione?.denominazione || des.sezione?.indirizzo || '-'}
-                                        </td>
-                                        <td>
-                                            {des.ruolo_rdl === 'EFFETTIVO' ? (
-                                                <div>
-                                                    <div className="fw-bold">{des.cognome} {des.nome}</div>
-                                                    {des.email && <small className="text-muted">{des.email}</small>}
-                                                </div>
-                                            ) : (
-                                                <span className="text-muted">-</span>
-                                            )}
-                                        </td>
-                                        <td>
-                                            {des.ruolo_rdl === 'SUPPLENTE' ? (
-                                                <div>
-                                                    <div className="fw-bold">{des.cognome} {des.nome}</div>
-                                                    {des.email && <small className="text-muted">{des.email}</small>}
-                                                </div>
-                                            ) : (
-                                                <span className="text-muted">-</span>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${getRuoloBadgeClass(des.ruolo_rdl)}`}>
-                                                {des.ruolo_rdl}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${getStatoBadgeClass(des.stato)}`}>
-                                                {des.stato}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${des.ruolo === 'designante' ? 'bg-secondary' : 'bg-primary'}`}>
-                                                {des.ruolo === 'designante' ? 'Designante' : 'Designato'}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-                    </div>
 
                     {/* Refresh Button */}
                     <div className="text-center mt-3">
@@ -647,6 +557,94 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
                     </div>
                 </>
             )}
+
+            {/* Designazioni List (sempre visibile) */}
+            <div className="card mt-4">
+                <div className="card-header">
+                    <h5 className="mb-0">
+                        <i className="fas fa-list me-2"></i>
+                        Elenco Designazioni
+                    </h5>
+                </div>
+                {designazioni.length === 0 ? (
+                    <div className="card-body text-center text-muted py-4">
+                        <i className="fas fa-inbox fa-3x mb-3"></i>
+                        <p className="mb-0">Nessuna designazione presente</p>
+                    </div>
+                ) : (
+                    <div className="table-responsive">
+                        <table className="table table-hover mb-0">
+                            <thead className="table-light">
+                                <tr>
+                                    <th>Comune</th>
+                                    <th>Sezione</th>
+                                    <th>Plesso</th>
+                                    <th>Effettivo</th>
+                                    <th>Supplente</th>
+                                    <th>Ruolo</th>
+                                    <th>Stato</th>
+                                    <th>Tuo Ruolo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {designazioni.map((des, index) => (
+                                    <tr key={index}>
+                                        <td className="fw-bold">
+                                            {des.sezione?.comune?.nome || '-'}
+                                            {des.sezione?.municipio && (
+                                                <small className="text-muted ms-1">
+                                                    (Mun. {toRoman(des.sezione.municipio.numero)})
+                                                </small>
+                                            )}
+                                        </td>
+                                        <td>
+                                            {des.sezione?.numero || '-'}
+                                        </td>
+                                        <td className="small">
+                                            {des.sezione?.denominazione || des.sezione?.indirizzo || '-'}
+                                        </td>
+                                        <td>
+                                            {des.ruolo_rdl === 'EFFETTIVO' ? (
+                                                <div>
+                                                    <div className="fw-bold">{des.cognome} {des.nome}</div>
+                                                    {des.email && <small className="text-muted">{des.email}</small>}
+                                                </div>
+                                            ) : (
+                                                <span className="text-muted">-</span>
+                                            )}
+                                        </td>
+                                        <td>
+                                            {des.ruolo_rdl === 'SUPPLENTE' ? (
+                                                <div>
+                                                    <div className="fw-bold">{des.cognome} {des.nome}</div>
+                                                    {des.email && <small className="text-muted">{des.email}</small>}
+                                                </div>
+                                            ) : (
+                                                <span className="text-muted">-</span>
+                                            )}
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${getRuoloBadgeClass(des.ruolo_rdl)}`}>
+                                                {des.ruolo_rdl}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${getStatoBadgeClass(des.stato)}`}>
+                                                {des.stato}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${des.ruolo === 'designante' ? 'bg-secondary' : 'bg-primary'}`}>
+                                                {des.ruolo === 'designante' ? 'Designante' : 'Designato'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
         </>
     );
 }
