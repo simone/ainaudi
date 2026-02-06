@@ -553,22 +553,22 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                 const field = updatedMappings[draggingField.index];
 
                 if (draggingField.mode === 'move') {
-                    // Move field
+                    // Move field (rounded to integers)
                     field.area = {
                         ...field.area,
-                        x: Math.max(0, field.area.x + dx),
-                        y: Math.max(0, field.area.y + dy)
+                        x: Math.round(Math.max(0, field.area.x + dx)),
+                        y: Math.round(Math.max(0, field.area.y + dy))
                     };
                     draggingField.startX = currentX;
                     draggingField.startY = currentY;
                 } else if (draggingField.mode === 'resize') {
-                    // Resize field based on handle
+                    // Resize field based on handle (rounded to integers)
                     const handle = draggingField.handle;
                     const area = { ...field.area };
 
                     if (handle.includes('n')) {
-                        const newY = area.y + dy;
-                        const newHeight = area.height - dy;
+                        const newY = Math.round(area.y + dy);
+                        const newHeight = Math.round(area.height - dy);
                         if (newHeight > 10) {
                             area.y = newY;
                             area.height = newHeight;
@@ -576,12 +576,12 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                         }
                     }
                     if (handle.includes('s')) {
-                        area.height = Math.max(10, area.height + dy);
+                        area.height = Math.round(Math.max(10, area.height + dy));
                         draggingField.startY = currentY;
                     }
                     if (handle.includes('w')) {
-                        const newX = area.x + dx;
-                        const newWidth = area.width - dx;
+                        const newX = Math.round(area.x + dx);
+                        const newWidth = Math.round(area.width - dx);
                         if (newWidth > 10) {
                             area.x = newX;
                             area.width = newWidth;
@@ -589,7 +589,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                         }
                     }
                     if (handle.includes('e')) {
-                        area.width = Math.max(10, area.width + dx);
+                        area.width = Math.round(Math.max(10, area.width + dx));
                         draggingField.startX = currentX;
                     }
 
@@ -603,18 +603,18 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                 const field = loopMapping.loop_fields[draggingField.fieldIndex];
 
                 if (draggingField.mode === 'move') {
-                    // Move loop field (relative coordinates)
-                    field.x = Math.max(0, field.x + dx);
-                    field.y = Math.max(0, field.y + dy);
+                    // Move loop field (relative coordinates, rounded to integers)
+                    field.x = Math.round(Math.max(0, field.x + dx));
+                    field.y = Math.round(Math.max(0, field.y + dy));
                     draggingField.startX = currentX;
                     draggingField.startY = currentY;
                 } else if (draggingField.mode === 'resize') {
-                    // Resize loop field
+                    // Resize loop field (rounded to integers)
                     const handle = draggingField.handle;
 
                     if (handle.includes('n')) {
-                        const newY = field.y + dy;
-                        const newHeight = field.height - dy;
+                        const newY = Math.round(field.y + dy);
+                        const newHeight = Math.round(field.height - dy);
                         if (newHeight > 10) {
                             field.y = newY;
                             field.height = newHeight;
@@ -622,12 +622,12 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                         }
                     }
                     if (handle.includes('s')) {
-                        field.height = Math.max(10, field.height + dy);
+                        field.height = Math.round(Math.max(10, field.height + dy));
                         draggingField.startY = currentY;
                     }
                     if (handle.includes('w')) {
-                        const newX = field.x + dx;
-                        const newWidth = field.width - dx;
+                        const newX = Math.round(field.x + dx);
+                        const newWidth = Math.round(field.width - dx);
                         if (newWidth > 10) {
                             field.x = newX;
                             field.width = newWidth;
@@ -635,7 +635,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                         }
                     }
                     if (handle.includes('e')) {
-                        field.width = Math.max(10, field.width + dx);
+                        field.width = Math.round(Math.max(10, field.width + dx));
                         draggingField.startX = currentX;
                     }
                 }
