@@ -31,6 +31,11 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
     });
     const [showNewFieldForm, setShowNewFieldForm] = useState(false);
     const [showLoopGuide, setShowLoopGuide] = useState(false);
+    const [showLoopFieldsModal, setShowLoopFieldsModal] = useState(false);
+    const [currentLoopIndex, setCurrentLoopIndex] = useState(null);
+    const [isAddingLoopField, setIsAddingLoopField] = useState(false); // Modalità aggiunta campo loop
+    const [isAddingLoopPage, setIsAddingLoopPage] = useState(false); // Modalità aggiunta pagina loop
+    const [newLoopField, setNewLoopField] = useState({ jsonpath: '', x: 0, y: 0, width: 100, height: 20 });
     const [newField, setNewField] = useState({
         jsonpath: '',
         type: 'text',
@@ -55,6 +60,11 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
     const renderTaskRef = useRef(null);
     const canvasSnapshotRef = useRef(null);
     const isRenderingRef = useRef(false);
+
+    // Field manipulation state (resize/drag)
+    const [hoveredField, setHoveredField] = useState(null); // { index, isLoopField, loopIndex, handle }
+    const [draggingField, setDraggingField] = useState(null); // { index, isLoopField, loopIndex, startX, startY, mode: 'move'|'resize', handle }
+    const [cursorStyle, setCursorStyle] = useState('pointer');
 
     // Load available templates and template types on mount
     useEffect(() => {
@@ -102,6 +112,13 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         };
         drawSelection(ctx, scaledSelection);
     }, [currentSelection, isSelecting, scale]);
+
+    // Re-render when hoveredField changes (to show/hide resize handles)
+    useEffect(() => {
+        if (pdfDoc) {
+            renderPage(currentPage);
+        }
+    }, [hoveredField]);
 
     const loadTemplates = async () => {
         try {
@@ -212,7 +229,17 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
     const drawFieldMappingsOverlay = (ctx, pageIndex) => {
         const pageMappings = fieldMappings.filter(m => m.page === pageIndex);
 
-        pageMappings.forEach((mapping, index) => {
+        // Also include loop_pages that match this page
+        const loopPageMappings = fieldMappings
+            .filter(m => m.type === 'loop' && m.loop_pages && m.loop_pages.length > 0)
+            .flatMap(m => m.loop_pages
+                .filter(lp => lp.page === pageIndex)
+                .map(lp => ({ ...m, area: lp.area, isLoopPage: true }))
+            );
+
+        const allMappings = [...pageMappings, ...loopPageMappings];
+
+        allMappings.forEach((mapping, index) => {
             const { x, y, width, height } = mapping.area;
             const scaledX = x * scale;
             const scaledY = y * scale;
@@ -221,10 +248,14 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
 
             // Determine if this is a loop
             const isLoop = mapping.type === 'loop';
+            const originalIndex = fieldMappings.findIndex(m => m === mapping);
+
+            // Check if this field is hovered
+            const isHovered = hoveredField && hoveredField.type === 'field' && hoveredField.index === originalIndex;
 
             // Draw rectangle
             ctx.strokeStyle = isLoop ? '#ffc107' : '#0dcaf0';
-            ctx.lineWidth = isLoop ? 3 : 2;
+            ctx.lineWidth = isHovered ? 4 : (isLoop ? 3 : 2);
             ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
 
             // Fill with semi-transparent color
@@ -237,11 +268,53 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             const label = isLoop ? `🔁 LOOP: ${mapping.jsonpath}` : `${index + 1}. ${mapping.jsonpath}`;
             ctx.fillText(label, scaledX + 5, scaledY + 15);
 
-            // If loop, draw arrow down indicator
+            // If loop, draw arrow down indicator and loop fields
             if (isLoop) {
                 ctx.fillStyle = '#ffc107';
                 ctx.font = '20px Arial';
                 ctx.fillText('↓', scaledX + scaledWidth - 25, scaledY + scaledHeight - 5);
+
+                // Draw loop fields (if any)
+                if (mapping.loop_fields && mapping.loop_fields.length > 0) {
+                    mapping.loop_fields.forEach((field, fieldIndex) => {
+                        // Convert relative coordinates to absolute
+                        const fieldAbsX = (x + field.x) * scale;
+                        const fieldAbsY = (y + field.y) * scale;
+                        const fieldW = field.width * scale;
+                        const fieldH = field.height * scale;
+
+                        // Check if this loop field is hovered
+                        const isLoopFieldHovered = hoveredField && hoveredField.type === 'loop_field'
+                            && hoveredField.index === originalIndex && hoveredField.fieldIndex === fieldIndex;
+
+                        // Draw field rectangle (green for loop fields)
+                        ctx.strokeStyle = '#28a745';
+                        ctx.lineWidth = isLoopFieldHovered ? 3 : 2;
+                        ctx.setLineDash([5, 3]);
+                        ctx.strokeRect(fieldAbsX, fieldAbsY, fieldW, fieldH);
+                        ctx.setLineDash([]);
+
+                        // Fill with semi-transparent green
+                        ctx.fillStyle = 'rgba(40, 167, 69, 0.15)';
+                        ctx.fillRect(fieldAbsX, fieldAbsY, fieldW, fieldH);
+
+                        // Draw label
+                        ctx.fillStyle = '#155724';
+                        ctx.font = '10px Arial';
+                        const fieldLabel = field.jsonpath || `field ${fieldIndex + 1}`;
+                        ctx.fillText(fieldLabel, fieldAbsX + 3, fieldAbsY + 12);
+
+                        // Draw resize handles if hovered
+                        if (isLoopFieldHovered) {
+                            drawResizeHandles(ctx, x + field.x, y + field.y, field.width, field.height);
+                        }
+                    });
+                }
+            }
+
+            // Draw resize handles if this field is hovered
+            if (isHovered) {
+                drawResizeHandles(ctx, x, y, width, height);
             }
         });
     };
@@ -257,6 +330,157 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         ctx.fillRect(selection.x, selection.y, selection.width, selection.height);
     };
 
+    // Helper: Get resize handle at position (8 handles: 4 corners + 4 edges)
+    const getResizeHandle = (x, y, fieldX, fieldY, fieldW, fieldH, handleSize = 8) => {
+        const corners = [
+            { name: 'nw', x: fieldX, y: fieldY, cursor: 'nw-resize' },
+            { name: 'ne', x: fieldX + fieldW, y: fieldY, cursor: 'ne-resize' },
+            { name: 'sw', x: fieldX, y: fieldY + fieldH, cursor: 'sw-resize' },
+            { name: 'se', x: fieldX + fieldW, y: fieldY + fieldH, cursor: 'se-resize' },
+            { name: 'n', x: fieldX + fieldW / 2, y: fieldY, cursor: 'n-resize' },
+            { name: 's', x: fieldX + fieldW / 2, y: fieldY + fieldH, cursor: 's-resize' },
+            { name: 'w', x: fieldX, y: fieldY + fieldH / 2, cursor: 'w-resize' },
+            { name: 'e', x: fieldX + fieldW, y: fieldY + fieldH / 2, cursor: 'e-resize' }
+        ];
+
+        for (const corner of corners) {
+            const dx = x - corner.x;
+            const dy = y - corner.y;
+            if (Math.abs(dx) <= handleSize && Math.abs(dy) <= handleSize) {
+                return { handle: corner.name, cursor: corner.cursor };
+            }
+        }
+
+        return null;
+    };
+
+    // Helper: Check if point is inside field
+    const isPointInField = (x, y, fieldX, fieldY, fieldW, fieldH) => {
+        return x >= fieldX && x <= fieldX + fieldW && y >= fieldY && y <= fieldY + fieldH;
+    };
+
+    // Helper: Find field at position (returns { type, index, loopIndex, handle })
+    const findFieldAtPosition = (x, y, pageIndex) => {
+        // Check loop fields first (they're rendered on top)
+        for (let i = 0; i < fieldMappings.length; i++) {
+            const mapping = fieldMappings[i];
+
+            if (mapping.type === 'loop') {
+                // Check main page
+                if (mapping.page === pageIndex && mapping.loop_fields && mapping.loop_fields.length > 0) {
+                    const loopArea = mapping.area;
+
+                    for (let j = 0; j < mapping.loop_fields.length; j++) {
+                        const field = mapping.loop_fields[j];
+                        const fieldX = loopArea.x + field.x;
+                        const fieldY = loopArea.y + field.y;
+                        const fieldW = field.width;
+                        const fieldH = field.height;
+
+                        // Check resize handles first
+                        const handle = getResizeHandle(x, y, fieldX, fieldY, fieldW, fieldH);
+                        if (handle) {
+                            return { type: 'loop_field', index: i, fieldIndex: j, ...handle };
+                        }
+
+                        // Check if inside field
+                        if (isPointInField(x, y, fieldX, fieldY, fieldW, fieldH)) {
+                            return { type: 'loop_field', index: i, fieldIndex: j, cursor: 'grab' };
+                        }
+                    }
+                }
+
+                // Check loop pages
+                if (mapping.loop_pages) {
+                    for (const lp of mapping.loop_pages) {
+                        if (lp.page === pageIndex && mapping.loop_fields && mapping.loop_fields.length > 0) {
+                            for (let j = 0; j < mapping.loop_fields.length; j++) {
+                                const field = mapping.loop_fields[j];
+                                const fieldX = lp.area.x + field.x;
+                                const fieldY = lp.area.y + field.y;
+                                const fieldW = field.width;
+                                const fieldH = field.height;
+
+                                const handle = getResizeHandle(x, y, fieldX, fieldY, fieldW, fieldH);
+                                if (handle) {
+                                    return { type: 'loop_field', index: i, fieldIndex: j, ...handle };
+                                }
+
+                                if (isPointInField(x, y, fieldX, fieldY, fieldW, fieldH)) {
+                                    return { type: 'loop_field', index: i, fieldIndex: j, cursor: 'grab' };
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check regular fields and loop containers
+        const pageMappings = fieldMappings.filter(m => m.page === pageIndex);
+        const loopPageMappings = fieldMappings
+            .filter(m => m.type === 'loop' && m.loop_pages && m.loop_pages.length > 0)
+            .flatMap(m => m.loop_pages
+                .filter(lp => lp.page === pageIndex)
+                .map(lp => ({ ...m, area: lp.area, isLoopPage: true }))
+            );
+
+        const allMappings = [...pageMappings, ...loopPageMappings];
+
+        for (let i = allMappings.length - 1; i >= 0; i--) {
+            const mapping = allMappings[i];
+            const { x: fieldX, y: fieldY, width: fieldW, height: fieldH } = mapping.area;
+
+            // Check resize handles
+            const handle = getResizeHandle(x, y, fieldX, fieldY, fieldW, fieldH);
+            if (handle) {
+                const originalIndex = fieldMappings.findIndex(m => m === mapping);
+                return { type: 'field', index: originalIndex, ...handle };
+            }
+
+            // Check if inside field
+            if (isPointInField(x, y, fieldX, fieldY, fieldW, fieldH)) {
+                const originalIndex = fieldMappings.findIndex(m => m === mapping);
+                return { type: 'field', index: originalIndex, cursor: 'grab' };
+            }
+        }
+
+        return null;
+    };
+
+    // Draw resize handles on field
+    const drawResizeHandles = (ctx, x, y, width, height) => {
+        const handleSize = 6;
+        const handles = [
+            { x: x, y: y }, // nw
+            { x: x + width, y: y }, // ne
+            { x: x, y: y + height }, // sw
+            { x: x + width, y: y + height }, // se
+            { x: x + width / 2, y: y }, // n
+            { x: x + width / 2, y: y + height }, // s
+            { x: x, y: y + height / 2 }, // w
+            { x: x + width, y: y + height / 2 } // e
+        ];
+
+        handles.forEach(handle => {
+            ctx.fillStyle = '#fff';
+            ctx.strokeStyle = '#0dcaf0';
+            ctx.lineWidth = 2;
+            ctx.fillRect(
+                handle.x * scale - handleSize / 2,
+                handle.y * scale - handleSize / 2,
+                handleSize,
+                handleSize
+            );
+            ctx.strokeRect(
+                handle.x * scale - handleSize / 2,
+                handle.y * scale - handleSize / 2,
+                handleSize,
+                handleSize
+            );
+        });
+    };
+
     const handleCanvasMouseDown = (e) => {
         const canvas = canvasRef.current;
         const rect = canvas.getBoundingClientRect();
@@ -270,14 +494,40 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         const x = canvasX / scale;
         const y = canvasY / scale;
 
-        setSelectionStart({ x, y });
-        setCurrentSelection({ x, y, width: 0, height: 0 });
-        setIsSelecting(true);
+        const pageIndex = currentPage - 1;
+
+        // Check if clicking on an existing field
+        const fieldAtPos = findFieldAtPosition(x, y, pageIndex);
+
+        if (fieldAtPos) {
+            // Start dragging or resizing
+            if (fieldAtPos.handle) {
+                // Resize mode
+                setDraggingField({
+                    ...fieldAtPos,
+                    startX: x,
+                    startY: y,
+                    mode: 'resize'
+                });
+            } else {
+                // Move mode
+                setDraggingField({
+                    ...fieldAtPos,
+                    startX: x,
+                    startY: y,
+                    mode: 'move'
+                });
+                setCursorStyle('grabbing');
+            }
+        } else {
+            // Start new selection
+            setSelectionStart({ x, y });
+            setCurrentSelection({ x, y, width: 0, height: 0 });
+            setIsSelecting(true);
+        }
     };
 
     const handleCanvasMouseMove = (e) => {
-        if (!isSelecting || !selectionStart) return;
-
         const canvas = canvasRef.current;
         const rect = canvas.getBoundingClientRect();
 
@@ -289,20 +539,150 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         const currentX = canvasX / scale;
         const currentY = canvasY / scale;
 
-        const width = currentX - selectionStart.x;
-        const height = currentY - selectionStart.y;
+        const pageIndex = currentPage - 1;
 
-        setCurrentSelection({
-            x: width >= 0 ? selectionStart.x : currentX,
-            y: height >= 0 ? selectionStart.y : currentY,
-            width: Math.abs(width),
-            height: Math.abs(height)
-        });
+        // Handle dragging/resizing
+        if (draggingField) {
+            const dx = currentX - draggingField.startX;
+            const dy = currentY - draggingField.startY;
 
-        // Selection overlay will be drawn by effect
+            const updatedMappings = [...fieldMappings];
+
+            if (draggingField.type === 'field') {
+                // Drag/resize regular field or loop container
+                const field = updatedMappings[draggingField.index];
+
+                if (draggingField.mode === 'move') {
+                    // Move field
+                    field.area = {
+                        ...field.area,
+                        x: Math.max(0, field.area.x + dx),
+                        y: Math.max(0, field.area.y + dy)
+                    };
+                    draggingField.startX = currentX;
+                    draggingField.startY = currentY;
+                } else if (draggingField.mode === 'resize') {
+                    // Resize field based on handle
+                    const handle = draggingField.handle;
+                    const area = { ...field.area };
+
+                    if (handle.includes('n')) {
+                        const newY = area.y + dy;
+                        const newHeight = area.height - dy;
+                        if (newHeight > 10) {
+                            area.y = newY;
+                            area.height = newHeight;
+                            draggingField.startY = currentY;
+                        }
+                    }
+                    if (handle.includes('s')) {
+                        area.height = Math.max(10, area.height + dy);
+                        draggingField.startY = currentY;
+                    }
+                    if (handle.includes('w')) {
+                        const newX = area.x + dx;
+                        const newWidth = area.width - dx;
+                        if (newWidth > 10) {
+                            area.x = newX;
+                            area.width = newWidth;
+                            draggingField.startX = currentX;
+                        }
+                    }
+                    if (handle.includes('e')) {
+                        area.width = Math.max(10, area.width + dx);
+                        draggingField.startX = currentX;
+                    }
+
+                    field.area = area;
+                }
+
+                setFieldMappings(updatedMappings);
+            } else if (draggingField.type === 'loop_field') {
+                // Drag/resize loop field
+                const loopMapping = updatedMappings[draggingField.index];
+                const field = loopMapping.loop_fields[draggingField.fieldIndex];
+
+                if (draggingField.mode === 'move') {
+                    // Move loop field (relative coordinates)
+                    field.x = Math.max(0, field.x + dx);
+                    field.y = Math.max(0, field.y + dy);
+                    draggingField.startX = currentX;
+                    draggingField.startY = currentY;
+                } else if (draggingField.mode === 'resize') {
+                    // Resize loop field
+                    const handle = draggingField.handle;
+
+                    if (handle.includes('n')) {
+                        const newY = field.y + dy;
+                        const newHeight = field.height - dy;
+                        if (newHeight > 10) {
+                            field.y = newY;
+                            field.height = newHeight;
+                            draggingField.startY = currentY;
+                        }
+                    }
+                    if (handle.includes('s')) {
+                        field.height = Math.max(10, field.height + dy);
+                        draggingField.startY = currentY;
+                    }
+                    if (handle.includes('w')) {
+                        const newX = field.x + dx;
+                        const newWidth = field.width - dx;
+                        if (newWidth > 10) {
+                            field.x = newX;
+                            field.width = newWidth;
+                            draggingField.startX = currentX;
+                        }
+                    }
+                    if (handle.includes('e')) {
+                        field.width = Math.max(10, field.width + dx);
+                        draggingField.startX = currentX;
+                    }
+                }
+
+                setFieldMappings(updatedMappings);
+            }
+
+            return;
+        }
+
+        // Handle new selection drawing
+        if (isSelecting && selectionStart) {
+            const width = currentX - selectionStart.x;
+            const height = currentY - selectionStart.y;
+
+            setCurrentSelection({
+                x: width >= 0 ? selectionStart.x : currentX,
+                y: height >= 0 ? selectionStart.y : currentY,
+                width: Math.abs(width),
+                height: Math.abs(height)
+            });
+
+            return;
+        }
+
+        // Handle hover detection (when not dragging or selecting)
+        const fieldAtPos = findFieldAtPosition(currentX, currentY, pageIndex);
+
+        if (fieldAtPos) {
+            setHoveredField(fieldAtPos);
+            setCursorStyle(fieldAtPos.cursor);
+        } else {
+            setHoveredField(null);
+            setCursorStyle(isAddingLoopField || isAddingLoopPage ? 'crosshair' : 'pointer');
+        }
     };
 
     const handleCanvasMouseUp = () => {
+        // Handle end of drag/resize
+        if (draggingField) {
+            setDraggingField(null);
+            setCursorStyle('pointer');
+            setSuccess(draggingField.mode === 'move' ? 'Campo spostato!' : 'Campo ridimensionato!');
+            setTimeout(() => setSuccess(null), 1500);
+            return;
+        }
+
         if (!isSelecting || !currentSelection) return;
 
         // If selection is too small, ignore it
@@ -318,20 +698,97 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             return;
         }
 
-        // Open form with selection coordinates
-        setNewField({
-            ...newField,
-            x: Math.round(currentSelection.x),
-            y: Math.round(currentSelection.y),
-            width: Math.round(currentSelection.width),
-            height: Math.round(currentSelection.height),
-            page: currentPage - 1
-        });
-        setShowNewFieldForm(true);
+        // Check if we're adding a loop page
+        if (isAddingLoopPage && currentLoopIndex !== null) {
+            const selX = Math.round(currentSelection.x);
+            const selY = Math.round(currentSelection.y);
+            const selW = Math.round(currentSelection.width);
+            const selH = Math.round(currentSelection.height);
 
-        // Keep selection visible until form is submitted/cancelled
-        setIsSelecting(false);
-        setSelectionStart(null);
+            const updatedMappings = [...fieldMappings];
+            const loopMapping = updatedMappings[currentLoopIndex];
+
+            if (!loopMapping.loop_pages) {
+                loopMapping.loop_pages = [];
+            }
+
+            loopMapping.loop_pages.push({
+                page: currentPage - 1,
+                area: { x: selX, y: selY, width: selW, height: selH }
+            });
+
+            setFieldMappings(updatedMappings);
+            setIsSelecting(false);
+            setSelectionStart(null);
+            setCurrentSelection(null);
+            setIsAddingLoopPage(false);
+            setSuccess(`Pagina ${currentPage} aggiunta al loop!`);
+            setTimeout(() => setSuccess(null), 2000);
+            return;
+        }
+
+        // Check if we're adding a loop field
+        if (isAddingLoopField && currentLoopIndex !== null) {
+            const loopMapping = fieldMappings[currentLoopIndex];
+
+            // Get loop area (could be from main page or loop_pages)
+            let loopArea = loopMapping.area;
+            if (loopMapping.page !== currentPage - 1 && loopMapping.loop_pages) {
+                const loopPage = loopMapping.loop_pages.find(lp => lp.page === currentPage - 1);
+                if (loopPage) {
+                    loopArea = loopPage.area;
+                }
+            }
+
+            // Verify selection is inside loop area
+            const selX = Math.round(currentSelection.x);
+            const selY = Math.round(currentSelection.y);
+            const selW = Math.round(currentSelection.width);
+            const selH = Math.round(currentSelection.height);
+
+            if (selX < loopArea.x || selY < loopArea.y ||
+                selX + selW > loopArea.x + loopArea.width ||
+                selY + selH > loopArea.y + loopArea.height) {
+                setError('Il campo deve essere dentro l\'area del loop! Area loop: x=' + loopArea.x + ', y=' + loopArea.y + ', w=' + loopArea.width + ', h=' + loopArea.height);
+                setIsSelecting(false);
+                setSelectionStart(null);
+                setCurrentSelection(null);
+                setTimeout(() => setError(null), 3000);
+                return;
+            }
+
+            // Convert to relative coordinates
+            setNewLoopField({
+                jsonpath: '',
+                x: selX - loopArea.x,
+                y: selY - loopArea.y,
+                width: selW,
+                height: selH
+            });
+
+            setIsSelecting(false);
+            setSelectionStart(null);
+            // Keep currentSelection visible to show where field was drawn
+            // (will be cleared when modal is closed)
+
+            setSuccess('Campo disegnato! Ora inserisci il JSONPath.');
+            setTimeout(() => setSuccess(null), 2000);
+        } else {
+            // Normal field selection
+            setNewField({
+                ...newField,
+                x: Math.round(currentSelection.x),
+                y: Math.round(currentSelection.y),
+                width: Math.round(currentSelection.width),
+                height: Math.round(currentSelection.height),
+                page: currentPage - 1
+            });
+            setShowNewFieldForm(true);
+
+            // Keep selection visible until form is submitted/cancelled
+            setIsSelecting(false);
+            setSelectionStart(null);
+        }
     };
 
     const handleAddField = () => {
@@ -398,6 +855,77 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
 
     const handleRemoveField = (index) => {
         setFieldMappings(fieldMappings.filter((_, i) => i !== index));
+    };
+
+    // Loop fields management
+    const openLoopFieldsModal = (mapping, index) => {
+        setCurrentLoopIndex(index);
+        setIsAddingLoopField(true);
+        setShowLoopFieldsModal(true);
+        // Navigate to the page where the loop is
+        setCurrentPage(mapping.page + 1);
+    };
+
+    const getLoopItemExample = (loopMapping) => {
+        if (!loopMapping || !template?.variables_schema) {
+            return {};
+        }
+
+        // Extract array from schema
+        const arrayPath = loopMapping.jsonpath; // es: "$.designazioni"
+        const keys = arrayPath.replace('$.', '').split('.');
+
+        let current = template.variables_schema;
+        for (const key of keys) {
+            current = current?.[key];
+        }
+
+        // Return first item of array (or empty object)
+        if (Array.isArray(current) && current.length > 0) {
+            return current[0];
+        }
+
+        return {};
+    };
+
+    const handleAddLoopField = () => {
+        if (!newLoopField.jsonpath) {
+            setError('JSONPath è obbligatorio');
+            return;
+        }
+
+        const updatedMappings = [...fieldMappings];
+        const loopMapping = updatedMappings[currentLoopIndex];
+
+        if (!loopMapping.loop_fields) {
+            loopMapping.loop_fields = [];
+        }
+
+        loopMapping.loop_fields.push({
+            jsonpath: newLoopField.jsonpath,
+            x: parseInt(newLoopField.x) || 0,
+            y: parseInt(newLoopField.y) || 0,
+            width: parseInt(newLoopField.width) || 100,
+            height: parseInt(newLoopField.height) || 20
+        });
+
+        setFieldMappings(updatedMappings);
+        setNewLoopField({ jsonpath: '', x: 0, y: 0, width: 100, height: 20 });
+        setCurrentSelection(null);
+        setError(null);
+        setSuccess('Campo loop aggiunto!');
+        setTimeout(() => setSuccess(null), 2000);
+    };
+
+    const handleRemoveLoopField = (fieldIndex) => {
+        const updatedMappings = [...fieldMappings];
+        const loopMapping = updatedMappings[currentLoopIndex];
+
+        if (loopMapping.loop_fields) {
+            loopMapping.loop_fields = loopMapping.loop_fields.filter((_, i) => i !== fieldIndex);
+        }
+
+        setFieldMappings(updatedMappings);
     };
 
     const handleSave = async () => {
@@ -892,18 +1420,41 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                 onMouseUp={handleCanvasMouseUp}
                                 style={{
                                     border: '1px solid #dee2e6',
-                                    cursor: isSelecting ? 'crosshair' : 'pointer',
+                                    cursor: isSelecting ? 'crosshair' : draggingField?.mode === 'move' ? 'grabbing' : cursorStyle,
                                     display: 'block'
                                 }}
                             />
                             <div className="pdf-instructions">
-                                <p><strong>💡 Istruzioni:</strong></p>
-                                <ul>
-                                    <li>Clicca e trascina sul PDF per selezionare un'area</li>
-                                    <li>Le aree blu sono campi di tipo "text"</li>
-                                    <li>Le aree gialle sono campi di tipo "loop"</li>
-                                    <li>Dopo la selezione, compila il form per definire il campo</li>
-                                </ul>
+                                {isAddingLoopPage ? (
+                                    <div className="alert alert-success">
+                                        <strong>📄 Modalità: Aggiungi Pagina Loop</strong>
+                                        <p className="mb-0">Disegna il rettangolo dove il loop continua in questa pagina. Le colonne saranno le stesse della prima pagina.</p>
+                                        <button
+                                            className="btn btn-sm btn-secondary mt-2"
+                                            onClick={() => {
+                                                setIsAddingLoopPage(false);
+                                                setCurrentLoopIndex(null);
+                                            }}
+                                        >
+                                            Annulla
+                                        </button>
+                                    </div>
+                                ) : isAddingLoopField ? (
+                                    <div className="alert alert-info">
+                                        <strong>🖱️ Modalità: Disegna Campo Loop</strong>
+                                        <p className="mb-0">Disegna un rettangolo dentro l'area gialla del loop per aggiungere un campo.</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <p><strong>💡 Istruzioni:</strong></p>
+                                        <ul>
+                                            <li>Clicca e trascina sul PDF per selezionare un'area</li>
+                                            <li>Le aree blu sono campi di tipo "text"</li>
+                                            <li>Le aree gialle sono campi di tipo "loop"</li>
+                                            <li>Dopo la selezione, compila il form per definire il campo</li>
+                                        </ul>
+                                    </>
+                                )}
                             </div>
                         </div>
                     ) : (
@@ -956,8 +1507,37 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                             <span className={`badge ${mapping.type === 'loop' ? 'bg-warning' : 'bg-info'}`}>
                                                 {mapping.type}
                                             </span>
+                                            {mapping.type === 'loop' && (
+                                                <>
+                                                    <button
+                                                        className="btn btn-sm btn-primary ms-2"
+                                                        onClick={() => openLoopFieldsModal(mapping, index)}
+                                                        title="Gestisci campi del loop"
+                                                    >
+                                                        📝 Campi ({mapping.loop_fields?.length || 0})
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-sm btn-success ms-1"
+                                                        onClick={() => {
+                                                            setCurrentLoopIndex(index);
+                                                            setIsAddingLoopPage(true);
+                                                            setSuccess('Vai alla pagina dove vuoi continuare il loop e disegna l\'area');
+                                                        }}
+                                                        title="Aggiungi il loop su un'altra pagina"
+                                                    >
+                                                        📄 +Pagina
+                                                    </button>
+                                                </>
+                                            )}
                                         </td>
-                                        <td>x:{mapping.area.x}, y:{mapping.area.y}</td>
+                                        <td>
+                                            p:{mapping.page}, x:{mapping.area.x}, y:{mapping.area.y}
+                                            {mapping.loop_pages && mapping.loop_pages.length > 0 && (
+                                                <div className="badge bg-success ms-2">
+                                                    +{mapping.loop_pages.length} pag
+                                                </div>
+                                            )}
+                                        </td>
                                         <td>{mapping.area.width}×{mapping.area.height}</td>
                                         <td>
                                             <button
@@ -1088,6 +1668,208 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                 markdownUrl="/LOOP_GUIDE.md"
                 title="📚 Guida Loop & JSONPath"
             />
+
+            {/* Loop Fields Management Modal */}
+            {showLoopFieldsModal && currentLoopIndex !== null && (
+                <div className="modal show d-block" tabIndex="-1" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                    <div className="modal-dialog modal-lg">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">
+                                    Gestisci Colonne Loop: <code>{fieldMappings[currentLoopIndex]?.jsonpath}</code>
+                                </h5>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={() => {
+                                        setShowLoopFieldsModal(false);
+                                        setIsAddingLoopField(false);
+                                        setCurrentLoopIndex(null);
+                                        setNewLoopField({ jsonpath: '', x: 0, y: 0, width: 100, height: 20 });
+                                        setCurrentSelection(null);
+                                        setError(null);
+                                    }}
+                                ></button>
+                            </div>
+
+                            <div className="modal-body">
+                                {/* Info box */}
+                                <div className="alert alert-primary">
+                                    <strong>🖱️ Disegna i campi sul PDF:</strong>
+                                    <ol className="mb-0 mt-2">
+                                        <li><strong>Disegna</strong> un rettangolo dentro l'area del loop evidenziata in giallo</li>
+                                        <li>Le coordinate saranno <strong>relative</strong> al loop</li>
+                                        <li>Dopo aver disegnato, inserisci il <strong>JSONPath</strong> del campo</li>
+                                        <li>Ripeti per ogni campo (i campi possono essere su più righe)</li>
+                                    </ol>
+                                </div>
+
+                                {/* Pagine Loop */}
+                                {fieldMappings[currentLoopIndex]?.loop_pages && fieldMappings[currentLoopIndex].loop_pages.length > 0 && (
+                                    <>
+                                        <h6>📄 Pagine Aggiuntive ({fieldMappings[currentLoopIndex].loop_pages.length})</h6>
+                                        <div className="alert alert-info mb-3">
+                                            Il loop continua su più pagine con le stesse colonne ma posizioni diverse.
+                                        </div>
+                                        <table className="table table-sm table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Pagina</th>
+                                                    <th>Posizione</th>
+                                                    <th>Dimensioni</th>
+                                                    <th>Azioni</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr className="table-light">
+                                                    <td><strong>Pagina {fieldMappings[currentLoopIndex].page + 1}</strong> (principale)</td>
+                                                    <td>({fieldMappings[currentLoopIndex].area.x}, {fieldMappings[currentLoopIndex].area.y})</td>
+                                                    <td>{fieldMappings[currentLoopIndex].area.width}×{fieldMappings[currentLoopIndex].area.height}</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                {fieldMappings[currentLoopIndex].loop_pages.map((lp, lpIndex) => (
+                                                    <tr key={lpIndex}>
+                                                        <td>Pagina {lp.page + 1}</td>
+                                                        <td>({lp.area.x}, {lp.area.y})</td>
+                                                        <td>{lp.area.width}×{lp.area.height}</td>
+                                                        <td>
+                                                            <button
+                                                                className="btn btn-sm btn-danger"
+                                                                onClick={() => {
+                                                                    const updatedMappings = [...fieldMappings];
+                                                                    const loopMapping = updatedMappings[currentLoopIndex];
+                                                                    loopMapping.loop_pages = loopMapping.loop_pages.filter((_, i) => i !== lpIndex);
+                                                                    setFieldMappings(updatedMappings);
+                                                                }}
+                                                            >
+                                                                Rimuovi
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                        <hr />
+                                    </>
+                                )}
+
+                                {/* Lista colonne esistenti */}
+                                <h6>Campi Configurati ({fieldMappings[currentLoopIndex]?.loop_fields?.length || 0})</h6>
+                                {!fieldMappings[currentLoopIndex]?.loop_fields || fieldMappings[currentLoopIndex].loop_fields.length === 0 ? (
+                                    <div className="alert alert-warning">
+                                        Nessun campo configurato. Disegna il primo campo sul PDF.
+                                    </div>
+                                ) : (
+                                    <table className="table table-sm table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>JSONPath Relativo</th>
+                                                <th>Posizione (x, y)</th>
+                                                <th>Dimensioni</th>
+                                                <th>Azioni</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {fieldMappings[currentLoopIndex].loop_fields.map((field, i) => (
+                                                <tr key={i}>
+                                                    <td><code>{field.jsonpath}</code></td>
+                                                    <td>({field.x}, {field.y})</td>
+                                                    <td>{field.width}×{field.height}</td>
+                                                    <td>
+                                                        <button
+                                                            className="btn btn-sm btn-danger"
+                                                            onClick={() => handleRemoveLoopField(i)}
+                                                        >
+                                                            Rimuovi
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+
+                                {/* Form aggiungi campo */}
+                                <hr />
+                                <h6>Aggiungi Nuovo Campo</h6>
+                                {newLoopField.width > 0 ? (
+                                    <>
+                                        <div className="alert alert-success">
+                                            <strong>✅ Campo disegnato!</strong>
+                                            <p className="mb-0">Posizione relativa: ({newLoopField.x}, {newLoopField.y}), Dimensioni: {newLoopField.width}×{newLoopField.height}</p>
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">JSONPath Relativo *</label>
+                                            <JSONPathAutocomplete
+                                                value={newLoopField.jsonpath}
+                                                onChange={(val) => setNewLoopField({...newLoopField, jsonpath: val})}
+                                                exampleData={getLoopItemExample(fieldMappings[currentLoopIndex])}
+                                                placeholder="es: $.sezione, $.effettivo_nome, ..."
+                                            />
+                                            <small className="text-muted d-block mt-1">
+                                                Path relativo all'elemento dell'array (es: <code>$.sezione</code>, NON <code>$.designazioni[].sezione</code>)
+                                            </small>
+                                        </div>
+                                        <div className="d-flex gap-2">
+                                            <button
+                                                className="btn btn-success"
+                                                onClick={handleAddLoopField}
+                                                disabled={!newLoopField.jsonpath}
+                                            >
+                                                ✓ Salva Campo
+                                            </button>
+                                            <button
+                                                className="btn btn-secondary"
+                                                onClick={() => {
+                                                    setNewLoopField({ jsonpath: '', x: 0, y: 0, width: 100, height: 20 });
+                                                    setCurrentSelection(null);
+                                                }}
+                                            >
+                                                Annulla
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="alert alert-info">
+                                        <strong>👉 Disegna un rettangolo sul PDF</strong>
+                                        <p className="mb-0">Clicca e trascina sul PDF dentro l'area del loop (evidenziata in giallo) per definire la posizione del campo.</p>
+                                    </div>
+                                )}
+
+                                {error && (
+                                    <div className="alert alert-danger mt-3">
+                                        {error}
+                                    </div>
+                                )}
+
+                                {success && (
+                                    <div className="alert alert-success mt-3">
+                                        {success}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() => {
+                                        setShowLoopFieldsModal(false);
+                                        setIsAddingLoopField(false);
+                                        setCurrentLoopIndex(null);
+                                        setNewLoopField({ jsonpath: '', x: 0, y: 0, width: 100, height: 20 });
+                                        setCurrentSelection(null);
+                                        setError(null);
+                                        setSuccess(null);
+                                    }}
+                                >
+                                    Chiudi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

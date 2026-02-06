@@ -295,7 +295,7 @@ class TemplateEditorView(APIView):
             'field_mappings': template.field_mappings,
             'loop_config': template.loop_config,
             'merge_mode': template.merge_mode,
-            'variables_schema': template.variables_schema,
+            'variables_schema': template.template_type.default_schema if template.template_type else {},
         })
 
     def put(self, request, pk):

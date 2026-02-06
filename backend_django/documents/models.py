@@ -113,12 +113,6 @@ class Template(models.Model):
         blank=True,
         help_text=_('File PDF template (rinominato automaticamente con UUID)')
     )
-    variables_schema = models.JSONField(
-        _('schema variabili'),
-        default=dict,
-        blank=True,
-        help_text=_('Schema JSON delle variabili accettate (eredita da template_type se vuoto)')
-    )
     is_active = models.BooleanField(_('attivo'), default=True)
     version = models.IntegerField(_('versione'), default=1)
     created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)

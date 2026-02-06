@@ -21,6 +21,7 @@ class TemplateTypeSerializer(serializers.ModelSerializer):
 class TemplateSerializer(serializers.ModelSerializer):
     template_type_details = TemplateTypeSerializer(source='template_type', read_only=True)
     template_file_url = serializers.SerializerMethodField()
+    variables_schema = serializers.SerializerMethodField()
     consultazione_nome = serializers.CharField(source='consultazione.nome', read_only=True, allow_null=True)
 
     class Meta:
@@ -33,7 +34,7 @@ class TemplateSerializer(serializers.ModelSerializer):
             # Template editor fields
             'field_mappings', 'loop_config', 'merge_mode'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'template_file_url', 'consultazione_nome', 'template_type_details']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'template_file_url', 'consultazione_nome', 'template_type_details', 'variables_schema']
 
     def get_template_file_url(self, obj):
         """Return API endpoint URL for template file (works with Vite proxy)"""
@@ -48,6 +49,12 @@ class TemplateSerializer(serializers.ModelSerializer):
                 return '/api/documents/media/' + original_url[7:]  # Remove '/media/'
             return original_url
         return None
+
+    def get_variables_schema(self, obj):
+        """Return variables schema from template_type (not from template itself)"""
+        if obj.template_type:
+            return obj.template_type.default_schema
+        return {}
 
 
 class GeneratedDocumentSerializer(serializers.ModelSerializer):

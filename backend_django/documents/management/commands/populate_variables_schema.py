@@ -1,15 +1,15 @@
 """
-Management command to populate variables_schema for existing templates.
+Management command to populate default_schema for TemplateType models.
 
 Usage:
     python manage.py populate_variables_schema
 """
 from django.core.management.base import BaseCommand
-from documents.models import Template
+from documents.models import TemplateType
 
 
 class Command(BaseCommand):
-    help = 'Popola variables_schema per i template esistenti con esempi realistici'
+    help = 'Popola default_schema per i TemplateType con esempi realistici'
 
     def handle(self, *args, **options):
         # Schema per template DELEGATION (Sub-Delega)
@@ -187,12 +187,18 @@ class Command(BaseCommand):
             ]
         }
 
-        # Update DELEGATION templates
-        delegation_templates = Template.objects.filter(template_type='DELEGATION')
-        delegation_count = delegation_templates.update(variables_schema=delegation_schema)
-        self.stdout.write(
-            self.style.SUCCESS(f'✓ Aggiornati {delegation_count} template DELEGATION')
-        )
+        # Update DELEGATION TemplateType
+        try:
+            delegation_type = TemplateType.objects.get(code='DELEGATION')
+            delegation_type.default_schema = delegation_schema
+            delegation_type.save()
+            self.stdout.write(
+                self.style.SUCCESS(f'✓ Aggiornato TemplateType DELEGATION')
+            )
+        except TemplateType.DoesNotExist:
+            self.stdout.write(
+                self.style.WARNING('⚠ TemplateType DELEGATION non trovato')
+            )
 
         # Schema per template DESIGNATION SINGOLA (senza loop)
         # Una sola designazione per documento (più semplice)
@@ -257,38 +263,38 @@ class Command(BaseCommand):
             }
         }
 
-        # Update DESIGNATION templates (multipla con loop)
-        designation_templates = Template.objects.filter(
-            template_type='DESIGNATION',
-            name__icontains='individuale'
-        )
-        designation_count = designation_templates.update(variables_schema=designation_schema)
-        self.stdout.write(
-            self.style.SUCCESS(f'✓ Aggiornati {designation_count} template DESIGNATION (multipla)')
-        )
-
-        # Update DESIGNATION SINGLE templates (senza loop)
-        designation_single_templates = Template.objects.filter(
-            template_type='DESIGNATION',
-            name__icontains='singola'
-        )
-        designation_single_count = designation_single_templates.update(variables_schema=designation_single_schema)
-        self.stdout.write(
-            self.style.SUCCESS(f'✓ Aggiornati {designation_single_count} template DESIGNATION (singola)')
-        )
-
-        total = delegation_count + designation_count + designation_single_count
-        if total == 0:
+        # Update DESIGNATION_MULTI TemplateType (riepilogativa con loop)
+        try:
+            designation_multi_type = TemplateType.objects.get(code='DESIGNATION_MULTI')
+            designation_multi_type.default_schema = designation_schema
+            designation_multi_type.save()
             self.stdout.write(
-                self.style.WARNING('⚠ Nessun template trovato da aggiornare')
+                self.style.SUCCESS(f'✓ Aggiornato TemplateType DESIGNATION_MULTI (riepilogativa)')
             )
-        else:
+        except TemplateType.DoesNotExist:
             self.stdout.write(
-                self.style.SUCCESS(f'\n✅ Totale: {total} template aggiornati con successo!')
+                self.style.WARNING('⚠ TemplateType DESIGNATION_MULTI non trovato')
             )
-            self.stdout.write('\nPer vedere i campi disponibili:')
-            self.stdout.write('  - DELEGATION: $.delegato.*, $.subdelegato.*')
-            self.stdout.write('  - DESIGNATION (multipla): $.delegato.*, $.subdelegato.*, $.designazioni[].*')
-            self.stdout.write('                            (ogni elemento ha effettivo_* e supplente_* per la stessa sezione)')
-            self.stdout.write('  - DESIGNATION (singola): $.delegato.*, $.subdelegato.*, $.designazione.*')
-            self.stdout.write('                           (un oggetto con effettivo_* e supplente_*, senza loop)')
+
+        # Update DESIGNATION_SINGLE TemplateType (singola senza loop)
+        try:
+            designation_single_type = TemplateType.objects.get(code='DESIGNATION_SINGLE')
+            designation_single_type.default_schema = designation_single_schema
+            designation_single_type.save()
+            self.stdout.write(
+                self.style.SUCCESS(f'✓ Aggiornato TemplateType DESIGNATION_SINGLE (singola)')
+            )
+        except TemplateType.DoesNotExist:
+            self.stdout.write(
+                self.style.WARNING('⚠ TemplateType DESIGNATION_SINGLE non trovato')
+            )
+
+        self.stdout.write(
+            self.style.SUCCESS('\n✅ Schema dei TemplateType aggiornati con successo!')
+        )
+        self.stdout.write('\nCampi disponibili per ogni tipo:')
+        self.stdout.write('  - DELEGATION: $.delegato.*, $.subdelegato.*')
+        self.stdout.write('  - DESIGNATION_MULTI: $.delegato.*, $.subdelegato.*, $.designazioni[].*')
+        self.stdout.write('                       (array: ogni elemento ha effettivo_* e supplente_*)')
+        self.stdout.write('  - DESIGNATION_SINGLE: $.delegato.*, $.subdelegato.*, $.designazione.*')
+        self.stdout.write('                        (oggetto singolo con effettivo_* e supplente_*)')
