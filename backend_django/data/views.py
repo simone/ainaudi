@@ -2578,14 +2578,68 @@ class RdlRegistrationImportView(APIView):
                     failed_records.append({**record_data, 'error_fields': ['data_nascita'], 'error_message': str(e)})
                     continue
 
-                # Find comune
+                # Find comune with intelligent search
+                comune = None
+                comune_nome_clean = comune_nome.split('(')[0].strip()  # Remove province suffix like "(FR)"
+
+                # Try 1: Exact match (case-insensitive)
                 try:
-                    # Try to clean comune name (remove province suffix like "(FR)")
-                    comune_nome_clean = comune_nome.split('(')[0].strip()
                     comune = Comune.objects.select_related(
                         'provincia', 'provincia__regione'
                     ).prefetch_related('municipi').get(nome__iexact=comune_nome_clean)
                 except Comune.DoesNotExist:
+                    pass
+                except Comune.MultipleObjectsReturned:
+                    # Multiple comuni with same name - need to disambiguate
+                    comuni_list = list(Comune.objects.filter(nome__iexact=comune_nome_clean).select_related('provincia').values_list('nome', 'provincia__nome'))
+                    errors.append(f'Riga {i}: Comune ambiguo "{comune_nome_clean}" (trovati: {", ".join([f"{c[0]} ({c[1]})" for c in comuni_list[:3]])}). Specifica la provincia tra parentesi.')
+                    failed_records.append({**record_data, 'error_fields': ['comune_seggio'], 'error_message': f'Comune ambiguo. Specifica provincia es: "{comune_nome_clean} (RM)"'})
+                    continue
+
+                # Try 2: Normalize and retry (handle extra spaces, case issues)
+                if not comune:
+                    # Normalize: remove extra spaces, standardize case
+                    comune_normalized = ' '.join(comune_nome_clean.split()).strip()
+
+                    # Try again with normalized name
+                    try:
+                        comune = Comune.objects.select_related(
+                            'provincia', 'provincia__regione'
+                        ).prefetch_related('municipi').get(nome__iexact=comune_normalized)
+                    except (Comune.DoesNotExist, Comune.MultipleObjectsReturned):
+                        pass
+
+                # Try 3: Fuzzy search (first 5 chars match) for typos like "SERRRONE" → "Serrone"
+                if not comune:
+                    # Search by prefix (at least 5 chars or 80% of name)
+                    min_chars = min(5, int(len(comune_nome_clean) * 0.8))
+                    if len(comune_nome_clean) >= min_chars:
+                        prefix = comune_nome_clean[:min_chars]
+                        possibili = Comune.objects.filter(
+                            nome__istartswith=prefix
+                        ).select_related('provincia', 'provincia__regione').prefetch_related('municipi')
+
+                        # Filter by Levenshtein-like similarity
+                        matches = []
+                        comune_upper = comune_nome_clean.upper().replace(' ', '')
+                        for c in possibili:
+                            c_upper = c.nome.upper().replace(' ', '')
+                            # Simple similarity: same length or differ by 1-2 chars
+                            if abs(len(c_upper) - len(comune_upper)) <= 2:
+                                # Check if very similar (allow 1-2 char difference)
+                                diff = sum(1 for a, b in zip(c_upper, comune_upper) if a != b)
+                                if diff <= 2 or c_upper == comune_upper:
+                                    matches.append(c)
+
+                        if len(matches) == 1:
+                            comune = matches[0]
+                        elif len(matches) > 1:
+                            comuni_list = [(c.nome, c.provincia.nome) for c in matches[:3]]
+                            errors.append(f'Riga {i}: Comune ambiguo "{comune_nome_clean}" (possibili: {", ".join([f"{c[0]} ({c[1]})" for c in comuni_list])})')
+                            failed_records.append({**record_data, 'error_fields': ['comune_seggio'], 'error_message': 'Comune ambiguo. Specifica provincia'})
+                            continue
+
+                if not comune:
                     errors.append(f'Riga {i}: Comune non trovato: {comune_nome}')
                     failed_records.append({**record_data, 'error_fields': ['comune_seggio'], 'error_message': f'Comune non trovato: {comune_nome}'})
                     continue
