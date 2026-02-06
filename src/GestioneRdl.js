@@ -1,6 +1,35 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
 
+/**
+ * Converte un numero in numeri romani
+ */
+const toRoman = (num) => {
+    const romanNumerals = [
+        { value: 1000, numeral: 'M' },
+        { value: 900, numeral: 'CM' },
+        { value: 500, numeral: 'D' },
+        { value: 400, numeral: 'CD' },
+        { value: 100, numeral: 'C' },
+        { value: 90, numeral: 'XC' },
+        { value: 50, numeral: 'L' },
+        { value: 40, numeral: 'XL' },
+        { value: 10, numeral: 'X' },
+        { value: 9, numeral: 'IX' },
+        { value: 5, numeral: 'V' },
+        { value: 4, numeral: 'IV' },
+        { value: 1, numeral: 'I' }
+    ];
+    let result = '';
+    for (const { value, numeral } of romanNumerals) {
+        while (num >= value) {
+            result += numeral;
+            num -= value;
+        }
+    }
+    return result;
+};
+
 function GestioneRdl({ client, setError }) {
     const [registrations, setRegistrations] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -13,6 +42,15 @@ function GestioneRdl({ client, setError }) {
     const [expandedId, setExpandedId] = useState(null);
     const fileInputRef = useRef(null);
 
+    // Column mapping state
+    const [mappingStep, setMappingStep] = useState(null); // null | 'mapping' | 'importing'
+    const [csvFile, setCsvFile] = useState(null);
+    const [csvColumns, setCsvColumns] = useState([]);
+    const [requiredFields, setRequiredFields] = useState([]);
+    const [optionalFields, setOptionalFields] = useState([]);
+    const [columnMapping, setColumnMapping] = useState({});
+    const [usingSavedMapping, setUsingSavedMapping] = useState(false);
+
     // Territory filter states
     const [regioni, setRegioni] = useState([]);
     const [province, setProvince] = useState([]);
@@ -22,7 +60,10 @@ function GestioneRdl({ client, setError }) {
     const [provinciaFilter, setProvinciaFilter] = useState('');
     const [comuneFilter, setComuneFilter] = useState('');
     const [municipioFilter, setMunicipioFilter] = useState('');
-    const [showTerritoryFilters, setShowTerritoryFilters] = useState(false);
+    const [showTerritoryFilters, setShowTerritoryFilters] = useState(true);
+
+    // User territory from delegation chain
+    const [territorioLabel, setTerritorioLabel] = useState('');
 
     // Modal states
     const [modal, setModal] = useState({
@@ -32,32 +73,44 @@ function GestioneRdl({ client, setError }) {
         targetName: ''
     });
 
-    // Load regioni on mount
+    // Load territory filters and user info on mount
     useEffect(() => {
-        loadRegioni();
+        loadUserTerritorio();
+        loadTerritoryFilters();
     }, []);
 
-    // Load province when regione changes
+    // Reload registrations when filters change or on mount
+    useEffect(() => {
+        loadRegistrations();
+    }, [statusFilter, regioneFilter, provinciaFilter, comuneFilter, municipioFilter]);
+
+    // Handle regione filter change
     useEffect(() => {
         if (regioneFilter) {
             loadProvince(regioneFilter);
         } else {
             setProvince([]);
             setProvinciaFilter('');
+            setComuni([]);
+            setComuneFilter('');
+            setMunicipi([]);
+            setMunicipioFilter('');
         }
     }, [regioneFilter]);
 
-    // Load comuni when provincia changes
+    // Handle provincia filter change
     useEffect(() => {
         if (provinciaFilter) {
             loadComuni(provinciaFilter);
         } else {
             setComuni([]);
             setComuneFilter('');
+            setMunicipi([]);
+            setMunicipioFilter('');
         }
     }, [provinciaFilter]);
 
-    // Load municipi when comune changes
+    // Handle comune filter change
     useEffect(() => {
         if (comuneFilter) {
             loadMunicipi(comuneFilter);
@@ -67,38 +120,224 @@ function GestioneRdl({ client, setError }) {
         }
     }, [comuneFilter]);
 
-    // Reload registrations when filters change
-    useEffect(() => {
-        loadRegistrations();
-    }, [statusFilter, regioneFilter, provinciaFilter, comuneFilter, municipioFilter]);
-
-    const loadRegioni = async () => {
-        const result = await client.territorio.regioni();
-        if (!result.error && Array.isArray(result)) {
-            setRegioni(result);
-        }
-    };
-
     const loadProvince = async (regioneId) => {
-        const result = await client.territorio.province(regioneId);
-        if (!result.error && Array.isArray(result)) {
-            setProvince(result);
+        // Load all data and filter by regione
+        const result = await client.rdlRegistrations.list({});
+        if (result.error) return;
+
+        const allData = result.registrations || [];
+
+        const provinceMap = new Map();
+        allData.forEach(rdl => {
+            if (rdl.regione_id === parseInt(regioneId) && rdl.provincia_id && rdl.provincia) {
+                provinceMap.set(rdl.provincia_id, { id: rdl.provincia_id, nome: rdl.provincia });
+            }
+        });
+
+        const provinceList = Array.from(provinceMap.values());
+        setProvince(provinceList);
+
+        // Auto-select if only one
+        if (provinceList.length === 1 && !provinciaFilter) {
+            setProvinciaFilter(provinceList[0].id);
         }
     };
 
     const loadComuni = async (provinciaId) => {
-        const result = await client.territorio.comuni(provinciaId);
-        if (!result.error && Array.isArray(result)) {
-            setComuni(result);
+        // Load all data and filter by provincia
+        const result = await client.rdlRegistrations.list({});
+        if (result.error) return;
+
+        const allData = result.registrations || [];
+
+        const comuniMap = new Map();
+        allData.forEach(rdl => {
+            if (rdl.provincia_id === parseInt(provinciaId) && rdl.comune_id && rdl.comune) {
+                comuniMap.set(rdl.comune_id, { id: rdl.comune_id, nome: rdl.comune });
+            }
+        });
+
+        const comuniList = Array.from(comuniMap.values());
+        setComuni(comuniList);
+
+        // Auto-select if only one
+        if (comuniList.length === 1 && !comuneFilter) {
+            setComuneFilter(comuniList[0].id);
         }
     };
 
     const loadMunicipi = async (comuneId) => {
-        const result = await client.territorio.municipi(comuneId);
-        if (!result.error && result.municipi) {
-            setMunicipi(result.municipi);
-        } else {
-            setMunicipi([]);
+        // Load all data and filter by comune
+        const result = await client.rdlRegistrations.list({});
+        if (result.error) return;
+
+        const allData = result.registrations || [];
+
+        const municipiMap = new Map();
+        allData.forEach(rdl => {
+            if (rdl.comune_id === parseInt(comuneId) && rdl.municipio_id && rdl.municipio) {
+                // Extract numero from "Municipio 15" format
+                const match = rdl.municipio.match(/\d+/);
+                if (match) {
+                    const numero = parseInt(match[0]);
+                    municipiMap.set(rdl.municipio_id, { id: rdl.municipio_id, numero });
+                }
+            }
+        });
+
+        const municipiList = Array.from(municipiMap.values());
+        setMunicipi(municipiList);
+        // Don't auto-select municipio - let user choose
+    };
+
+    const loadTerritoryFilters = async () => {
+        // Load all registrations to extract unique territory values
+        const result = await client.rdlRegistrations.list({});
+        if (result.error) {
+            setRegioni([]);
+            return;
+        }
+
+        const allData = result.registrations || [];
+
+        // Extract unique values using Maps to avoid duplicates
+        const regioniMap = new Map(); // regione_id -> {id, nome}
+        const provinceByRegione = new Map(); // regione_id -> Map(provincia_id -> {id, nome})
+        const comuniByProvincia = new Map(); // provincia_id -> Map(comune_id -> {id, nome})
+        const municipiByComune = new Map(); // comune_id -> Map(municipio_id -> {id, numero})
+
+        allData.forEach(rdl => {
+            // Build regioni map
+            if (rdl.regione_id && rdl.regione) {
+                regioniMap.set(rdl.regione_id, { id: rdl.regione_id, nome: rdl.regione });
+
+                // Build province map
+                if (rdl.provincia_id && rdl.provincia) {
+                    if (!provinceByRegione.has(rdl.regione_id)) {
+                        provinceByRegione.set(rdl.regione_id, new Map());
+                    }
+                    provinceByRegione.get(rdl.regione_id).set(rdl.provincia_id, {
+                        id: rdl.provincia_id,
+                        nome: rdl.provincia
+                    });
+
+                    // Build comuni map
+                    if (rdl.comune_id && rdl.comune) {
+                        if (!comuniByProvincia.has(rdl.provincia_id)) {
+                            comuniByProvincia.set(rdl.provincia_id, new Map());
+                        }
+                        comuniByProvincia.get(rdl.provincia_id).set(rdl.comune_id, {
+                            id: rdl.comune_id,
+                            nome: rdl.comune
+                        });
+
+                        // Build municipi map
+                        if (rdl.municipio_id && rdl.municipio) {
+                            const match = rdl.municipio.match(/\d+/);
+                            if (match) {
+                                const numero = parseInt(match[0]);
+                                if (!municipiByComune.has(rdl.comune_id)) {
+                                    municipiByComune.set(rdl.comune_id, new Map());
+                                }
+                                municipiByComune.get(rdl.comune_id).set(rdl.municipio_id, {
+                                    id: rdl.municipio_id,
+                                    numero
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Convert to arrays
+        const regioniList = Array.from(regioniMap.values());
+        setRegioni(regioniList);
+
+        // Auto-select if only one value at each level
+        if (regioniList.length === 1) {
+            const regione = regioniList[0];
+            setRegioneFilter(regione.id);
+
+            // Load province for this regione
+            const provinceMap = provinceByRegione.get(regione.id);
+            if (provinceMap) {
+                const provinceList = Array.from(provinceMap.values());
+                setProvince(provinceList);
+
+                if (provinceList.length === 1) {
+                    const provincia = provinceList[0];
+                    setProvinciaFilter(provincia.id);
+
+                    // Load comuni for this provincia
+                    const comuniMap = comuniByProvincia.get(provincia.id);
+                    if (comuniMap) {
+                        const comuniList = Array.from(comuniMap.values());
+                        setComuni(comuniList);
+
+                        if (comuniList.length === 1) {
+                            const comune = comuniList[0];
+                            setComuneFilter(comune.id);
+
+                            // Load municipi for this comune
+                            const municipiMap = municipiByComune.get(comune.id);
+                            if (municipiMap) {
+                                const municipiList = Array.from(municipiMap.values());
+                                setMunicipi(municipiList);
+                                // Don't auto-select municipio - let user choose
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    const loadUserTerritorio = async () => {
+        try {
+            const chain = await client.deleghe.miaCatena();
+            if (chain.error) return;
+
+            let label = '';
+
+            // Extract territory from sub-delegations
+            if (chain.sub_deleghe_ricevute && chain.sub_deleghe_ricevute.length > 0) {
+                const subDelega = chain.sub_deleghe_ricevute[0];
+
+                // Build territory label
+                const parti = [];
+
+                // Comuni
+                if (subDelega.comuni && subDelega.comuni.length > 0) {
+                    const comuniNames = subDelega.comuni.map(c => c.nome);
+                    if (comuniNames.length <= 2) {
+                        parti.push(comuniNames.join(', '));
+                    } else {
+                        parti.push(`${comuniNames[0]} (+${comuniNames.length - 1} comuni)`);
+                    }
+                }
+
+                // Municipi
+                if (subDelega.municipi && subDelega.municipi.length > 0) {
+                    const municString = subDelega.municipi
+                        .map(m => `Mun. ${toRoman(m)}`)
+                        .join(', ');
+                    if (parti.length > 0) {
+                        parti[0] = `${parti[0]} - ${municString}`;
+                    } else {
+                        parti.push(municString);
+                    }
+                }
+
+                label = parti.join(', ');
+            } else if (chain.delega_ricevuta) {
+                // Delegato di lista - show circoscrizione
+                label = chain.delega_ricevuta.circoscrizione || 'Nazionale';
+            }
+
+            setTerritorioLabel(label);
+        } catch (err) {
+            console.error('Error loading user territory:', err);
         }
     };
 
@@ -177,8 +416,11 @@ function GestioneRdl({ client, setError }) {
             data_nascita: reg.data_nascita || '',
             comune_residenza: reg.comune_residenza || '',
             indirizzo_residenza: reg.indirizzo_residenza || '',
+            municipio: reg.municipio ? (typeof reg.municipio === 'string' ? parseInt(reg.municipio.replace('Municipio ', '')) : reg.municipio) : '',
+            fuorisede: reg.fuorisede || false,
+            comune_domicilio: reg.comune_domicilio || '',
+            indirizzo_domicilio: reg.indirizzo_domicilio || '',
             seggio_preferenza: reg.seggio_preferenza || '',
-            municipio: reg.municipio ? parseInt(reg.municipio.replace('Municipio ', '')) : '',
             notes: reg.notes || ''
         });
     };
@@ -207,15 +449,94 @@ function GestioneRdl({ client, setError }) {
         if (!file) return;
 
         setImportResult(null);
-        const result = await client.rdlRegistrations.import(file);
+        setMappingStep('analyzing');
+
+        // Step 1: Analyze CSV
+        const result = await client.rdlRegistrations.analyzeCSV(file);
+
+        if (result.error) {
+            setError(result.error);
+            setMappingStep(null);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+            return;
+        }
+
+        // Try to load saved mapping for this CSV structure
+        const columns = result.columns || [];
+        const savedMapping = getSavedMapping(columns);
+        const mappingToUse = savedMapping || result.suggested_mapping || {};
+        const hasSavedMapping = savedMapping !== null;
+
+        // Show mapping interface
+        setCsvFile(file);
+        setCsvColumns(columns);
+        setRequiredFields(result.required_fields || []);
+        setOptionalFields(result.optional_fields || []);
+        setColumnMapping(mappingToUse);
+        setUsingSavedMapping(hasSavedMapping);
+        setMappingStep('mapping');
+    };
+
+    const getSavedMapping = (columns) => {
+        try {
+            // Create a signature based on column names
+            const signature = columns.slice().sort().join('|');
+            const savedMappings = JSON.parse(localStorage.getItem('csvColumnMappings') || '{}');
+            return savedMappings[signature] || null;
+        } catch (err) {
+            console.error('Error loading saved mapping:', err);
+            return null;
+        }
+    };
+
+    const saveMappingToLocalStorage = (columns, mapping) => {
+        try {
+            const signature = columns.slice().sort().join('|');
+            const savedMappings = JSON.parse(localStorage.getItem('csvColumnMappings') || '{}');
+            savedMappings[signature] = mapping;
+            localStorage.setItem('csvColumnMappings', JSON.stringify(savedMappings));
+        } catch (err) {
+            console.error('Error saving mapping:', err);
+        }
+    };
+
+    const handleConfirmMapping = async () => {
+        if (!csvFile) return;
+
+        setMappingStep('importing');
+
+        const result = await client.rdlRegistrations.import(csvFile, columnMapping);
 
         if (result.error) {
             setError(result.error);
         } else {
+            // Save successful mapping to localStorage
+            saveMappingToLocalStorage(csvColumns, columnMapping);
+
             setImportResult(result);
             loadRegistrations();
         }
 
+        // Reset
+        setMappingStep(null);
+        setCsvFile(null);
+        setCsvColumns([]);
+        setColumnMapping({});
+        setUsingSavedMapping(false);
+
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const handleCancelMapping = () => {
+        setMappingStep(null);
+        setCsvFile(null);
+        setCsvColumns([]);
+        setColumnMapping({});
+        setUsingSavedMapping(false);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -352,6 +673,11 @@ function GestioneRdl({ client, setError }) {
                 </div>
                 <div className="page-header-subtitle">
                     Approva e gestisci le registrazioni dei Rappresentanti di Lista
+                    {territorioLabel && (
+                        <span className="page-header-badge">
+                            {territorioLabel}
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -479,7 +805,7 @@ function GestioneRdl({ client, setError }) {
             </div>
 
             {/* Import Section */}
-            {showImport && (
+            {showImport && !mappingStep && (
                 <div style={{
                     background: '#e3f2fd',
                     borderRadius: '8px',
@@ -489,7 +815,7 @@ function GestioneRdl({ client, setError }) {
                 }}>
                     <div style={{ fontWeight: 600, marginBottom: '8px' }}>Import CSV</div>
                     <div style={{ marginBottom: '8px', color: '#666' }}>
-                        <strong>Colonne:</strong> EMAIL, NOME, COGNOME, TELEFONO, COMUNE_NASCITA, DATA_NASCITA, COMUNE_RESIDENZA, INDIRIZZO_RESIDENZA, COMUNE_SEGGIO
+                        Seleziona un file CSV da importare. Il sistema ti permetterà di mappare le colonne.
                     </div>
                     <input
                         ref={fileInputRef}
@@ -515,6 +841,109 @@ function GestioneRdl({ client, setError }) {
                             )}
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Column Mapping Interface */}
+            {mappingStep === 'mapping' && (
+                <div className="card mb-3">
+                    <div className="card-header bg-primary text-white">
+                        <h5 className="mb-0">
+                            <i className="fas fa-columns me-2"></i>
+                            Mappa le colonne del CSV
+                        </h5>
+                    </div>
+                    <div className="card-body">
+                        {usingSavedMapping && (
+                            <div className="alert alert-success mb-3" style={{ fontSize: '0.85rem' }}>
+                                <i className="fas fa-check-circle me-2"></i>
+                                <strong>Mapping salvato trovato!</strong> Le colonne sono state mappate automaticamente in base a un import precedente con la stessa struttura.
+                            </div>
+                        )}
+                        <p className="text-muted mb-3">
+                            Associa le colonne del tuo CSV ai campi richiesti. {usingSavedMapping ? 'Il mapping è stato caricato da un import precedente.' : 'Le mappature consigliate sono già selezionate.'}
+                        </p>
+
+                        {/* Required fields */}
+                        <div className="mb-4">
+                            <h6 className="text-danger">Campi obbligatori</h6>
+                            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: '1fr 1fr' }}>
+                                {requiredFields.map(field => (
+                                    <div key={field.key}>
+                                        <label className="form-label mb-1" style={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                                            {field.label} <span className="text-danger">*</span>
+                                        </label>
+                                        <select
+                                            className="form-select form-select-sm"
+                                            value={columnMapping[field.key] || ''}
+                                            onChange={(e) => setColumnMapping({...columnMapping, [field.key]: e.target.value})}
+                                        >
+                                            <option value="">-- Seleziona colonna --</option>
+                                            {csvColumns.map(col => (
+                                                <option key={col} value={col}>{col}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Optional fields */}
+                        <div className="mb-3">
+                            <h6 className="text-secondary">Campi opzionali</h6>
+                            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: '1fr 1fr' }}>
+                                {optionalFields.map(field => (
+                                    <div key={field.key}>
+                                        <label className="form-label mb-1" style={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                                            {field.label}
+                                        </label>
+                                        <select
+                                            className="form-select form-select-sm"
+                                            value={columnMapping[field.key] || ''}
+                                            onChange={(e) => setColumnMapping({...columnMapping, [field.key]: e.target.value})}
+                                        >
+                                            <option value="">-- Non mappare --</option>
+                                            {csvColumns.map(col => (
+                                                <option key={col} value={col}>{col}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="d-flex gap-2 mt-4">
+                            <button
+                                className="btn btn-success flex-grow-1"
+                                onClick={handleConfirmMapping}
+                                disabled={requiredFields.some(f => !columnMapping[f.key])}
+                            >
+                                <i className="fas fa-check me-2"></i>
+                                Importa dati
+                            </button>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={handleCancelMapping}
+                            >
+                                <i className="fas fa-times me-2"></i>
+                                Annulla
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {mappingStep === 'analyzing' && (
+                <div className="alert alert-info">
+                    <i className="fas fa-spinner fa-spin me-2"></i>
+                    Analisi CSV in corso...
+                </div>
+            )}
+
+            {mappingStep === 'importing' && (
+                <div className="alert alert-info">
+                    <i className="fas fa-spinner fa-spin me-2"></i>
+                    Importazione dati in corso...
                 </div>
             )}
 
@@ -559,69 +988,170 @@ function GestioneRdl({ client, setError }) {
                             borderBottom: '1px solid #e9ecef'
                         }}>
                             {editingId === reg.id ? (
-                                /* Edit Mode - Compact */
+                                /* Edit Mode - Complete with labels */
                                 <div style={{ padding: '12px', background: '#f8f9fa' }}>
-                                    <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: '1fr 1fr' }}>
-                                        <input
-                                            type="text"
-                                            className="form-control form-control-sm"
-                                            placeholder="Nome"
-                                            value={editData.nome}
-                                            onChange={(e) => setEditData({ ...editData, nome: e.target.value })}
-                                        />
-                                        <input
-                                            type="text"
-                                            className="form-control form-control-sm"
-                                            placeholder="Cognome"
-                                            value={editData.cognome}
-                                            onChange={(e) => setEditData({ ...editData, cognome: e.target.value })}
-                                        />
-                                        <input
-                                            type="email"
-                                            className="form-control form-control-sm"
-                                            placeholder="Email"
-                                            value={editData.email}
-                                            onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                                            style={{ gridColumn: '1 / -1' }}
-                                        />
-                                        <input
-                                            type="tel"
-                                            className="form-control form-control-sm"
-                                            placeholder="Telefono"
-                                            value={editData.telefono}
-                                            onChange={(e) => setEditData({ ...editData, telefono: e.target.value })}
-                                        />
-                                        <input
-                                            type="number"
-                                            className="form-control form-control-sm"
-                                            placeholder="Municipio"
-                                            value={editData.municipio}
-                                            onChange={(e) => setEditData({ ...editData, municipio: e.target.value })}
-                                            min="1"
-                                            max="15"
-                                        />
-                                        <input
-                                            type="text"
-                                            className="form-control form-control-sm"
-                                            placeholder="Seggio preferenza"
-                                            value={editData.seggio_preferenza}
-                                            onChange={(e) => setEditData({ ...editData, seggio_preferenza: e.target.value })}
-                                            style={{ gridColumn: '1 / -1' }}
-                                        />
-                                        <input
-                                            type="text"
-                                            className="form-control form-control-sm"
-                                            placeholder="Note"
-                                            value={editData.notes}
-                                            onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
-                                            style={{ gridColumn: '1 / -1' }}
-                                        />
+                                    <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: '1fr 1fr' }}>
+                                        {/* Dati anagrafici */}
+                                        <div>
+                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Nome</label>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm"
+                                                value={editData.nome || ''}
+                                                onChange={(e) => setEditData({ ...editData, nome: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Cognome</label>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm"
+                                                value={editData.cognome || ''}
+                                                onChange={(e) => setEditData({ ...editData, cognome: e.target.value })}
+                                            />
+                                        </div>
+                                        <div style={{ gridColumn: '1 / -1' }}>
+                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Email</label>
+                                            <input
+                                                type="email"
+                                                className="form-control form-control-sm"
+                                                value={editData.email || ''}
+                                                onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Telefono</label>
+                                            <input
+                                                type="tel"
+                                                className="form-control form-control-sm"
+                                                value={editData.telefono || ''}
+                                                onChange={(e) => setEditData({ ...editData, telefono: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Data nascita</label>
+                                            <input
+                                                type="date"
+                                                className="form-control form-control-sm"
+                                                value={editData.data_nascita || ''}
+                                                onChange={(e) => setEditData({ ...editData, data_nascita: e.target.value })}
+                                            />
+                                        </div>
+                                        <div style={{ gridColumn: '1 / -1' }}>
+                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Comune nascita</label>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm"
+                                                value={editData.comune_nascita || ''}
+                                                onChange={(e) => setEditData({ ...editData, comune_nascita: e.target.value })}
+                                            />
+                                        </div>
+
+                                        {/* Residenza */}
+                                        <div style={{ gridColumn: '1 / -1', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid #dee2e6' }}>
+                                            <strong style={{ fontSize: '0.85rem' }}>Residenza</strong>
+                                        </div>
+                                        <div style={{ gridColumn: '1 / -1' }}>
+                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Comune residenza</label>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm"
+                                                value={editData.comune_residenza || ''}
+                                                onChange={(e) => setEditData({ ...editData, comune_residenza: e.target.value })}
+                                            />
+                                        </div>
+                                        <div style={{ gridColumn: '1 / -1' }}>
+                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Indirizzo residenza</label>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm"
+                                                value={editData.indirizzo_residenza || ''}
+                                                onChange={(e) => setEditData({ ...editData, indirizzo_residenza: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Municipio</label>
+                                            <input
+                                                type="number"
+                                                className="form-control form-control-sm"
+                                                value={editData.municipio || ''}
+                                                onChange={(e) => setEditData({ ...editData, municipio: e.target.value })}
+                                                min="1"
+                                                max="15"
+                                            />
+                                        </div>
+
+                                        {/* Fuorisede */}
+                                        <div style={{ gridColumn: '1 / -1', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid #dee2e6' }}>
+                                            <strong style={{ fontSize: '0.85rem' }}>Fuorisede</strong>
+                                        </div>
+                                        <div style={{ gridColumn: '1 / -1' }}>
+                                            <div className="form-check">
+                                                <input
+                                                    type="checkbox"
+                                                    className="form-check-input"
+                                                    id="edit-fuorisede"
+                                                    checked={editData.fuorisede || false}
+                                                    onChange={(e) => setEditData({ ...editData, fuorisede: e.target.checked })}
+                                                />
+                                                <label className="form-check-label" htmlFor="edit-fuorisede" style={{ fontSize: '0.8rem' }}>
+                                                    Lavora o studia in un comune diverso dalla residenza
+                                                </label>
+                                            </div>
+                                        </div>
+                                        {editData.fuorisede && (
+                                            <>
+                                                <div style={{ gridColumn: '1 / -1' }}>
+                                                    <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Comune domicilio</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control form-control-sm"
+                                                        value={editData.comune_domicilio || ''}
+                                                        onChange={(e) => setEditData({ ...editData, comune_domicilio: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div style={{ gridColumn: '1 / -1' }}>
+                                                    <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Indirizzo domicilio</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control form-control-sm"
+                                                        value={editData.indirizzo_domicilio || ''}
+                                                        onChange={(e) => setEditData({ ...editData, indirizzo_domicilio: e.target.value })}
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* Preferenze */}
+                                        <div style={{ gridColumn: '1 / -1', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid #dee2e6' }}>
+                                            <strong style={{ fontSize: '0.85rem' }}>Preferenze</strong>
+                                        </div>
+                                        <div style={{ gridColumn: '1 / -1' }}>
+                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Seggio preferenza</label>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm"
+                                                value={editData.seggio_preferenza || ''}
+                                                onChange={(e) => setEditData({ ...editData, seggio_preferenza: e.target.value })}
+                                            />
+                                        </div>
+                                        <div style={{ gridColumn: '1 / -1' }}>
+                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Note</label>
+                                            <textarea
+                                                className="form-control form-control-sm"
+                                                rows="2"
+                                                value={editData.notes || ''}
+                                                onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
+                                            />
+                                        </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                                         <button className="btn btn-success btn-sm" onClick={handleSaveEdit} style={{ flex: 1 }}>
+                                            <i className="fas fa-save me-1"></i>
                                             Salva
                                         </button>
                                         <button className="btn btn-secondary btn-sm" onClick={handleCancelEdit} style={{ flex: 1 }}>
+                                            <i className="fas fa-times me-1"></i>
                                             Annulla
                                         </button>
                                     </div>
@@ -667,12 +1197,49 @@ function GestioneRdl({ client, setError }) {
 
                                     {/* Info secondarie */}
                                     <div style={{ fontSize: '0.8rem', color: '#6c757d' }}>
-                                        <div>{reg.email}</div>
-                                        <div style={{ display: 'flex', gap: '12px', marginTop: '2px' }}>
-                                            <span><strong>{reg.comune}</strong></span>
-                                            {reg.municipio && <span>{reg.municipio}</span>}
-                                            {reg.telefono && <span>{reg.telefono}</span>}
+                                        <div style={{ marginBottom: '4px' }}>
+                                            <i className="fas fa-envelope me-1"></i>
+                                            {reg.email}
+                                            {reg.telefono && (
+                                                <span className="ms-3">
+                                                    <i className="fas fa-phone me-1"></i>
+                                                    {reg.telefono}
+                                                </span>
+                                            )}
                                         </div>
+                                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                            <span>
+                                                <i className="fas fa-map-marker-alt me-1"></i>
+                                                <strong>{reg.comune_residenza || reg.comune}</strong>
+                                                {reg.municipio && ` - ${reg.municipio}`}
+                                            </span>
+                                            {reg.data_nascita && (
+                                                <span>
+                                                    <i className="fas fa-birthday-cake me-1"></i>
+                                                    {formatDate(reg.data_nascita)}
+                                                    {reg.comune_nascita && ` (${reg.comune_nascita})`}
+                                                </span>
+                                            )}
+                                            {reg.seggio_preferenza && (
+                                                <span>
+                                                    <i className="fas fa-star me-1" style={{ color: '#ffc107' }}></i>
+                                                    Sez. {reg.seggio_preferenza}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {reg.fuorisede && reg.comune_domicilio && (
+                                            <div style={{ marginTop: '4px', fontSize: '0.75rem' }}>
+                                                <i className="fas fa-suitcase me-1"></i>
+                                                <strong>Domicilio:</strong> {reg.comune_domicilio}
+                                                {reg.indirizzo_domicilio && `, ${reg.indirizzo_domicilio}`}
+                                            </div>
+                                        )}
+                                        {reg.notes && (
+                                            <div style={{ marginTop: '4px', fontStyle: 'italic', fontSize: '0.75rem' }}>
+                                                <i className="fas fa-sticky-note me-1"></i>
+                                                {reg.notes}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {reg.rejection_reason && (
@@ -698,10 +1265,19 @@ function GestioneRdl({ client, setError }) {
                                                 fontSize: '0.8rem',
                                                 border: '1px solid #dee2e6'
                                             }}>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
-                                                    <div><span style={{ color: '#6c757d' }}>Nascita:</span> {reg.comune_nascita || '-'}</div>
-                                                    <div><span style={{ color: '#6c757d' }}>Data:</span> {formatDate(reg.data_nascita) || '-'}</div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                                                     <div style={{ gridColumn: '1 / -1' }}>
+                                                        <span style={{ color: '#6c757d' }}>Email:</span> {reg.email}
+                                                    </div>
+                                                    <div>
+                                                        <span style={{ color: '#6c757d' }}>Telefono:</span> {reg.telefono || '-'}
+                                                    </div>
+                                                    <div>
+                                                        <span style={{ color: '#6c757d' }}>Municipio:</span> {reg.municipio || '-'}
+                                                    </div>
+                                                    <div><span style={{ color: '#6c757d' }}>Nato a:</span> {reg.comune_nascita || '-'}</div>
+                                                    <div><span style={{ color: '#6c757d' }}>il:</span> {formatDate(reg.data_nascita) || '-'}</div>
+                                                    <div style={{ gridColumn: '1 / -1', marginTop: '4px', paddingTop: '4px', borderTop: '1px solid #e9ecef' }}>
                                                         <span style={{ color: '#6c757d' }}>Residenza:</span> {reg.comune_residenza || '-'}, {reg.indirizzo_residenza || '-'}
                                                     </div>
                                                     {reg.fuorisede !== null && (

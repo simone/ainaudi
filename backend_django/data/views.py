@@ -2121,19 +2121,22 @@ class RdlRegistrationEditView(APIView):
 
 class RdlRegistrationImportView(APIView):
     """
-    Import RDL registrations from CSV.
+    Import RDL registrations from CSV with interactive column mapping.
 
-    POST /api/rdl/registrations/import
-    Content-Type: multipart/form-data
+    Two-step process:
+    1. POST with ?analyze=true: Returns found columns and suggested mapping
+    2. POST with mapping JSON: Imports data using provided mapping
 
-    CSV format:
-    EMAIL,NOME,COGNOME,TELEFONO,COMUNE_NASCITA,DATA_NASCITA,COMUNE_RESIDENZA,INDIRIZZO_RESIDENZA,COMUNE_SEGGIO,MUNICIPIO,SEGGIO_PREFERENZA
-    mario.rossi@example.com,Mario,Rossi,3331234567,Milano,1985-03-15,Roma,Via Roma 1,ROMA,5,Scuola Manzoni
+    Required fields:
+    - EMAIL, NOME, COGNOME, TELEFONO
+    - COMUNE_NASCITA, DATA_NASCITA
+    - COMUNE_RESIDENZA, INDIRIZZO_RESIDENZA
+    - COMUNE_SEGGIO (where RDL will operate)
 
-    Required columns: EMAIL, NOME, COGNOME, TELEFONO, COMUNE_NASCITA, DATA_NASCITA, COMUNE_RESIDENZA, INDIRIZZO_RESIDENZA, COMUNE_SEGGIO
-    Optional columns: MUNICIPIO, SEGGIO_PREFERENZA
-
-    COMUNE_SEGGIO = Comune dove si trova il seggio in cui l'RDL intende operare
+    Optional fields:
+    - MUNICIPIO, SEGGIO_PREFERENZA, FUORISEDE
+    - COMUNE_DOMICILIO, INDIRIZZO_DOMICILIO (for fuorisede)
+    - NOTES (additional comments)
     """
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
@@ -2142,6 +2145,15 @@ class RdlRegistrationImportView(APIView):
         from campaign.models import RdlRegistration
         from datetime import datetime
 
+        # Step 1: Analyze CSV and return columns
+        if request.query_params.get('analyze') == 'true':
+            return self._analyze_csv(request)
+
+        # Step 2: Import with mapping
+        return self._import_with_mapping(request)
+
+    def _analyze_csv(self, request):
+        """Analyze CSV and return columns with suggested mapping."""
         if 'file' not in request.FILES:
             return Response({'error': 'Nessun file caricato'}, status=400)
 
@@ -2152,39 +2164,188 @@ class RdlRegistrationImportView(APIView):
         try:
             content = file.read().decode('utf-8')
             reader = csv.DictReader(io.StringIO(content))
+            fieldnames = reader.fieldnames or []
         except Exception as e:
             return Response({'error': f'Errore lettura CSV: {str(e)}'}, status=400)
 
-        # Validate headers - all personal data fields are required
-        required_headers = {
-            'EMAIL', 'NOME', 'COGNOME', 'TELEFONO',
-            'COMUNE_NASCITA', 'DATA_NASCITA',
-            'COMUNE_RESIDENZA', 'INDIRIZZO_RESIDENZA',
-            'COMUNE_SEGGIO'
-        }
-        missing_headers = required_headers - set(reader.fieldnames or [])
-        if missing_headers:
+        # Required fields for RDL registration
+        required_fields = [
+            {'key': 'EMAIL', 'label': 'Email', 'required': True},
+            {'key': 'NOME', 'label': 'Nome', 'required': True},
+            {'key': 'COGNOME', 'label': 'Cognome', 'required': True},
+            {'key': 'TELEFONO', 'label': 'Telefono', 'required': True},
+            {'key': 'COMUNE_NASCITA', 'label': 'Comune nascita', 'required': True},
+            {'key': 'DATA_NASCITA', 'label': 'Data nascita', 'required': True},
+            {'key': 'COMUNE_RESIDENZA', 'label': 'Comune residenza', 'required': True},
+            {'key': 'INDIRIZZO_RESIDENZA', 'label': 'Indirizzo residenza', 'required': True},
+            {'key': 'COMUNE_SEGGIO', 'label': 'Comune seggio', 'required': True},
+        ]
+
+        optional_fields = [
+            {'key': 'MUNICIPIO', 'label': 'Municipio (per Roma)', 'required': False},
+            {'key': 'SEGGIO_PREFERENZA', 'label': 'Seggio preferenza', 'required': False},
+            {'key': 'FUORISEDE', 'label': 'Fuorisede (SI/NO)', 'required': False},
+            {'key': 'COMUNE_DOMICILIO', 'label': 'Comune domicilio', 'required': False},
+            {'key': 'INDIRIZZO_DOMICILIO', 'label': 'Indirizzo domicilio', 'required': False},
+            {'key': 'NOTES', 'label': 'Note', 'required': False},
+        ]
+
+        # Auto-suggest mapping based on column similarity
+        suggested_mapping = {}
+        for field in required_fields + optional_fields:
+            # Try exact match first
+            if field['key'] in fieldnames:
+                suggested_mapping[field['key']] = field['key']
+                continue
+
+            # Try fuzzy match
+            field_lower = field['key'].lower()
+            label_lower = field['label'].lower()
+
+            for col in fieldnames:
+                col_lower = col.lower()
+                col_upper = col.upper()
+
+                # Email matching
+                if field['key'] == 'EMAIL' and ('email' in col_lower or 'mail' in col_lower or 'e-mail' in col_lower):
+                    suggested_mapping[field['key']] = col
+                    break
+                # Nome matching
+                elif field['key'] == 'NOME' and 'nome' in col_lower:
+                    suggested_mapping[field['key']] = col
+                    break
+                # Cognome matching
+                elif field['key'] == 'COGNOME' and 'cognome' in col_lower:
+                    suggested_mapping[field['key']] = col
+                    break
+                # Telefono matching
+                elif field['key'] == 'TELEFONO' and ('telefono' in col_lower or 'phone' in col_lower or 'tel' in col_lower):
+                    suggested_mapping[field['key']] = col
+                    break
+                # Comune nascita
+                elif field['key'] == 'COMUNE_NASCITA' and ('nascita' in col_lower and 'comune' in col_lower):
+                    suggested_mapping[field['key']] = col
+                    break
+                # Data nascita
+                elif field['key'] == 'DATA_NASCITA' and ('nascita' in col_lower and 'data' in col_lower):
+                    suggested_mapping[field['key']] = col
+                    break
+                # Comune residenza
+                elif field['key'] == 'COMUNE_RESIDENZA' and ('residen' in col_lower and 'comune' in col_lower):
+                    suggested_mapping[field['key']] = col
+                    break
+                # Indirizzo residenza
+                elif field['key'] == 'INDIRIZZO_RESIDENZA' and ('residen' in col_lower and 'indirizzo' in col_lower):
+                    suggested_mapping[field['key']] = col
+                    break
+                # Comune seggio/domicilio
+                elif field['key'] == 'COMUNE_SEGGIO' and ('comune' in col_lower and ('lazio' in col_lower or 'vorresti' in col_lower or 'funzione' in col_lower)):
+                    suggested_mapping[field['key']] = col
+                    break
+                elif field['key'] == 'COMUNE_DOMICILIO' and ('domicilio' in col_lower and 'comune' in col_lower):
+                    suggested_mapping[field['key']] = col
+                    break
+                # Municipio
+                elif field['key'] == 'MUNICIPIO' and ('municip' in col_lower or 'roma' in col_lower):
+                    suggested_mapping[field['key']] = col
+                    break
+                # Fuorisede
+                elif field['key'] == 'FUORISEDE' and ('fuori' in col_lower or 'sede' in col_lower):
+                    suggested_mapping[field['key']] = col
+                    break
+                # Seggio preferenza
+                elif field['key'] == 'SEGGIO_PREFERENZA' and ('sezione' in col_lower or 'seggio' in col_lower):
+                    suggested_mapping[field['key']] = col
+                    break
+                # Notes/Comment
+                elif field['key'] == 'NOTES' and ('note' in col_lower or 'comment' in col_lower):
+                    suggested_mapping[field['key']] = col
+                    break
+
+        return Response({
+            'columns': fieldnames,
+            'required_fields': required_fields,
+            'optional_fields': optional_fields,
+            'suggested_mapping': suggested_mapping
+        })
+
+    def _import_with_mapping(self, request):
+        """Import CSV using provided column mapping."""
+        from campaign.models import RdlRegistration
+        from datetime import datetime
+
+        if 'file' not in request.FILES:
+            return Response({'error': 'Nessun file caricato'}, status=400)
+
+        file = request.FILES['file']
+        if not file.name.endswith('.csv'):
+            return Response({'error': 'Il file deve essere in formato CSV'}, status=400)
+
+        # Get mapping from request body
+        mapping = request.data.get('mapping')
+        if not mapping:
+            return Response({'error': 'Mapping mancante'}, status=400)
+
+        try:
+            if isinstance(mapping, str):
+                import json
+                mapping = json.loads(mapping)
+        except Exception as e:
+            return Response({'error': f'Errore parsing mapping: {str(e)}'}, status=400)
+
+        try:
+            content = file.read().decode('utf-8')
+            reader = csv.DictReader(io.StringIO(content))
+        except Exception as e:
+            return Response({'error': f'Errore lettura CSV: {str(e)}'}, status=400)
+
+        # Validate required fields are mapped
+        required_keys = ['EMAIL', 'NOME', 'COGNOME', 'TELEFONO', 'COMUNE_NASCITA', 'DATA_NASCITA',
+                        'COMUNE_RESIDENZA', 'INDIRIZZO_RESIDENZA', 'COMUNE_SEGGIO']
+        missing = [k for k in required_keys if not mapping.get(k)]
+        if missing:
             return Response({
-                'error': f'Intestazioni mancanti: {", ".join(sorted(missing_headers))}'
+                'error': f'Campi obbligatori non mappati: {", ".join(missing)}'
             }, status=400)
 
         created = 0
         updated = 0
         errors = []
 
+        # Helper function to get mapped value
+        def get_mapped_value(row, key):
+            col = mapping.get(key)
+            return row.get(col, '').strip() if col else ''
+
         for i, row in enumerate(reader, start=2):
             try:
-                email = row['EMAIL'].lower().strip()
-                nome = row['NOME'].strip()
-                cognome = row['COGNOME'].strip()
-                telefono = row['TELEFONO'].strip()
-                comune_nascita = row['COMUNE_NASCITA'].strip()
-                data_nascita_str = row['DATA_NASCITA'].strip()
-                comune_residenza = row['COMUNE_RESIDENZA'].strip()
-                indirizzo_residenza = row['INDIRIZZO_RESIDENZA'].strip()
-                comune_nome = row['COMUNE_SEGGIO'].upper().strip()
-                municipio_num = row.get('MUNICIPIO', '').strip()
-                seggio_preferenza = row.get('SEGGIO_PREFERENZA', '').strip()
+                # Use mapping to extract values
+                email = get_mapped_value(row, 'EMAIL').lower()
+                nome = get_mapped_value(row, 'NOME')
+                cognome = get_mapped_value(row, 'COGNOME')
+                telefono = get_mapped_value(row, 'TELEFONO')
+                comune_nascita = get_mapped_value(row, 'COMUNE_NASCITA')
+                data_nascita_str = get_mapped_value(row, 'DATA_NASCITA')
+                comune_residenza = get_mapped_value(row, 'COMUNE_RESIDENZA')
+                indirizzo_residenza = get_mapped_value(row, 'INDIRIZZO_RESIDENZA')
+                comune_nome = get_mapped_value(row, 'COMUNE_SEGGIO').upper()
+                municipio_str = get_mapped_value(row, 'MUNICIPIO')
+                seggio_preferenza = get_mapped_value(row, 'SEGGIO_PREFERENZA')
+                fuorisede_str = get_mapped_value(row, 'FUORISEDE').upper()
+                comune_domicilio = get_mapped_value(row, 'COMUNE_DOMICILIO')
+                indirizzo_domicilio = get_mapped_value(row, 'INDIRIZZO_DOMICILIO')
+                notes = get_mapped_value(row, 'NOTES')
+
+                # Parse fuorisede
+                fuorisede = fuorisede_str in ['SI', 'SÌ', 'YES', 'TRUE', '1'] if fuorisede_str else None
+
+                # Extract municipio number (handle formats like "Municipio 15 - Cassia/Flaminia")
+                municipio_num = ''
+                if municipio_str:
+                    import re
+                    match = re.search(r'\d+', municipio_str)
+                    if match:
+                        municipio_num = match.group()
 
                 # Validate required fields
                 if not email or not nome or not cognome or not telefono:
@@ -2247,29 +2408,35 @@ class RdlRegistrationImportView(APIView):
                     continue
 
                 # Create or update registration
+                defaults_dict = {
+                    'nome': nome,
+                    'cognome': cognome,
+                    'telefono': telefono,
+                    'comune_nascita': comune_nascita,
+                    'data_nascita': data_nascita,
+                    'comune_residenza': comune_residenza,
+                    'indirizzo_residenza': indirizzo_residenza,
+                    'seggio_preferenza': seggio_preferenza,
+                    'municipio': municipio,
+                    'source': 'IMPORT',
+                    'status': RdlRegistration.Status.PENDING,  # Import creates PENDING registrations
+                }
+
+                # Add optional fields
+                if fuorisede is not None:
+                    defaults_dict['fuorisede'] = fuorisede
+                if comune_domicilio:
+                    defaults_dict['comune_domicilio'] = comune_domicilio
+                if indirizzo_domicilio:
+                    defaults_dict['indirizzo_domicilio'] = indirizzo_domicilio
+                if notes:
+                    defaults_dict['notes'] = notes
+
                 registration, was_created = RdlRegistration.objects.update_or_create(
                     email=email,
                     comune=comune,
-                    defaults={
-                        'nome': nome,
-                        'cognome': cognome,
-                        'telefono': telefono,
-                        'comune_nascita': comune_nascita,
-                        'data_nascita': data_nascita,
-                        'comune_residenza': comune_residenza,
-                        'indirizzo_residenza': indirizzo_residenza,
-                        'seggio_preferenza': seggio_preferenza,
-                        'municipio': municipio,
-                        'status': RdlRegistration.Status.APPROVED,
-                        'source': 'IMPORT',
-                        'approved_by': request.user,
-                        'approved_at': timezone.now(),
-                    }
+                    defaults=defaults_dict
                 )
-
-                # Approve if it was pending
-                if not was_created and registration.status == 'PENDING':
-                    registration.approve(request.user)
 
                 if was_created:
                     created += 1
