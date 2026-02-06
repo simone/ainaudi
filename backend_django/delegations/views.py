@@ -256,7 +256,7 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         municipi = set()
         for sd in sub_deleghe:
             comuni_ids.update(sd.comuni.values_list('id', flat=True))
-            if sd.municipi:
+            if sd.municipi and isinstance(sd.municipi, list):
                 municipi.update(sd.municipi)
 
         # Filtra le sezioni
@@ -306,7 +306,7 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
 
         for sd in sub_deleghe:
             comuni_ids.update(sd.comuni.values_list('id', flat=True))
-            if sd.municipi:
+            if sd.municipi and isinstance(sd.municipi, list):
                 municipi_ids.update(sd.municipi)
 
         # Se è delegato, vede tutto il suo territorio (circoscrizione)
@@ -426,8 +426,9 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
             sezioni_comuni = SezioneElettorale.objects.filter(comune__in=sd.comuni.all())
 
             # Se ha municipi specifici, filtra ulteriormente
-            if sd.municipi.exists():
-                sezioni_comuni = sezioni_comuni.filter(municipio__in=sd.municipi.all())
+            if sd.municipi and isinstance(sd.municipi, list) and len(sd.municipi) > 0:
+                # sd.municipi è una lista di numeri, devo filtrare per municipio__numero__in
+                sezioni_comuni = sezioni_comuni.filter(municipio__numero__in=sd.municipi)
 
             sezioni_ids.update(sezioni_comuni.values_list('id', flat=True))
 
@@ -474,11 +475,13 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
                 for sd in sub_deleghe:
                     if assignment.sezione.comune in sd.comuni.all():
                         # Verifica municipi se necessario
-                        if sd.municipi.exists():
-                            if assignment.sezione.municipio in sd.municipi.all():
+                        if sd.municipi and isinstance(sd.municipi, list) and len(sd.municipi) > 0:
+                            # sd.municipi è una lista di numeri, verifica se il municipio della sezione è nella lista
+                            if assignment.sezione.municipio and assignment.sezione.municipio.numero in sd.municipi:
                                 sub_delega = sd
                                 break
                         else:
+                            # Nessun municipio specifico, sub-delega copre tutto il comune
                             sub_delega = sd
                             break
 
@@ -656,7 +659,7 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
 
         for sd in sub_deleghe_firma:
             comuni_ids.update(sd.comuni.values_list('id', flat=True))
-            if sd.municipi:
+            if sd.municipi and isinstance(sd.municipi, list):
                 municipi.update(sd.municipi)
 
         # Se è delegato, vede le bozze create dalle sue sub-deleghe
@@ -731,7 +734,7 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
                 if designazione.sezione.comune in sd.comuni.all():
                     has_permission = True
                     break
-                if sd.municipi and designazione.sezione.municipio_id in sd.municipi:
+                if sd.municipi and isinstance(sd.municipi, list) and designazione.sezione.municipio_id in sd.municipi:
                     has_permission = True
                     break
 
@@ -778,7 +781,7 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
                 if designazione.sezione.comune in sd.comuni.all():
                     has_permission = True
                     break
-                if sd.municipi and designazione.sezione.municipio_id in sd.municipi:
+                if sd.municipi and isinstance(sd.municipi, list) and designazione.sezione.municipio_id in sd.municipi:
                     has_permission = True
                     break
 
