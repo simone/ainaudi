@@ -916,7 +916,14 @@ function GestioneRdl({ client, setError }) {
                             background: importResult.errors?.length ? '#fff3cd' : '#d1e7dd',
                             borderRadius: '4px'
                         }}>
-                            {importResult.created} creati, {importResult.updated} aggiornati
+                            <div style={{ fontWeight: 500 }}>
+                                {importResult.created} creati, {importResult.updated} aggiornati
+                                {importResult.skipped > 0 && (
+                                    <span style={{ color: '#6c757d', marginLeft: '8px' }}>
+                                        ({importResult.skipped} skippati perché fuori dalla tua area)
+                                    </span>
+                                )}
+                            </div>
                             {importResult.errors?.length > 0 && (
                                 <ul style={{ margin: '4px 0 0', paddingLeft: '20px' }}>
                                     {importResult.errors.slice(0, 3).map((err, i) => (

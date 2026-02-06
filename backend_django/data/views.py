@@ -2449,6 +2449,7 @@ class RdlRegistrationImportView(APIView):
 
         created = 0
         updated = 0
+        skipped = 0  # Records outside user's territory
         errors = []
         failed_records = []  # Store full record data for correction modal
 
@@ -2610,13 +2611,8 @@ class RdlRegistrationImportView(APIView):
 
                 # Check permission (with municipio for proper scope checking)
                 if not self._has_permission(request.user, comune, municipio):
-                    error_msg = f'Fuori dalla tua area di competenza'
-                    if municipio:
-                        error_msg = f'{comune.nome} (Municipio {municipio.numero}) non è nella tua area di competenza'
-                    else:
-                        error_msg = f'{comune.nome} non è nella tua area di competenza'
-                    errors.append(f'Riga {i}: {error_msg}')
-                    failed_records.append({**record_data, 'error_fields': ['comune_seggio'], 'error_message': error_msg})
+                    # Skip records outside user's territory (not an error to correct)
+                    skipped += 1
                     continue
 
                 # Create or update registration
@@ -2670,6 +2666,7 @@ class RdlRegistrationImportView(APIView):
             'success': True,
             'created': created,
             'updated': updated,
+            'skipped': skipped,
             'total': created + updated,
         }
 
@@ -2682,7 +2679,7 @@ class RdlRegistrationImportView(APIView):
             result['failed_records'] = failed_records
 
         # Add user territory info for context
-        if user_territory_info:
+        if user_territory_info and (failed_records or skipped > 0):
             result['user_territory'] = user_territory_info
 
         return Response(result)
