@@ -464,6 +464,31 @@ const Client = (server, pdfServer, token) => {
                 console.error(error);
                 return { error: error.message };
             });
+        },
+
+        // Retry failed records after correction
+        retry: async (records) => {
+            return fetch(`${server}/api/rdl/registrations/retry`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': authHeader,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ records })
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            });
+        },
+
+        // Search comuni
+        searchComuni: async (query) => {
+            return fetch(`${server}/api/rdl/comuni/search?q=${encodeURIComponent(query)}`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            });
         }
     };
 

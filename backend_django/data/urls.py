@@ -17,6 +17,7 @@ from .views import (
     RdlRegistrationApproveView,
     RdlRegistrationEditView,
     RdlRegistrationImportView,
+    RdlRegistrationRetryView,
     ComuniSearchView,
     RdlRegistrationStatusView,
     # Mappatura views
@@ -50,6 +51,7 @@ rdl_registration_urlpatterns = [
     path('comuni/search', ComuniSearchView.as_view(), name='comuni-search'),
     path('registrations', RdlRegistrationListView.as_view(), name='rdl-registrations-list'),
     path('registrations/import', RdlRegistrationImportView.as_view(), name='rdl-registrations-import'),
+    path('registrations/retry', RdlRegistrationRetryView.as_view(), name='rdl-registrations-retry'),
     path('registrations/<int:pk>', RdlRegistrationEditView.as_view(), name='rdl-registrations-edit'),
     path('registrations/<int:pk>/<str:action>', RdlRegistrationApproveView.as_view(), name='rdl-registrations-action'),
 ]

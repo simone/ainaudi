@@ -2119,6 +2119,144 @@ class RdlRegistrationEditView(APIView):
         return False
 
 
+class RdlRegistrationRetryView(APIView):
+    """
+    Retry failed CSV records after user correction.
+    Accepts JSON array of corrected records.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from campaign.models import RdlRegistration
+        from datetime import datetime
+
+        records = request.data.get('records', [])
+        if not records:
+            return Response({'error': 'Nessun record da processare'}, status=400)
+
+        created = 0
+        updated = 0
+        errors = []
+
+        for record in records:
+            try:
+                row_number = record.get('row_number', '?')
+                email = record.get('email', '').lower().strip()
+                nome = record.get('nome', '').strip()
+                cognome = record.get('cognome', '').strip()
+                telefono = record.get('telefono', '').strip()
+                comune_nascita = record.get('comune_nascita', '').strip()
+                data_nascita_str = record.get('data_nascita', '').strip()
+                comune_residenza = record.get('comune_residenza', '').strip()
+                indirizzo_residenza = record.get('indirizzo_residenza', '').strip()
+                comune_id = record.get('comune_id')  # If user selected from dropdown
+                municipio_id = record.get('municipio_id')  # If user selected from dropdown
+                seggio_preferenza = record.get('seggio_preferenza', '').strip()
+                fuorisede_str = record.get('fuorisede', '').upper()
+                comune_domicilio = record.get('comune_domicilio', '').strip()
+                indirizzo_domicilio = record.get('indirizzo_domicilio', '').strip()
+                notes = record.get('notes', '').strip()
+
+                # Parse fuorisede
+                fuorisede = fuorisede_str in ['SI', 'SÌ', 'YES', 'TRUE', '1'] if fuorisede_str else None
+
+                # Validate required fields
+                if not email or not nome or not cognome or not telefono:
+                    errors.append(f'Riga {row_number}: campi obbligatori mancanti')
+                    continue
+
+                if not comune_nascita or not data_nascita_str or not comune_residenza or not indirizzo_residenza:
+                    errors.append(f'Riga {row_number}: dati anagrafici incompleti')
+                    continue
+
+                if not comune_id:
+                    errors.append(f'Riga {row_number}: comune del seggio non selezionato')
+                    continue
+
+                # Parse date
+                data_nascita = None
+                try:
+                    for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y']:
+                        try:
+                            data_nascita = datetime.strptime(data_nascita_str, fmt).date()
+                            break
+                        except ValueError:
+                            continue
+                    if not data_nascita:
+                        raise ValueError(f'Formato data non riconosciuto: {data_nascita_str}')
+                except ValueError as e:
+                    errors.append(f'Riga {row_number}: {str(e)}')
+                    continue
+
+                # Get comune
+                try:
+                    comune = Comune.objects.select_related(
+                        'provincia', 'provincia__regione'
+                    ).prefetch_related('municipi').get(pk=comune_id)
+                except Comune.DoesNotExist:
+                    errors.append(f'Riga {row_number}: Comune non trovato')
+                    continue
+
+                # Get municipio
+                municipio = None
+                if municipio_id:
+                    try:
+                        municipio = Municipio.objects.get(pk=municipio_id, comune=comune)
+                    except Municipio.DoesNotExist:
+                        pass
+
+                # Check permission
+                if not RdlRegistrationImportView()._has_permission(request.user, comune, municipio):
+                    errors.append(f'Riga {row_number}: Non autorizzato')
+                    continue
+
+                # Create or update
+                defaults_dict = {
+                    'nome': nome,
+                    'cognome': cognome,
+                    'telefono': telefono,
+                    'comune_nascita': comune_nascita,
+                    'data_nascita': data_nascita,
+                    'comune_residenza': comune_residenza,
+                    'indirizzo_residenza': indirizzo_residenza,
+                    'seggio_preferenza': seggio_preferenza,
+                    'municipio': municipio,
+                    'source': 'IMPORT',
+                    'status': RdlRegistration.Status.PENDING,
+                }
+
+                if fuorisede is not None:
+                    defaults_dict['fuorisede'] = fuorisede
+                if comune_domicilio:
+                    defaults_dict['comune_domicilio'] = comune_domicilio
+                if indirizzo_domicilio:
+                    defaults_dict['indirizzo_domicilio'] = indirizzo_domicilio
+                if notes:
+                    defaults_dict['notes'] = notes
+
+                registration, was_created = RdlRegistration.objects.update_or_create(
+                    email=email,
+                    comune=comune,
+                    defaults=defaults_dict
+                )
+
+                if was_created:
+                    created += 1
+                else:
+                    updated += 1
+
+            except Exception as e:
+                errors.append(f'Riga {row_number}: {str(e)}')
+
+        return Response({
+            'success': True,
+            'created': created,
+            'updated': updated,
+            'total': created + updated,
+            'errors': errors if errors else None
+        })
+
+
 class RdlRegistrationImportView(APIView):
     """
     Import RDL registrations from CSV with interactive column mapping.
@@ -2311,6 +2449,7 @@ class RdlRegistrationImportView(APIView):
         created = 0
         updated = 0
         errors = []
+        failed_records = []  # Store full record data for correction modal
 
         # Helper function to get mapped value
         def get_mapped_value(row, key):
@@ -2347,17 +2486,40 @@ class RdlRegistrationImportView(APIView):
                     if match:
                         municipio_num = match.group()
 
+                # Build record data for error tracking
+                record_data = {
+                    'row_number': i,
+                    'email': email,
+                    'nome': nome,
+                    'cognome': cognome,
+                    'telefono': telefono,
+                    'comune_nascita': comune_nascita,
+                    'data_nascita': data_nascita_str,
+                    'comune_residenza': comune_residenza,
+                    'indirizzo_residenza': indirizzo_residenza,
+                    'comune_seggio': comune_nome,
+                    'municipio': municipio_str,
+                    'seggio_preferenza': seggio_preferenza,
+                    'fuorisede': fuorisede_str,
+                    'comune_domicilio': comune_domicilio,
+                    'indirizzo_domicilio': indirizzo_domicilio,
+                    'notes': notes,
+                }
+
                 # Validate required fields
                 if not email or not nome or not cognome or not telefono:
                     errors.append(f'Riga {i}: email, nome, cognome e telefono sono obbligatori')
+                    failed_records.append({**record_data, 'error_fields': ['email', 'nome', 'cognome', 'telefono'], 'error_message': 'Campi obbligatori mancanti'})
                     continue
 
                 if not comune_nascita or not data_nascita_str or not comune_residenza or not indirizzo_residenza:
                     errors.append(f'Riga {i}: dati anagrafici incompleti (comune/data nascita, residenza)')
+                    failed_records.append({**record_data, 'error_fields': ['comune_nascita', 'data_nascita', 'comune_residenza', 'indirizzo_residenza'], 'error_message': 'Dati anagrafici incompleti'})
                     continue
 
                 if not comune_nome:
                     errors.append(f'Riga {i}: comune del seggio mancante')
+                    failed_records.append({**record_data, 'error_fields': ['comune_seggio'], 'error_message': 'Comune del seggio mancante'})
                     continue
 
                 # Parse date
@@ -2374,15 +2536,19 @@ class RdlRegistrationImportView(APIView):
                         raise ValueError(f'Formato data non riconosciuto: {data_nascita_str}')
                 except ValueError as e:
                     errors.append(f'Riga {i}: {str(e)}')
+                    failed_records.append({**record_data, 'error_fields': ['data_nascita'], 'error_message': str(e)})
                     continue
 
                 # Find comune
                 try:
+                    # Try to clean comune name (remove province suffix like "(FR)")
+                    comune_nome_clean = comune_nome.split('(')[0].strip()
                     comune = Comune.objects.select_related(
                         'provincia', 'provincia__regione'
-                    ).prefetch_related('municipi').get(nome__iexact=comune_nome)
+                    ).prefetch_related('municipi').get(nome__iexact=comune_nome_clean)
                 except Comune.DoesNotExist:
                     errors.append(f'Riga {i}: Comune non trovato: {comune_nome}')
+                    failed_records.append({**record_data, 'error_fields': ['comune_seggio'], 'error_message': f'Comune non trovato: {comune_nome}'})
                     continue
 
                 # Find municipio
@@ -2397,14 +2563,17 @@ class RdlRegistrationImportView(APIView):
                     except (Municipio.DoesNotExist, ValueError):
                         if has_municipi:
                             errors.append(f'Riga {i}: Municipio {municipio_num} non trovato per {comune_nome}')
+                            failed_records.append({**record_data, 'error_fields': ['municipio'], 'error_message': f'Municipio {municipio_num} non trovato', 'comune_obj': {'id': comune.id, 'nome': comune.nome}})
                             continue
                 elif has_municipi:
                     errors.append(f'Riga {i}: Municipio obbligatorio per {comune_nome}')
+                    failed_records.append({**record_data, 'error_fields': ['municipio'], 'error_message': 'Municipio obbligatorio', 'comune_obj': {'id': comune.id, 'nome': comune.nome}})
                     continue
 
                 # Check permission (with municipio for proper scope checking)
                 if not self._has_permission(request.user, comune, municipio):
                     errors.append(f'Riga {i}: Non autorizzato per {comune_nome}')
+                    failed_records.append({**record_data, 'error_fields': ['comune_seggio'], 'error_message': f'Non autorizzato per {comune_nome}'})
                     continue
 
                 # Create or update registration
@@ -2445,6 +2614,14 @@ class RdlRegistrationImportView(APIView):
 
             except Exception as e:
                 errors.append(f'Riga {i}: {str(e)}')
+                failed_records.append({
+                    'row_number': i,
+                    'email': get_mapped_value(row, 'EMAIL'),
+                    'nome': get_mapped_value(row, 'NOME'),
+                    'cognome': get_mapped_value(row, 'COGNOME'),
+                    'error_fields': [],
+                    'error_message': str(e)
+                })
 
         result = {
             'success': True,
@@ -2457,6 +2634,9 @@ class RdlRegistrationImportView(APIView):
             result['errors'] = errors[:10]
             if len(errors) > 10:
                 result['errors'].append(f'... e altri {len(errors) - 10} errori')
+
+        if failed_records:
+            result['failed_records'] = failed_records
 
         return Response(result)
 

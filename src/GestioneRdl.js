@@ -51,6 +51,12 @@ function GestioneRdl({ client, setError }) {
     const [columnMapping, setColumnMapping] = useState({});
     const [usingSavedMapping, setUsingSavedMapping] = useState(false);
 
+    // Failed records correction modal
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [failedRecords, setFailedRecords] = useState([]);
+    const [editingRecords, setEditingRecords] = useState([]);
+    const [comuniOptions, setComuniOptions] = useState({});
+
     // Territory filter states
     const [regioni, setRegioni] = useState([]);
     const [province, setProvince] = useState([]);
@@ -511,23 +517,31 @@ function GestioneRdl({ client, setError }) {
 
         if (result.error) {
             setError(result.error);
+            setMappingStep(null);
         } else {
             // Save successful mapping to localStorage
             saveMappingToLocalStorage(csvColumns, columnMapping);
 
             setImportResult(result);
             loadRegistrations();
-        }
 
-        // Reset
-        setMappingStep(null);
-        setCsvFile(null);
-        setCsvColumns([]);
-        setColumnMapping({});
-        setUsingSavedMapping(false);
+            // Show error modal if there are failed records
+            if (result.failed_records && result.failed_records.length > 0) {
+                setFailedRecords(result.failed_records);
+                setEditingRecords(result.failed_records.map(r => ({ ...r }))); // Deep copy
+                setShowErrorModal(true);
+            }
 
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
+            // Reset mapping
+            setMappingStep(null);
+            setCsvFile(null);
+            setCsvColumns([]);
+            setColumnMapping({});
+            setUsingSavedMapping(false);
+
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         }
     };
 
@@ -544,6 +558,53 @@ function GestioneRdl({ client, setError }) {
 
     const toggleExpand = (id) => {
         setExpandedId(expandedId === id ? null : id);
+    };
+
+    const handleSearchComune = async (query, recordIndex) => {
+        if (query.length < 2) return;
+
+        const result = await client.rdlRegistrations.searchComuni(query);
+        if (!result.error && result.comuni) {
+            setComuniOptions({...comuniOptions, [recordIndex]: result.comuni});
+        }
+    };
+
+    const handleUpdateRecord = (index, field, value) => {
+        const updated = [...editingRecords];
+        updated[index] = { ...updated[index], [field]: value };
+        setEditingRecords(updated);
+    };
+
+    const handleSelectComune = (index, comune) => {
+        const updated = [...editingRecords];
+        updated[index] = {
+            ...updated[index],
+            comune_seggio: comune.nome,
+            comune_id: comune.id
+        };
+        setEditingRecords(updated);
+        // Clear error for this field
+        const errorFields = updated[index].error_fields || [];
+        updated[index].error_fields = errorFields.filter(f => f !== 'comune_seggio');
+    };
+
+    const handleRetryRecords = async () => {
+        const result = await client.rdlRegistrations.retry(editingRecords);
+
+        if (result.error) {
+            setError(result.error);
+        } else {
+            setImportResult({
+                ...importResult,
+                created: (importResult?.created || 0) + result.created,
+                updated: (importResult?.updated || 0) + result.updated,
+                errors: result.errors || []
+            });
+            loadRegistrations();
+            setShowErrorModal(false);
+            setFailedRecords([]);
+            setEditingRecords([]);
+        }
     };
 
     const filteredRegistrations = registrations.filter(reg => {
@@ -1386,6 +1447,290 @@ function GestioneRdl({ client, setError }) {
                     ))
                 )}
             </div>
+
+            {/* Error Correction Modal */}
+            {showErrorModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999,
+                    padding: '20px'
+                }}>
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '8px',
+                        maxWidth: '900px',
+                        width: '100%',
+                        maxHeight: '90vh',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+                    }}>
+                        {/* Modal Header */}
+                        <div style={{
+                            padding: '16px 20px',
+                            borderBottom: '1px solid #dee2e6',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            background: '#f8f9fa'
+                        }}>
+                            <h5 style={{ margin: 0, fontSize: '1.1rem' }}>
+                                <i className="fas fa-exclamation-triangle text-warning me-2"></i>
+                                Correggi Record in Errore ({failedRecords.length})
+                            </h5>
+                            <button
+                                onClick={() => setShowErrorModal(false)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    fontSize: '1.5rem',
+                                    cursor: 'pointer',
+                                    color: '#6c757d'
+                                }}
+                            >
+                                &times;
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div style={{
+                            padding: '20px',
+                            overflowY: 'auto',
+                            flex: 1
+                        }}>
+                            <p style={{ marginBottom: '16px', color: '#6c757d', fontSize: '0.9rem' }}>
+                                I seguenti record non sono stati importati a causa di errori. Correggi i campi evidenziati in rosso e riprova.
+                            </p>
+
+                            {editingRecords.map((record, index) => (
+                                <div key={index} style={{
+                                    border: '2px solid #ffc107',
+                                    borderRadius: '8px',
+                                    padding: '16px',
+                                    marginBottom: '16px',
+                                    background: '#fffbf0'
+                                }}>
+                                    {/* Record Header */}
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        marginBottom: '12px',
+                                        paddingBottom: '8px',
+                                        borderBottom: '1px solid #ffc107'
+                                    }}>
+                                        <strong style={{ fontSize: '0.95rem' }}>
+                                            Riga {record.row_number}: {record.nome} {record.cognome}
+                                        </strong>
+                                        <span style={{
+                                            background: '#dc3545',
+                                            color: 'white',
+                                            padding: '2px 8px',
+                                            borderRadius: '4px',
+                                            fontSize: '0.75rem'
+                                        }}>
+                                            {record.error_message}
+                                        </span>
+                                    </div>
+
+                                    {/* Record Fields */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <div>
+                                            <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                                Email *
+                                            </label>
+                                            <input
+                                                type="email"
+                                                className="form-control form-control-sm"
+                                                value={record.email || ''}
+                                                onChange={(e) => handleUpdateRecord(index, 'email', e.target.value)}
+                                                style={{
+                                                    borderColor: record.error_fields?.includes('email') ? '#dc3545' : undefined,
+                                                    borderWidth: record.error_fields?.includes('email') ? '2px' : undefined
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                                Telefono *
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                className="form-control form-control-sm"
+                                                value={record.telefono || ''}
+                                                onChange={(e) => handleUpdateRecord(index, 'telefono', e.target.value)}
+                                                style={{
+                                                    borderColor: record.error_fields?.includes('telefono') ? '#dc3545' : undefined,
+                                                    borderWidth: record.error_fields?.includes('telefono') ? '2px' : undefined
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                                Nome *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm"
+                                                value={record.nome || ''}
+                                                onChange={(e) => handleUpdateRecord(index, 'nome', e.target.value)}
+                                                style={{
+                                                    borderColor: record.error_fields?.includes('nome') ? '#dc3545' : undefined,
+                                                    borderWidth: record.error_fields?.includes('nome') ? '2px' : undefined
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                                Cognome *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm"
+                                                value={record.cognome || ''}
+                                                onChange={(e) => handleUpdateRecord(index, 'cognome', e.target.value)}
+                                                style={{
+                                                    borderColor: record.error_fields?.includes('cognome') ? '#dc3545' : undefined,
+                                                    borderWidth: record.error_fields?.includes('cognome') ? '2px' : undefined
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div style={{ gridColumn: '1 / -1' }}>
+                                            <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                                Comune Seggio *
+                                                {record.error_fields?.includes('comune_seggio') && (
+                                                    <span style={{ color: '#dc3545', fontSize: '0.75rem', marginLeft: '8px' }}>
+                                                        ← {record.error_message}
+                                                    </span>
+                                                )}
+                                            </label>
+                                            <div style={{ position: 'relative' }}>
+                                                <input
+                                                    type="text"
+                                                    className="form-control form-control-sm"
+                                                    value={record.comune_seggio || ''}
+                                                    onChange={(e) => {
+                                                        handleUpdateRecord(index, 'comune_seggio', e.target.value);
+                                                        handleSearchComune(e.target.value, index);
+                                                    }}
+                                                    placeholder="Scrivi per cercare..."
+                                                    style={{
+                                                        borderColor: record.error_fields?.includes('comune_seggio') ? '#dc3545' : undefined,
+                                                        borderWidth: record.error_fields?.includes('comune_seggio') ? '2px' : undefined
+                                                    }}
+                                                />
+                                                {comuniOptions[index] && comuniOptions[index].length > 0 && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: '100%',
+                                                        left: 0,
+                                                        right: 0,
+                                                        background: 'white',
+                                                        border: '1px solid #dee2e6',
+                                                        borderRadius: '4px',
+                                                        marginTop: '2px',
+                                                        maxHeight: '200px',
+                                                        overflowY: 'auto',
+                                                        zIndex: 1000,
+                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                                    }}>
+                                                        {comuniOptions[index].map((comune) => (
+                                                            <div
+                                                                key={comune.id}
+                                                                onClick={() => {
+                                                                    handleSelectComune(index, comune);
+                                                                    setComuniOptions({...comuniOptions, [index]: []});
+                                                                }}
+                                                                style={{
+                                                                    padding: '8px 12px',
+                                                                    cursor: 'pointer',
+                                                                    fontSize: '0.85rem',
+                                                                    borderBottom: '1px solid #f0f0f0'
+                                                                }}
+                                                                onMouseEnter={(e) => e.target.style.background = '#f8f9fa'}
+                                                                onMouseLeave={(e) => e.target.style.background = 'white'}
+                                                            >
+                                                                {comune.nome} ({comune.provincia})
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                                Data Nascita *
+                                            </label>
+                                            <input
+                                                type="date"
+                                                className="form-control form-control-sm"
+                                                value={record.data_nascita || ''}
+                                                onChange={(e) => handleUpdateRecord(index, 'data_nascita', e.target.value)}
+                                                style={{
+                                                    borderColor: record.error_fields?.includes('data_nascita') ? '#dc3545' : undefined,
+                                                    borderWidth: record.error_fields?.includes('data_nascita') ? '2px' : undefined
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                                Comune Nascita *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm"
+                                                value={record.comune_nascita || ''}
+                                                onChange={(e) => handleUpdateRecord(index, 'comune_nascita', e.target.value)}
+                                                style={{
+                                                    borderColor: record.error_fields?.includes('comune_nascita') ? '#dc3545' : undefined,
+                                                    borderWidth: record.error_fields?.includes('comune_nascita') ? '2px' : undefined
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div style={{
+                            padding: '16px 20px',
+                            borderTop: '1px solid #dee2e6',
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            gap: '8px',
+                            background: '#f8f9fa'
+                        }}>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => setShowErrorModal(false)}
+                            >
+                                Annulla
+                            </button>
+                            <button
+                                className="btn btn-success"
+                                onClick={handleRetryRecords}
+                            >
+                                <i className="fas fa-check me-2"></i>
+                                Salva e Riprova ({editingRecords.length} record)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
