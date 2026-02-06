@@ -404,38 +404,32 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         except ConsultazioneElettorale.DoesNotExist:
             return Response({'error': 'Consultazione non trovata'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Trova il territorio di competenza del delegato
-        sub_deleghe = SubDelega.objects.filter(email=user.email, is_attiva=True)
-        delegati = DelegatoDiLista.objects.filter(email=user.email, consultazione=consultazione)
+        # Usa lo stesso sistema di permessi della gestione sezioni
+        from .permissions import get_sezioni_filter_for_user, get_user_delegation_roles
 
-        # Determina quali sezioni può vedere
-        sezioni_ids = set()
+        sezioni_filter = get_sezioni_filter_for_user(user, consultazione_id)
 
-        # Se è delegato, vede tutto il suo territorio
-        for delegato in delegati:
-            # Per ora prendiamo tutte le sezioni nelle sue regioni/circoscrizioni
-            sezioni_ids.update(
-                SezioneElettorale.objects.filter(
-                    comune__provincia__regione__in=delegato.regioni.all()
-                ).values_list('id', flat=True)
-            )
-
-        # Se è sub-delegato, vede solo il suo territorio specifico
-        for sd in sub_deleghe:
-            # Comuni
-            sezioni_comuni = SezioneElettorale.objects.filter(comune__in=sd.comuni.all())
-
-            # Se ha municipi specifici, filtra ulteriormente
-            if sd.municipi and isinstance(sd.municipi, list) and len(sd.municipi) > 0:
-                # sd.municipi è una lista di numeri, devo filtrare per municipio__numero__in
-                sezioni_comuni = sezioni_comuni.filter(municipio__numero__in=sd.municipi)
-
-            sezioni_ids.update(sezioni_comuni.values_list('id', flat=True))
-
-        if not sezioni_ids:
+        if sezioni_filter is None:
             return Response({
                 'error': 'Nessun territorio di competenza trovato per questo utente'
             }, status=status.HTTP_403_FORBIDDEN)
+
+        # Ottieni le sezioni visibili
+        sezioni_visibili = SezioneElettorale.objects.filter(
+            sezioni_filter,
+            is_attiva=True
+        )
+        sezioni_ids = set(sezioni_visibili.values_list('id', flat=True))
+
+        if not sezioni_ids:
+            return Response({
+                'error': 'Nessuna sezione trovata nel tuo territorio di competenza'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # Ottieni ruoli per trovare sub-deleghe e delegati
+        roles = get_user_delegation_roles(user, consultazione_id)
+        sub_deleghe = roles['sub_deleghe']
+        delegati = roles['deleghe_lista']
 
         # Prendi tutte le SectionAssignment nel territorio
         assignments = SectionAssignment.objects.filter(

@@ -43,6 +43,7 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
     // Carica mappatura state
     const [loadingMappatura, setLoadingMappatura] = useState(false);
     const [mappaturaResult, setMappaturaResult] = useState(null);
+    const [showMappaturaModal, setShowMappaturaModal] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -157,17 +158,10 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
             return;
         }
 
-        const confirm = window.confirm(
-            'Questa operazione creerà le designazioni formali per tutte le assegnazioni presenti nel tuo territorio.\n\n' +
-            'Le assegnazioni già convertite in designazioni verranno saltate.\n\n' +
-            'Vuoi procedere?'
-        );
-
-        if (!confirm) return;
-
         setLoadingMappatura(true);
         setError(null);
         setMappaturaResult(null);
+        setShowMappaturaModal(false);
 
         try {
             const res = await client.deleghe.designazioni.caricaMappatura(consultazione.id);
@@ -257,20 +251,11 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
                             </div>
                             <button
                                 className="btn btn-primary"
-                                onClick={handleCaricaMappatura}
+                                onClick={() => setShowMappaturaModal(true)}
                                 disabled={loadingMappatura || !consultazione}
                             >
-                                {loadingMappatura ? (
-                                    <>
-                                        <span className="spinner-border spinner-border-sm me-2"></span>
-                                        Caricamento...
-                                    </>
-                                ) : (
-                                    <>
-                                        <i className="fas fa-download me-2"></i>
-                                        Carica Mappatura
-                                    </>
-                                )}
+                                <i className="fas fa-download me-2"></i>
+                                Carica Mappatura
                             </button>
                         </div>
                     </div>
@@ -556,6 +541,74 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
                         </div>
                     </div>
                 </>
+            )}
+
+            {/* Modale Conferma Carica Mappatura */}
+            {showMappaturaModal && (
+                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">
+                                    <i className="fas fa-download me-2"></i>
+                                    Conferma Caricamento Mappatura
+                                </h5>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={() => setShowMappaturaModal(false)}
+                                    disabled={loadingMappatura}
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                <p className="mb-3">
+                                    <strong>Questa operazione creerà le designazioni formali per tutte le assegnazioni RDL presenti nel tuo territorio.</strong>
+                                </p>
+                                <ul className="mb-3">
+                                    <li>Verranno convertite tutte le assegnazioni (SectionAssignment) in designazioni (DesignazioneRDL)</li>
+                                    <li>Le assegnazioni già convertite in designazioni verranno automaticamente saltate</li>
+                                    <li>Le designazioni con firma autenticata saranno subito CONFERMATE</li>
+                                    <li>Le altre designazioni saranno in stato BOZZA fino ad approvazione</li>
+                                </ul>
+                                <div className="alert alert-info mb-0">
+                                    <i className="fas fa-info-circle me-2"></i>
+                                    <small>
+                                        Questa operazione è sicura e può essere ripetuta più volte.
+                                        Non verranno create designazioni duplicate.
+                                    </small>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() => setShowMappaturaModal(false)}
+                                    disabled={loadingMappatura}
+                                >
+                                    Annulla
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={handleCaricaMappatura}
+                                    disabled={loadingMappatura}
+                                >
+                                    {loadingMappatura ? (
+                                        <>
+                                            <span className="spinner-border spinner-border-sm me-2"></span>
+                                            Caricamento in corso...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="fas fa-check me-2"></i>
+                                            Conferma e Carica
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Designazioni List (sempre visibile) */}
