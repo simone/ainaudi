@@ -596,16 +596,39 @@ function GestioneRdl({ client, setError }) {
     const handleUpdateRecord = (index, field, value) => {
         const updated = [...editingRecords];
         updated[index] = { ...updated[index], [field]: value };
+
+        // If correcting comune_seggio, add automatic note
+        if (field === 'comune_seggio' && value !== updated[index].comune_seggio) {
+            const originalValue = failedRecords[index].comune_seggio;
+            if (!updated[index].note_correzione || !updated[index].note_correzione.includes(originalValue)) {
+                updated[index].note_correzione = (updated[index].note_correzione || '') +
+                    (updated[index].note_correzione ? '\n' : '') +
+                    `CSV originale: "${originalValue}"`;
+            }
+        }
+
         setEditingRecords(updated);
     };
 
     const handleSelectComune = (index, comune) => {
         const updated = [...editingRecords];
+        const originalValue = failedRecords[index].comune_seggio;
+
         updated[index] = {
             ...updated[index],
             comune_seggio: comune.nome,
             comune_id: comune.id
         };
+
+        // Add automatic note about the correction
+        if (comune.nome !== originalValue) {
+            if (!updated[index].note_correzione || !updated[index].note_correzione.includes(originalValue)) {
+                updated[index].note_correzione = (updated[index].note_correzione || '') +
+                    (updated[index].note_correzione ? '\n' : '') +
+                    `CSV originale: "${originalValue}" → corretto in "${comune.nome}"`;
+            }
+        }
+
         setEditingRecords(updated);
         // Clear error for this field
         const errorFields = updated[index].error_fields || [];
@@ -1668,6 +1691,24 @@ function GestioneRdl({ client, setError }) {
                                                     </span>
                                                 )}
                                             </label>
+                                            {failedRecords[index] && failedRecords[index].comune_seggio && (
+                                                <div style={{
+                                                    background: '#fff3cd',
+                                                    border: '1px solid #ffc107',
+                                                    borderRadius: '4px',
+                                                    padding: '6px 8px',
+                                                    marginBottom: '6px',
+                                                    fontSize: '0.75rem',
+                                                    fontFamily: 'monospace'
+                                                }}>
+                                                    <strong>Valore CSV originale:</strong> <span style={{ color: '#dc3545' }}>{failedRecords[index].comune_seggio}</span>
+                                                    {failedRecords[index].provincia_seggio && (
+                                                        <span style={{ marginLeft: '8px' }}>
+                                                            Provincia: <span style={{ color: '#0d6efd' }}>{failedRecords[index].provincia_seggio}</span>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
                                             <div style={{ position: 'relative' }}>
                                                 <input
                                                     type="text"
@@ -1763,6 +1804,33 @@ function GestioneRdl({ client, setError }) {
                                                 }}
                                             />
                                         </div>
+                                    </div>
+
+                                    {/* Note di correzione */}
+                                    <div style={{
+                                        marginTop: '12px',
+                                        paddingTop: '12px',
+                                        borderTop: '1px solid #ffc107'
+                                    }}>
+                                        <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                            <i className="fas fa-comment me-2"></i>
+                                            Note di Correzione
+                                        </label>
+                                        <textarea
+                                            className="form-control form-control-sm"
+                                            rows="3"
+                                            value={record.note_correzione || ''}
+                                            onChange={(e) => handleUpdateRecord(index, 'note_correzione', e.target.value)}
+                                            placeholder="Es: aveva scritto CERRRRON-e con 4 R, ho corretto in Serrone"
+                                            style={{
+                                                fontSize: '0.85rem',
+                                                fontFamily: 'monospace'
+                                            }}
+                                        />
+                                        <small style={{ color: '#6c757d', fontSize: '0.75rem', display: 'block', marginTop: '4px' }}>
+                                            <i className="fas fa-info-circle me-1"></i>
+                                            Queste note verranno salvate nel campo "Note" della registrazione per riferimento futuro.
+                                        </small>
                                     </div>
                                 </div>
                             ))}

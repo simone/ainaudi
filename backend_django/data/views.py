@@ -2156,6 +2156,14 @@ class RdlRegistrationRetryView(APIView):
                 comune_domicilio = record.get('comune_domicilio', '').strip()
                 indirizzo_domicilio = record.get('indirizzo_domicilio', '').strip()
                 notes = record.get('notes', '').strip()
+                note_correzione = record.get('note_correzione', '').strip()
+
+                # Combine notes with correction notes
+                if note_correzione:
+                    if notes:
+                        notes = f"{notes}\n\n[Correzione Import CSV]\n{note_correzione}"
+                    else:
+                        notes = f"[Correzione Import CSV]\n{note_correzione}"
 
                 # Parse fuorisede
                 fuorisede = fuorisede_str in ['SI', 'SÌ', 'YES', 'TRUE', '1'] if fuorisede_str else None
