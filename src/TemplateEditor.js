@@ -972,9 +972,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             setError(null);
 
             await client.put(`/api/documents/templates/${selectedTemplateId}/editor/`, {
-                field_mappings: fieldMappings,
-                loop_config: template.loop_config,
-                merge_mode: template.merge_mode
+                field_mappings: fieldMappings
             });
 
             setSuccess('Template salvato con successo!');
@@ -1290,22 +1288,18 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                             <li>
                                                 Il sistema trasla automaticamente ogni riga verso il basso
                                             </li>
+                                            <li>
+                                                Dopo aver creato il loop, usa il pulsante <strong>"📝 Campi"</strong> per definire le colonne
+                                            </li>
+                                            <li>
+                                                Se il loop continua su più pagine, usa <strong>"📄 +Pagina"</strong> per aggiungerle
+                                            </li>
                                         </ol>
                                         <hr className="my-2" />
-                                        <p className="mb-2 small">
+                                        <p className="mb-0 small">
                                             <strong>Esempio:</strong> Se la prima riga è a Y=150 con altezza 20px,
                                             la seconda sarà a Y=170, la terza a Y=190, ecc.
                                         </p>
-                                        <div className="alert alert-warning mb-0">
-                                            <strong>⚠️ Loop Multi-Pagina</strong>
-                                            <p className="mb-1 small">
-                                                Se il loop va su più pagine con posizioni diverse:
-                                            </p>
-                                            <ol className="mb-0 ps-3 small">
-                                                <li><strong>Prima pagina (page=0)</strong>: Seleziona riga con header (es. Y=200)</li>
-                                                <li><strong>Seconda pagina+ (page=1)</strong>: Crea un secondo loop con stesso JSONPath ma Y diverso (es. Y=50)</li>
-                                            </ol>
-                                        </div>
                                     </div>
                                 )}
 
@@ -1365,13 +1359,13 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                         type="number"
                                         className="form-control"
                                         value={newField.page}
-                                        onChange={(e) => setNewField({...newField, page: e.target.value})}
+                                        onChange={(e) => setNewField({...newField, page: parseInt(e.target.value) || 0})}
                                         min="0"
-                                        max="1"
+                                        max={numPages - 1}
+                                        disabled
                                     />
                                     <small className="text-muted">
-                                        <strong>0</strong> = Prima pagina<br/>
-                                        <strong>1</strong> = Template per pagine successive (per loop multi-pagina)
+                                        Pagina corrente: {currentPage}. Il campo verrà creato sulla pagina visualizzata.
                                     </small>
                                 </div>
 
@@ -1568,7 +1562,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                             p:{mapping.page}, x:{mapping.area.x}, y:{mapping.area.y}
                                             {mapping.type === 'loop' && (
                                                 <div className="badge bg-info ms-2" title="Righe in questa pagina">
-                                                    {mapping.rows || template?.loop_config?.rows_first_page || 6}r
+                                                    {mapping.rows || 6}r
                                                 </div>
                                             )}
                                             {mapping.loop_pages && mapping.loop_pages.length > 0 && (
@@ -1593,62 +1587,6 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                     )}
                 </div>
 
-                {/* Configuration Section */}
-                <div className="template-config-section">
-                    <h3>Configurazione Template</h3>
-
-                    <div className="form-group">
-                        <label>Modalità Unione:</label>
-                        <select
-                            value={template?.merge_mode || 'SINGLE_DOC_PER_RECORD'}
-                            onChange={(e) => setTemplate({...template, merge_mode: e.target.value})}
-                            className="form-control"
-                        >
-                            <option value="SINGLE_DOC_PER_RECORD">
-                                Un documento per record (es. un PDF per ogni Delegato)
-                            </option>
-                            <option value="MULTI_PAGE_LOOP">
-                                Documento multi-pagina con loop (es. un PDF con tutti i Delegati)
-                            </option>
-                        </select>
-                    </div>
-
-                    {template?.merge_mode === 'MULTI_PAGE_LOOP' && (
-                        <div className="loop-config">
-                            <h4>Configurazione Loop</h4>
-                            <div className="form-group">
-                                <label>Righe prima pagina:</label>
-                                <input
-                                    type="number"
-                                    className="form-control"
-                                    value={template?.loop_config?.rows_first_page || 6}
-                                    onChange={(e) => setTemplate({
-                                        ...template,
-                                        loop_config: {
-                                            ...template.loop_config,
-                                            rows_first_page: parseInt(e.target.value)
-                                        }
-                                    })}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Righe per pagina successiva:</label>
-                                <input
-                                    type="number"
-                                    className="form-control"
-                                    value={template?.loop_config?.rows_per_page || 13}
-                                    onChange={(e) => setTemplate({
-                                        ...template,
-                                        loop_config: {
-                                            ...template.loop_config,
-                                            rows_per_page: parseInt(e.target.value)
-                                        }
-                                    })}
-                                />
-                            </div>
-                        </div>
-                    )}
-                </div>
             </div>
 
             <div className="template-editor-footer">
@@ -1674,23 +1612,25 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                 </ul>
 
                 <div className="alert alert-warning mt-3">
-                    <h5 className="alert-heading">🔁 Loop: Come Selezionare</h5>
+                    <h5 className="alert-heading">🔁 Loop: Come Configurare</h5>
                     <p className="mb-2">
                         Per i campi di tipo <strong>loop</strong> (tabelle con più righe):
                     </p>
                     <ol className="mb-2 ps-3">
-                        <li>Seleziona <strong>solo la prima riga</strong> della tabella</li>
+                        <li>Seleziona <strong>solo la prima riga</strong> della tabella sul PDF</li>
                         <li>L'altezza selezionata definisce l'altezza di <strong>ogni</strong> riga</li>
                         <li>Le righe successive saranno automaticamente generate traslando verticalmente</li>
-                        <li>Esempio: Prima riga Y=150 h=20 → Seconda riga Y=170 → Terza Y=190...</li>
+                        <li>Click su <strong>"📝 Campi"</strong> per definire le colonne (JSONPath di ogni campo)</li>
+                        <li>Configura il numero di righe per la prima pagina nella tabella del modal</li>
                     </ol>
                     <hr className="my-2" />
-                    <p className="mb-1"><strong>Loop Multi-Pagina (2+ pagine):</strong></p>
+                    <p className="mb-1"><strong>Loop Multi-Pagina (se il loop continua su più pagine):</strong></p>
                     <ol className="mb-0 ps-3">
-                        <li><strong>Prima pagina</strong>: Crea loop, poi usa il modal "📝 Campi" per configurare quante righe ci sono</li>
-                        <li><strong>Pagine successive</strong>: Click "📄 +Pagina", vai alla pagina, disegna l'area, specifica il numero di righe</li>
+                        <li>Click su <strong>"📄 +Pagina"</strong> accanto al loop</li>
+                        <li>Vai alla pagina successiva e disegna l'area dove continua il loop</li>
+                        <li>Inserisci quante righe ci sono in quella pagina</li>
+                        <li>Ripeti per ogni pagina aggiuntiva</li>
                         <li>Ogni pagina può avere un <strong>numero di righe diverso</strong> (es: prima 6, altre 13, ultima 10)</li>
-                        <li>Il numero di righe è modificabile nel modal "📝 Campi" nella tabella delle pagine</li>
                     </ol>
                 </div>
 
@@ -1773,7 +1713,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                                             type="number"
                                                             className="form-control form-control-sm"
                                                             style={{ width: '80px' }}
-                                                            value={fieldMappings[currentLoopIndex].rows || template?.loop_config?.rows_first_page || 6}
+                                                            value={fieldMappings[currentLoopIndex].rows || 6}
                                                             min="1"
                                                             onChange={(e) => {
                                                                 const updatedMappings = [...fieldMappings];
