@@ -13,6 +13,7 @@ import RdlSelfRegistration from "./RdlSelfRegistration";
 import CampagnaRegistration from "./CampagnaRegistration";
 import GestioneRdl from "./GestioneRdl";
 import GestioneDeleghe from "./GestioneDeleghe";
+import GestioneDesignazioni from "./GestioneDesignazioni";
 import GestioneCampagne from "./GestioneCampagne";
 import Risorse from "./Risorse";
 import Dashboard from "./Dashboard";
@@ -421,7 +422,7 @@ function AppContent() {
                                         {/* 4. DELEGATI - Catena deleghe e designazioni */}
                                         {(permissions.referenti || pdf) && (
                                             <li className="nav-item dropdown">
-                                                <a className={`nav-link dropdown-toggle ${['deleghe', 'pdf', 'template_list', 'template_editor'].includes(activeTab) ? 'active' : ''}`}
+                                                <a className={`nav-link dropdown-toggle ${['deleghe', 'designazioni', 'pdf', 'template_list', 'template_editor'].includes(activeTab) ? 'active' : ''}`}
                                                    href="#"
                                                    role="button"
                                                    onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsDelegheDropdownOpen(!isDelegheDropdownOpen); }}
@@ -439,12 +440,21 @@ function AppContent() {
                                                             </a>
                                                         </li>
                                                     )}
+                                                    {permissions.referenti && (
+                                                        <li>
+                                                            <a className={`dropdown-item ${activeTab === 'designazioni' ? 'active' : ''}`}
+                                                               onClick={() => { activate('designazioni'); closeAllDropdowns(); }} href="#">
+                                                                <i className="fas fa-user-check me-2"></i>
+                                                                Designazioni
+                                                            </a>
+                                                        </li>
+                                                    )}
                                                     {consultazione && permissions.referenti && (
                                                         <li>
                                                             <a className={`dropdown-item ${activeTab === 'template_list' ? 'active' : ''}`}
                                                                onClick={() => { activate('template_list'); setTemplateIdToEdit(null); closeAllDropdowns(); }} href="#">
                                                                 <i className="fas fa-file-pdf me-2"></i>
-                                                                Template Designazioni
+                                                                Template PDF
                                                             </a>
                                                         </li>
                                                     )}
@@ -763,6 +773,14 @@ function AppContent() {
                                         client={client}
                                         user={user}
                                         consultazione={consultazione}
+                                        setError={setError}
+                                    />
+                                </div>
+                            )}
+                            {activeTab === 'designazioni' && permissions.referenti && (
+                                <div className="tab-pane active">
+                                    <GestioneDesignazioni
+                                        client={client}
                                         setError={setError}
                                     />
                                 </div>

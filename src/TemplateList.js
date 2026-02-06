@@ -167,7 +167,7 @@ function TemplateList({ client, onEditTemplate }) {
         <div className="template-editor">
             <div className="template-editor-header">
                 <div>
-                    <h2>Template PDF - Designazioni RDL</h2>
+                    <h2>Template PDF</h2>
                     {consultazione && (
                         <p className="text-muted">
                             Consultazione: <strong>{consultazione.nome}</strong>
