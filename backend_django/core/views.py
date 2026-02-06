@@ -302,19 +302,34 @@ class PermissionsView(APIView):
     GET /api/permissions
     GET /api/permissions?consultazione=1
 
-    I permessi derivano dalla CATENA DELLE DELEGHE, non da ruoli assegnati:
-    - Delegato di Lista → può creare sub-deleghe, designare RDL, vedere KPI
-    - Sub-Delegato → può designare RDL, vedere KPI
-    - RDL → può inserire dati sezione
+    Ritorna permessi basati su django.contrib.auth.permissions assegnati
+    automaticamente dai signals in base alla catena delle deleghe.
 
     Returns:
     {
-        "sections": true/false,    # Can enter section data (RDL)
-        "referenti": true/false,   # Can assign RDL (DELEGATE, SUBDELEGATE)
-        "kpi": true/false,         # Can view KPI dashboard
+        "is_superuser": true/false,
+        "can_manage_territory": true/false,
+        "can_view_kpi": true/false,
+        "can_manage_elections": true/false,
+        "can_manage_delegations": true/false,
+        "can_manage_rdl": true/false,
+        "has_scrutinio_access": true/false,
+        "can_view_resources": true/false,
+        "can_ask_to_ai_assistant": true/false,
+        "can_generate_documents": true/false,
+        "can_manage_incidents": true/false,
+
+        # Backwards compatibility (deprecati)
+        "sections": true/false,
+        "referenti": true/false,
+        "kpi": true/false,
+        "upload_sezioni": true/false,
+        "gestione_rdl": true/false,
+
+        # Info sulla catena deleghe
         "is_delegato": true/false,
         "is_sub_delegato": true/false,
-        "is_rdl": true/false
+        "is_rdl": true/false,
     }
     """
     permission_classes = [IsAuthenticated]
@@ -328,17 +343,32 @@ class PermissionsView(APIView):
         # Superuser has all permissions
         if user.is_superuser:
             return Response({
+                'is_superuser': True,
+                'can_manage_territory': True,
+                'can_view_kpi': True,
+                'can_manage_elections': True,
+                'can_manage_delegations': True,
+                'can_manage_rdl': True,
+                'has_scrutinio_access': True,
+                'can_view_resources': True,
+                'can_ask_to_ai_assistant': True,
+                'can_generate_documents': True,
+                'can_manage_incidents': True,
+
+                # Backwards compatibility
                 'sections': True,
                 'referenti': True,
                 'kpi': True,
                 'upload_sezioni': True,
                 'gestione_rdl': True,
+
+                # Catena deleghe
                 'is_delegato': True,
                 'is_sub_delegato': True,
                 'is_rdl': True,
             })
 
-        # Check delegation chain for permissions
+        # Check delegation chain for info flags
         # 1. Is user a Delegato di Lista?
         deleghe_lista = DelegatoDiLista.objects.filter(email=user.email)
         if consultazione_id:
@@ -363,44 +393,28 @@ class PermissionsView(APIView):
             )
         is_rdl = designazioni.exists()
 
-        # Also check for explicit role assignments (backwards compatibility + KPI_VIEWER)
-        roles = RoleAssignment.objects.filter(
-            user=user,
-            is_active=True
-        ).values_list('role', flat=True)
-        roles_set = set(roles)
-
-        # ADMIN role has all permissions
-        if 'ADMIN' in roles_set:
-            return Response({
-                'sections': True,
-                'referenti': True,
-                'kpi': True,
-                'upload_sezioni': True,
-                'gestione_rdl': True,
-                'is_delegato': is_delegato,
-                'is_sub_delegato': is_sub_delegato,
-                'is_rdl': is_rdl,
-            })
-
-        # Calculate permissions based on delegation chain
+        # Check Django permissions (assegnati automaticamente dai signals)
         permissions = {
-            # Delegato e Sub-Delegato possono gestire referenti (designare RDL)
-            'referenti': is_delegato or is_sub_delegato,
+            'is_superuser': False,
+            'can_manage_territory': user.has_perm('core.can_manage_territory'),
+            'can_view_kpi': user.has_perm('core.can_view_kpi'),
+            'can_manage_elections': user.has_perm('core.can_manage_elections'),
+            'can_manage_delegations': user.has_perm('core.can_manage_delegations'),
+            'can_manage_rdl': user.has_perm('core.can_manage_rdl'),
+            'has_scrutinio_access': user.has_perm('core.has_scrutinio_access'),
+            'can_view_resources': user.has_perm('core.can_view_resources'),
+            'can_ask_to_ai_assistant': user.has_perm('core.can_ask_to_ai_assistant'),
+            'can_generate_documents': user.has_perm('core.can_generate_documents'),
+            'can_manage_incidents': user.has_perm('core.can_manage_incidents'),
 
-            # RDL può inserire dati sezione, ma anche delegato/sub-delegato
-            'sections': is_rdl or is_delegato or is_sub_delegato,
+            # Backwards compatibility (deprecare in futuro)
+            'sections': user.has_perm('core.has_scrutinio_access'),
+            'referenti': user.has_perm('core.can_manage_rdl'),
+            'kpi': user.has_perm('core.can_view_kpi'),
+            'upload_sezioni': user.has_perm('core.can_manage_territory'),
+            'gestione_rdl': user.has_perm('core.can_manage_rdl'),
 
-            # KPI visibile a delegato, sub-delegato, o chi ha ruolo KPI_VIEWER
-            'kpi': is_delegato or is_sub_delegato or ('KPI_VIEWER' in roles_set),
-
-            # Solo delegato può caricare sezioni
-            'upload_sezioni': is_delegato,
-
-            # Delegato e Sub-Delegato possono gestire registrazioni RDL
-            'gestione_rdl': is_delegato or is_sub_delegato,
-
-            # Info sulla posizione nella catena
+            # Info sulla catena deleghe
             'is_delegato': is_delegato,
             'is_sub_delegato': is_sub_delegato,
             'is_rdl': is_rdl,

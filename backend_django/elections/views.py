@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions
 
+from core.permissions import CanManageElections, CanViewKPI
 from .models import (
     ConsultazioneElettorale, TipoElezione, SchedaElettorale,
     ListaElettorale, Candidato,
@@ -78,8 +79,10 @@ class ConsultazioniListView(APIView):
     GET /api/elections/consultazioni/
 
     Returns consultations ordered by date (future first, then past).
+
+    Permission: can_manage_elections (Delegato, Superuser)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageElections]
 
     def get(self, request):
         today = timezone.now().date()
@@ -116,9 +119,12 @@ class ConsultazioneAttivaView(APIView):
     """
     Get the currently active electoral consultation.
 
-    GET /api/elections/consultazioni/attiva/
+    GET /api/elections/active/
+
+    ECCEZIONE: Accessibile a TUTTI gli utenti autenticati.
+    Endpoint necessario per fornire contesto consultazione attiva.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]  # Solo autenticazione, no permission check
 
     def get(self, request):
         consultazione = get_consultazione_attiva()
@@ -129,9 +135,11 @@ class ConsultazioneDetailView(APIView):
     """
     Get a specific consultation by ID.
 
-    GET /api/elections/consultazioni/<id>/
+    GET /api/elections/<id>/
+
+    Permission: can_manage_elections (Delegato, Superuser)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageElections]
 
     def get(self, request, pk):
         try:
@@ -146,8 +154,11 @@ class SchedaElettoraleDetailView(APIView):
     """
     Get or update a specific electoral ballot.
 
-    GET /api/elections/schede/<id>/
-    PATCH /api/elections/schede/<id>/
+    GET /api/elections/ballots/<id>/
+    PATCH /api/elections/ballots/<id>/
+
+    Permission GET: Tutti autenticati
+    Permission PATCH: can_manage_elections (Delegato, Superuser)
     """
     permission_classes = [permissions.IsAuthenticated]
 
@@ -172,14 +183,9 @@ class SchedaElettoraleDetailView(APIView):
         })
 
     def patch(self, request, pk):
-        # Solo utenti con permessi referenti possono modificare
-        if not request.user.is_superuser:
-            # Check delegation chain for permissions
-            from delegations.models import DelegatoDiLista, SubDelega
-            is_delegato = DelegatoDiLista.objects.filter(email=request.user.email).exists()
-            is_sub_delegato = SubDelega.objects.filter(email=request.user.email, is_attiva=True).exists()
-            if not is_delegato and not is_sub_delegato:
-                return Response({'error': 'Non hai i permessi per modificare le schede'}, status=403)
+        # Check permission usando Django permissions
+        if not request.user.is_superuser and not request.user.has_perm('core.can_manage_elections'):
+            return Response({'error': 'Non hai i permessi per modificare le schede'}, status=403)
 
         try:
             scheda = SchedaElettorale.objects.get(pk=pk)
@@ -218,8 +224,11 @@ class ElectionListsView(APIView):
     GET /api/election/lists
 
     Returns format expected by frontend: {values: [[nome1], [nome2], ...]}
+
+    Permission: can_view_kpi (Delegato, SubDelegato, KPI_VIEWER)
+    Usato da Kpi.js per popolare grafici.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanViewKPI]
 
     def get(self, request):
         consultazione = get_consultazione_attiva()
@@ -244,8 +253,11 @@ class ElectionCandidatesView(APIView):
     GET /api/election/candidates
 
     Returns format expected by frontend: {values: [nome1, nome2, ...]}
+
+    Permission: can_view_kpi (Delegato, SubDelegato, KPI_VIEWER)
+    Usato da Kpi.js per popolare grafici.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanViewKPI]
 
     def get(self, request):
         consultazione = get_consultazione_attiva()

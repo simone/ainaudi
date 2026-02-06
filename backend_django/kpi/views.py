@@ -8,6 +8,7 @@ from rest_framework import permissions
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 
+from core.permissions import CanViewKPI
 from elections.models import ConsultazioneElettorale
 from territory.models import SezioneElettorale
 from data.models import SectionAssignment, DatiSezione
@@ -25,8 +26,10 @@ class KPIDatiView(APIView):
     GET /api/kpi/dati
 
     Returns aggregated statistics for the active consultation.
+
+    Permission: can_view_kpi (Delegato, SubDelegato, KPI_VIEWER)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanViewKPI]
 
     def get(self, request):
         consultazione = get_consultazione_attiva()
@@ -82,8 +85,10 @@ class KPISezioniView(APIView):
     GET /api/kpi/sezioni
 
     Returns list of all sections with their status and data.
+
+    Permission: can_view_kpi (Delegato, SubDelegato, KPI_VIEWER)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanViewKPI]
 
     def get(self, request):
         consultazione = get_consultazione_attiva()
