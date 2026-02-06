@@ -8,6 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
 
+from core.permissions import CanManageDelegations, CanGenerateDocuments
 from elections.models import ConsultazioneElettorale
 from territory.models import SezioneElettorale
 from .models import DelegatoDiLista, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti
@@ -116,8 +117,10 @@ class SubDelegaViewSet(viewsets.ModelViewSet):
     GET /api/deleghe/sub-deleghe/{id}/ - Dettaglio sub-delega
     POST /api/deleghe/sub-deleghe/ - Crea sub-delega (solo Delegato)
     DELETE /api/deleghe/sub-deleghe/{id}/ - Revoca sub-delega
+
+    Permission: can_manage_delegations (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageDelegations]
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -173,8 +176,10 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
     POST /api/deleghe/designazioni/ - Crea designazione (solo Sub-Delegato)
     DELETE /api/deleghe/designazioni/{id}/ - Revoca designazione
     GET /api/deleghe/designazioni/sezioni_disponibili/ - Sezioni disponibili per designazione
+
+    Permission: can_manage_delegations (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageDelegations]
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -963,9 +968,11 @@ class BatchGenerazioneDocumentiViewSet(viewsets.ModelViewSet):
     POST /api/deleghe/batch/ - Crea batch e collega designazioni
     POST /api/deleghe/batch/{id}/genera/ - Genera i documenti PDF del batch
     POST /api/deleghe/batch/{id}/approva/ - Approva batch e conferma designazioni
+
+    Permission: can_generate_documents (Delegato, SubDelegato)
     """
     serializer_class = BatchGenerazioneDocumentiSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanGenerateDocuments]
 
     def get_queryset(self):
         user = self.request.user
