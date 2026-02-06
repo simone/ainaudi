@@ -2609,7 +2609,33 @@ class RdlRegistrationImportView(APIView):
                     except (Comune.DoesNotExist, Comune.MultipleObjectsReturned):
                         pass
 
-                # Try 3: Fuzzy search (first 5 chars match) for typos like "SERRRONE" → "Serrone"
+                # Try 3: Partial match - "Guidonia" → "Guidonia Montecelio"
+                if not comune and len(comune_nome_clean) >= 4:
+                    # Search for comuni that contain the search term as a complete word
+                    possibili = Comune.objects.filter(
+                        nome__icontains=comune_nome_clean
+                    ).select_related('provincia', 'provincia__regione').prefetch_related('municipi')
+
+                    # Filter: the search term must be a complete word in the comune name
+                    # "Guidonia" matches "Guidonia Montecelio" ✓
+                    # "Guid" does NOT match "Guidonia Montecelio" ✗
+                    matches = []
+                    comune_lower = comune_nome_clean.lower()
+                    for c in possibili:
+                        c_words = c.nome.lower().split()
+                        # Check if search term is a complete word or if comune name starts with it
+                        if comune_lower in c_words or c.nome.lower().startswith(comune_lower):
+                            matches.append(c)
+
+                    if len(matches) == 1:
+                        comune = matches[0]
+                    elif len(matches) > 1:
+                        comuni_list = [(c.nome, c.provincia.nome) for c in matches[:3]]
+                        errors.append(f'Riga {i}: Comune ambiguo "{comune_nome_clean}" (possibili: {", ".join([f"{c[0]} ({c[1]})" for c in comuni_list])})')
+                        failed_records.append({**record_data, 'error_fields': ['comune_seggio'], 'error_message': f'Comune ambiguo: {", ".join([c.nome for c in matches[:3]])}'})
+                        continue
+
+                # Try 4: Fuzzy search (prefix + similarity) for typos like "SERRRONE" → "Serrone"
                 if not comune:
                     # Search by prefix (at least 5 chars or 80% of name)
                     min_chars = min(5, int(len(comune_nome_clean) * 0.8))
