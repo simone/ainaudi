@@ -1383,14 +1383,13 @@ const Client = (server, pdfServer, token) => {
         });
     };
 
-    const upload = async (url, formData, options = {}) => {
+    const upload = async (url, formData, method = 'POST') => {
         const fullUrl = url.startsWith('http') ? url : `${server}${url}`;
         return fetch(fullUrl, {
-            method: 'POST',
+            method: method,
             headers: {
                 'Authorization': authHeader,
-                // Don't set Content-Type - browser will set it with boundary
-                ...options.headers
+                // Don't set Content-Type - browser will set it with boundary for FormData
             },
             body: formData
         }).then(response => {

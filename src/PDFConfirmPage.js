@@ -18,7 +18,7 @@ function PDFConfirmPage({ serverApi }) {
         }
 
         // Call confirmation endpoint
-        const apiUrl = serverApi || import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const apiUrl = serverApi || '';  // Use Vite proxy in dev, same-origin in prod
         fetch(`${apiUrl}/api/documents/confirm/?token=${token}`)
             .then(res => {
                 if (!res.ok) {

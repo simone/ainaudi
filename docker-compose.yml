@@ -70,7 +70,7 @@ services:
     container_name: rdl_frontend
     restart: unless-stopped
     environment:
-      - VITE_API_URL=http://localhost:3001
+      - VITE_BACKEND_URL=http://backend:8000  # Backend URL for Vite proxy
     volumes:
       - ./src:/app/src
       - ./public:/app/public
@@ -113,6 +113,9 @@ services:
       - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
       - EMAIL_USE_TLS=true
+      - MEDIA_ROOT=/app/media
+    volumes:
+      - backend_media:/app/media:ro  # Shared media volume (read-only for PDF worker)
     depends_on:
       redis:
         condition: service_healthy

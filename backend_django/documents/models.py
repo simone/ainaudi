@@ -2,23 +2,92 @@
 Documents models: PDF generation and templates.
 
 This module will contain:
+- TemplateType: Types of templates (DELEGATION, DESIGNATION, etc.)
 - Template: PDF templates for delegation forms
 - GeneratedDocument: Records of generated PDFs
 """
+import uuid
+import os
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
 
+def template_upload_path(instance, filename):
+    """
+    Generate UUID-based filename for template uploads to avoid conflicts.
+    """
+    ext = os.path.splitext(filename)[1]
+    new_filename = f"{uuid.uuid4()}{ext}"
+    return os.path.join('templates/', new_filename)
+
+
+class TemplateType(models.Model):
+    """
+    Type of template that defines schema, merge mode, and use case.
+
+    Examples:
+    - DELEGATION: Delega Sub-Delegato (delegato + subdelegato)
+    - DESIGNATION_SINGLE: Designazione RDL Singola (one PDF per section)
+    - DESIGNATION_MULTI: Designazione RDL Riepilogativa (multi-page loop)
+    """
+    code = models.CharField(
+        _('codice'),
+        max_length=50,
+        unique=True,
+        help_text=_('Codice identificativo univoco (es: DELEGATION, DESIGNATION_SINGLE)')
+    )
+    name = models.CharField(
+        _('nome'),
+        max_length=100,
+        help_text=_('Nome visualizzato (es: Delega Sub-Delegato)')
+    )
+    description = models.TextField(
+        _('descrizione'),
+        blank=True,
+        help_text=_('Descrizione del caso d\'uso')
+    )
+    default_schema = models.JSONField(
+        _('schema predefinito'),
+        default=dict,
+        help_text=_('Schema JSON di esempio per questo tipo di template')
+    )
+
+    # Merge Mode for stampa unione
+    class MergeMode(models.TextChoices):
+        SINGLE_DOC_PER_RECORD = 'SINGLE_DOC_PER_RECORD', _('Un documento per record')
+        MULTI_PAGE_LOOP = 'MULTI_PAGE_LOOP', _('Documento multi-pagina con loop')
+
+    default_merge_mode = models.CharField(
+        _('modalità unione predefinita'),
+        max_length=25,
+        choices=MergeMode.choices,
+        default=MergeMode.SINGLE_DOC_PER_RECORD,
+        help_text=_('Modalità di generazione documenti per questo tipo')
+    )
+    use_case = models.TextField(
+        _('caso d\'uso'),
+        blank=True,
+        help_text=_('Quando usare questo tipo di template')
+    )
+    is_active = models.BooleanField(_('attivo'), default=True)
+    created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('ultimo aggiornamento'), auto_now=True)
+
+    class Meta:
+        verbose_name = _('tipo template')
+        verbose_name_plural = _('tipi template')
+        ordering = ['code']
+
+    def __str__(self):
+        return f'{self.code} - {self.name}'
+
+
 class Template(models.Model):
     """
     PDF template for document generation.
-    Linked to a specific ConsultazioneElettorale.
+    Linked to a specific ConsultazioneElettorale and TemplateType.
     """
-    class TemplateType(models.TextChoices):
-        DELEGATION  = 'DELEGATION', _('Delega Sub-Delegato')
-        DESIGNATION = 'DESIGNATION', _('Designazione RDL')
-
     consultazione = models.ForeignKey(
         'elections.ConsultazioneElettorale',
         on_delete=models.CASCADE,
@@ -28,23 +97,27 @@ class Template(models.Model):
         null=True,
         blank=True
     )
-    name = models.CharField(_('nome'), max_length=100)
-    template_type = models.CharField(
-        _('tipo template'),
-        max_length=20,
-        choices=TemplateType.choices
+    template_type = models.ForeignKey(
+        TemplateType,
+        on_delete=models.PROTECT,
+        related_name='templates',
+        verbose_name=_('tipo template'),
+        help_text=_('Tipo di template che definisce schema e modalità unione')
     )
+    name = models.CharField(_('nome'), max_length=100)
     description = models.TextField(_('descrizione'), blank=True)
     template_file = models.FileField(
         _('file template'),
-        upload_to='templates/',
+        upload_to=template_upload_path,
         null=True,
-        blank=True
+        blank=True,
+        help_text=_('File PDF template (rinominato automaticamente con UUID)')
     )
     variables_schema = models.JSONField(
         _('schema variabili'),
         default=dict,
-        help_text=_('Schema JSON delle variabili accettate')
+        blank=True,
+        help_text=_('Schema JSON delle variabili accettate (eredita da template_type se vuoto)')
     )
     is_active = models.BooleanField(_('attivo'), default=True)
     version = models.IntegerField(_('versione'), default=1)
@@ -65,16 +138,14 @@ class Template(models.Model):
         help_text=_('Configurazione loop: {type: "single|multi_page", rows_first_page: N, rows_per_page: M, data_source: "$.path"}')
     )
 
-    # Merge Mode for stampa unione
-    class MergeMode(models.TextChoices):
-        SINGLE_DOC_PER_RECORD = 'SINGLE_DOC_PER_RECORD', _('Un documento per record')
-        MULTI_PAGE_LOOP = 'MULTI_PAGE_LOOP', _('Documento multi-pagina con loop')
-
+    # Merge Mode (can override template_type default)
     merge_mode = models.CharField(
         _('modalità unione'),
         max_length=25,
-        choices=MergeMode.choices,
-        default=MergeMode.SINGLE_DOC_PER_RECORD
+        choices=TemplateType.MergeMode.choices,
+        blank=True,
+        null=True,
+        help_text=_('Modalità unione (se vuoto, usa default del template_type)')
     )
 
     class Meta:
@@ -85,6 +156,14 @@ class Template(models.Model):
 
     def __str__(self):
         return f'{self.name} v{self.version}'
+
+    def get_merge_mode(self):
+        """Get merge mode, falling back to template_type default."""
+        return self.merge_mode or self.template_type.default_merge_mode
+
+    def get_variables_schema(self):
+        """Get variables schema, falling back to template_type default."""
+        return self.variables_schema if self.variables_schema else self.template_type.default_schema
 
 
 class GeneratedDocument(models.Model):

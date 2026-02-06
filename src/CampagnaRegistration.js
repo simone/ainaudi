@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import SezzionePlessAutocomplete from './SezzionePlessAutocomplete';
 
-const SERVER_API = import.meta.env.MODE === 'development' ? import.meta.env.VITE_API_URL : '';
+// Use empty string to leverage Vite proxy in development (vite.config.js)
+// In production, use empty string for same-origin requests
+const SERVER_API = '';
 
 // Eligibility requirements by election type
 const REQUISITI_ELETTORE = {

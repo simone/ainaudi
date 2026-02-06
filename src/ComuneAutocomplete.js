@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const SERVER_API = import.meta.env.MODE === 'development' ? import.meta.env.VITE_API_URL : '';
+// Use empty string to leverage Vite proxy in development (vite.config.js)
+// In production, use empty string for same-origin requests
+const SERVER_API = '';
 
 function ComuneAutocomplete({ value, onChange, disabled, placeholder, searchEndpoint, authenticated }) {
     // Default endpoint for public RDL registration, can be overridden

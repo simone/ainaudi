@@ -3,7 +3,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 
 const AuthContext = createContext(null);
 
-const SERVER_API = import.meta.env.MODE === 'development' ? import.meta.env.VITE_API_URL : '';
+// Use empty string to leverage Vite proxy in development (vite.config.js)
+// In production, use empty string for same-origin requests
+const SERVER_API = '';
 
 // Token storage keys
 const ACCESS_TOKEN_KEY = 'rdl_access_token';

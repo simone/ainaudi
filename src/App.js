@@ -23,8 +23,10 @@ import TemplateEditor from "./TemplateEditor";
 import TemplateList from "./TemplateList";
 import {AuthProvider, useAuth} from "./AuthContext";
 
-const SERVER_API = import.meta.env.MODE === 'development' ? import.meta.env.VITE_API_URL : '';
-const SERVER_PDF = import.meta.env.MODE === 'development' ? import.meta.env.VITE_PDF_URL : '';
+// In development, use empty string to leverage Vite proxy (vite.config.js)
+// In production, use empty string for same-origin requests
+const SERVER_API = '';
+const SERVER_PDF = '';
 
 function AppContent() {
     const {user, accessToken, isAuthenticated, requestMagicLink, verifyMagicLink, logout, loading: authLoading, error: authError, impersonate, isImpersonating, originalUser, stopImpersonating} = useAuth();
@@ -47,7 +49,6 @@ function AppContent() {
     const [isRdlDropdownOpen, setIsRdlDropdownOpen] = useState(false);
     const [isDelegheDropdownOpen, setIsDelegheDropdownOpen] = useState(false);
     const [isConsultazioneDropdownOpen, setIsConsultazioneDropdownOpen] = useState(false);
-    const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
     const [magicLinkEmail, setMagicLinkEmail] = useState(() => {
         return localStorage.getItem('rdl_magic_link_email') || '';
     });
@@ -294,14 +295,13 @@ function AppContent() {
         };
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
-    }, [isTerritorioDropdownOpen, isRdlDropdownOpen, isDelegheDropdownOpen, isConsultazioneDropdownOpen, showConsultazioniDropdown, isAdminDropdownOpen]);
+    }, [isTerritorioDropdownOpen, isRdlDropdownOpen, isDelegheDropdownOpen, isConsultazioneDropdownOpen, showConsultazioniDropdown]);
 
     const closeAllDropdowns = () => {
         setIsTerritorioDropdownOpen(false);
         setIsRdlDropdownOpen(false);
         setIsDelegheDropdownOpen(false);
         setIsConsultazioneDropdownOpen(false);
-        setIsAdminDropdownOpen(false);
     };
 
     const activate = (tab) => {
@@ -376,26 +376,14 @@ function AppContent() {
                                             </li>
                                         )}
 
-                                        {/* 2. ADMIN - solo superuser */}
+                                        {/* 2. TERRITORIO - solo superuser */}
                                         {user?.is_superuser && (
-                                            <li className="nav-item dropdown">
-                                                <a className={`nav-link dropdown-toggle ${activeTab === 'territorio_admin' ? 'active' : ''}`}
-                                                   href="#"
-                                                   role="button"
-                                                   onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsAdminDropdownOpen(!isAdminDropdownOpen); }}
-                                                   aria-expanded={isAdminDropdownOpen}>
-                                                    <i className="fas fa-cog me-1"></i>
-                                                    Admin
+                                            <li className="nav-item">
+                                                <a className={`nav-link ${activeTab === 'territorio_admin' ? 'active' : ''}`}
+                                                   onClick={() => activate('territorio_admin')} href="#">
+                                                    <i className="fas fa-globe-europe me-1"></i>
+                                                    Territorio
                                                 </a>
-                                                <ul className={`dropdown-menu dropdown-menu-dark ${isAdminDropdownOpen ? 'show' : ''}`}>
-                                                    <li>
-                                                        <a className={`dropdown-item ${activeTab === 'territorio_admin' ? 'active' : ''}`}
-                                                           onClick={() => { activate('territorio_admin'); closeAllDropdowns(); }} href="#">
-                                                            <i className="fas fa-globe-europe me-2"></i>
-                                                            Territorio
-                                                        </a>
-                                                    </li>
-                                                </ul>
                                             </li>
                                         )}
 

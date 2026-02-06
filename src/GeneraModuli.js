@@ -150,7 +150,7 @@ const GeneraModuli = ({client, setError}) => {
                         Comune, Sezione, Cognome e Nome RDL, Luogo e data di nascita RDL, Domicilio RDL,
                         Cognome e Nome SUP, Luogo e data di nascita SUP, Domicilio SUP
                         <br/>
-                        <a href="http://localhost:3000/templates/template assegnazione sezioni.xlsx" download>Scarica il template</a>
+                        <a href="/templates/template assegnazione sezioni.xlsx" download>Scarica il template</a>
                     </p>
                     <input type="file" className="form-control" accept=".xlsx, .xls" onChange={handleFileChange} required/>
                 </div>

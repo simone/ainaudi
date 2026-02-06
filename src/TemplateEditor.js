@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import MarkdownModal from './MarkdownModal';
+import JSONPathAutocomplete from './JSONPathAutocomplete';
 import './TemplateEditor.css';
 
 // Configure PDF.js worker (use local worker from /public folder)
@@ -14,6 +15,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
  */
 function TemplateEditor({ templateId: initialTemplateId, client }) {
     const [templates, setTemplates] = useState([]);
+    const [templateTypes, setTemplateTypes] = useState([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplateId || null);
     const [template, setTemplate] = useState(null);
     const [fieldMappings, setFieldMappings] = useState([]);
@@ -23,7 +25,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
     const [showNewTemplateForm, setShowNewTemplateForm] = useState(false);
     const [newTemplate, setNewTemplate] = useState({
         name: '',
-        template_type: 'DELEGATION',
+        template_type: '',
         description: '',
         file: null
     });
@@ -51,13 +53,13 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
     const [selectionStart, setSelectionStart] = useState(null);
     const [currentSelection, setCurrentSelection] = useState(null);
     const renderTaskRef = useRef(null);
-    const animationFrameRef = useRef(null);
     const canvasSnapshotRef = useRef(null);
     const isRenderingRef = useRef(false);
 
-    // Load available templates on mount
+    // Load available templates and template types on mount
     useEffect(() => {
         loadTemplates();
+        loadTemplateTypes();
     }, []);
 
     // Load specific template when selected
@@ -112,6 +114,22 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         } catch (err) {
             setError(`Errore caricamento lista template: ${err.message}`);
             console.error('Templates list error:', err);
+        }
+    };
+
+    const loadTemplateTypes = async () => {
+        console.log('🔍 Loading template types...');
+        try {
+            const data = await client.get('/api/documents/template-types/');
+            console.log('✅ Template types loaded:', data);
+            setTemplateTypes(data || []);
+            // Set default template_type if available
+            if (data && data.length > 0 && !newTemplate.template_type) {
+                setNewTemplate(prev => ({ ...prev, template_type: data[0].id }));
+            }
+        } catch (err) {
+            console.error('❌ Template types load error:', err);
+            setError(`Errore caricamento tipi template: ${err.message}`);
         }
     };
 
@@ -201,19 +219,30 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             const scaledWidth = width * scale;
             const scaledHeight = height * scale;
 
+            // Determine if this is a loop
+            const isLoop = mapping.type === 'loop';
+
             // Draw rectangle
-            ctx.strokeStyle = mapping.type === 'loop' ? '#ffc107' : '#0dcaf0';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = isLoop ? '#ffc107' : '#0dcaf0';
+            ctx.lineWidth = isLoop ? 3 : 2;
             ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
 
             // Fill with semi-transparent color
-            ctx.fillStyle = mapping.type === 'loop' ? 'rgba(255, 193, 7, 0.2)' : 'rgba(13, 202, 240, 0.2)';
+            ctx.fillStyle = isLoop ? 'rgba(255, 193, 7, 0.2)' : 'rgba(13, 202, 240, 0.2)';
             ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
 
             // Draw label
             ctx.fillStyle = '#000';
-            ctx.font = '12px Arial';
-            ctx.fillText(`${index + 1}. ${mapping.jsonpath}`, scaledX + 5, scaledY + 15);
+            ctx.font = 'bold 12px Arial';
+            const label = isLoop ? `🔁 LOOP: ${mapping.jsonpath}` : `${index + 1}. ${mapping.jsonpath}`;
+            ctx.fillText(label, scaledX + 5, scaledY + 15);
+
+            // If loop, draw arrow down indicator
+            if (isLoop) {
+                ctx.fillStyle = '#ffc107';
+                ctx.font = '20px Arial';
+                ctx.fillText('↓', scaledX + scaledWidth - 25, scaledY + scaledHeight - 5);
+            }
         });
     };
 
@@ -420,7 +449,12 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
 
             setSuccess('Template creato con successo!');
             setShowNewTemplateForm(false);
-            setNewTemplate({ name: '', template_type: 'DELEGATION', description: '', file: null });
+            setNewTemplate({
+                name: '',
+                template_type: templateTypes.length > 0 ? templateTypes[0].id : '',
+                description: '',
+                file: null
+            });
 
             // Reload templates and select new one
             await loadTemplates();
@@ -494,7 +528,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                             >
                                 {templates.map(t => (
                                     <option key={t.id} value={t.id}>
-                                        {t.name} ({t.template_type})
+                                        {t.name} ({t.template_type_details?.name || 'N/A'})
                                     </option>
                                 ))}
                             </select>
@@ -555,11 +589,21 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                     <select
                                         className="form-control"
                                         value={newTemplate.template_type}
-                                        onChange={(e) => setNewTemplate({...newTemplate, template_type: e.target.value})}
+                                        onChange={(e) => setNewTemplate({...newTemplate, template_type: parseInt(e.target.value)})}
+                                        required
                                     >
-                                        <option value="DELEGATION">Delega Sub-Delegato</option>
-                                        <option value="DESIGNATION">Designazione RDL</option>
+                                        <option value="">-- Seleziona tipo --</option>
+                                        {templateTypes.map(tt => (
+                                            <option key={tt.id} value={tt.id}>
+                                                {tt.name}
+                                            </option>
+                                        ))}
                                     </select>
+                                    {newTemplate.template_type && templateTypes.length > 0 && (
+                                        <small className="text-muted d-block mt-1">
+                                            {templateTypes.find(tt => tt.id === newTemplate.template_type)?.description}
+                                        </small>
+                                    )}
                                 </div>
 
                                 <div className="form-group">
@@ -596,7 +640,12 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                         className="btn btn-secondary"
                                         onClick={() => {
                                             setShowNewTemplateForm(false);
-                                            setNewTemplate({ name: '', template_type: 'DELEGATION', description: '', file: null });
+                                            setNewTemplate({
+                                                name: '',
+                                                template_type: templateTypes.length > 0 ? templateTypes[0].id : '',
+                                                description: '',
+                                                file: null
+                                            });
                                         }}
                                     >
                                         Annulla
@@ -636,11 +685,10 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                             📖 Guida Loop & JSONPath
                                         </button>
                                     </label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
+                                    <JSONPathAutocomplete
                                         value={newField.jsonpath}
-                                        onChange={(e) => setNewField({...newField, jsonpath: e.target.value})}
+                                        onChange={(value) => setNewField({...newField, jsonpath: value})}
+                                        exampleData={template?.variables_schema || {}}
                                         placeholder='es: $.delegato.cognome + " " + $.delegato.nome'
                                         required
                                     />
@@ -662,6 +710,43 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                         <option value="loop">Loop (lista elementi)</option>
                                     </select>
                                 </div>
+
+                                {newField.type === 'loop' && (
+                                    <div className="alert alert-info mt-3">
+                                        <h6 className="alert-heading">
+                                            📋 Come funziona il Loop
+                                        </h6>
+                                        <ol className="mb-0 ps-3">
+                                            <li>
+                                                <strong>Seleziona solo la PRIMA riga</strong> della tabella sul PDF
+                                            </li>
+                                            <li>
+                                                Le righe successive verranno generate <strong>automaticamente</strong>
+                                            </li>
+                                            <li>
+                                                Ogni riga avrà la <strong>stessa altezza</strong> della prima
+                                            </li>
+                                            <li>
+                                                Il sistema trasla automaticamente ogni riga verso il basso
+                                            </li>
+                                        </ol>
+                                        <hr className="my-2" />
+                                        <p className="mb-2 small">
+                                            <strong>Esempio:</strong> Se la prima riga è a Y=150 con altezza 20px,
+                                            la seconda sarà a Y=170, la terza a Y=190, ecc.
+                                        </p>
+                                        <div className="alert alert-warning mb-0">
+                                            <strong>⚠️ Loop Multi-Pagina</strong>
+                                            <p className="mb-1 small">
+                                                Se il loop va su più pagine con posizioni diverse:
+                                            </p>
+                                            <ol className="mb-0 ps-3 small">
+                                                <li><strong>Prima pagina (page=0)</strong>: Seleziona riga con header (es. Y=200)</li>
+                                                <li><strong>Seconda pagina+ (page=1)</strong>: Crea un secondo loop con stesso JSONPath ma Y diverso (es. Y=50)</li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                                     <div className="form-group">
@@ -721,9 +806,11 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                         value={newField.page}
                                         onChange={(e) => setNewField({...newField, page: e.target.value})}
                                         min="0"
+                                        max="1"
                                     />
                                     <small className="text-muted">
-                                        Numero pagina (0 = prima pagina)
+                                        <strong>0</strong> = Prima pagina<br/>
+                                        <strong>1</strong> = Template per pagine successive (per loop multi-pagina)
                                     </small>
                                 </div>
 
@@ -960,11 +1047,32 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                 <ul>
                     <li><strong>Selezione Visuale:</strong> Clicca e trascina sul PDF per definire un'area campo</li>
                     <li><strong>JSONPath:</strong> Specifica da dove prendere i dati (es: <code>$.delegato.cognome</code>)</li>
+                    <li><strong>Autocomplete:</strong> Digita <code>$.</code> per vedere i campi disponibili dal template</li>
                     <li><strong>Tipo text:</strong> Campo semplice, una riga di testo (overlay blu)</li>
                     <li><strong>Tipo loop:</strong> Lista di elementi ripetuti (overlay giallo)</li>
                     <li><strong>Navigazione:</strong> Usa i controlli per cambiare pagina e zoom</li>
                     <li><strong>Modifica:</strong> Rimuovi campi dalla tabella e ricrea con nuova selezione</li>
                 </ul>
+
+                <div className="alert alert-warning mt-3">
+                    <h5 className="alert-heading">🔁 Loop: Come Selezionare</h5>
+                    <p className="mb-2">
+                        Per i campi di tipo <strong>loop</strong> (tabelle con più righe):
+                    </p>
+                    <ol className="mb-2 ps-3">
+                        <li>Seleziona <strong>solo la prima riga</strong> della tabella</li>
+                        <li>L'altezza selezionata definisce l'altezza di <strong>ogni</strong> riga</li>
+                        <li>Le righe successive saranno automaticamente generate traslando verticalmente</li>
+                        <li>Esempio: Prima riga Y=150 h=20 → Seconda riga Y=170 → Terza Y=190...</li>
+                    </ol>
+                    <hr className="my-2" />
+                    <p className="mb-1"><strong>Loop Multi-Pagina (2+ pagine):</strong></p>
+                    <ol className="mb-0 ps-3">
+                        <li><strong>Prima pagina</strong>: Crea loop con page=0 (es. Y=200 se c'è header)</li>
+                        <li><strong>Pagine successive</strong>: Crea secondo loop con stesso JSONPath, page=1, Y diverso (es. Y=50 senza header)</li>
+                        <li>Il sistema userà page=0 per la prima pagina, page=1 per tutte le altre</li>
+                    </ol>
+                </div>
 
                 <div className="alert alert-success mt-3">
                     <strong>✅ Editor Visuale Attivo</strong>

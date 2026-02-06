@@ -206,7 +206,7 @@ function Risorse({ client, consultazione, setError }) {
             const parsedUrl = new URL(url);
             if (externalDomains.some(d => parsedUrl.hostname === d || parsedUrl.hostname.endsWith('.' + d))) {
                 // Usa il proxy Django
-                const apiUrl = import.meta.env.VITE_API_URL || '';
+                const apiUrl = '';  // Use Vite proxy
                 return `${apiUrl}/api/risorse/pdf-proxy/?url=${encodeURIComponent(url)}`;
             }
         } catch (e) {

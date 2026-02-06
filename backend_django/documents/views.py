@@ -4,19 +4,33 @@ Views for documents API endpoints.
 from rest_framework import viewsets, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.http import FileResponse
+from django.http import FileResponse, Http404
 from django.core.signing import TimestampSigner, BadSignature
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from datetime import timedelta
 import io
+import os
 
-from .models import Template, GeneratedDocument
-from .serializers import TemplateSerializer, GeneratedDocumentSerializer, GeneratePDFSerializer
+from .models import TemplateType, Template, GeneratedDocument
+from .serializers import TemplateTypeSerializer, TemplateSerializer, GeneratedDocumentSerializer, GeneratePDFSerializer
 from .events import publish_preview_pdf_and_email, publish_confirm_freeze
 
 # Signer for review tokens (similar to magic link pattern)
 signer = TimestampSigner()
+
+
+class TemplateTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for TemplateType (read-only for users, editable via admin).
+
+    GET /api/documents/template-types/        - List all template types
+    GET /api/documents/template-types/{id}/   - Get template type detail
+    """
+    queryset = TemplateType.objects.filter(is_active=True)
+    serializer_class = TemplateTypeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None  # Disable pagination - return full list
 
 
 class TemplateViewSet(viewsets.ModelViewSet):
@@ -264,10 +278,15 @@ class TemplateEditorView(APIView):
     def get(self, request, pk):
         template = get_object_or_404(Template, pk=pk)
 
-        # Build absolute URL for template file
+        # Convert /media/ URL to /api/documents/media/ (Vite proxy workaround)
         template_file_url = None
         if template.template_file:
-            template_file_url = request.build_absolute_uri(template.template_file.url)
+            url = template.template_file.url  # e.g., /media/templates/file.pdf
+            if url.startswith('/media/'):
+                # Convert to API endpoint: /api/documents/media/templates/file.pdf
+                template_file_url = '/api/documents/media/' + url[7:]
+            else:
+                template_file_url = url
 
         return Response({
             'id': template.id,
@@ -356,3 +375,35 @@ class TemplatePreviewView(APIView):
             'document_id': document.id,
             'expires_at': expires_at.isoformat(),
         }, status=202)
+
+
+class ServeMediaView(APIView):
+    """
+    Serve media files through API endpoint.
+
+    GET /api/media/templates/<filename>
+
+    This is needed because Vite proxy doesn't work for /media/ paths
+    (SPA fallback returns index.html). Serving through /api/media/
+    works because /api is properly proxied.
+    """
+    permission_classes = [permissions.AllowAny]  # Files are public (or use templates for permission check)
+
+    def get(self, request, filepath):
+        """Serve a media file."""
+        from django.conf import settings
+
+        # Security: prevent directory traversal
+        filepath = filepath.lstrip('/')
+        if '..' in filepath or filepath.startswith('/'):
+            raise Http404("Invalid file path")
+
+        # Build full path
+        full_path = os.path.join(settings.MEDIA_ROOT, filepath)
+
+        # Check if file exists
+        if not os.path.exists(full_path) or not os.path.isfile(full_path):
+            raise Http404("File not found")
+
+        # Serve file
+        return FileResponse(open(full_path, 'rb'))

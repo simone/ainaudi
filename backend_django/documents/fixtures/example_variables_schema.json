@@ -1,0 +1,108 @@
+{
+  "delegation_template_example": {
+    "delegato": {
+      "cognome": "Rossi",
+      "nome": "Mario",
+      "nome_completo": "Rossi Mario",
+      "email": "mario.rossi@m5s.it",
+      "telefono": "+39 123456789",
+      "luogo_nascita": "Roma",
+      "data_nascita": "1980-01-15",
+      "carica_display": "Deputato",
+      "circoscrizione": "Lazio 1",
+      "data_nomina": "2024-01-01"
+    },
+    "subdelegato": {
+      "cognome": "Bianchi",
+      "nome": "Anna",
+      "nome_completo": "Bianchi Anna",
+      "email": "anna.bianchi@example.com",
+      "telefono": "+39 987654321",
+      "luogo_nascita": "Milano",
+      "data_nascita": "1985-06-15",
+      "domicilio": "Via Roma 1, Milano (MI)",
+      "tipo_documento": "Carta d'identità",
+      "numero_documento": "AB123456",
+      "data_delega": "2024-02-01",
+      "territorio": "Milano e provincia",
+      "delegato_nome": "Rossi Mario"
+    }
+  },
+  "designation_template_example": {
+    "delegato": {
+      "cognome": "Rossi",
+      "nome": "Mario",
+      "nome_completo": "Rossi Mario",
+      "email": "mario.rossi@m5s.it",
+      "telefono": "+39 123456789",
+      "carica_display": "Deputato"
+    },
+    "subdelegato": {
+      "cognome": "Bianchi",
+      "nome": "Anna",
+      "nome_completo": "Bianchi Anna",
+      "email": "anna.bianchi@example.com"
+    },
+    "designazioni": [
+      {
+        "sezione": "001",
+        "indirizzo": "Via Roma 1, Milano",
+        "comune": "Milano",
+        "provincia": "MI",
+        "effettivo_cognome": "Verdi",
+        "effettivo_nome": "Luigi",
+        "effettivo_nome_completo": "Verdi Luigi",
+        "effettivo_email": "luigi.verdi@example.com",
+        "effettivo_telefono": "+39 111222333",
+        "supplente_cognome": "Gialli",
+        "supplente_nome": "Maria",
+        "supplente_nome_completo": "Gialli Maria",
+        "supplente_email": "maria.gialli@example.com",
+        "supplente_telefono": "+39 444555666"
+      },
+      {
+        "sezione": "002",
+        "indirizzo": "Via Milano 5, Milano",
+        "comune": "Milano",
+        "provincia": "MI",
+        "effettivo_cognome": "Neri",
+        "effettivo_nome": "Paolo",
+        "effettivo_nome_completo": "Neri Paolo",
+        "effettivo_email": "paolo.neri@example.com",
+        "effettivo_telefono": "+39 777888999",
+        "supplente_cognome": null,
+        "supplente_nome": null,
+        "supplente_nome_completo": null,
+        "supplente_email": null,
+        "supplente_telefono": null
+      }
+    ]
+  },
+  "full_report_example": {
+    "consultazione": {
+      "nome": "Elezioni 17 Giugno 2025",
+      "data": "2025-06-17",
+      "tipo": "EUROPEE"
+    },
+    "tutti_delegati": [
+      {
+        "cognome": "Rossi",
+        "nome": "Mario",
+        "nome_completo": "Rossi Mario",
+        "comune": "Roma",
+        "provincia": "RM",
+        "num_designazioni": 5,
+        "email": "mario.rossi@m5s.it"
+      },
+      {
+        "cognome": "Bianchi",
+        "nome": "Anna",
+        "nome_completo": "Bianchi Anna",
+        "comune": "Milano",
+        "provincia": "MI",
+        "num_designazioni": 3,
+        "email": "anna.bianchi@example.com"
+      }
+    ]
+  }
+}

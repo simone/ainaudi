@@ -4,6 +4,7 @@ Documents URL configuration.
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
+    TemplateTypeViewSet,
     TemplateViewSet,
     GeneratedDocumentViewSet,
     GeneratePDFView,
@@ -11,9 +12,11 @@ from .views import (
     ConfirmPDFView,
     TemplateEditorView,
     TemplatePreviewView,
+    ServeMediaView,
 )
 
 router = DefaultRouter()
+router.register(r'template-types', TemplateTypeViewSet, basename='template-type')
 router.register(r'templates', TemplateViewSet, basename='template')
 router.register(r'generated', GeneratedDocumentViewSet, basename='generated-document')
 
@@ -24,4 +27,6 @@ urlpatterns = [
     path('confirm/', ConfirmPDFView.as_view(), name='confirm-pdf'),
     path('templates/<int:pk>/editor/', TemplateEditorView.as_view(), name='template-editor'),
     path('templates/<int:pk>/preview/', TemplatePreviewView.as_view(), name='template-preview'),
+    # Serve media files through API (Vite proxy workaround)
+    path('media/<path:filepath>', ServeMediaView.as_view(), name='serve-media'),
 ]

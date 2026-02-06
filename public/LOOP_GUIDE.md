@@ -94,6 +94,73 @@ $.designazioni
 
 ---
 
+## 🎯 Autocomplete JSONPath
+
+L'editor template ha **autocomplete intelligente** per i JSONPath che ti aiuta a inserire i campi correttamente.
+
+### Come Funziona
+
+1. **Basato su Esempio**: I suggerimenti derivano dal campo `variables_schema` del template
+2. **Typing**: Digita `$.` per vedere tutti i campi disponibili
+3. **Filtraggio**: I suggerimenti si filtrano mentre digiti
+4. **Esempi in tempo reale**: Ogni suggerimento mostra un valore di esempio
+
+### Utilizzo
+
+```
+1. Digita "$." nel campo JSONPath
+2. Appare un menu con tutti i campi disponibili
+3. Usa ↑↓ per navigare o continua a digitare per filtrare
+4. Premi Enter o Tab per accettare il suggerimento
+5. Premi Esc per chiudere il menu
+```
+
+### Esempio Interattivo
+
+```javascript
+// Quando digiti: "$.del"
+// Autocomplete mostra:
+$.delegato.cognome        (string) "Rossi"
+$.delegato.nome           (string) "Mario"
+$.delegato.email          (string) "mario.rossi@m5s.it"
+$.delegato.nome_completo  (string) "Rossi Mario"
+
+// Quando digiti: "$.desi"
+// Autocomplete mostra:
+$.designazioni            (array) [2 elementi]
+$.designazioni[].sezione  (string) "001"
+$.designazioni[].indirizzo (string) "Via Roma 1"
+```
+
+### Bash-like Completion
+
+L'autocomplete funziona come **bash completion** nella shell:
+
+```bash
+# Bash:
+cd /ho[TAB] → /home/
+cd /home/u[TAB] → /home/user/
+
+# JSONPath (uguale):
+$.del[TAB] → $.delegato
+$.delegato.[↓] → mostra: cognome, nome, email, ...
+$.delegato.co[↓] → $.delegato.cognome
+```
+
+### Aggiornare Schema Esempio
+
+Se aggiungi nuovi campi ai serializer Django:
+
+1. Vai su **Django Admin** → **Documents** → **Templates**
+2. Seleziona il template
+3. Modifica campo **"Variables Schema"**
+4. Aggiungi i nuovi campi nell'esempio JSON
+5. Salva
+
+L'autocomplete si aggiornerà automaticamente!
+
+---
+
 ## ⚙️ Configurare un Loop
 
 ### Workflow Completo
@@ -106,11 +173,29 @@ $.designazioni
 Nel Template Editor:
 
 1. **Apri template** → Click "Configura"
-2. **Trascina area** sul PDF per definire la prima riga
+2. **Trascina area** sul PDF per definire **solo la prima riga**
 3. **Compila form**:
-   - **JSONPath**: `$.designazioni` (array da iterare)
+   - **JSONPath**: `$.designazioni` (array da iterare) - usa autocomplete!
    - **Tipo**: `loop`
    - **Coordinate**: Auto-popolate dalla selezione
+
+**⚠️ IMPORTANTE: Selezione Riga**
+
+Per campi di tipo **loop** (tabelle con righe ripetute):
+
+1. **Seleziona SOLO la prima riga** sul PDF
+2. Le righe successive verranno **automaticamente generate**
+3. Ogni riga avrà la **stessa altezza** della prima
+4. Il sistema trasla verticalmente ogni riga
+
+**Esempio Pratico**:
+```
+Prima riga:  Y=150, Height=20  →  Area: 150-170
+Seconda riga: Y=170, Height=20  →  Area: 170-190
+Terza riga:   Y=190, Height=20  →  Area: 190-210
+```
+
+**Non serve selezionare manualmente ogni riga!**
 
 #### 3. **Aggiungi Campi Loop**
 
@@ -375,6 +460,51 @@ Pagina 3: Riga 20
 │ Neri Paolo   │ Napoli  │ 4      │
 └──────────────────────────────────┘
 ```
+
+---
+
+## 📄 Loop Multi-Pagina (Posizioni Diverse)
+
+### Problema
+
+Quando il loop genera più pagine, spesso:
+- **Prima pagina**: Ha un header, loop inizia più in basso (es. Y=200)
+- **Pagine successive**: Niente header, loop può iniziare dall'alto (es. Y=50)
+
+### Soluzione: Due Configurazioni Loop
+
+Configura **DUE campi loop** con:
+- **Stesso JSONPath** (es. `$.designazioni`)
+- **Page diverso**:
+  - `page=0`: Prima pagina (con header, Y=200)
+  - `page=1`: Template pagine successive (senza header, Y=50)
+
+### Esempio Configurazione
+
+```json
+[
+  {
+    "jsonpath": "$.designazioni",
+    "type": "loop",
+    "page": 0,
+    "area": {"x": 50, "y": 200, "width": 500, "height": 20}
+  },
+  {
+    "jsonpath": "$.designazioni",
+    "type": "loop",
+    "page": 1,
+    "area": {"x": 50, "y": 50, "width": 500, "height": 20}
+  }
+]
+```
+
+### Come Configurare
+
+1. **Prima pagina**: Seleziona riga sotto header, imposta page=0
+2. **Pagine successive**: Seleziona riga dall'alto, imposta page=1
+3. Il backend userà page=0 per pagina 1, page=1 per pagine 2, 3, 4...
+
+**Guida dettagliata**: Vedi `/MULTI_PAGE_LOOP_GUIDE.md`
 
 ---
 

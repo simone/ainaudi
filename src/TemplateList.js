@@ -7,6 +7,7 @@ import './TemplateEditor.css';
  */
 function TemplateList({ client, onEditTemplate }) {
     const [templates, setTemplates] = useState([]);
+    const [templateTypes, setTemplateTypes] = useState([]);
     const [consultazione, setConsultazione] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -14,13 +15,14 @@ function TemplateList({ client, onEditTemplate }) {
     const [showNewTemplateForm, setShowNewTemplateForm] = useState(false);
     const [newTemplate, setNewTemplate] = useState({
         name: '',
-        template_type: 'DESIGNATION',
+        template_type: '',
         description: '',
         file: null
     });
 
     useEffect(() => {
         loadConsultazioneAndTemplates();
+        loadTemplateTypes();
     }, []);
 
     const loadConsultazioneAndTemplates = async () => {
@@ -60,6 +62,20 @@ function TemplateList({ client, onEditTemplate }) {
         }
     };
 
+    const loadTemplateTypes = async () => {
+        try {
+            const data = await client.get('/api/documents/template-types/');
+            setTemplateTypes(data || []);
+            // Set default template_type if available
+            if (data && data.length > 0 && !newTemplate.template_type) {
+                setNewTemplate(prev => ({ ...prev, template_type: data[0].id }));
+            }
+        } catch (err) {
+            console.error('Template types load error:', err);
+            setError(`Errore caricamento tipi template: ${err.message}`);
+        }
+    };
+
     const handleCreateTemplate = async (e) => {
         e.preventDefault();
 
@@ -91,7 +107,12 @@ function TemplateList({ client, onEditTemplate }) {
             setSuccess(`Template "${created.name}" creato con successo!`);
             setTimeout(() => setSuccess(null), 3000);
             setShowNewTemplateForm(false);
-            setNewTemplate({ name: '', template_type: 'DESIGNATION', description: '', file: null });
+            setNewTemplate({
+                name: '',
+                template_type: templateTypes.length > 0 ? templateTypes[0].id : '',
+                description: '',
+                file: null
+            });
 
             // Reload templates
             await loadConsultazioneAndTemplates();
@@ -198,11 +219,21 @@ function TemplateList({ client, onEditTemplate }) {
                                     <select
                                         className="form-control"
                                         value={newTemplate.template_type}
-                                        onChange={(e) => setNewTemplate({...newTemplate, template_type: e.target.value})}
+                                        onChange={(e) => setNewTemplate({...newTemplate, template_type: parseInt(e.target.value)})}
+                                        required
                                     >
-                                        <option value="DESIGNATION">Designazione RDL</option>
-                                        <option value="DELEGATION">Delega Sub-Delegato</option>
+                                        <option value="">-- Seleziona tipo --</option>
+                                        {templateTypes.map(tt => (
+                                            <option key={tt.id} value={tt.id}>
+                                                {tt.name}
+                                            </option>
+                                        ))}
                                     </select>
+                                    {newTemplate.template_type && templateTypes.length > 0 && (
+                                        <small className="text-muted d-block mt-1">
+                                            {templateTypes.find(tt => tt.id === newTemplate.template_type)?.description}
+                                        </small>
+                                    )}
                                 </div>
 
                                 <div className="form-group">
@@ -239,7 +270,12 @@ function TemplateList({ client, onEditTemplate }) {
                                         className="btn btn-secondary"
                                         onClick={() => {
                                             setShowNewTemplateForm(false);
-                                            setNewTemplate({ name: '', template_type: 'DESIGNATION', description: '', file: null });
+                                            setNewTemplate({
+                                                name: '',
+                                                template_type: templateTypes.length > 0 ? templateTypes[0].id : '',
+                                                description: '',
+                                                file: null
+                                            });
                                         }}
                                     >
                                         Annulla
@@ -280,7 +316,7 @@ function TemplateList({ client, onEditTemplate }) {
                                     <td><strong>{template.name}</strong></td>
                                     <td>
                                         <span className="badge bg-info">
-                                            {template.template_type_display}
+                                            {template.template_type_details?.name || template.template_type || 'N/A'}
                                         </span>
                                     </td>
                                     <td>{template.description || '-'}</td>

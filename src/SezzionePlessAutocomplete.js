@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const SERVER_API = import.meta.env.MODE === 'development' ? import.meta.env.VITE_API_URL : '';
+// Use empty string to leverage Vite proxy in development (vite.config.js)
+// In production, use empty string for same-origin requests
+const SERVER_API = '';
 
 function SezzionePlessAutocomplete({ value, onChange, disabled, placeholder, comuneId, municipio, onMunicipioChange }) {
     const [query, setQuery] = useState('');

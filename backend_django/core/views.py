@@ -7,6 +7,8 @@ from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
 from django.core.mail import send_mail
 from django.db.models import Q
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from rest_framework import status, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -35,6 +37,7 @@ def get_tokens_for_user(user):
     }
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class MagicLinkRequestView(APIView):
     """
     Request a magic link to be sent to email.
@@ -45,6 +48,7 @@ class MagicLinkRequestView(APIView):
     }
     """
     permission_classes = [AllowAny]
+    authentication_classes = []  # No authentication needed
     serializer_class = MagicLinkRequestSerializer
 
     def post(self, request):
@@ -106,6 +110,7 @@ AInaudi - Gestione Elettorale
         })
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class MagicLinkVerifyView(APIView):
     """
     Verify a magic link token and authenticate user.
@@ -116,6 +121,7 @@ class MagicLinkVerifyView(APIView):
     }
     """
     permission_classes = [AllowAny]
+    authentication_classes = []  # No authentication needed
     serializer_class = MagicLinkVerifySerializer
 
     def post(self, request):

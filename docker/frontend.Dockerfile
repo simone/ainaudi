@@ -1,5 +1,6 @@
 # Dockerfile for React frontend - Development
-FROM node:18-alpine
+# Vite 7+ requires Node.js 20.19+ or 22.12+
+FROM node:22-alpine
 
 WORKDIR /app
 
