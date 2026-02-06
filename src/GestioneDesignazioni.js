@@ -42,7 +42,7 @@ function GestioneDesignazioni({ client, setError }) {
         setLoading(true);
         try {
             // Get user's delegation chain
-            const chain = await client.get('/api/deleghe/mia-catena/');
+            const chain = await client.deleghe.miaCatena();
 
             if (chain.error) {
                 setError(chain.error);
