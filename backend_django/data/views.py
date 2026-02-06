@@ -1367,11 +1367,13 @@ class SectionsUploadView(APIView):
     ...
 
     Only allowed for:
-    - Superusers
+    - Superusers (via can_manage_territory)
     - ADMIN role
     - DELEGATE with scope on the comune being uploaded
+
+    Permission: can_manage_territory (Superuser only)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageTerritory]
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
@@ -1717,8 +1719,10 @@ class RdlRegistrationListView(APIView):
 
     Returns registrations filtered by delegate's scope.
     Supports both DelegatoDiLista/SubDelega and RoleAssignment permission systems.
+
+    Permission: can_manage_rdl (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageRDL]
 
     def get(self, request):
         from core.models import RoleAssignment
@@ -1893,8 +1897,10 @@ class RdlRegistrationApproveView(APIView):
     {
         "reason": "Motivo del rifiuto"  // only for reject
     }
+
+    Permission: can_manage_rdl (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageRDL]
 
     def post(self, request, pk, action):
         from core.models import RoleAssignment
@@ -2062,8 +2068,10 @@ class RdlRegistrationEditView(APIView):
         "municipio": 5,
         "notes": "Note"
     }
+
+    Permission: can_manage_rdl (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageRDL]
 
     def put(self, request, pk):
         from campaign.models import RdlRegistration
@@ -2253,8 +2261,10 @@ class RdlRegistrationRetryView(APIView):
     """
     Retry failed CSV records after user correction.
     Accepts JSON array of corrected records.
+
+    Permission: can_manage_rdl (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageRDL]
 
     def post(self, request):
         from campaign.models import RdlRegistration
@@ -2414,8 +2424,10 @@ class RdlRegistrationImportView(APIView):
     - MUNICIPIO, SEGGIO_PREFERENZA, FUORISEDE
     - COMUNE_DOMICILIO, INDIRIZZO_DOMICILIO (for fuorisede)
     - NOTES (additional comments)
+
+    Permission: can_manage_rdl (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageRDL]
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
@@ -3226,8 +3238,10 @@ class MappaturaSezioniView(APIView):
 
     Returns sections grouped by plesso (denominazione) with assignment info.
     Also returns user's territory info for filtering UI.
+
+    Permission: can_manage_delegations (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageDelegations]
 
     def get(self, request):
         from delegations.permissions import get_sezioni_filter_for_user, has_referenti_permission, get_user_delegation_roles
@@ -3514,8 +3528,10 @@ class MappaturaRdlView(APIView):
         ?search=<nome/cognome/email>
 
     Returns RDL registrations (APPROVED) with their current assignments.
+
+    Permission: can_manage_delegations (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageDelegations]
 
     def get(self, request):
         from delegations.permissions import has_referenti_permission
@@ -3677,8 +3693,10 @@ class MappaturaAssegnaView(APIView):
     }
 
     DELETE /api/mappatura/assegna/{assignment_id}/
+
+    Permission: can_manage_delegations (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageDelegations]
 
     def post(self, request):
         from delegations.permissions import has_referenti_permission
@@ -3814,8 +3832,10 @@ class MappaturaAssegnaBulkView(APIView):
         "sezioni_ids": [123, 124, 125],
         "ruolo": "RDL"
     }
+
+    Permission: can_manage_delegations (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanManageDelegations]
 
     def post(self, request):
         from delegations.permissions import has_referenti_permission
