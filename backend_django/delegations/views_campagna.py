@@ -18,7 +18,7 @@ from django.http import HttpResponse
 from django.views import View
 from django.conf import settings
 
-from .models import DelegatoDiLista, SubDelega
+from .models import Delegato, SubDelega
 from campaign.models import CampagnaReclutamento
 from .serializers import (
     CampagnaReclutamentoSerializer,

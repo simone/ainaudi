@@ -2,12 +2,12 @@
 Permission helpers based on delegation chain.
 
 I permessi derivano dalla catena delle deleghe:
-- DelegatoDiLista → può gestire tutte le sezioni nella sua giurisdizione
+- Delegato → può gestire tutte le sezioni nella sua giurisdizione
 - SubDelega → può gestire solo le sezioni nei comuni/municipi assegnati
 - DesignazioneRDL → può inserire dati solo nella sezione assegnata
 """
 from django.db.models import Q
-from .models import DelegatoDiLista, SubDelega, DesignazioneRDL
+from .models import Delegato, SubDelega, DesignazioneRDL
 
 
 def get_user_delegation_roles(user, consultazione_id=None):
@@ -19,13 +19,13 @@ def get_user_delegation_roles(user, consultazione_id=None):
             'is_delegato': bool,
             'is_sub_delegato': bool,
             'is_rdl': bool,
-            'deleghe_lista': QuerySet[DelegatoDiLista],
+            'deleghe_lista': QuerySet[Delegato],
             'sub_deleghe': QuerySet[SubDelega],
             'designazioni': QuerySet[DesignazioneRDL],
         }
     """
     # Delegato di Lista?
-    deleghe_lista = DelegatoDiLista.objects.filter(email=user.email)
+    deleghe_lista = Delegato.objects.filter(email=user.email)
     if consultazione_id:
         deleghe_lista = deleghe_lista.filter(consultazione_id=consultazione_id)
 

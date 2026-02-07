@@ -1,16 +1,16 @@
 """
 Serializers for delegations models.
 
-Gerarchia: PARTITO -> DELEGATO DI LISTA -> SUB-DELEGATO -> RDL
+Gerarchia: PARTITO -> DELEGATO -> SUB-DELEGATO -> RDL
 """
 from django.db import models
 from rest_framework import serializers
-from .models import DelegatoDiLista, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti
+from .models import Delegato, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti
 from campaign.models import CampagnaReclutamento, RdlRegistration
 
 
-class DelegatoDiListaSerializer(serializers.ModelSerializer):
-    """Serializer per Delegato di Lista."""
+class DelegatoSerializer(serializers.ModelSerializer):
+    """Serializer per Delegato."""
     carica_display = serializers.CharField(source='get_carica_display', read_only=True)
     nome_completo = serializers.CharField(read_only=True)
     consultazione_nome = serializers.CharField(source='consultazione.nome', read_only=True)
@@ -18,7 +18,7 @@ class DelegatoDiListaSerializer(serializers.ModelSerializer):
     territorio = serializers.SerializerMethodField()
 
     class Meta:
-        model = DelegatoDiLista
+        model = Delegato
         fields = [
             'id', 'consultazione', 'consultazione_nome',
             'cognome', 'nome', 'nome_completo',
@@ -35,22 +35,26 @@ class DelegatoDiListaSerializer(serializers.ModelSerializer):
         """Restituisce descrizione testuale del territorio di competenza."""
         parti = []
         # Regioni
-        regioni = list(obj.territorio_regioni.values_list('nome', flat=True))
+        regioni = list(obj.regioni.values_list('nome', flat=True))
         if regioni:
             parti.append(f"Regioni: {', '.join(regioni)}")
         # Province
-        province = list(obj.territorio_province.values_list('nome', flat=True))
+        province = list(obj.province.values_list('nome', flat=True))
         if province:
             parti.append(f"Province: {', '.join(province)}")
         # Comuni
-        comuni = list(obj.territorio_comuni.values_list('nome', flat=True))
+        comuni = list(obj.comuni.values_list('nome', flat=True))
         if comuni:
             parti.append(f"Comuni: {', '.join(comuni)}")
         # Municipi (Roma)
-        if obj.territorio_municipi:
-            mun_list = ', '.join(str(m) for m in obj.territorio_municipi)
+        if obj.municipi:
+            mun_list = ', '.join(str(m) for m in obj.municipi)
             parti.append(f"Roma - Municipi: {mun_list}")
         return ' | '.join(parti) if parti else None
+
+
+# Backwards compatibility alias
+DelegatoDiListaSerializer = DelegatoSerializer
 
 
 class SubDelegaSerializer(serializers.ModelSerializer):

@@ -335,7 +335,7 @@ class PermissionsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        from delegations.models import DelegatoDiLista, SubDelega, DesignazioneRDL
+        from delegations.models import Delegato, SubDelega, DesignazioneRDL
 
         user = request.user
         consultazione_id = request.query_params.get('consultazione')
@@ -369,8 +369,8 @@ class PermissionsView(APIView):
             })
 
         # Check delegation chain for info flags
-        # 1. Is user a Delegato di Lista?
-        deleghe_lista = DelegatoDiLista.objects.filter(email=user.email)
+        # 1. Is user a Delegato?
+        deleghe_lista = Delegato.objects.filter(email=user.email)
         if consultazione_id:
             deleghe_lista = deleghe_lista.filter(consultazione_id=consultazione_id)
         is_delegato = deleghe_lista.exists()

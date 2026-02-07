@@ -12,6 +12,7 @@ from datetime import timedelta
 import io
 import os
 
+from core.permissions import CanGenerateDocuments
 from .models import TemplateType, Template, GeneratedDocument
 from .serializers import TemplateTypeSerializer, TemplateSerializer, GeneratedDocumentSerializer, GeneratePDFSerializer
 from .events import publish_preview_pdf_and_email, publish_confirm_freeze
@@ -91,8 +92,10 @@ class GeneratePDFView(APIView):
         "data": {"field1": "value1", ...},
         "store": false
     }
+
+    Permission: can_generate_documents (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanGenerateDocuments]
 
     def post(self, request):
         serializer = GeneratePDFSerializer(data=request.data)
@@ -131,8 +134,10 @@ class RequestPDFPreviewView(APIView):
         "data": {...},
         "email_to": "user@example.com"  # Optional, defaults to user's email
     }
+
+    Permission: can_generate_documents (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, CanGenerateDocuments]
 
     def post(self, request):
         from django.conf import settings

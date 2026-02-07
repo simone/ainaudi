@@ -11,7 +11,7 @@ from django.db.models import Q
 from core.permissions import CanManageDelegations, CanGenerateDocuments
 from elections.models import ConsultazioneElettorale
 from territory.models import SezioneElettorale
-from .models import DelegatoDiLista, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti
+from .models import Delegato, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti
 from .serializers import (
     DelegatoDiListaSerializer,
     SubDelegaSerializer, SubDelegaCreateSerializer,

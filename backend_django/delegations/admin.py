@@ -1,13 +1,13 @@
 """
 Admin configuration for Delegations (Electoral delegation management).
 
-Gerarchia: PARTITO -> DELEGATO DI LISTA -> SUB-DELEGATO -> RDL
+Gerarchia: PARTITO -> DELEGATO -> SUB-DELEGATO -> RDL
 """
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import DelegatoDiLista, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti
+from .models import Delegato, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti
 
 
 class SubDelegaInline(admin.TabularInline):
@@ -48,33 +48,42 @@ class DesignazioneRDLInline(admin.TabularInline):
         return False
 
 
-@admin.register(DelegatoDiLista)
-class DelegatoDiListaAdmin(admin.ModelAdmin):
+@admin.register(Delegato)
+class DelegatoAdmin(admin.ModelAdmin):
     list_display = [
         'nome_completo', 'carica_display', 'circoscrizione',
-        'consultazione', 'data_nomina', 'n_sub_deleghe', 'has_user'
+        'consultazione', 'data_nomina', 'n_sub_deleghe', 'has_user', 'territorio_display'
     ]
     list_filter = ['carica', 'consultazione', 'data_nomina']
     search_fields = ['cognome', 'nome', 'email', 'circoscrizione']
     ordering = ['consultazione', 'cognome', 'nome']
     autocomplete_fields = ['consultazione']
+    filter_horizontal = ['regioni', 'province', 'comuni']
     inlines = [SubDelegaInline]
 
     fieldsets = (
-        (_('Consultazione'), {
-            'fields': ('consultazione',)
+        (_('Dati obbligatori'), {
+            'fields': ('consultazione', 'cognome', 'nome')
         }),
-        (_('Dati anagrafici'), {
-            'fields': ('cognome', 'nome', 'luogo_nascita', 'data_nascita')
+        (_('Dati anagrafici opzionali'), {
+            'fields': ('luogo_nascita', 'data_nascita'),
+            'classes': ('collapse',)
         }),
-        (_('Carica elettiva'), {
-            'fields': ('carica', 'circoscrizione')
+        (_('Carica elettiva (opzionale)'), {
+            'fields': ('carica', 'circoscrizione'),
+            'classes': ('collapse',)
         }),
-        (_('Nomina dal Partito'), {
-            'fields': ('data_nomina', 'numero_protocollo_nomina', 'documento_nomina')
+        (_('Territorio di competenza'), {
+            'fields': ('regioni', 'province', 'comuni', 'municipi'),
+            'description': _('Definisce quali sezioni elettorali il delegato può gestire')
         }),
-        (_('Contatti'), {
-            'fields': ('email', 'telefono')
+        (_('Nomina dal Partito (opzionale)'), {
+            'fields': ('data_nomina', 'numero_protocollo_nomina', 'documento_nomina'),
+            'classes': ('collapse',)
+        }),
+        (_('Contatti (opzionali)'), {
+            'fields': ('email', 'telefono'),
+            'classes': ('collapse',)
         }),
     )
 
@@ -84,11 +93,14 @@ class DelegatoDiListaAdmin(admin.ModelAdmin):
     nome_completo.admin_order_field = 'cognome'
 
     def carica_display(self, obj):
+        if not obj.carica:
+            return '-'
         colors = {
             'DEPUTATO': 'primary',
             'SENATORE': 'info',
             'CONSIGLIERE_REGIONALE': 'warning',
             'EURODEPUTATO': 'success',
+            'RAPPRESENTANTE_PARTITO': 'secondary',
         }
         color = colors.get(obj.carica, 'secondary')
         return format_html('<span class="badge bg-{}">{}</span>', color, obj.get_carica_display())
@@ -106,6 +118,20 @@ class DelegatoDiListaAdmin(admin.ModelAdmin):
             return format_html('<span class="text-success">Si</span>')
         return format_html('<span class="text-muted">No</span>')
     has_user.short_description = _('Account')
+
+    def territorio_display(self, obj):
+        """Mostra territorio di competenza in forma breve."""
+        parti = []
+        if obj.regioni.exists():
+            parti.append(f"{obj.regioni.count()} reg.")
+        if obj.province.exists():
+            parti.append(f"{obj.province.count()} prov.")
+        if obj.comuni.exists():
+            parti.append(f"{obj.comuni.count()} com.")
+        if obj.municipi:
+            parti.append(f"{len(obj.municipi)} mun.")
+        return ', '.join(parti) if parti else '-'
+    territorio_display.short_description = _('Territorio')
 
 
 @admin.register(SubDelega)

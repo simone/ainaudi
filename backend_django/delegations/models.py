@@ -5,13 +5,14 @@ Gerarchia delle deleghe secondo la normativa italiana (DPR 361/1957 Art. 25):
 
     PARTITO (M5S)
         ↓ nomina (atto formale del partito)
-    DELEGATO DI LISTA (deputati, senatori, consiglieri regionali)
+    DELEGATO (eletti o rappresentanti del partito con territorio di competenza)
         ↓ sub-delega (con firma autenticata)
-    SUB-DELEGATO (per territorio specifico: comuni/municipi)
+    SUB-DELEGATO (per territorio specifico: regioni/province/comuni/municipi)
         ↓ designa
     RDL (Responsabile Di Lista) - Effettivo + Supplente
 
 Note:
+- Un Delegato opera su un territorio di competenza (regioni, province, comuni, municipi)
 - Un Delegato può sub-delegare a più Sub-delegati (uno per territorio)
 - Un Sub-delegato può ricevere deleghe da più Delegati (es. Camera + Senato)
 - La catena delle deleghe viene allegata nel PDF di designazione RDL
@@ -23,14 +24,14 @@ from core.models import get_user_by_email
 
 
 # =============================================================================
-# DELEGATO DI LISTA (nominato dal Partito)
+# DELEGATO (nominato dal Partito)
 # =============================================================================
 
-class DelegatoDiLista(models.Model):
+class Delegato(models.Model):
     """
-    Delegato di Lista nominato dal Partito.
-    Sono eletti: deputati, senatori, consiglieri regionali, eurodeputati.
-    Ricevono la delega dal partito per una specifica consultazione elettorale.
+    Delegato nominato dal Partito per una consultazione elettorale.
+    Può essere un eletto (deputato, senatore, consigliere) o un rappresentante nominato dal partito.
+    Opera su un territorio di competenza definito (regioni, province, comuni, municipi).
     """
     class Carica(models.TextChoices):
         DEPUTATO = 'DEPUTATO', _('Deputato')
@@ -38,23 +39,29 @@ class DelegatoDiLista(models.Model):
         CONSIGLIERE_REGIONALE = 'CONSIGLIERE_REGIONALE', _('Consigliere Regionale')
         CONSIGLIERE_COMUNALE = 'CONSIGLIERE_COMUNALE', _('Consigliere Comunale')
         EURODEPUTATO = 'EURODEPUTATO', _('Europarlamentare')
+        RAPPRESENTANTE_PARTITO = 'RAPPRESENTANTE_PARTITO', _('Rappresentante del Partito')
+
+    # ===== CAMPI OBBLIGATORI =====
 
     # Consultazione elettorale di riferimento
     consultazione = models.ForeignKey(
         'elections.ConsultazioneElettorale',
         on_delete=models.CASCADE,
-        related_name='delegati_lista',
+        related_name='delegati',
         verbose_name=_('consultazione')
     )
 
-    # Dati anagrafici (come da documento di nomina)
+    # Dati anagrafici essenziali
     cognome = models.CharField(_('cognome'), max_length=100)
     nome = models.CharField(_('nome'), max_length=100)
-    luogo_nascita = models.CharField(_('luogo di nascita'), max_length=100)
-    data_nascita = models.DateField(_('data di nascita'))
 
-    # Carica elettiva
-    carica = models.CharField(_('carica'), max_length=30, choices=Carica.choices)
+    # ===== CAMPI OPZIONALI =====
+
+    luogo_nascita = models.CharField(_('luogo di nascita'), max_length=100, blank=True)
+    data_nascita = models.DateField(_('data di nascita'), null=True, blank=True)
+
+    # Carica elettiva (opzionale, se applicabile)
+    carica = models.CharField(_('carica'), max_length=30, choices=Carica.choices, blank=True)
     circoscrizione = models.CharField(
         _('circoscrizione (testo)'),
         max_length=100,
@@ -64,36 +71,36 @@ class DelegatoDiLista(models.Model):
 
     # Territorio di competenza (determina quali sezioni può vedere)
     # Il delegato può operare su uno o più di questi livelli
-    territorio_regioni = models.ManyToManyField(
+    regioni = models.ManyToManyField(
         'territory.Regione',
         blank=True,
-        related_name='delegati_lista',
+        related_name='delegati',
         verbose_name=_('regioni'),
         help_text=_('Regioni di competenza')
     )
-    territorio_province = models.ManyToManyField(
+    province = models.ManyToManyField(
         'territory.Provincia',
         blank=True,
-        related_name='delegati_lista',
+        related_name='delegati',
         verbose_name=_('province'),
         help_text=_('Province di competenza')
     )
-    territorio_comuni = models.ManyToManyField(
+    comuni = models.ManyToManyField(
         'territory.Comune',
         blank=True,
-        related_name='delegati_lista',
+        related_name='delegati',
         verbose_name=_('comuni'),
         help_text=_('Comuni di competenza')
     )
-    territorio_municipi = models.JSONField(
+    municipi = models.JSONField(
         _('municipi'),
         default=list,
         blank=True,
         help_text=_('Lista di numeri di municipio (per grandi città)')
     )
 
-    # Documento di nomina dal Partito
-    data_nomina = models.DateField(_('data nomina'))
+    # Documento di nomina dal Partito (opzionale)
+    data_nomina = models.DateField(_('data nomina'), null=True, blank=True)
     numero_protocollo_nomina = models.CharField(
         _('numero protocollo'),
         max_length=50,
@@ -101,7 +108,7 @@ class DelegatoDiLista(models.Model):
     )
     documento_nomina = models.FileField(
         _('documento nomina'),
-        upload_to='deleghe/nomine_partito/',
+        upload_to='deleghe/nomine/',
         null=True, blank=True,
         help_text=_('PDF della nomina dal Partito')
     )
@@ -115,13 +122,16 @@ class DelegatoDiLista(models.Model):
     updated_at = models.DateTimeField(_('data modifica'), auto_now=True)
 
     class Meta:
-        verbose_name = _('Delegato di Lista')
-        verbose_name_plural = _('Delegati di Lista')
+        verbose_name = _('Delegato')
+        verbose_name_plural = _('Delegati')
         ordering = ['consultazione', 'cognome', 'nome']
-        unique_together = ['consultazione', 'cognome', 'nome', 'data_nascita']
+        # Solo nome e cognome come unique per consultazione (data_nascita opzionale)
+        unique_together = ['consultazione', 'cognome', 'nome']
 
     def __str__(self):
-        return f"{self.get_carica_display()} {self.cognome} {self.nome}"
+        if self.carica:
+            return f"{self.get_carica_display()} {self.cognome} {self.nome}"
+        return f"{self.cognome} {self.nome}"
 
     @property
     def nome_completo(self):
@@ -130,7 +140,13 @@ class DelegatoDiLista(models.Model):
     @property
     def user(self):
         """Restituisce l'utente associato a questa email (per login/permessi)."""
-        return get_user_by_email(self.email)
+        if self.email:
+            return get_user_by_email(self.email)
+        return None
+
+
+# Backwards compatibility: alias per non rompere codice esistente
+DelegatoDiLista = Delegato
 
 
 # =============================================================================
@@ -153,7 +169,7 @@ class SubDelega(models.Model):
 
     # Chi delega
     delegato = models.ForeignKey(
-        DelegatoDiLista,
+        Delegato,
         on_delete=models.CASCADE,
         related_name='sub_deleghe',
         verbose_name=_('delegato')
@@ -345,7 +361,7 @@ class DesignazioneRDL(models.Model):
 
     # Chi designa - UNO dei due deve essere valorizzato
     delegato = models.ForeignKey(
-        DelegatoDiLista,
+        Delegato,
         on_delete=models.CASCADE,
         null=True, blank=True,
         related_name='designazioni_rdl_dirette',

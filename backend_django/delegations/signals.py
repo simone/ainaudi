@@ -2,7 +2,7 @@
 Signals for automatic user provisioning based on domain events.
 
 This module implements event-driven user creation and role assignment:
-- DelegatoDiLista created/updated → ensure user + DELEGATE role
+- Delegato created/updated → ensure user + DELEGATE role
 - SubDelega created/updated → ensure user + SUBDELEGATE role
 - DesignazioneRDL created/updated/activated → ensure user + RDL role
 
@@ -19,7 +19,7 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 from core.models import User, RoleAssignment, AuditLog
-from .models import DelegatoDiLista, SubDelega, DesignazioneRDL
+from .models import Delegato, SubDelega, DesignazioneRDL
 
 # Cache per tracciare i valori pre-save (email precedente)
 _pre_save_cache = {}
@@ -144,23 +144,18 @@ def assign_permissions_for_role(user, role):
     role_permissions = {
         RoleAssignment.Role.DELEGATE: [
             'can_view_kpi',
-            'can_manage_elections',
-            'can_manage_delegations',
             'can_manage_rdl',
             'has_scrutinio_access',
             'can_view_resources',
             'can_ask_to_ai_assistant',
-            'can_generate_documents',
             'can_manage_incidents',
         ],
         RoleAssignment.Role.SUBDELEGATE: [
             'can_view_kpi',
-            'can_manage_delegations',
             'can_manage_rdl',
             'has_scrutinio_access',
             'can_view_resources',
             'can_ask_to_ai_assistant',
-            'can_generate_documents',
             'can_manage_incidents',
         ],
         RoleAssignment.Role.RDL: [
@@ -323,29 +318,29 @@ def update_user_data(user, instance):
 # DELEGATO DI LISTA SIGNALS
 # =============================================================================
 
-@receiver(pre_save, sender=DelegatoDiLista)
+@receiver(pre_save, sender=Delegato)
 def delegato_pre_save(sender, instance, **kwargs):
     """Cache current email before save for change detection."""
-    cache_pre_save_email('DelegatoDiLista', instance)
+    cache_pre_save_email('Delegato', instance)
 
 
-@receiver(post_save, sender=DelegatoDiLista)
+@receiver(post_save, sender=Delegato)
 def provision_delegato_user(sender, instance, created, **kwargs):
     """
-    When a DelegatoDiLista is created or updated, ensure user exists and has DELEGATE role.
+    When a Delegato is created or updated, ensure user exists and has DELEGATE role.
 
-    Triggered on: DelegatoDiLista creation or update
+    Triggered on: Delegato creation or update
     Actions:
         1. On create: Create user if not exists (using email), link, assign role
         2. On update with email change: Unlink old user, create/link new user, assign role
         3. On update without email change: Update user data if needed
         4. Log action
     """
-    old_data = get_cached_pre_save('DelegatoDiLista', instance.pk) if not created else None
+    old_data = get_cached_pre_save('Delegato', instance.pk) if not created else None
 
     if not instance.email:
         if created:
-            logger.warning(f"DelegatoDiLista {instance.id} created without email, skipping provisioning")
+            logger.warning(f"Delegato {instance.id} created without email, skipping provisioning")
         return
 
     if created:
@@ -359,7 +354,7 @@ def provision_delegato_user(sender, instance, created, **kwargs):
         user, user_created = ensure_user_exists(instance.email, defaults)
 
         if not user:
-            logger.error(f"Failed to provision user for DelegatoDiLista {instance.id}")
+            logger.error(f"Failed to provision user for Delegato {instance.id}")
             return
 
         # Assign DELEGATE role
@@ -376,12 +371,12 @@ def provision_delegato_user(sender, instance, created, **kwargs):
         log_provisioning_action(
             action=AuditLog.Action.CREATE,
             user=user,
-            target_model='DelegatoDiLista',
+            target_model='Delegato',
             target_id=instance.id,
             details={
                 'provisioning': 'auto',
                 'user_created': user_created,
-                'carica': instance.carica,
+                'carica': instance.carica if instance.carica else None,
             }
         )
     else:
