@@ -520,7 +520,7 @@ function AppContent() {
                                                     RDL
                                                 </a>
                                                 <ul className={`dropdown-menu dropdown-menu-dark ${isRdlDropdownOpen ? 'show' : ''}`}>
-                                                    {permissions.can_manage_rdl && (
+                                                    {permissions.can_manage_campaign && (
                                                         <li>
                                                             <a className={`dropdown-item ${activeTab === 'campagne' ? 'active' : ''}`}
                                                                onClick={() => { activate('campagne'); closeAllDropdowns(); }} href="#">
