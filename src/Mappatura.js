@@ -578,11 +578,19 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                         </div>
                                         {rdl.seggio_preferenza && (
                                             <div className="mappatura-rdl-option-pref">
-                                                Pref: {rdl.seggio_preferenza}
+                                                <i className="fas fa-map-pin me-1"></i>
+                                                <strong>Preferenza:</strong> {rdl.seggio_preferenza}
+                                            </div>
+                                        )}
+                                        {rdl.notes && (
+                                            <div className="mappatura-rdl-option-notes">
+                                                <i className="fas fa-sticky-note me-1"></i>
+                                                <strong>Note:</strong> {rdl.notes}
                                             </div>
                                         )}
                                         {rdl.totale_sezioni > 0 && (
                                             <div className="mappatura-rdl-option-count">
+                                                <i className="fas fa-list me-1"></i>
                                                 {rdl.totale_sezioni} sezioni assegnate
                                             </div>
                                         )}
@@ -1190,8 +1198,21 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                         <div className="mappatura-rdl-option-email">
                                             {rdl.email}
                                         </div>
+                                        {rdl.seggio_preferenza && (
+                                            <div className="mappatura-rdl-option-pref">
+                                                <i className="fas fa-map-pin me-1"></i>
+                                                <strong>Preferenza:</strong> {rdl.seggio_preferenza}
+                                            </div>
+                                        )}
+                                        {rdl.notes && (
+                                            <div className="mappatura-rdl-option-notes">
+                                                <i className="fas fa-sticky-note me-1"></i>
+                                                <strong>Note:</strong> {rdl.notes}
+                                            </div>
+                                        )}
                                         {rdl.totale_sezioni > 0 && (
                                             <div className="mappatura-rdl-option-count">
+                                                <i className="fas fa-list me-1"></i>
                                                 {rdl.totale_sezioni} sezioni assegnate
                                             </div>
                                         )}

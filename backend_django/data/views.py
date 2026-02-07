@@ -3634,6 +3634,7 @@ class MappaturaRdlView(APIView):
                 'full_name': f"{reg.cognome} {reg.nome}",
                 'telefono': reg.telefono,
                 'seggio_preferenza': reg.seggio_preferenza,
+                'notes': reg.notes,
                 'comune': reg.comune.nome,
                 'comune_id': reg.comune_id,
                 'municipio': f"Municipio {reg.municipio.numero}" if reg.municipio else None,

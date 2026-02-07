@@ -1270,10 +1270,25 @@ small.text-muted {
 }
 
 .mappatura-rdl-option-pref,
+.mappatura-rdl-option-notes,
 .mappatura-rdl-option-count {
   font-size: 0.75rem;
   opacity: 0.7;
+  margin-top: 4px;
+}
+
+.mappatura-rdl-option-notes {
   font-style: italic;
+  color: #6c757d;
+  background: rgba(108, 117, 125, 0.05);
+  padding: 4px 6px;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+.mappatura-rdl-option.selected .mappatura-rdl-option-notes {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .mappatura-modal-info {
