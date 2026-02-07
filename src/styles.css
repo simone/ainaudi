@@ -55,12 +55,13 @@
   --line-height-relaxed: 1.75;
 
   /* Spacing */
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  --spacing-xxl: 3rem;
+  --spacing-xxs: 0.125rem;  /* 2px */
+  --spacing-xs: 0.25rem;    /* 4px */
+  --spacing-sm: 0.5rem;     /* 8px */
+  --spacing-md: 1rem;       /* 16px */
+  --spacing-lg: 1.5rem;     /* 24px */
+  --spacing-xl: 2rem;       /* 32px */
+  --spacing-xxl: 3rem;      /* 48px */
 
   /* Border radius */
   --radius-xs: 0.125rem;  /* 2px */
@@ -243,6 +244,31 @@ h6 {
   font-size: 0.875rem;
 }
 
+/* Button Groups */
+.btn-group {
+  display: inline-flex;
+  gap: var(--spacing-xs);
+}
+
+.btn-group-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.btn-group .btn,
+.btn-group-vertical .btn {
+  margin: 0;
+}
+
+/* Button Toolbar */
+.btn-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
 /* Colori bottoni semantici */
 .btn-primary {
   background-color: var(--color-primary);
@@ -284,6 +310,52 @@ h6 {
 .form-control-lg {
   min-height: 52px;
   font-size: 1.1rem;
+}
+
+.form-control-sm, .form-select-sm {
+  min-height: 36px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-sm);
+}
+
+/* Form States */
+.form-control-error, .form-select-error {
+  border-color: var(--color-danger);
+}
+
+.form-control-error:focus, .form-select-error:focus {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25);
+}
+
+.form-control-success, .form-select-success {
+  border-color: var(--color-success);
+}
+
+.form-control-success:focus, .form-select-success:focus {
+  border-color: var(--color-success);
+  box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.25);
+}
+
+/* Form Helper Text */
+.form-helper-text {
+  display: block;
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-600);
+}
+
+.form-helper-text-error {
+  color: var(--color-danger);
+}
+
+.form-helper-text-success {
+  color: var(--color-success);
+}
+
+/* Form Group */
+.form-group {
+  margin-bottom: var(--spacing-md);
 }
 
 .form-label {
@@ -823,7 +895,7 @@ small.text-muted {
   display: block;
   background: #d4e6f1;
   color: #1a5276;
-  padding: 4px 10px;
+  padding: var(--spacing-xs) 10px;
   border-radius: var(--radius-md); /* was 12px, using 8px (0.5rem) for consistency */
   font-size: 0.85rem;
   font-weight: 500;
@@ -891,7 +963,7 @@ small.text-muted {
 
 /* Dashboard card header */
 .dashboard-card-header {
-  padding: 24px 20px 20px;
+  padding: var(--spacing-lg) 20px 20px;
   color: white;
   position: relative;
 }
@@ -925,7 +997,7 @@ small.text-muted {
   background: white !important;
   font-size: var(--font-size-xxs);
   font-weight: var(--font-weight-bold);
-  padding: 4px 10px;
+  padding: var(--spacing-xs) 10px;
   border-radius: var(--radius-xl);
   display: flex;
   align-items: center;
@@ -1119,7 +1191,7 @@ small.text-muted {
   font-weight: 500;
   color: #1a5276;
   background: #d4e6f1;
-  padding: 2px 6px;
+  padding: var(--spacing-xxs) 6px;
   border-radius: var(--radius-sm);
 }
 
@@ -1346,7 +1418,7 @@ small.text-muted {
   color: #1a5276;
   font-weight: 500;
   margin-bottom: var(--spacing-xs);
-  padding: 2px 8px;
+  padding: var(--spacing-xxs) var(--spacing-sm);
   background: #d4e6f1;
   border-radius: var(--radius-sm);
   display: inline-block;
@@ -1523,7 +1595,7 @@ small.text-muted {
   font-size: 0.8rem;
   color: #1a5276;
   background: #d4e6f1;
-  padding: 4px 10px;
+  padding: var(--spacing-xs) 10px;
   border-radius: var(--radius-sm);
   margin: var(--spacing-xs) 0;
 }
@@ -1642,7 +1714,7 @@ small.text-muted {
   font-weight: normal;
   background: var(--color-primary);
   color: white;
-  padding: 2px 6px;
+  padding: var(--spacing-xxs) 6px;
   border-radius: var(--radius-sm);
   margin-left: 6px;
 }
@@ -1654,7 +1726,7 @@ small.text-muted {
   font-weight: 500;
   color: #1a5276;
   background: #d4e6f1;
-  padding: 4px 10px;
+  padding: var(--spacing-xs) 10px;
   border-radius: var(--radius-sm);
   margin-top: 4px;
 }
@@ -1713,7 +1785,7 @@ small.text-muted {
 
 .mappatura-flat-item .plesso-tag {
   font-size: 0.75rem;
-  padding: 2px 6px;
+  padding: var(--spacing-xxs) 6px;
   background: var(--color-gray-200);
   border-radius: var(--radius-sm);
   color: var(--color-gray-600);

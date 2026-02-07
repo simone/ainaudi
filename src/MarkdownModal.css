@@ -147,7 +147,7 @@
 
 .markdown-content .inline-code {
     background: #f8f9fa;
-    padding: 2px 6px;
+    padding: var(--spacing-xxs) 6px;
     border-radius: var(--radius-xs);
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.9em;
