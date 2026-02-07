@@ -548,6 +548,15 @@ function AppContent() {
                                             </li>
                                         )}
 
+                                        {/* 8. RISORSE - visibile a tutti gli utenti autenticati */}
+                                        <li className="nav-item">
+                                            <a className={`nav-link ${activeTab === 'risorse' ? 'active' : ''}`}
+                                               onClick={() => activate('risorse')} href="#">
+                                                <i className="fas fa-folder-open me-1"></i>
+                                                Risorse
+                                            </a>
+                                        </li>
+
                                         {/* 6b. SCRUTINIO AGGREGATO - solo delegati/subdelegati */}
                                         {consultazione && (permissions.is_delegato || permissions.is_sub_delegato) && (
                                             <li className="nav-item">
@@ -569,15 +578,6 @@ function AppContent() {
                                                 </a>
                                             </li>
                                         )}
-
-                                        {/* 8. RISORSE - visibile a tutti gli utenti autenticati */}
-                                        <li className="nav-item">
-                                            <a className={`nav-link ${activeTab === 'risorse' ? 'active' : ''}`}
-                                               onClick={() => activate('risorse')} href="#">
-                                                <i className="fas fa-folder-open me-1"></i>
-                                                Risorse
-                                            </a>
-                                        </li>
                                     </ul>
                                     <div className="d-flex align-items-center">
                                         {user?.is_superuser && !isImpersonating && (

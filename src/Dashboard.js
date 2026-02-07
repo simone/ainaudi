@@ -129,8 +129,8 @@ function Dashboard({ user, permissions, consultazione, onNavigate }) {
                 'Affluenza e percentuali',
                 'Confronto territoriale'
             ],
-            permission: permissions.can_view_kpi && consultazione && consultazione.has_subdelegations !== false,
-            action: () => onNavigate('kpi'),
+            permission: permissions.can_view_kpi && consultazione,
+            action: () => onNavigate('scrutinio-aggregato'),
             cta: 'Segui Live',
             badge: 'LIVE',
             badgeColor: '#dc3545'
