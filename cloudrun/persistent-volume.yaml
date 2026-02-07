@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rdl-postgres-pvc
+  labels:
+    app: rdl-backend
+    component: database
+spec:
+  # Access mode: ReadWriteOnce (single node read-write)
+  accessModes:
+    - ReadWriteOnce
+
+  # Storage class: standard-rwo (regional persistent disk)
+  # More info: https://cloud.google.com/kubernetes-engine/docs/concepts/persistent-volumes
+  storageClassName: standard-rwo
+
+  # Storage size: 20GB SSD
+  resources:
+    requests:
+      storage: 20Gi
+
+  # Volume mode: Filesystem (default)
+  volumeMode: Filesystem

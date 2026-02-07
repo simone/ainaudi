@@ -44,6 +44,22 @@ class HasCustomPermission(BasePermission):
         return f'Permesso richiesto: {self.permission_codename}'
 
 
+class IsSuperAdmin(BasePermission):
+    """
+    Permission: Solo superadmin (is_staff=True).
+
+    Questo permesso verifica che l'utente sia uno staff member (admin Django).
+    Usato per endpoint di amministrazione che non devono essere accessibili
+    a delegati o altri ruoli.
+    """
+
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.is_staff
+
+    def get_message(self):
+        return 'Solo gli amministratori possono accedere a questa risorsa'
+
+
 class CanManageTerritory(HasCustomPermission):
     """
     Permission: Gestione territorio (regioni, province, comuni, sezioni).

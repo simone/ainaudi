@@ -4,7 +4,7 @@ import React from 'react';
  * Dashboard Home - presenta le sezioni principali dell'app
  * Struttura allineata al menu: Territorio, Consultazione, Delegati, RDL, Scrutinio, Diretta
  */
-function Dashboard({ user, permissions, consultazione, hasContributions, onNavigate }) {
+function Dashboard({ user, permissions, consultazione, onNavigate }) {
 
     const sections = [
         // 1. TERRITORIO (solo superuser)
@@ -114,7 +114,7 @@ function Dashboard({ user, permissions, consultazione, hasContributions, onNavig
             highlight: true
         },
 
-        // 6. DIRETTA
+        // 6. DIRETTA (solo per elezioni con liste/candidati, non referendum)
         {
             id: 'diretta',
             title: 'Diretta',
@@ -129,7 +129,7 @@ function Dashboard({ user, permissions, consultazione, hasContributions, onNavig
                 'Affluenza e percentuali',
                 'Confronto territoriale'
             ],
-            permission: permissions.can_view_kpi && consultazione && hasContributions,
+            permission: permissions.can_view_kpi && consultazione && consultazione.has_subdelegations !== false,
             action: () => onNavigate('kpi'),
             cta: 'Segui Live',
             badge: 'LIVE',

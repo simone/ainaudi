@@ -31,6 +31,16 @@ from .views import (
     ScrutinioSezioniView,
     ScrutinioSaveView,
 )
+# Import optimized scrutinio views
+from .views_scrutinio_optimized import (
+    ScrutinioMieiSeggiLightView,
+    ScrutinioSezioneDetailView,
+    ScrutinioSezioneSaveView,
+)
+# Import aggregated scrutinio view
+from .views_scrutinio_aggregato import ScrutinioAggregatoView
+# Import mappatura gerarchica view
+from .views_mappatura_gerarchica import MappaturaGerarchicaView
 
 urlpatterns = [
     path('stats', SectionsStatsView.as_view(), name='sections-stats'),
@@ -64,6 +74,8 @@ mappatura_urlpatterns = [
     path('assegna/', MappaturaAssegnaView.as_view(), name='mappatura-assegna'),
     path('assegna/<int:assignment_id>/', MappaturaAssegnaView.as_view(), name='mappatura-assegna-detail'),
     path('assegna-bulk/', MappaturaAssegnaBulkView.as_view(), name='mappatura-assegna-bulk'),
+    # Hierarchical navigation
+    path('gerarchica/', MappaturaGerarchicaView.as_view(), name='mappatura-gerarchica'),
 ]
 
 # Scrutinio URLs (mounted at /api/scrutinio/ in main urls.py)
@@ -71,4 +83,10 @@ scrutinio_urlpatterns = [
     path('info', ScrutinioInfoView.as_view(), name='scrutinio-info'),
     path('sezioni', ScrutinioSezioniView.as_view(), name='scrutinio-sezioni'),
     path('save', ScrutinioSaveView.as_view(), name='scrutinio-save'),
+    # Optimized endpoints with preload pattern
+    path('miei-seggi-light', ScrutinioMieiSeggiLightView.as_view(), name='scrutinio-miei-seggi-light'),
+    path('sezioni/<int:sezione_id>', ScrutinioSezioneDetailView.as_view(), name='scrutinio-sezione-detail'),
+    path('sezioni/<int:sezione_id>/save', ScrutinioSezioneSaveView.as_view(), name='scrutinio-sezione-save'),
+    # Aggregated view for delegati/subdelegati
+    path('aggregato', ScrutinioAggregatoView.as_view(), name='scrutinio-aggregato'),
 ]

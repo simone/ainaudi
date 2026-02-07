@@ -214,6 +214,126 @@ const Client = (server, pdfServer, token) => {
                 console.error(error);
                 return { error: error.message };
             }),
+
+        // Optimized preload pattern: lightweight list of sections
+        mieiSeggiLight: async (consultazioneId) => {
+            const params = consultazioneId ? `?consultazione_id=${consultazioneId}` : '';
+            const cacheKey = 'scrutinio.seggi_light';
+
+            // Check localStorage cache first
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                try {
+                    const data = JSON.parse(cached);
+                    // Verify version with backend (lightweight HEAD request would be better, but we use full fetch)
+                    // For now, just use the cache with TTL check
+                    if (data.version && data.timestamp && (Date.now() - data.timestamp < 30000)) {
+                        console.log('Cache hit (localStorage)', cacheKey);
+                        return data.response;
+                    }
+                } catch (e) {
+                    console.error('Cache parse error', e);
+                    localStorage.removeItem(cacheKey);
+                }
+            }
+
+            // Fetch fresh data
+            return fetch(`${server}/api/scrutinio/miei-seggi-light${params}`, {
+                headers: { 'Authorization': authHeader }
+            }).then(async response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const responseData = await response.json();
+
+                // Cache in localStorage with version and timestamp
+                localStorage.setItem(cacheKey, JSON.stringify({
+                    version: responseData.version,
+                    timestamp: Date.now(),
+                    response: responseData
+                }));
+
+                return responseData;
+            }).catch(error => {
+                console.error(error);
+                return { error: error.message, seggi: [], total: 0 };
+            });
+        },
+
+        // Get detailed section data (real-time, no cache)
+        sezioneDetail: async (sezioneId, consultazioneId) => {
+            const params = consultazioneId ? `?consultazione_id=${consultazioneId}` : '';
+            return fetch(`${server}/api/scrutinio/sezioni/${sezioneId}${params}`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            }).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            });
+        },
+
+        // Save section data with optimistic locking
+        saveSezione: async (sezioneId, data) => {
+            return fetch(`${server}/api/scrutinio/sezioni/${sezioneId}/save`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify(data)
+            }).then(async response => {
+                const responseData = await response.json();
+
+                if (response.status === 409) {
+                    // Conflict: throw custom error
+                    const error = new Error(responseData.message || 'Conflitto di versione');
+                    error.isConflict = true;
+                    error.conflictData = responseData;
+                    throw error;
+                }
+
+                if (!response.ok) {
+                    throw new Error(responseData.error || `HTTP error! status: ${response.status}`);
+                }
+
+                // Invalidate cache on successful save
+                localStorage.removeItem('scrutinio.seggi_light');
+                cache.delete('scrutinio.sezioni.1');
+
+                return responseData;
+            }).catch(error => {
+                // Re-throw to preserve conflict info
+                throw error;
+            });
+        },
+
+        // Get aggregated scrutinio data for delegati/subdelegati (hierarchical drill-down)
+        aggregato: async (consultazioneId, regioneId, provinciaId, comuneId, municipioId) => {
+            const params = new URLSearchParams();
+            if (consultazioneId) params.append('consultazione_id', consultazioneId);
+            if (regioneId) params.append('regione_id', regioneId);
+            if (provinciaId) params.append('provincia_id', provinciaId);
+            if (comuneId) params.append('comune_id', comuneId);
+            if (municipioId) params.append('municipio_id', municipioId);
+
+            const url = `${server}/api/scrutinio/aggregato?${params}`;
+
+            return fetch(url, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            }).catch(error => {
+                console.error('Error fetching aggregated scrutinio:', error);
+                return { error: error.message };
+            });
+        },
     }
 
     const rdl = {
@@ -1488,6 +1608,30 @@ const Client = (server, pdfServer, token) => {
                     cache.delete(key);
                 }
             }
+        },
+
+        // Navigazione gerarchica per mappatura (Regione → Provincia → Comune → Municipio → Sezione)
+        gerarchica: async (params = {}) => {
+            const queryParams = new URLSearchParams();
+            if (params.consultazione_id) queryParams.append('consultazione_id', params.consultazione_id);
+            if (params.level) queryParams.append('level', params.level);
+            if (params.regione_id) queryParams.append('regione_id', params.regione_id);
+            if (params.provincia_id) queryParams.append('provincia_id', params.provincia_id);
+            if (params.comune_id) queryParams.append('comune_id', params.comune_id);
+            if (params.municipio_id) queryParams.append('municipio_id', params.municipio_id);
+            if (params.search) queryParams.append('search', params.search);
+            const queryString = queryParams.toString();
+
+            // Cache key includes all params for proper invalidation
+            const cacheKey = `mappatura.gerarchica.${queryString}`;
+
+            return fetchWithCacheAndRetry(cacheKey, 30)(
+                `${server}/api/mappatura/gerarchica/${queryString ? `?${queryString}` : ''}`,
+                { headers: { 'Authorization': authHeader } }
+            ).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            });
         }
     };
 

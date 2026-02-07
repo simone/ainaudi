@@ -46,8 +46,7 @@ class KPIDatiView(APIView):
         # Sections stats
         total_sections = SezioneElettorale.objects.filter(is_attiva=True).count()
         assigned_sections = SectionAssignment.objects.filter(
-            consultazione=consultazione,
-            is_active=True
+            consultazione=consultazione
         ).values('sezione').distinct().count()
 
         # Data collection stats
@@ -93,27 +92,50 @@ class KPISezioniView(APIView):
     def get(self, request):
         consultazione = get_consultazione_attiva()
         if not consultazione:
-            return Response([])
+            return Response({'values': []})
 
-        # Get all sections with their data
+        # Get user's accessible sections (filter by delegation territory)
+        from delegations.permissions import get_sezioni_filter_for_user
+        sezioni_filter = get_sezioni_filter_for_user(request.user, consultazione.id)
+
+        if sezioni_filter is None:
+            # User has no accessible sections
+            return Response({'values': []})
+
+        # Get sections with optimized queries
         sezioni = SezioneElettorale.objects.filter(
+            sezioni_filter,
             is_attiva=True
-        ).select_related('comune', 'comune__provincia').order_by('comune__nome', 'numero')
+        ).select_related(
+            'comune',
+            'comune__provincia',
+            'municipio'
+        ).prefetch_related(
+            'assignments',
+            'dati_sezioni'
+        ).order_by('comune__nome', 'numero')
 
+        # Build assignments map (consultazione-specific)
+        assignments_map = {}
+        for assignment in SectionAssignment.objects.filter(
+            sezione__in=sezioni,
+            consultazione=consultazione
+        ).select_related('rdl_registration'):
+            assignments_map[assignment.sezione_id] = assignment
+
+        # Build dati map
+        dati_map = {}
+        for dati in DatiSezione.objects.filter(
+            sezione__in=sezioni,
+            consultazione=consultazione
+        ):
+            dati_map[dati.sezione_id] = dati
+
+        # Build result
         result = []
         for sezione in sezioni:
-            # Get assignment
-            assignment = SectionAssignment.objects.filter(
-                sezione=sezione,
-                consultazione=consultazione,
-                is_active=True
-            ).select_related('rdl_registration').first()
-
-            # Get dati
-            dati = DatiSezione.objects.filter(
-                sezione=sezione,
-                consultazione=consultazione
-            ).first()
+            assignment = assignments_map.get(sezione.id)
+            dati = dati_map.get(sezione.id)
 
             result.append({
                 'comune': sezione.comune.nome,
@@ -127,4 +149,4 @@ class KPISezioniView(APIView):
                 'votanti_femmine': dati.votanti_femmine if dati else None,
             })
 
-        return Response(result)
+        return Response({'values': result})

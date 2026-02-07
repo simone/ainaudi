@@ -128,8 +128,20 @@ class SubDelegaViewSet(viewsets.ModelViewSet):
         return SubDelegaSerializer
 
     def get_queryset(self):
+        from elections.models import ConsultazioneElettorale
+
         user = self.request.user
         consultazione_id = self.request.query_params.get('consultazione')
+
+        # Check if consultazione supports sub-delegations
+        if consultazione_id:
+            try:
+                consultazione = ConsultazioneElettorale.objects.get(id=consultazione_id)
+                if not consultazione.has_subdelegations():
+                    # Referendum-only consultation: no sub-delegations
+                    return SubDelega.objects.none()
+            except ConsultazioneElettorale.DoesNotExist:
+                return SubDelega.objects.none()
 
         # Un utente vede:
         # 1. Le sub-deleghe che ha ricevuto (email)
@@ -145,6 +157,17 @@ class SubDelegaViewSet(viewsets.ModelViewSet):
         return qs.distinct()
 
     def perform_create(self, serializer):
+        from elections.models import ConsultazioneElettorale
+
+        # Check if consultazione supports sub-delegations
+        delegato = serializer.validated_data.get('delegato')
+        if delegato and delegato.consultazione:
+            if not delegato.consultazione.has_subdelegations():
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({
+                    'error': 'Sub-deleghe non disponibili per referendum'
+                })
+
         serializer.save(created_by_email=self.request.user.email)
 
     def destroy(self, request, *args, **kwargs):

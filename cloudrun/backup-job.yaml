@@ -1,0 +1,113 @@
+apiVersion: run.cloud.google.com/v1
+kind: Job
+metadata:
+  name: postgres-backup
+  labels:
+    app: rdl-backend
+    component: backup
+spec:
+  template:
+    metadata:
+      annotations:
+        # Execution environment
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            # Use same image as main service
+            image: REGION-docker.pkg.dev/PROJECT_ID/rdl/backend:TAG
+
+            # Override command to run backup script
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "=== PostgreSQL Backup Job ==="
+              echo ">>> Starting backup at $(date)"
+
+              # Generate timestamp for backup file
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              BACKUP_FILE="postgres_backup_${TIMESTAMP}.sql.gz"
+              BACKUP_BUCKET="gs://rdl-backups-prod"
+
+              # Start PostgreSQL (read-only mount, so only read operations)
+              echo ">>> Starting PostgreSQL..."
+              gosu postgres pg_ctl -D /var/lib/postgresql/data start -w
+
+              # Wait for PostgreSQL to be ready
+              for i in {1..30}; do
+                  if gosu postgres pg_isready -h localhost -p 5432 >/dev/null 2>&1; then
+                      echo ">>> PostgreSQL is ready"
+                      break
+                  fi
+                  sleep 1
+              done
+
+              # Dump database
+              echo ">>> Dumping database to ${BACKUP_FILE}..."
+              gosu postgres pg_dump \
+                  -h localhost \
+                  -U postgres \
+                  -d rdl_referendum \
+                  --no-owner \
+                  --no-acl \
+                  --format=plain \
+                  | gzip > /tmp/${BACKUP_FILE}
+
+              # Get file size
+              SIZE=$(du -h /tmp/${BACKUP_FILE} | cut -f1)
+              echo ">>> Backup file size: ${SIZE}"
+
+              # Upload to Cloud Storage
+              echo ">>> Uploading to ${BACKUP_BUCKET}/${BACKUP_FILE}..."
+              gsutil cp /tmp/${BACKUP_FILE} ${BACKUP_BUCKET}/${BACKUP_FILE}
+
+              # Cleanup old backups (keep last 30 days)
+              echo ">>> Cleaning up old backups (keeping last 30)..."
+              gsutil ls ${BACKUP_BUCKET}/ | sort -r | tail -n +31 | xargs -r gsutil rm || true
+
+              # Stop PostgreSQL
+              gosu postgres pg_ctl -D /var/lib/postgresql/data stop -w || true
+
+              echo ">>> Backup completed successfully at $(date)"
+              echo ">>> Backup location: ${BACKUP_BUCKET}/${BACKUP_FILE}"
+
+            env:
+            # Database settings
+            - name: DB_NAME
+              value: "rdl_referendum"
+            - name: DB_USER
+              value: "postgres"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-password
+                  key: password
+
+            # Resources for backup job
+            resources:
+              limits:
+                cpu: "1000m"
+                memory: "1Gi"
+
+            # Volume mounts (read-only)
+            volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+              readOnly: true
+
+          # Volumes
+          volumes:
+          - name: postgres-data
+            persistentVolumeClaim:
+              claimName: rdl-postgres-pvc
+              readOnly: true
+
+      # Job timeout
+      timeoutSeconds: 600  # 10 minutes
+
+  # Job configuration
+  # Manual trigger or Cloud Scheduler

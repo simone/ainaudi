@@ -1,7 +1,7 @@
 // App.js
 import React, {useState, useEffect, useMemo} from "react";
 import RdlList from "./RdlList";
-import Mappatura from "./Mappatura";
+import MappaturaGerarchica from "./MappaturaGerarchica";
 import Kpi from "./Kpi";
 import Client, {clearCache} from "./Client";
 import SectionList from "./SectionList";
@@ -22,6 +22,7 @@ import GestioneTerritorio from "./GestioneTerritorio";
 import PDFConfirmPage from "./PDFConfirmPage";
 import TemplateEditor from "./TemplateEditor";
 import TemplateList from "./TemplateList";
+import ScrutinioAggregato from "./ScrutinioAggregato";
 import {AuthProvider, useAuth} from "./AuthContext";
 
 // In development, use empty string to leverage Vite proxy (vite.config.js)
@@ -79,7 +80,6 @@ function AppContent() {
     const [consultazioneLoaded, setConsultazioneLoaded] = useState(false);
     const [showConsultazioniDropdown, setShowConsultazioniDropdown] = useState(false);
     const [selectedScheda, setSelectedScheda] = useState(null);
-    const [hasContributions, setHasContributions] = useState(false);
     const [impersonateEmail, setImpersonateEmail] = useState('');
     const [showImpersonate, setShowImpersonate] = useState(false);
     const [impersonateEmails, setImpersonateEmails] = useState([]);
@@ -165,6 +165,15 @@ function AppContent() {
                 } else if (perms.has_scrutinio_access) {
                     // RDL semplici vanno direttamente a Scrutinio
                     setActiveTab('sections');
+
+                    // Preload seggi in background per UX ottimizzato
+                    client.scrutinio.mieiSeggiLight().then(data => {
+                        if (data && !data.error) {
+                            console.log(`Preload seggi completato: ${data.total} seggi caricati`);
+                        }
+                    }).catch(err => {
+                        console.warn('Preload seggi fallito (non critico):', err);
+                    });
                 }
             });
         }
@@ -228,34 +237,6 @@ function AppContent() {
     }, [authError]);
 
     // Check for contributions (to enable "Diretta")
-    useEffect(() => {
-        if (client && isAuthenticated && permissions.can_view_kpi && consultazione) {
-            const checkContributions = () => {
-                client.kpi.hasContributions?.().then(data => {
-                    if (data && !data.error) {
-                        setHasContributions(data.has_contributions || false);
-                    }
-                }).catch(() => {
-                    // API not available, check via dati
-                    client.kpi.dati?.().then(data => {
-                        if (data?.values && Array.isArray(data.values)) {
-                            // Has contributions if any row has data
-                            const hasData = data.values.some(row =>
-                                row.values && row.values.some(v => v !== '' && v !== null && v !== undefined)
-                            );
-                            setHasContributions(hasData);
-                        }
-                    }).catch(() => {});
-                });
-            };
-
-            checkContributions();
-            // Check every 60 seconds
-            const interval = setInterval(checkContributions, 60000);
-            return () => clearInterval(interval);
-        }
-    }, [client, isAuthenticated, permissions.can_view_kpi, consultazione]);
-
     const handleImpersonate = async (e) => {
         e.preventDefault();
         if (!impersonateEmail) return;
@@ -415,7 +396,7 @@ function AppContent() {
                                         )}
 
                                         {/* 2. TERRITORIO - solo superuser o can_manage_territory */}
-                                        {(permissions.is_superuser || permissions.can_manage_territory) && (
+                                        {(permissions.is_superuser) && (
                                             <li className="nav-item">
                                                 <a className={`nav-link ${activeTab === 'territorio_admin' ? 'active' : ''}`}
                                                    onClick={() => activate('territorio_admin')} href="#">
@@ -549,9 +530,9 @@ function AppContent() {
                                                     )}
                                                     {consultazione && permissions.can_manage_delegations && (
                                                         <li>
-                                                            <a className={`dropdown-item ${activeTab === 'designazione' ? 'active' : ''}`}
-                                                               onClick={() => { activate('designazione'); closeAllDropdowns(); }} href="#">
-                                                                <i className="fas fa-th me-2"></i>
+                                                            <a className={`dropdown-item ${activeTab === 'mappatura-gerarchica' ? 'active' : ''}`}
+                                                               onClick={() => { activate('mappatura-gerarchica'); closeAllDropdowns(); }} href="#">
+                                                                <i className="fas fa-sitemap me-2"></i>
                                                                 Mappatura
                                                             </a>
                                                         </li>
@@ -571,8 +552,27 @@ function AppContent() {
                                             </li>
                                         )}
 
-                                        {/* 7. DIRETTA (KPI) - visibile solo quando ci sono contributi */}
-                                        {consultazione && permissions.can_view_kpi && hasContributions && (
+                                        {/* 6b. SCRUTINIO AGGREGATO - solo delegati/subdelegati */}
+                                        {consultazione && (permissions.is_delegato || permissions.is_sub_delegato) && (
+                                            <li className="nav-item">
+                                                <a className={`nav-link ${activeTab === 'scrutinio-aggregato' ? 'active' : ''}`}
+                                                   onClick={() => activate('scrutinio-aggregato')} href="#">
+                                                    <i className="fas fa-chart-line me-1"></i>
+                                                    Risultati Live <span style={{
+                                                        display: 'inline-block',
+                                                        width: '8px',
+                                                        height: '8px',
+                                                        backgroundColor: '#28a745',
+                                                        borderRadius: '50%',
+                                                        marginLeft: '4px',
+                                                        animation: 'pulse 1.5s infinite'
+                                                    }}></span>
+                                                </a>
+                                            </li>
+                                        )}
+
+                                        {/* 7. DIRETTA (KPI) - visibile solo per elezioni (non referendum) */}
+                                        {consultazione && permissions.can_view_kpi && consultazione.has_subdelegations !== false && (
                                             <li className="nav-item">
                                                 <a className={`nav-link ${activeTab === 'kpi' ? 'active' : ''}`}
                                                    onClick={() => activate('kpi')} href="#">
@@ -727,7 +727,6 @@ function AppContent() {
                                         user={user}
                                         permissions={permissions}
                                         consultazione={consultazione}
-                                        hasContributions={hasContributions}
                                         onNavigate={activate}
                                     />
                                 </div>
@@ -763,11 +762,21 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'designazione' && permissions.can_manage_delegations && (
+                            {activeTab === 'scrutinio-aggregato' && (permissions.is_delegato || permissions.is_sub_delegato) && (
                                 <div className="tab-pane active">
-                                    <Mappatura
+                                    <ScrutinioAggregato
+                                        client={client}
+                                        consultazione={consultazione}
+                                        setError={setError}
+                                    />
+                                </div>
+                            )}
+                            {activeTab === 'mappatura-gerarchica' && permissions.can_manage_delegations && (
+                                <div className="tab-pane active">
+                                    <MappaturaGerarchica
                                         client={client}
                                         setError={setError}
+                                        consultazione={consultazione}
                                     />
                                 </div>
                             )}

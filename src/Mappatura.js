@@ -41,7 +41,7 @@ END:VCARD`;
     window.URL.revokeObjectURL(url);
 };
 
-function Mappatura({ client, setError }) {
+function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
     // View state
     const [activeTab, setActiveTab] = useState('sezioni'); // 'sezioni' or 'rdl'
 
@@ -51,8 +51,8 @@ function Mappatura({ client, setError }) {
     const [loading, setLoading] = useState(true);
 
     // Filter states
-    const [comuneFilter, setComuneFilter] = useState('');
-    const [municipioFilter, setMunicipioFilter] = useState('');
+    const [comuneFilter, setComuneFilter] = useState(initialComuneId || '');
+    const [municipioFilter, setMunicipioFilter] = useState(initialMunicipioId || '');
     const [searchFilter, setSearchFilter] = useState('');
     const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'assigned' | 'unassigned'
 
@@ -73,13 +73,6 @@ function Mappatura({ client, setError }) {
         selectedRdl: null,
         loading: false
     });
-
-    // Territory data for filters
-    const [comuni, setComuni] = useState([]);
-    const [municipi, setMunicipi] = useState([]);
-
-    // User's territory (from delegation chain)
-    const [userTerritorio, setUserTerritorio] = useState(null);
 
     // Expanded plessi (accordion)
     const [expandedPlessi, setExpandedPlessi] = useState(new Set());
@@ -139,43 +132,6 @@ function Mappatura({ client, setError }) {
                     if (result.totals) {
                         setTotals(result.totals);
                     }
-                    // Set user's territory info and auto-select filters
-                    if (result.territorio) {
-                        setUserTerritorio(result.territorio);
-
-                        // Build comuni list from territorio
-                        if (result.territorio.comuni?.length > 0) {
-                            const comuniList = result.territorio.comuni.map(c => ({
-                                nome: c.nome,
-                                label: c.nome,
-                                id: c.id
-                            }));
-                            setComuni(comuniList);
-
-                            // Auto-select comune if only one available and not already selected
-                            if (comuniList.length === 1 && !comuneFilter) {
-                                setComuneFilter(comuniList[0].nome);
-                            }
-                        } else if (result.plessi?.length > 0 && !comuneFilter) {
-                            // Fallback: extract comuni from plessi
-                            const comuniSet = new Set();
-                            result.plessi.forEach(p => {
-                                p.sezioni.forEach(s => {
-                                    if (s.comune) comuniSet.add(s.comune);
-                                });
-                            });
-                            const comuniList = Array.from(comuniSet).map(nome => ({
-                                nome,
-                                label: nome
-                            }));
-                            setComuni(comuniList);
-
-                            // Auto-select comune if only one available
-                            if (comuniList.length === 1) {
-                                setComuneFilter(comuniList[0].nome);
-                            }
-                        }
-                    }
                     // Start with all plessi collapsed
                     setExpandedPlessi(new Set());
                 }
@@ -194,44 +150,6 @@ function Mappatura({ client, setError }) {
 
         setLoading(false);
     }, [comuneFilter, municipioFilter, filterStatus, activeTab, searchFilter, client, setError]);
-
-    // Load municipi when comune changes (or when userTerritorio is loaded)
-    useEffect(() => {
-        if (comuneFilter) {
-            loadMunicipi(comuneFilter);
-        } else {
-            setMunicipi([]);
-            setMunicipioFilter('');
-        }
-    }, [comuneFilter, userTerritorio]);
-
-    const loadMunicipi = async (comuneNome) => {
-        try {
-            // API returns comune object with 'municipi' property
-            const comuneData = await client.territorio.municipi(comuneNome);
-
-            if (!comuneData.error && comuneData.municipi && comuneData.municipi.length > 0) {
-                let municipiList = comuneData.municipi;
-                // If user has territory restrictions on municipi, filter the list
-                if (userTerritorio?.is_limited && userTerritorio?.municipi?.length > 0) {
-                    municipiList = municipiList.filter(m =>
-                        userTerritorio.municipi.includes(m.numero)
-                    );
-                }
-
-                setMunicipi(municipiList);
-
-                // Auto-select municipio if only one available
-                if (municipiList.length === 1) {
-                    setMunicipioFilter(String(municipiList[0].id));
-                }
-            } else {
-                setMunicipi([]);
-            }
-        } catch (err) {
-            setMunicipi([]);
-        }
-    };
 
     // Toggle plesso expansion
     const togglePlesso = (denominazione) => {
@@ -666,20 +584,6 @@ function Mappatura({ client, setError }) {
                 </div>
             </ConfirmModal>
 
-            {/* Header */}
-            <div className="mappatura-header">
-                <div className="mappatura-header-title">Mappatura RDL</div>
-                <div className="mappatura-header-subtitle">
-                    Assegnazione operativa RDL alle sezioni
-                    {userTerritorio?.is_limited && userTerritorio?.municipi?.length > 0 && (
-                        <span className="mappatura-territorio-badge">
-                            Tuo territorio: {userTerritorio.comuni?.map(c => c.nome).join(', ') || 'Roma'} -
-                            Municipio {userTerritorio.municipi.join(', ')}
-                        </span>
-                    )}
-                </div>
-            </div>
-
             {/* Tabs */}
             <div className="mappatura-tabs">
                 <button
@@ -698,31 +602,6 @@ function Mappatura({ client, setError }) {
 
             {/* Filtri */}
             <div className="mappatura-filters">
-                <div className="mappatura-filters-grid">
-                    <select
-                        className="form-select form-select-sm"
-                        value={comuneFilter}
-                        onChange={(e) => setComuneFilter(e.target.value)}
-                    >
-                        <option value="">-- Comune --</option>
-                        {comuni.map(c => (
-                            <option key={c.nome} value={c.nome}>{c.label}</option>
-                        ))}
-                    </select>
-                    {/* Municipio filter: only show when comune is selected AND has municipi */}
-                    {comuneFilter && municipi.length > 0 && (
-                        <select
-                            className="form-select form-select-sm"
-                            value={municipioFilter}
-                            onChange={(e) => setMunicipioFilter(e.target.value)}
-                        >
-                            <option value="">-- Municipio --</option>
-                            {municipi.map(m => (
-                                <option key={m.id} value={m.id}>Municipio {m.numero}</option>
-                            ))}
-                        </select>
-                    )}
-                </div>
                 {activeTab === 'sezioni' && (
                     <div className="mappatura-filters-row">
                         <select

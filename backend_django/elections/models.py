@@ -44,6 +44,11 @@ class ConsultazioneElettorale(models.Model):
         _('descrizione'),
         blank=True
     )
+    data_version = models.DateTimeField(
+        _('versione dati'),
+        auto_now=True,
+        help_text=_('Timestamp per invalidazione cache preload seggi')
+    )
 
     class Meta:
         verbose_name = _('consultazione elettorale')
@@ -52,6 +57,17 @@ class ConsultazioneElettorale(models.Model):
 
     def __str__(self):
         return self.nome
+
+    def has_subdelegations(self):
+        """
+        Determina se questa consultazione supporta sub-deleghe.
+        Referendum NON hanno sub-deleghe, solo Europee/Politiche/Comunali.
+        """
+        referendum_types = self.tipi_elezione.filter(tipo='REFERENDUM')
+        # Se contiene SOLO referendum, NO sub-deleghe
+        if referendum_types.exists() and self.tipi_elezione.count() == referendum_types.count():
+            return False
+        return True
 
 
 class TipoElezione(models.Model):

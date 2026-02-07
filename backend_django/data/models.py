@@ -149,16 +149,36 @@ class DatiSezione(models.Model):
     verified_by_email = models.EmailField(_('verificato da (email)'), blank=True)
     verified_at = models.DateTimeField(_('data verifica'), null=True, blank=True)
 
+    # Optimistic locking
+    version = models.IntegerField(
+        _('versione'),
+        default=0,
+        help_text=_('Versione per optimistic locking')
+    )
+    updated_at = models.DateTimeField(_('ultimo aggiornamento'), auto_now=True)
+    updated_by_email = models.EmailField(
+        _('aggiornato da (email)'),
+        blank=True,
+        help_text=_('Email utente ultimo aggiornamento')
+    )
+
     # Audit
     inserito_da_email = models.EmailField(_('inserito da (email)'), blank=True)
     inserito_at = models.DateTimeField(_('data inserimento'), null=True, blank=True)
-    aggiornato_at = models.DateTimeField(_('ultimo aggiornamento'), auto_now=True)
+    aggiornato_at = models.DateTimeField(
+        _('aggiornamento legacy'),
+        auto_now=True,
+        help_text=_('Deprecato - usare updated_at')
+    )
 
     class Meta:
         verbose_name = _('dati sezione')
         verbose_name_plural = _('dati sezioni')
         unique_together = ['sezione', 'consultazione']
         ordering = ['sezione__comune', 'sezione__numero']
+        indexes = [
+            models.Index(fields=['sezione', 'consultazione', 'version']),
+        ]
 
     def __str__(self):
         return f'Dati {self.sezione} - {self.consultazione}'
@@ -269,15 +289,35 @@ Struttura voti dipende dal tipo scheda:
         help_text=_('False se ci sono errori di validazione')
     )
 
+    # Optimistic locking
+    version = models.IntegerField(
+        _('versione'),
+        default=0,
+        help_text=_('Versione per optimistic locking')
+    )
+    updated_at = models.DateTimeField(_('ultimo aggiornamento'), auto_now=True)
+    updated_by_email = models.EmailField(
+        _('aggiornato da (email)'),
+        blank=True,
+        help_text=_('Email utente ultimo aggiornamento')
+    )
+
     # Audit
     inserito_at = models.DateTimeField(_('data inserimento'), null=True, blank=True)
-    aggiornato_at = models.DateTimeField(_('ultimo aggiornamento'), auto_now=True)
+    aggiornato_at = models.DateTimeField(
+        _('aggiornamento legacy'),
+        auto_now=True,
+        help_text=_('Deprecato - usare updated_at')
+    )
 
     class Meta:
         verbose_name = _('dati scheda')
         verbose_name_plural = _('dati schede')
         unique_together = ['dati_sezione', 'scheda']
         ordering = ['scheda__ordine']
+        indexes = [
+            models.Index(fields=['dati_sezione', 'scheda', 'version']),
+        ]
 
     def __str__(self):
         return f'{self.dati_sezione.sezione} - {self.scheda.nome}'

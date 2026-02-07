@@ -1,0 +1,115 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: rdl-backend
+  labels:
+    app: rdl-backend
+    environment: production
+spec:
+  template:
+    metadata:
+      annotations:
+        # Scaling configuration (normale)
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "5"
+        # Execution environment gen2 for Persistent Disk support
+        run.googleapis.com/execution-environment: gen2
+        # CPU always allocated (for PostgreSQL background process)
+        run.googleapis.com/cpu-throttling: "false"
+    spec:
+      # Container concurrency (requests per instance)
+      containerConcurrency: 80
+      # Timeout for requests
+      timeoutSeconds: 60
+
+      containers:
+      - name: rdl-backend
+        # Image will be set during deployment
+        image: REGION-docker.pkg.dev/PROJECT_ID/rdl/backend:TAG
+
+        ports:
+        - name: http1
+          containerPort: 8080
+
+        # Resource limits (normale mode)
+        resources:
+          limits:
+            cpu: "1000m"           # 1 vCPU
+            memory: "1Gi"          # 512Mi Django + 512Mi PostgreSQL
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+
+        # Environment variables
+        env:
+        # Django settings
+        - name: DJANGO_SETTINGS_MODULE
+          value: "config.settings"
+        - name: DEBUG
+          value: "False"
+        - name: ALLOWED_HOSTS
+          value: "*"  # Set specific domain in production
+
+        # Database settings (PostgreSQL in same container)
+        - name: DB_HOST
+          value: "localhost"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "rdl_referendum"
+        - name: DB_USER
+          value: "postgres"
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-password
+              key: password
+
+        # PostgreSQL configuration
+        - name: POSTGRES_MAX_CONNECTIONS
+          value: "100"
+
+        # Gunicorn configuration
+        - name: GUNICORN_WORKERS
+          value: "2"
+        - name: GUNICORN_THREADS
+          value: "4"
+
+        # Email settings (from secrets)
+        - name: EMAIL_HOST
+          value: "smtp.gmail.com"
+        - name: EMAIL_PORT
+          value: "587"
+        - name: EMAIL_USE_TLS
+          value: "True"
+        - name: EMAIL_HOST_USER
+          valueFrom:
+            secretKeyRef:
+              name: email-credentials
+              key: username
+        - name: EMAIL_HOST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: email-credentials
+              key: password
+        - name: DEFAULT_FROM_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: email-credentials
+              key: from_email
+
+        # Frontend URL
+        - name: FRONTEND_URL
+          value: "https://your-domain.com"  # Set in production
+
+        # Volume mounts for PostgreSQL data
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+
+      # Volumes (Persistent Disk for PostgreSQL)
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: rdl-postgres-pvc
+          readOnly: false

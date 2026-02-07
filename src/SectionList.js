@@ -327,6 +327,48 @@ function SectionList({client, user, setError, referenti}) {
     // Save without closing the form (for auto-save)
     const saveSection = async (payload) => {
         try {
+            // Use new optimized endpoint with optimistic locking if available
+            if (client.scrutinio.saveSezione && selectedSection?.id) {
+                // Extract version from section data (if we add it later)
+                const version = sectionsData[selectedSection.id]?.version || 0;
+
+                const data = {
+                    consultazione_id: consultazione?.id,
+                    version: version,
+                    dati_seggio: {
+                        elettori_maschi: payload.dati_seggio?.elettori_maschi,
+                        elettori_femmine: payload.dati_seggio?.elettori_femmine,
+                        votanti_maschi: payload.dati_seggio?.votanti_maschi,
+                        votanti_femmine: payload.dati_seggio?.votanti_femmine,
+                    },
+                    schede: Object.entries(payload.schede || {}).map(([schedaId, schedaData]) => ({
+                        scheda_id: parseInt(schedaId),
+                        schede_ricevute: schedaData.schede_ricevute,
+                        schede_autenticate: schedaData.schede_autenticate,
+                        schede_bianche: schedaData.schede_bianche,
+                        schede_nulle: schedaData.schede_nulle,
+                        schede_contestate: schedaData.schede_contestate,
+                        voti: schedaData.voti
+                    }))
+                };
+
+                const result = await client.scrutinio.saveSezione(selectedSection.id, data);
+                if (result?.error) {
+                    setError(result.error);
+                    return false;
+                }
+
+                // Update local version on success
+                if (result.new_version) {
+                    sectionsData[selectedSection.id] = {
+                        ...sectionsData[selectedSection.id],
+                        version: result.new_version
+                    };
+                }
+                return true;
+            }
+
+            // Fallback to old endpoint
             const result = await client.scrutinio.save(payload);
             if (result?.error) {
                 setError(result.error);
@@ -335,7 +377,22 @@ function SectionList({client, user, setError, referenti}) {
             return true;
         } catch (err) {
             console.error('Error saving section:', err);
-            setError('Errore durante il salvataggio');
+
+            // Handle optimistic locking conflict (409)
+            if (err.isConflict) {
+                const conflictData = err.conflictData || {};
+                const updatedBy = conflictData.updated_by || 'un altro utente';
+                const message = `I dati sono stati modificati da ${updatedBy}.\n\nClicca OK per ricaricare (perderai le modifiche locali) o Annulla per continuare a modificare.`;
+
+                if (window.confirm(message)) {
+                    // Reload section data
+                    await loadSections(currentPage, true);
+                    window.location.reload(); // Force full reload to reset form
+                }
+                return false;
+            }
+
+            setError('Errore durante il salvataggio: ' + (err.message || 'errore sconosciuto'));
             return false;
         }
     };

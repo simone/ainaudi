@@ -1,0 +1,61 @@
+# Multi-stage Dockerfile for Cloud Run with Django + PostgreSQL in same container
+# This eliminates the need for Cloud SQL or external database, reducing costs significantly
+
+# =============================================================================
+# Stage 1: Python dependencies builder
+# =============================================================================
+FROM python:3.11-slim AS python-builder
+
+WORKDIR /opt
+
+# Create virtual environment
+RUN python -m venv venv
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN venv/bin/pip install --no-cache-dir --upgrade pip && \
+    venv/bin/pip install --no-cache-dir -r requirements.txt gunicorn
+
+
+# =============================================================================
+# Stage 2: Final image with Django + PostgreSQL
+# =============================================================================
+FROM python:3.11-slim
+
+# Install PostgreSQL 15 and gosu for process management
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        postgresql-15 \
+        postgresql-client-15 \
+        gosu \
+        ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy Python virtual environment from builder
+COPY --from=python-builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy Django application
+WORKDIR /app
+COPY . /app
+
+# Setup PostgreSQL data directory
+RUN mkdir -p /var/lib/postgresql/data && \
+    chown -R postgres:postgres /var/lib/postgresql && \
+    chmod 700 /var/lib/postgresql/data
+
+# Copy entrypoint script
+COPY docker/cloudrun-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=config.settings \
+    DB_HOST=localhost \
+    DB_PORT=5432
+
+# Expose port 8080 (Cloud Run default)
+EXPOSE 8080
+
+# Run entrypoint script
+ENTRYPOINT ["/entrypoint.sh"]

@@ -3555,13 +3555,16 @@ class MappaturaRdlView(APIView):
                 filters &= Q(comune_id=comune_id)
 
         # Support both municipio_id (record ID) and municipio (numero)
+        # RDL disponibili per un municipio:
+        # 1. RDL con quel municipio specifico
+        # 2. RDL dello stesso comune senza municipio (disponibili per tutto il comune)
         municipio_id = request.query_params.get('municipio_id')
         municipio_numero = request.query_params.get('municipio')
         if municipio_id:
-            filters &= Q(municipio_id=municipio_id)
+            filters &= (Q(municipio_id=municipio_id) | Q(municipio__isnull=True))
         elif municipio_numero:
             try:
-                filters &= Q(municipio__numero=int(municipio_numero))
+                filters &= (Q(municipio__numero=int(municipio_numero)) | Q(municipio__isnull=True))
             except ValueError:
                 pass
 

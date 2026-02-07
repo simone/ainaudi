@@ -141,7 +141,7 @@ elif os.environ.get('CLOUD_SQL_CONNECTION_NAME'):
         'PORT': '5432',
     }
 elif os.environ.get('DB_HOST'):
-    # Direct PostgreSQL connection
+    # Direct PostgreSQL connection (for Cloud Run with PostgreSQL in container)
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('DB_NAME', 'rdl_referendum'),
@@ -149,6 +149,11 @@ elif os.environ.get('DB_HOST'):
         'PASSWORD': os.environ.get('DB_PASSWORD', ''),
         'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '5432'),
+        'CONN_MAX_AGE': 600,  # Connection pooling: keep connections open 10 minutes
+        'OPTIONS': {
+            'connect_timeout': 10,
+            'options': '-c statement_timeout=30000'  # 30s query timeout
+        },
     }
 
 

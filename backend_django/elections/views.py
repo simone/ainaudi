@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions
 
-from core.permissions import CanManageElections, CanViewKPI
+from core.permissions import CanManageElections, CanViewKPI, IsSuperAdmin
 from .models import (
     ConsultazioneElettorale, TipoElezione, SchedaElettorale,
     ListaElettorale, Candidato,
@@ -69,6 +69,7 @@ def serialize_consultazione(consultazione):
         'is_attiva': consultazione.is_attiva,
         'descrizione': consultazione.descrizione,
         'schede': schede,
+        'has_subdelegations': consultazione.has_subdelegations(),
     }
 
 
@@ -76,13 +77,13 @@ class ConsultazioniListView(APIView):
     """
     List all consultations for the switcher.
 
-    GET /api/elections/consultazioni/
+    GET /api/elections/
 
     Returns consultations ordered by date (future first, then past).
 
-    Permission: can_manage_elections (Delegato, Superuser)
+    Permission: Solo superadmin (is_staff)
     """
-    permission_classes = [permissions.IsAuthenticated, CanManageElections]
+    permission_classes = [permissions.IsAuthenticated, IsSuperAdmin]
 
     def get(self, request):
         today = timezone.now().date()
@@ -137,9 +138,9 @@ class ConsultazioneDetailView(APIView):
 
     GET /api/elections/<id>/
 
-    Permission: can_manage_elections (Delegato, Superuser)
+    Permission: Solo superadmin (is_staff)
     """
-    permission_classes = [permissions.IsAuthenticated, CanManageElections]
+    permission_classes = [permissions.IsAuthenticated, IsSuperAdmin]
 
     def get(self, request, pk):
         try:

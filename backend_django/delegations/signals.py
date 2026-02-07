@@ -147,10 +147,12 @@ def assign_permissions_for_role(user, role):
             'can_manage_rdl',
             'can_view_resources',
             'can_generate_documents',
+            'can_view_kpi',  # Accesso KPI e scrutinio aggregato
         ],
         RoleAssignment.Role.SUBDELEGATE: [
             'can_manage_rdl',
             'can_view_resources',
+            'can_view_kpi',  # Accesso KPI e scrutinio aggregato
         ],
         RoleAssignment.Role.RDL: [
             'has_scrutinio_access',

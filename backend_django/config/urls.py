@@ -50,6 +50,7 @@ urlpatterns = [
 
     # Mapping endpoints (operational RDL-to-station assignment)
     path('api/mapping/', include(mappatura_urlpatterns)),
+    path('api/mappatura/', include(mappatura_urlpatterns)),  # Italian alias
 
     # Scrutinio endpoints (structured vote data entry)
     path('api/scrutinio/', include(scrutinio_urlpatterns)),

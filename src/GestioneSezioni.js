@@ -543,7 +543,7 @@ function GestioneSezioni({ client, setError }) {
                                         const comuneId = comuneData.id;
                                         // Build display name with municipi if limited visibility
                                         let displayName = comuneNome;
-                                        if (comuneData.municipi && comuneData.municipi.length > 0 && comuneData.municipi.length < 15) {
+                                        if (comuneData.municipi && comuneData.municipi.length > 0) {
                                             const municipiRoman = comuneData.municipi.map(m => `Mun. ${toRoman(m.numero)}`).join(', ');
                                             displayName = `${comuneNome} - ${municipiRoman}`;
                                         }

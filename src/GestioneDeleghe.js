@@ -247,8 +247,8 @@ function GestioneDeleghe({ client, user, consultazione, setError, initialTab }) 
                         Catena Deleghe
                     </button>
                 </li>
-                {/* Sub-Deleghe: solo Delegati possono creare sub-deleghe */}
-                {isDelegato && (
+                {/* Sub-Deleghe: solo Delegati possono creare sub-deleghe (NON per referendum) */}
+                {isDelegato && consultazione?.has_subdelegations !== false && (
                     <li className="nav-item">
                         <button
                             className={`nav-link ${activeTab === 'sub-deleghe' ? 'active' : ''}`}

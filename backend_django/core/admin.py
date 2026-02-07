@@ -56,6 +56,7 @@ class RoleAssignmentInline(admin.TabularInline):
     model = RoleAssignment
     extra = 0
     readonly_fields = ['assigned_at', 'assigned_by_email']
+    autocomplete_fields = ['scope_comune', 'scope_provincia', 'scope_regione', 'consultazione']
     fk_name = 'user'
 
 
