@@ -860,6 +860,105 @@ small.text-muted {
   background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
 }
 
+/* Dashboard card gradients (same as page headers) */
+.dashboard-card-gradient-territorio {
+  background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+}
+
+.dashboard-card-gradient-consultazione {
+  background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+}
+
+.dashboard-card-gradient-delegati {
+  background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+}
+
+.dashboard-card-gradient-rdl {
+  background: linear-gradient(135deg, #fd7e14 0%, #dc6a0c 100%);
+}
+
+.dashboard-card-gradient-scrutinio {
+  background: linear-gradient(135deg, #20c997 0%, #1aa179 100%);
+}
+
+.dashboard-card-gradient-diretta {
+  background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%);
+}
+
+.dashboard-card-gradient-assistenza {
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+}
+
+/* Dashboard card header */
+.dashboard-card-header {
+  padding: 24px 20px 20px;
+  color: white;
+  position: relative;
+}
+
+/* Dashboard card button */
+.dashboard-card-button {
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  font-weight: var(--font-weight-semibold);
+  border: none;
+  color: white;
+}
+
+/* Dashboard card icon container */
+.dashboard-card-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboard-card-icon i {
+  font-size: 1.5rem;
+}
+
+/* Dashboard card badge */
+.dashboard-card-badge {
+  background: white !important;
+  font-size: var(--font-size-xxs);
+  font-weight: var(--font-weight-bold);
+  padding: 4px 10px;
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dashboard-card-badge-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+/* Dashboard card text */
+.dashboard-card-extra {
+  font-size: var(--font-size-sm);
+  opacity: 0.9;
+}
+
+.dashboard-card-description {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  opacity: 0.9;
+  margin-bottom: var(--spacing-sm);
+}
+
+.dashboard-card-purpose {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  opacity: 0.75;
+  font-style: italic;
+}
+
 /* ==========================================================================
    Mappatura RDL - Styles
    ========================================================================== */

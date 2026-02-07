@@ -190,50 +190,25 @@ function Dashboard({ user, permissions, consultazione, onNavigate }) {
                             onClick={section.action}
                         >
                             {/* Header con gradiente */}
-                            <div style={{
-                                background: section.gradient,
-                                padding: '24px 20px 20px',
-                                color: 'white',
-                                position: 'relative'
-                            }}>
+                            <div className={`dashboard-card-header dashboard-card-gradient-${section.id}`}>
                                 <div className="d-flex justify-content-between align-items-start">
-                                    <div style={{
-                                        width: '56px',
-                                        height: '56px',
-                                        borderRadius: '14px',
-                                        background: 'rgba(255,255,255,0.2)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}>
-                                        <i className={`fas ${section.icon}`} style={{ fontSize: '1.5rem' }}></i>
+                                    <div className="dashboard-card-icon">
+                                        <i className={`fas ${section.icon}`}></i>
                                     </div>
                                     {section.badge && (
-                                        <span className="badge" style={{
-                                            background: 'white',
-                                            color: section.badgeColor || section.color,
-                                            fontSize: '0.7rem',
-                                            fontWeight: 700,
-                                            padding: '4px 10px',
-                                            borderRadius: '20px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px'
+                                        <span className="badge dashboard-card-badge" style={{
+                                            color: section.badgeColor || section.color
                                         }}>
-                                            <span style={{
-                                                width: '6px',
-                                                height: '6px',
-                                                borderRadius: '50%',
-                                                background: section.badgeColor || section.color,
-                                                animation: 'pulse 1.5s infinite'
+                                            <span className="dashboard-card-badge-pulse" style={{
+                                                background: section.badgeColor || section.color
                                             }}></span>
                                             {section.badge}
                                         </span>
                                     )}
                                 </div>
-                                <h4 className="mt-3 mb-1" style={{ fontWeight: 700 }}>{section.title}</h4>
+                                <h4 className="mt-3 mb-1 fw-bold">{section.title}</h4>
                                 {section.extraInfo && (
-                                    <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>
+                                    <div className="dashboard-card-extra">
                                         {section.extraInfo}
                                     </div>
                                 )}
@@ -275,17 +250,7 @@ function Dashboard({ user, permissions, consultazione, onNavigate }) {
                                 </div>
 
                                 {/* CTA Button */}
-                                <button
-                                    className="btn w-100 mt-3"
-                                    style={{
-                                        background: section.gradient,
-                                        color: 'white',
-                                        borderRadius: '10px',
-                                        padding: '12px',
-                                        fontWeight: 600,
-                                        border: 'none'
-                                    }}
-                                >
+                                <button className={`btn w-100 mt-3 dashboard-card-button dashboard-card-gradient-${section.id}`}>
                                     {section.cta}
                                     <i className="fas fa-arrow-right ms-2"></i>
                                 </button>
