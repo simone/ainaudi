@@ -817,7 +817,7 @@ function GestioneRdl({ client, setError }) {
                                     <li>Valutato le sue motivazioni e affidabilità</li>
                                 </ul>
                             </div>
-                            <p style={{ fontSize: '0.85rem', color: '#6c757d', marginBottom: 0 }}>
+                            <p className="text-sm text-muted mb-0">
                                 Una volta approvato, l'RDL potrà accedere all'app e ricevere le credenziali.
                             </p>
                         </div>
@@ -860,7 +860,7 @@ function GestioneRdl({ client, setError }) {
                             }}>
                                 <strong>⚠️ Attenzione:</strong> Verifica di aver controllato tutti i candidati selezionati prima di procedere con l'approvazione massiva.
                             </div>
-                            <p style={{ fontSize: '0.85rem', color: '#6c757d', marginBottom: 0 }}>
+                            <p className="text-sm text-muted mb-0">
                                 Tutti gli RDL selezionati riceveranno le credenziali di accesso.
                             </p>
                         </div>
@@ -927,12 +927,12 @@ function GestioneRdl({ client, setError }) {
                 marginBottom: '12px',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
             }}>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                <div className="d-flex gap-sm mb-sm">
                     <select
                         className="form-select form-select-sm"
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        style={{ flex: '0 0 120px' }}
+                        className="flex-fixed-120"
                     >
                         <option value="">Tutti</option>
                         <option value="PENDING">In attesa</option>
@@ -949,11 +949,11 @@ function GestioneRdl({ client, setError }) {
                 </div>
 
                 {/* Toggle filtri territorio */}
-                <div style={{ marginBottom: '8px' }}>
+                <div className="mb-sm">
                     <button
                         className={`btn btn-sm ${showTerritoryFilters ? 'btn-primary' : 'btn-outline-primary'}`}
                         onClick={() => setShowTerritoryFilters(!showTerritoryFilters)}
-                        style={{ width: '100%' }}
+                        className="w-100"
                     >
                         <i className="fas fa-map-marker-alt me-1"></i>
                         Filtri Territorio {(regioneFilter || provinciaFilter || comuneFilter || municipioFilter) && '●'}
@@ -968,7 +968,7 @@ function GestioneRdl({ client, setError }) {
                         padding: '10px',
                         marginBottom: '8px'
                     }}>
-                        <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: '1fr 1fr' }}>
+                        <div className="grid-2-col">
                             <select
                                 className="form-select form-select-sm"
                                 value={regioneFilter}
@@ -1017,7 +1017,7 @@ function GestioneRdl({ client, setError }) {
                             <button
                                 className="btn btn-sm btn-outline-secondary mt-2"
                                 onClick={clearTerritoryFilters}
-                                style={{ width: '100%' }}
+                                className="w-100"
                             >
                                 Cancella filtri territorio
                             </button>
@@ -1025,11 +1025,11 @@ function GestioneRdl({ client, setError }) {
                     </div>
                 )}
 
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <div className="d-flex gap-sm flex-wrap">
                     <button
                         className="btn btn-sm btn-outline-primary"
                         onClick={() => setShowImport(!showImport)}
-                        style={{ flex: 1 }}
+                        className="flex-1"
                     >
                         {showImport ? 'Chiudi' : 'Import CSV'}
                     </button>
@@ -1050,7 +1050,7 @@ function GestioneRdl({ client, setError }) {
                         borderRadius: '6px',
                         border: '1px solid #dee2e6'
                     }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <div className="d-flex align-items-center gap-sm flex-wrap">
                             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0, cursor: 'pointer' }}>
                                 <input
                                     type="checkbox"
@@ -1431,11 +1431,11 @@ function GestioneRdl({ client, setError }) {
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                                        <button className="btn btn-success btn-sm" onClick={handleSaveEdit} style={{ flex: 1 }}>
+                                        <button className="btn btn-success btn-sm" onClick={handleSaveEdit} className="flex-1">
                                             <i className="fas fa-save me-1"></i>
                                             Salva
                                         </button>
-                                        <button className="btn btn-secondary btn-sm" onClick={handleCancelEdit} style={{ flex: 1 }}>
+                                        <button className="btn btn-secondary btn-sm" onClick={handleCancelEdit} className="flex-1">
                                             <i className="fas fa-times me-1"></i>
                                             Annulla
                                         </button>
