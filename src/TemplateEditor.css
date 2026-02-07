@@ -46,7 +46,7 @@
     grid-column: 1 / -1;
     background: #f8f9fa;
     border: 2px solid #dee2e6;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 20px;
     min-height: 400px;
 }
@@ -95,7 +95,7 @@
 .pdf-canvas-container {
     background: white;
     border: 1px solid #dee2e6;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     padding: 20px;
     display: flex;
     flex-direction: column;
@@ -113,7 +113,7 @@
     margin-top: 20px;
     background: #e7f3ff;
     border: 1px solid #b3d9ff;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     padding: 15px;
     max-width: 600px;
 }
@@ -137,7 +137,7 @@
 .pdf-placeholder {
     background: white;
     border: 1px solid #dee2e6;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     padding: 40px;
     text-align: center;
     min-height: 350px;
@@ -163,7 +163,7 @@
     grid-column: 1 / -1;
     background: white;
     border: 1px solid #dee2e6;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 20px;
 }
 
@@ -209,7 +209,7 @@
 .table code {
     background: #f8f9fa;
     padding: 2px 6px;
-    border-radius: 3px;
+    border-radius: var(--radius-xs);
     font-size: 0.9em;
     color: #d63384;
 }
@@ -217,7 +217,7 @@
 .badge {
     display: inline-block;
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-size: 0.85em;
     font-weight: 600;
     text-transform: uppercase;
@@ -238,7 +238,7 @@
     grid-column: 1 / -1;
     background: white;
     border: 1px solid #dee2e6;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 20px;
 }
 
@@ -262,7 +262,7 @@
     width: 100%;
     padding: 10px;
     border: 1px solid #ced4da;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-size: 1em;
 }
 
@@ -275,7 +275,7 @@
 .loop-config {
     background: #f8f9fa;
     padding: 15px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     margin-top: 15px;
 }
 
@@ -296,7 +296,7 @@
 .template-editor-help {
     background: #f8f9fa;
     border: 1px solid #dee2e6;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 20px;
     margin-top: 20px;
 }
@@ -319,7 +319,7 @@
 .template-editor-help code {
     background: #e9ecef;
     padding: 2px 6px;
-    border-radius: 3px;
+    border-radius: var(--radius-xs);
     font-size: 0.9em;
     color: #d63384;
 }
@@ -328,7 +328,7 @@
 .btn {
     padding: 8px 16px;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-weight: 600;
     transition: all 0.2s;
@@ -380,7 +380,7 @@
 .alert {
     padding: 15px;
     margin-bottom: 20px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     border: 1px solid transparent;
 }
 
@@ -422,7 +422,7 @@
 .card {
     background: white;
     border: 1px solid #dee2e6;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     overflow: hidden;
 }
 
