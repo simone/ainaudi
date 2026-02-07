@@ -422,12 +422,8 @@ function AppContent() {
                                                         <li key={scheda.id || idx}>
                                                             <a className={`dropdown-item ${selectedScheda?.id === scheda.id && activeTab === 'scheda' ? 'active' : ''}`}
                                                                onClick={() => { setSelectedScheda(scheda); activate('scheda'); closeAllDropdowns(); }} href="#">
-                                                                <span className="me-2" style={{
-                                                                    display: 'inline-block',
-                                                                    width: '12px',
-                                                                    height: '12px',
-                                                                    backgroundColor: scheda.colore || '#ccc',
-                                                                    borderRadius: '2px'
+                                                                <span className="me-2 scheda-color-indicator" style={{
+                                                                    backgroundColor: scheda.colore || 'var(--color-gray-300)'
                                                                 }}></span>
                                                                 {scheda.nome}
                                                             </a>
@@ -558,15 +554,7 @@ function AppContent() {
                                                 <a className={`nav-link ${activeTab === 'scrutinio-aggregato' ? 'active' : ''}`}
                                                    onClick={() => activate('scrutinio-aggregato')} href="#">
                                                     <i className="fas fa-chart-line me-1"></i>
-                                                    Risultati Live <span style={{
-                                                        display: 'inline-block',
-                                                        width: '8px',
-                                                        height: '8px',
-                                                        backgroundColor: '#28a745',
-                                                        borderRadius: '50%',
-                                                        marginLeft: '4px',
-                                                        animation: 'pulse 1.5s infinite'
-                                                    }}></span>
+                                                    Risultati Live <span className="pulse-indicator pulse-indicator-success"></span>
                                                 </a>
                                             </li>
                                         )}
@@ -577,15 +565,7 @@ function AppContent() {
                                                 <a className={`nav-link ${activeTab === 'kpi' ? 'active' : ''}`}
                                                    onClick={() => activate('kpi')} href="#">
                                                     <i className="fas fa-chart-line me-1"></i>
-                                                    Diretta <span style={{
-                                                        display: 'inline-block',
-                                                        width: '8px',
-                                                        height: '8px',
-                                                        backgroundColor: '#dc3545',
-                                                        borderRadius: '50%',
-                                                        marginLeft: '4px',
-                                                        animation: 'pulse 1.5s infinite'
-                                                    }}></span>
+                                                    Diretta <span className="pulse-indicator pulse-indicator-danger"></span>
                                                 </a>
                                             </li>
                                         )}
