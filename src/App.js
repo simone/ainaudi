@@ -229,7 +229,7 @@ function AppContent() {
 
     // Check for contributions (to enable "Diretta")
     useEffect(() => {
-        if (client && isAuthenticated && permissions.kpi && consultazione) {
+        if (client && isAuthenticated && permissions.can_view_kpi && consultazione) {
             const checkContributions = () => {
                 client.kpi.hasContributions?.().then(data => {
                     if (data && !data.error) {
@@ -254,7 +254,7 @@ function AppContent() {
             const interval = setInterval(checkContributions, 60000);
             return () => clearInterval(interval);
         }
-    }, [client, isAuthenticated, permissions.kpi, consultazione]);
+    }, [client, isAuthenticated, permissions.can_view_kpi, consultazione]);
 
     const handleImpersonate = async (e) => {
         e.preventDefault();
@@ -732,7 +732,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'scheda' && selectedScheda && permissions.referenti && (
+                            {activeTab === 'scheda' && selectedScheda && permissions.can_manage_elections && (
                                 <div className="tab-pane active">
                                     <SchedaElettorale
                                         scheda={selectedScheda}
@@ -753,17 +753,17 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'sections' && permissions.sections && (
+                            {activeTab === 'sections' && permissions.has_scrutinio_access && (
                                 <div className="tab-pane active">
                                     <SectionList
                                         user={user}
                                         client={client}
                                         setError={setError}
-                                        referenti={permissions.referenti}
+                                        referenti={permissions.can_manage_elections}
                                     />
                                 </div>
                             )}
-                            {activeTab === 'designazione' && permissions.referenti && (
+                            {activeTab === 'designazione' && permissions.can_manage_delegations && (
                                 <div className="tab-pane active">
                                     <Mappatura
                                         client={client}
@@ -771,7 +771,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'kpi' && permissions.kpi && (
+                            {activeTab === 'kpi' && permissions.can_view_kpi && (
                                 <div className="tab-pane active">
                                     <Kpi
                                         client={client}
@@ -788,7 +788,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'sezioni' && permissions.referenti && (
+                            {activeTab === 'sezioni' && permissions.can_manage_territory && (
                                 <div className="tab-pane active">
                                     <GestioneSezioni
                                         client={client}
@@ -796,7 +796,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'gestione_rdl' && permissions.gestione_rdl && (
+                            {activeTab === 'gestione_rdl' && permissions.can_manage_rdl && (
                                 <div className="tab-pane active">
                                     <GestioneRdl
                                         client={client}
@@ -804,7 +804,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'deleghe' && permissions.referenti && (
+                            {activeTab === 'deleghe' && permissions.can_manage_delegations && (
                                 <div className="tab-pane active">
                                     <GestioneDeleghe
                                         client={client}
@@ -814,7 +814,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'designazioni' && permissions.referenti && (
+                            {activeTab === 'designazioni' && permissions.can_manage_delegations && (
                                 <div className="tab-pane active">
                                     <GestioneDesignazioni
                                         client={client}
@@ -823,7 +823,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'campagne' && permissions.referenti && (
+                            {activeTab === 'campagne' && permissions.can_manage_campaign && (
                                 <div className="tab-pane active">
                                     <GestioneCampagne
                                         client={client}
@@ -853,7 +853,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'template_list' && consultazione && permissions.referenti && (
+                            {activeTab === 'template_list' && consultazione && permissions.can_generate_documents && (
                                 <div className="tab-pane active">
                                     <TemplateList
                                         client={client}
@@ -864,7 +864,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'template_editor' && consultazione && permissions.referenti && templateIdToEdit && (
+                            {activeTab === 'template_editor' && consultazione && permissions.can_generate_documents && templateIdToEdit && (
                                 <div className="tab-pane active">
                                     <div style={{ marginBottom: '15px' }}>
                                         <button
