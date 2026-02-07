@@ -369,7 +369,7 @@ function MappaturaGerarchica({ client, consultazione, setError }) {
 
                             {/* Stats Grid for aggregated items */}
                             {item.tipo !== 'sezione' && (
-                                <div style={styles.statsGrid}>
+                                <div className="grid-auto-fit-sm" style={{ marginTop: '12px' }}>
                                     <div style={styles.statBox}>
                                         <div style={styles.statValue}>
                                             {item.totale_sezioni || 0}
@@ -609,12 +609,6 @@ const styles = {
         fontSize: '0.875rem',
         color: '#6c757d',
         marginBottom: '8px'
-    },
-    statsGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))',
-        gap: '8px',
-        marginTop: '12px'
     },
     statBox: {
         backgroundColor: '#f8f9fa',

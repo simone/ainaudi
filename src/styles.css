@@ -2151,6 +2151,12 @@ small.text-muted {
   gap: var(--spacing-sm);
 }
 
+.grid-auto-fit-sm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: var(--spacing-sm);
+}
+
 /* Typography Utilities */
 .text-xs {
   font-size: var(--font-size-xs);

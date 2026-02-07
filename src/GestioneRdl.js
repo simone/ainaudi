@@ -1152,7 +1152,7 @@ function GestioneRdl({ client, setError }) {
                         {/* Required fields */}
                         <div className="mb-4">
                             <h6 className="text-danger">Campi obbligatori</h6>
-                            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: '1fr 1fr' }}>
+                            <div className="grid-2-col gap-md">
                                 {requiredFields.map(field => (
                                     <div key={field.key}>
                                         <label className="form-label mb-1" style={{ fontSize: '0.85rem', fontWeight: 500 }}>
@@ -1176,7 +1176,7 @@ function GestioneRdl({ client, setError }) {
                         {/* Optional fields */}
                         <div className="mb-3">
                             <h6 className="text-secondary">Campi opzionali</h6>
-                            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: '1fr 1fr' }}>
+                            <div className="grid-2-col gap-md">
                                 {optionalFields.map(field => (
                                     <div key={field.key}>
                                         <label className="form-label mb-1" style={{ fontSize: '0.85rem', fontWeight: 500 }}>
@@ -1275,7 +1275,7 @@ function GestioneRdl({ client, setError }) {
                             {editingId === reg.id ? (
                                 /* Edit Mode - Complete with labels */
                                 <div style={{ padding: '12px', background: '#f8f9fa' }}>
-                                    <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: '1fr 1fr' }}>
+                                    <div className="grid-2-col gap-md">
                                         {/* Dati anagrafici */}
                                         <div>
                                             <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Nome</label>
@@ -1581,7 +1581,7 @@ function GestioneRdl({ client, setError }) {
                                                 fontSize: '0.8rem',
                                                 border: '1px solid #dee2e6'
                                             }}>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                                                <div className="grid-2-col" style={{ gap: '6px' }}>
                                                     <div style={{ gridColumn: '1 / -1' }}>
                                                         <span style={{ color: '#6c757d' }}>Email:</span> {reg.email}
                                                     </div>
@@ -1839,7 +1839,7 @@ function GestioneRdl({ client, setError }) {
                                     </div>
 
                                     {/* Record Fields */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                    <div className="grid-2-col gap-md">
                                         <div>
                                             <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
                                                 Email *

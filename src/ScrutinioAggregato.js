@@ -173,7 +173,7 @@ function ScrutinioAggregato({ client, consultazione, setError }) {
                         </div>
 
                         {/* Stats Grid */}
-                        <div style={styles.statsGrid}>
+                        <div className="grid-auto-fit-sm" style={{ marginTop: '12px' }}>
                             {/* Affluenza - Grande e prominente */}
                             <div style={{ ...styles.statBox, ...styles.statBoxLarge, backgroundColor: 'rgba(255,255,255,0.25)' }}>
                                 <div style={{ ...styles.statValueLarge, color: '#fff' }}>
@@ -215,7 +215,7 @@ function ScrutinioAggregato({ client, consultazione, setError }) {
                                     Object.keys(scheda.voti || {}).length > 0 && (
                                         <div key={idx} style={styles.schedaResults}>
                                             <div style={{ ...styles.schedaName, color: '#fff' }}>{scheda.scheda_nome}</div>
-                                            <div style={styles.votiGrid}>
+                                            <div className="grid-2-col gap-xs">
                                                 {Object.entries(scheda.voti).map(([key, value]) => (
                                                     <div key={key} style={{ ...styles.votoRow, backgroundColor: 'rgba(255,255,255,0.2)' }}>
                                                         <span style={{ ...styles.votoLabel, color: 'rgba(255,255,255,0.8)' }}>{key.toUpperCase()}</span>
@@ -341,7 +341,7 @@ function ScrutinioAggregato({ client, consultazione, setError }) {
                             )}
 
                             {/* Stats Grid */}
-                            <div style={styles.statsGrid}>
+                            <div className="grid-auto-fit-sm" style={{ marginTop: '12px' }}>
                                 {/* Affluenza - Grande e prominente */}
                                 <div style={{ ...styles.statBox, ...styles.statBoxLarge }}>
                                     <div style={styles.statValueLarge}>
@@ -402,7 +402,7 @@ function ScrutinioAggregato({ client, consultazione, setError }) {
                                         Object.keys(scheda.voti || {}).length > 0 && (
                                             <div key={idx} style={styles.schedaResults}>
                                                 <div style={styles.schedaName}>{scheda.scheda_nome}</div>
-                                                <div style={styles.votiGrid}>
+                                                <div className="grid-2-col gap-xs">
                                                     {Object.entries(scheda.voti).map(([key, value]) => (
                                                         <div key={key} style={styles.votoRow}>
                                                             <span style={styles.votoLabel}>{key.toUpperCase()}</span>
@@ -599,12 +599,6 @@ const styles = {
         color: '#6c757d',
         marginBottom: '4px'
     },
-    statsGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))',
-        gap: '8px',
-        marginTop: '12px'
-    },
     statBox: {
         backgroundColor: '#f8f9fa',
         borderRadius: '8px',
@@ -655,11 +649,6 @@ const styles = {
         fontWeight: 'bold',
         color: '#495057',
         marginBottom: '4px'
-    },
-    votiGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '4px'
     },
     votoRow: {
         display: 'flex',

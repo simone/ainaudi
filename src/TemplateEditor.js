@@ -1303,7 +1303,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                     </div>
                                 )}
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                <div className="grid-2-col" style={{ gap: '15px' }}>
                                     <div className="form-group">
                                         <label>X (coordinate orizzontale)</label>
                                         <input
