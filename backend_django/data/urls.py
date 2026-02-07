@@ -41,6 +41,8 @@ from .views_scrutinio_optimized import (
 from .views_scrutinio_aggregato import ScrutinioAggregatoView
 # Import mappatura gerarchica view
 from .views_mappatura_gerarchica import MappaturaGerarchicaView
+# Import mappatura analizza preferenze view
+from .views_analizza_preferenze import MappaturaAnalizzaPreferenzeView
 
 urlpatterns = [
     path('stats', SectionsStatsView.as_view(), name='sections-stats'),
@@ -74,6 +76,7 @@ mappatura_urlpatterns = [
     path('assegna/', MappaturaAssegnaView.as_view(), name='mappatura-assegna'),
     path('assegna/<int:assignment_id>/', MappaturaAssegnaView.as_view(), name='mappatura-assegna-detail'),
     path('assegna-bulk/', MappaturaAssegnaBulkView.as_view(), name='mappatura-assegna-bulk'),
+    path('analizza-preferenze/', MappaturaAnalizzaPreferenzeView.as_view(), name='mappatura-analizza-preferenze'),
     # Hierarchical navigation
     path('gerarchica/', MappaturaGerarchicaView.as_view(), name='mappatura-gerarchica'),
 ]

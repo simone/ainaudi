@@ -1153,6 +1153,17 @@ small.text-muted {
 .mappatura-rdl-pref {
   font-style: italic;
   margin-top: var(--spacing-xs);
+  font-size: 0.85rem;
+}
+
+.mappatura-rdl-notes {
+  font-style: italic;
+  margin-top: var(--spacing-xs);
+  font-size: 0.85rem;
+  background: rgba(108, 117, 125, 0.08);
+  padding: 6px 10px;
+  border-radius: 4px;
+  border-left: 3px solid #6c757d;
 }
 
 /* RDL assigned sections */
@@ -1541,6 +1552,27 @@ small.text-muted {
 .mappatura-add-sezione-item.selected {
   background: var(--color-primary);
   color: white;
+}
+
+.mappatura-add-sezione-item.disabled {
+  background: repeating-linear-gradient(
+    45deg,
+    #f8f9fa,
+    #f8f9fa 10px,
+    #e9ecef 10px,
+    #e9ecef 20px
+  );
+  cursor: not-allowed !important;
+}
+
+.mappatura-add-sezione-item.disabled:hover {
+  background: repeating-linear-gradient(
+    45deg,
+    #f8f9fa,
+    #f8f9fa 10px,
+    #e9ecef 10px,
+    #e9ecef 20px
+  );
 }
 
 .mappatura-add-sezione-item input[type="checkbox"] {

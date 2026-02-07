@@ -104,6 +104,17 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
         loading: false
     });
 
+    // Assegna preferenze modal
+    const [assegnaPreferenzeModal, setAssegnaPreferenzeModal] = useState({
+        show: false,
+        rdl: null,
+        preferenza: '',
+        sezioniTrovate: [],
+        selectedSezioni: new Set(),
+        ruolo: 'RDL',
+        loading: false
+    });
+
     // Load data when filters change (or on mount)
     useEffect(() => {
         loadData();
@@ -465,6 +476,85 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
         if (!rdl || selectedSezioni.size === 0) return;
 
         closeAddSezioniModal();
+
+        const result = await client.mappatura.assegnaBulk(
+            rdl.rdl_registration_id,
+            Array.from(selectedSezioni),
+            ruolo
+        );
+
+        if (result.error) {
+            setError(result.error);
+        } else {
+            client.mappatura.invalidateCache();
+            loadData();
+        }
+    };
+
+    // Assegna preferenze handlers
+    const openAssegnaPreferenzeModal = async (rdl) => {
+        setAssegnaPreferenzeModal({
+            show: true,
+            rdl,
+            preferenza: rdl.seggio_preferenza || '',
+            sezioniTrovate: [],
+            selectedSezioni: new Set(),
+            ruolo: 'RDL',
+            loading: true
+        });
+
+        // Analizza preferenze
+        const result = await client.mappatura.analizzaPreferenze(
+            rdl.rdl_registration_id,
+            rdl.seggio_preferenza
+        );
+
+        if (result.error) {
+            setError(result.error);
+            closeAssegnaPreferenzeModal();
+        } else {
+            // Pre-seleziona solo le sezioni disponibili (non assegnate)
+            const disponibili = (result.all_sezioni || []).filter(s => !s.is_assigned);
+            const preselected = new Set(disponibili.map(s => s.id));
+
+            setAssegnaPreferenzeModal(prev => ({
+                ...prev,
+                sezioniTrovate: result.all_sezioni || [],
+                selectedSezioni: preselected,
+                loading: false
+            }));
+        }
+    };
+
+    const closeAssegnaPreferenzeModal = () => {
+        setAssegnaPreferenzeModal({
+            show: false,
+            rdl: null,
+            preferenza: '',
+            sezioniTrovate: [],
+            selectedSezioni: new Set(),
+            ruolo: 'RDL',
+            loading: false
+        });
+    };
+
+    const toggleAssegnaPreferenzeSelection = (sezId) => {
+        setAssegnaPreferenzeModal(prev => {
+            const next = new Set(prev.selectedSezioni);
+            if (next.has(sezId)) {
+                next.delete(sezId);
+            } else {
+                next.add(sezId);
+            }
+            return { ...prev, selectedSezioni: next };
+        });
+    };
+
+    const handleAssegnaPreferenze = async () => {
+        const { rdl, selectedSezioni, ruolo } = assegnaPreferenzeModal;
+        if (!rdl || selectedSezioni.size === 0) return;
+
+        closeAssegnaPreferenzeModal();
 
         const result = await client.mappatura.assegnaBulk(
             rdl.rdl_registration_id,
@@ -1028,7 +1118,16 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                     ) : '-'}
                                 </div>
                                 {rdl.seggio_preferenza && (
-                                    <div className="mappatura-rdl-pref">Pref: {rdl.seggio_preferenza}</div>
+                                    <div className="mappatura-rdl-pref">
+                                        <i className="fas fa-map-pin me-1"></i>
+                                        <strong>Pref:</strong> {rdl.seggio_preferenza}
+                                    </div>
+                                )}
+                                {rdl.notes && (
+                                    <div className="mappatura-rdl-notes">
+                                        <i className="fas fa-sticky-note me-1"></i>
+                                        <strong>Note:</strong> {rdl.notes}
+                                    </div>
                                 )}
                             </div>
 
@@ -1040,6 +1139,16 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                 >
                                     + Aggiungi Sezione
                                 </button>
+                                {rdl.seggio_preferenza && (
+                                    <button
+                                        className="btn btn-sm btn-outline-success ms-2"
+                                        onClick={() => openAssegnaPreferenzeModal(rdl)}
+                                        title="Analizza la preferenza e assegna automaticamente"
+                                    >
+                                        <i className="fas fa-magic me-1"></i>
+                                        Assegna Preferenze
+                                    </button>
+                                )}
                             </div>
 
                             {/* Sezioni assegnate */}
@@ -1296,6 +1405,115 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                     </div>
                                 )}
                             </div>
+                        </>
+                    )}
+                </div>
+            </ConfirmModal>
+
+            {/* Assegna Preferenze Modal */}
+            <ConfirmModal
+                show={assegnaPreferenzeModal.show}
+                onConfirm={handleAssegnaPreferenze}
+                onCancel={closeAssegnaPreferenzeModal}
+                title={`Assegna Preferenze: ${assegnaPreferenzeModal.rdl?.cognome} ${assegnaPreferenzeModal.rdl?.nome}`}
+                confirmText={`Assegna ${assegnaPreferenzeModal.selectedSezioni.size} sezioni`}
+                confirmVariant="success"
+                confirmDisabled={assegnaPreferenzeModal.selectedSezioni.size === 0}
+            >
+                <div>
+                    <div className="mappatura-modal-info">
+                        <strong>RDL:</strong> {assegnaPreferenzeModal.rdl?.cognome} {assegnaPreferenzeModal.rdl?.nome}
+                    </div>
+                    <div className="mappatura-modal-info">
+                        <strong>Preferenza espressa:</strong> "{assegnaPreferenzeModal.preferenza}"
+                    </div>
+                    <div className="mappatura-modal-info mb-2">
+                        <label className="form-label mb-1">Ruolo:</label>
+                        <select
+                            className="form-select form-select-sm"
+                            value={assegnaPreferenzeModal.ruolo}
+                            onChange={(e) => setAssegnaPreferenzeModal(prev => ({ ...prev, ruolo: e.target.value }))}
+                        >
+                            <option value="RDL">Effettivo</option>
+                            <option value="SUPPLENTE">Supplente</option>
+                        </select>
+                    </div>
+
+                    {assegnaPreferenzeModal.loading ? (
+                        <div style={{ padding: '20px', textAlign: 'center' }}>
+                            <div className="spinner-border spinner-border-sm text-primary"></div>
+                            <span style={{ marginLeft: '8px' }}>Analisi preferenze in corso...</span>
+                        </div>
+                    ) : (
+                        <>
+                            {assegnaPreferenzeModal.sezioniTrovate.length === 0 ? (
+                                <div className="alert alert-warning" style={{ marginTop: '12px' }}>
+                                    <i className="fas fa-exclamation-triangle me-2"></i>
+                                    Nessuna sezione trovata corrispondente alla preferenza.
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="mappatura-modal-info">
+                                        <strong>{assegnaPreferenzeModal.sezioniTrovate.length}</strong> sezioni trovate
+                                        {assegnaPreferenzeModal.selectedSezioni.size > 0 && (
+                                            <span className="ms-2 text-success">
+                                                ({assegnaPreferenzeModal.selectedSezioni.size} selezionate per assegnazione)
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="mappatura-add-sezioni-list" style={{ maxHeight: '400px', overflowY: 'auto', marginTop: '12px' }}>
+                                        {assegnaPreferenzeModal.sezioniTrovate.map(sez => {
+                                            const isDisabled = sez.is_assigned;
+                                            return (
+                                                <div
+                                                    key={sez.id}
+                                                    className={`mappatura-add-sezione-item ${assegnaPreferenzeModal.selectedSezioni.has(sez.id) ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+                                                    onClick={() => !isDisabled && toggleAssegnaPreferenzeSelection(sez.id)}
+                                                    style={{ cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.6 : 1 }}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={assegnaPreferenzeModal.selectedSezioni.has(sez.id)}
+                                                        disabled={isDisabled}
+                                                        onChange={() => {}}
+                                                    />
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <span className="mappatura-add-sezione-num">Sez. {sez.numero}</span>
+                                                            {sez.municipio && (
+                                                                <span className="badge bg-secondary" style={{ fontSize: '0.7rem' }}>
+                                                                    Mun. {sez.municipio}
+                                                                </span>
+                                                            )}
+                                                            <span className="badge bg-info" style={{ fontSize: '0.65rem' }}>
+                                                                {sez.match_type}
+                                                            </span>
+                                                        </div>
+                                                        {sez.denominazione && (
+                                                            <div style={{ fontSize: '0.75rem', color: '#6c757d' }}>{sez.denominazione}</div>
+                                                        )}
+                                                        {sez.indirizzo && (
+                                                            <div style={{ fontSize: '0.7rem', color: '#6c757d' }}>
+                                                                <i className="fas fa-map-marker-alt me-1"></i>
+                                                                {sez.indirizzo}
+                                                            </div>
+                                                        )}
+                                                        {isDisabled && (
+                                                            <div style={{ fontSize: '0.7rem', color: '#dc3545', marginTop: '4px' }}>
+                                                                <i className="fas fa-exclamation-circle me-1"></i>
+                                                                Già assegnata
+                                                                {sez.effettivo && ` - Eff: ${sez.effettivo}`}
+                                                                {sez.supplente && ` - Sup: ${sez.supplente}`}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </>
+                            )}
                         </>
                     )}
                 </div>

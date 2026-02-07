@@ -1600,6 +1600,23 @@ const Client = (server, pdfServer, token) => {
                 return { error: error.message };
             }),
 
+        // Analizza preferenze RDL e suggerisci sezioni
+        analizzaPreferenze: async (rdlRegistrationId, preferenza) =>
+            fetch(`${server}/api/mapping/analizza-preferenze/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify({
+                    rdl_registration_id: rdlRegistrationId,
+                    preferenza: preferenza
+                })
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
         // Invalida cache mappatura
         invalidateCache: () => {
             // Invalida tutte le chiavi che iniziano con 'mappatura.'
