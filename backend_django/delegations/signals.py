@@ -388,7 +388,7 @@ def provision_delegato_user(sender, instance, created, **kwargs):
             # Email changed
             user, user_created = handle_email_change(
                 instance=instance,
-                model_name='DelegatoDiLista',
+                model_name='Delegato',
                 role=RoleAssignment.Role.DELEGATE,
                 old_data=old_data,
                 scope_type=RoleAssignment.ScopeType.GLOBAL,
@@ -398,7 +398,7 @@ def provision_delegato_user(sender, instance, created, **kwargs):
                 log_provisioning_action(
                     action=AuditLog.Action.UPDATE,
                     user=user,
-                    target_model='DelegatoDiLista',
+                    target_model='Delegato',
                     target_id=instance.id,
                     details={
                         'provisioning': 'auto',

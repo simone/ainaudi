@@ -7,25 +7,20 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('delegations', '0006_add_is_active_to_batch'),
+        ('delegations', '0012_refactor_designazione_rdl_snapshot_fields'),
         ('elections', '0001_initial'),
         ('territory', '0001_initial'),
     ]
 
     operations = [
         # 1. Rinomina il modello DelegatoDiLista → Delegato
+        # (RenameModel mantiene il nome tabella esistente 'delegations_delegatodelista')
         migrations.RenameModel(
             old_name='DelegatoDiLista',
             new_name='Delegato',
         ),
 
-        # 2. Rinomina la tabella nel database
-        migrations.AlterModelTable(
-            name='delegato',
-            table='delegations_delegato',
-        ),
-
-        # 3. Aggiorna Meta (verbose_name, unique_together)
+        # 2. Aggiorna Meta (verbose_name, unique_together)
         migrations.AlterModelOptions(
             name='delegato',
             options={
@@ -35,13 +30,13 @@ class Migration(migrations.Migration):
             },
         ),
 
-        # 4. Aggiorna unique_together (rimuove data_nascita)
+        # 3. Aggiorna unique_together (rimuove data_nascita)
         migrations.AlterUniqueTogether(
             name='delegato',
             unique_together={('consultazione', 'cognome', 'nome')},
         ),
 
-        # 5. Rendi opzionali i campi che non sono (nome, cognome, consultazione)
+        # 4. Rendi opzionali i campi che non sono (nome, cognome, consultazione)
         migrations.AlterField(
             model_name='delegato',
             name='luogo_nascita',
@@ -63,7 +58,7 @@ class Migration(migrations.Migration):
             field=models.DateField(blank=True, null=True, verbose_name='data nomina'),
         ),
 
-        # 6. Rinomina i campi M2M territorio (territorio_regioni → regioni, etc.)
+        # 5. Rinomina i campi M2M territorio (territorio_regioni → regioni, etc.)
         migrations.RenameField(
             model_name='delegato',
             old_name='territorio_regioni',
@@ -85,7 +80,7 @@ class Migration(migrations.Migration):
             new_name='municipi',
         ),
 
-        # 7. Aggiorna il related_name per ForeignKey in ConsultazioneElettorale
+        # 6. Aggiorna il related_name per ForeignKey in ConsultazioneElettorale
         migrations.AlterField(
             model_name='delegato',
             name='consultazione',
@@ -97,7 +92,7 @@ class Migration(migrations.Migration):
             ),
         ),
 
-        # 8. Aggiorna l'upload path per documento_nomina
+        # 7. Aggiorna l'upload path per documento_nomina
         migrations.AlterField(
             model_name='delegato',
             name='documento_nomina',
