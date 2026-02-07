@@ -179,14 +179,16 @@ function AppContent() {
     // Load consultazioni and set the active one
     useEffect(() => {
         if (client && isAuthenticated) {
-            // Carica la lista delle consultazioni
-            client.election.list().then(data => {
-                if (!data.error && Array.isArray(data)) {
-                    setConsultazioni(data);
-                }
-            }).catch(() => {});
+            // Carica la lista delle consultazioni (solo per chi può gestire elezioni o delegazioni)
+            if (permissions.can_manage_elections || permissions.can_manage_delegations || permissions.is_superuser) {
+                client.election.list().then(data => {
+                    if (!data.error && Array.isArray(data)) {
+                        setConsultazioni(data);
+                    }
+                }).catch(() => {});
+            }
 
-            // Carica la consultazione attiva (prima nel futuro o in corso)
+            // Carica la consultazione attiva (accessibile a tutti gli autenticati)
             client.election.active().then(data => {
                 if (!data.error && data.id) {
                     setConsultazione(data);
@@ -196,7 +198,7 @@ function AppContent() {
                 setConsultazioneLoaded(true);
             });
         }
-    }, [client, isAuthenticated]);
+    }, [client, isAuthenticated, permissions.can_manage_elections, permissions.can_manage_delegations, permissions.is_superuser]);
 
     // Handle consultazione switch
     const handleConsultazioneChange = async (id) => {
