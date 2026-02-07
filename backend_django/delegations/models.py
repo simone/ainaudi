@@ -145,9 +145,6 @@ class Delegato(models.Model):
         return None
 
 
-# Backwards compatibility: alias per non rompere codice esistente
-DelegatoDiLista = Delegato
-
 
 # =============================================================================
 # SUB-DELEGA (dal Delegato di Lista al Sub-Delegato)
@@ -642,7 +639,9 @@ class BatchGenerazioneDocumenti(models.Model):
         'elections.ConsultazioneElettorale',
         on_delete=models.CASCADE,
         related_name='batch_documenti',
-        verbose_name=_('consultazione')
+        verbose_name=_('consultazione'),
+        null=True,
+        blank=True
     )
 
     tipo = models.CharField(_('tipo'), max_length=20, choices=Tipo.choices)

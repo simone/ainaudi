@@ -139,6 +139,7 @@ function AppContent() {
                     return;
                 }
                 setPermissions(perms);
+                console.log(perms);
 
                 // Verifica se l'utente ha almeno un permesso significativo
                 const hasAnyPermission = (

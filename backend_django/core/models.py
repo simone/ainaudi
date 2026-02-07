@@ -350,6 +350,7 @@ class CustomPermission(models.Model):
     - can_manage_elections: Gestione consultazioni elettorali
     - can_manage_delegations: Gestione catena deleghe
     - can_manage_rdl: Gestione RDL registrations
+    - can_manage_campaign: Gestione campagne reclutamento RDL
     - has_scrutinio_access: Inserimento dati scrutinio
     - can_view_resources: Accesso risorse/documenti
     - can_ask_to_ai_assistant: Uso chatbot AI
@@ -365,6 +366,7 @@ class CustomPermission(models.Model):
             ('can_manage_elections', 'Can manage elections and ballots'),
             ('can_manage_delegations', 'Can manage delegations chain'),
             ('can_manage_rdl', 'Can manage RDL registrations'),
+            ('can_manage_campaign', 'Can manage RDL recruitment campaigns'),
             ('has_scrutinio_access', 'Can enter section scrutinio data'),
             ('can_view_resources', 'Can view resources and documents'),
             ('can_ask_to_ai_assistant', 'Can use AI assistant chatbot'),

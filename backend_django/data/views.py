@@ -1718,7 +1718,7 @@ class RdlRegistrationListView(APIView):
     GET /api/rdl/registrations?status=PENDING
 
     Returns registrations filtered by delegate's scope.
-    Supports both DelegatoDiLista/SubDelega and RoleAssignment permission systems.
+    Supports both Delegato/SubDelega and RoleAssignment permission systems.
 
     Permission: can_manage_rdl (Delegato, SubDelegato)
     """
@@ -1739,7 +1739,7 @@ class RdlRegistrationListView(APIView):
             has_global_access = True
             has_permission = True
 
-        # 2. Check delegation chain (DelegatoDiLista / SubDelega) - PREFERRED
+        # 2. Check delegation chain (Delegato / SubDelega) - PREFERRED
         if not has_permission:
             delegation_roles = get_user_delegation_roles(user)
 
@@ -1747,12 +1747,12 @@ class RdlRegistrationListView(APIView):
                 has_permission = True
                 # Build filter based on delegato's territory
                 for delega in delegation_roles['deleghe_lista'].prefetch_related(
-                    'territorio_regioni', 'territorio_province', 'territorio_comuni'
+                    'regioni', 'province', 'comuni'
                 ):
-                    regioni_ids = list(delega.territorio_regioni.values_list('id', flat=True))
-                    province_ids = list(delega.territorio_province.values_list('id', flat=True))
-                    comuni_ids = list(delega.territorio_comuni.values_list('id', flat=True))
-                    municipi_nums = delega.territorio_municipi
+                    regioni_ids = list(delega.regioni.values_list('id', flat=True))
+                    province_ids = list(delega.province.values_list('id', flat=True))
+                    comuni_ids = list(delega.comuni.values_list('id', flat=True))
+                    municipi_nums = delega.municipi
 
                     if not regioni_ids and not province_ids and not comuni_ids and not municipi_nums:
                         # No territory restriction = global access
@@ -1943,7 +1943,7 @@ class RdlRegistrationApproveView(APIView):
     def _has_permission(self, user, comune, municipio=None):
         """
         Check if user has permission to approve/reject RDL for this comune/municipio.
-        Uses both DelegatoDiLista/SubDelega and RoleAssignment systems.
+        Uses both Delegato/SubDelega and RoleAssignment systems.
         """
         if user.is_superuser:
             return True
@@ -1951,18 +1951,18 @@ class RdlRegistrationApproveView(APIView):
         from core.models import RoleAssignment
         from delegations.permissions import get_user_delegation_roles
 
-        # 1. Check delegation chain (DelegatoDiLista / SubDelega) - PREFERRED
+        # 1. Check delegation chain (Delegato / SubDelega) - PREFERRED
         delegation_roles = get_user_delegation_roles(user)
 
         # Check as Delegato
         if delegation_roles['is_delegato']:
             for delega in delegation_roles['deleghe_lista'].prefetch_related(
-                'territorio_regioni', 'territorio_province', 'territorio_comuni'
+                'regioni', 'province', 'comuni'
             ):
-                regioni_ids = list(delega.territorio_regioni.values_list('id', flat=True))
-                province_ids = list(delega.territorio_province.values_list('id', flat=True))
-                comuni_ids = list(delega.territorio_comuni.values_list('id', flat=True))
-                municipi_nums = delega.territorio_municipi
+                regioni_ids = list(delega.regioni.values_list('id', flat=True))
+                province_ids = list(delega.province.values_list('id', flat=True))
+                comuni_ids = list(delega.comuni.values_list('id', flat=True))
+                municipi_nums = delega.municipi
 
                 # No territory restriction = global access
                 if not regioni_ids and not province_ids and not comuni_ids and not municipi_nums:
@@ -2152,7 +2152,7 @@ class RdlRegistrationEditView(APIView):
     def _has_permission(self, user, comune, municipio=None):
         """
         Check if user has permission to edit/delete RDL registration.
-        Uses both DelegatoDiLista/SubDelega and RoleAssignment systems.
+        Uses both Delegato/SubDelega and RoleAssignment systems.
         """
         if user.is_superuser:
             return True
@@ -2160,18 +2160,18 @@ class RdlRegistrationEditView(APIView):
         from core.models import RoleAssignment
         from delegations.permissions import get_user_delegation_roles
 
-        # 1. Check delegation chain (DelegatoDiLista / SubDelega) - PREFERRED
+        # 1. Check delegation chain (Delegato / SubDelega) - PREFERRED
         delegation_roles = get_user_delegation_roles(user)
 
         # Check as Delegato
         if delegation_roles['is_delegato']:
             for delega in delegation_roles['deleghe_lista'].prefetch_related(
-                'territorio_regioni', 'territorio_province', 'territorio_comuni'
+                'regioni', 'province', 'comuni'
             ):
-                regioni_ids = list(delega.territorio_regioni.values_list('id', flat=True))
-                province_ids = list(delega.territorio_province.values_list('id', flat=True))
-                comuni_ids = list(delega.territorio_comuni.values_list('id', flat=True))
-                municipi_nums = delega.territorio_municipi
+                regioni_ids = list(delega.regioni.values_list('id', flat=True))
+                province_ids = list(delega.province.values_list('id', flat=True))
+                comuni_ids = list(delega.comuni.values_list('id', flat=True))
+                municipi_nums = delega.municipi
 
                 # No territory restriction = global access
                 if not regioni_ids and not province_ids and not comuni_ids and not municipi_nums:
@@ -2614,15 +2614,15 @@ class RdlRegistrationImportView(APIView):
 
         if delegation_roles['is_delegato']:
             for delega in delegation_roles['deleghe_lista'].prefetch_related(
-                'territorio_regioni', 'territorio_province', 'territorio_comuni'
+                'regioni', 'province', 'comuni'
             ):
                 territori = []
-                if delega.territorio_regioni.exists():
-                    territori.append(f"Regioni: {', '.join(delega.territorio_regioni.values_list('nome', flat=True))}")
-                if delega.territorio_province.exists():
-                    territori.append(f"Province: {', '.join(delega.territorio_province.values_list('nome', flat=True))}")
-                if delega.territorio_comuni.exists():
-                    territori.append(f"Comuni: {', '.join(delega.territorio_comuni.values_list('nome', flat=True)[:5])}")
+                if delega.regioni.exists():
+                    territori.append(f"Regioni: {', '.join(delega.regioni.values_list('nome', flat=True))}")
+                if delega.province.exists():
+                    territori.append(f"Province: {', '.join(delega.province.values_list('nome', flat=True))}")
+                if delega.comuni.exists():
+                    territori.append(f"Comuni: {', '.join(delega.comuni.values_list('nome', flat=True)[:5])}")
                 if territori:
                     user_territory_info.append(' - '.join(territori))
 
@@ -2961,7 +2961,7 @@ class RdlRegistrationImportView(APIView):
     def _has_permission(self, user, comune, municipio=None):
         """
         Check if user has permission to import RDL for this comune/municipio.
-        Uses both DelegatoDiLista/SubDelega and RoleAssignment systems.
+        Uses both Delegato/SubDelega and RoleAssignment systems.
         """
         if user.is_superuser:
             return True
@@ -2969,18 +2969,18 @@ class RdlRegistrationImportView(APIView):
         from core.models import RoleAssignment
         from delegations.permissions import get_user_delegation_roles
 
-        # 1. Check delegation chain (DelegatoDiLista / SubDelega) - PREFERRED
+        # 1. Check delegation chain (Delegato / SubDelega) - PREFERRED
         delegation_roles = get_user_delegation_roles(user)
 
         # Check as Delegato
         if delegation_roles['is_delegato']:
             for delega in delegation_roles['deleghe_lista'].prefetch_related(
-                'territorio_regioni', 'territorio_province', 'territorio_comuni'
+                'regioni', 'province', 'comuni'
             ):
-                regioni_ids = list(delega.territorio_regioni.values_list('id', flat=True))
-                province_ids = list(delega.territorio_province.values_list('id', flat=True))
-                comuni_ids = list(delega.territorio_comuni.values_list('id', flat=True))
-                municipi_nums = delega.territorio_municipi
+                regioni_ids = list(delega.regioni.values_list('id', flat=True))
+                province_ids = list(delega.province.values_list('id', flat=True))
+                comuni_ids = list(delega.comuni.values_list('id', flat=True))
+                municipi_nums = delega.municipi
 
                 # No territory restriction = global access
                 if not regioni_ids and not province_ids and not comuni_ids and not municipi_nums:
@@ -3502,15 +3502,15 @@ class MappaturaSezioniView(APIView):
 
         # Delegato: check their territory
         elif roles['is_delegato']:
-            for delega in roles['deleghe_lista'].prefetch_related('territorio_comuni'):
-                for comune in delega.territorio_comuni.all():
+            for delega in roles['deleghe_lista'].prefetch_related('comuni'):
+                for comune in delega.comuni.all():
                     if comune.nome not in [c['nome'] for c in result['comuni']]:
                         result['comuni'].append({
                             'id': comune.id,
                             'nome': comune.nome,
                         })
-                if delega.territorio_municipi:
-                    for mun_num in delega.territorio_municipi:
+                if delega.municipi:
+                    for mun_num in delega.municipi:
                         if mun_num not in result['municipi']:
                             result['municipi'].append(mun_num)
                     result['is_limited'] = True

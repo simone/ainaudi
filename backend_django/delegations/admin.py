@@ -57,7 +57,7 @@ class DelegatoAdmin(admin.ModelAdmin):
     list_filter = ['carica', 'consultazione', 'data_nomina']
     search_fields = ['cognome', 'nome', 'email', 'circoscrizione']
     ordering = ['consultazione', 'cognome', 'nome']
-    autocomplete_fields = ['consultazione']
+    autocomplete_fields = ['consultazione', 'regioni', 'province', 'comuni']
     filter_horizontal = ['regioni', 'province', 'comuni']
     inlines = [SubDelegaInline]
 
@@ -147,7 +147,6 @@ class SubDelegaAdmin(admin.ModelAdmin):
     # autocomplete_fields = ['delegato', 'regioni', 'province', 'comuni']
     autocomplete_fields = ['regioni', 'province', 'comuni']
     filter_horizontal = ['regioni', 'province', 'comuni']
-    inlines = [DesignazioneRDLInline]
 
     fieldsets = (
         (_('Delegato'), {

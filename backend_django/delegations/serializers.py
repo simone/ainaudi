@@ -53,10 +53,6 @@ class DelegatoSerializer(serializers.ModelSerializer):
         return ' | '.join(parti) if parti else None
 
 
-# Backwards compatibility alias
-DelegatoDiListaSerializer = DelegatoSerializer
-
-
 class SubDelegaSerializer(serializers.ModelSerializer):
     """Serializer per Sub-Delega."""
     nome_completo = serializers.CharField(read_only=True)
@@ -387,7 +383,7 @@ class MiaCatenaSerializer(serializers.Serializer):
     is_delegato = serializers.BooleanField()
     is_sub_delegato = serializers.BooleanField()
     is_rdl = serializers.BooleanField()
-    deleghe_lista = DelegatoDiListaSerializer(many=True)
+    deleghe_lista = DelegatoSerializer(many=True)
     sub_deleghe_ricevute = SubDelegaSerializer(many=True)
     sub_deleghe_fatte = SubDelegaSerializer(many=True)
     designazioni_fatte = DesignazioneRDLListSerializer(many=True)

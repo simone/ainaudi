@@ -13,7 +13,7 @@ from elections.models import ConsultazioneElettorale
 from territory.models import SezioneElettorale
 from .models import Delegato, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti
 from .serializers import (
-    DelegatoDiListaSerializer,
+    DelegatoSerializer,
     SubDelegaSerializer, SubDelegaCreateSerializer,
     DesignazioneRDLSerializer, DesignazioneRDLCreateSerializer, DesignazioneRDLListSerializer,
     BatchGenerazioneDocumentiSerializer,
@@ -59,12 +59,12 @@ class MiaCatenaView(views.APIView):
         }
 
         # Delegato di Lista?
-        deleghe_lista = DelegatoDiLista.objects.filter(email=user.email)
+        deleghe_lista = Delegato.objects.filter(email=user.email)
         if consultazione:
             deleghe_lista = deleghe_lista.filter(consultazione=consultazione)
         if deleghe_lista.exists():
             result['is_delegato'] = True
-            result['deleghe_lista'] = DelegatoDiListaSerializer(deleghe_lista, many=True).data
+            result['deleghe_lista'] = DelegatoSerializer(deleghe_lista, many=True).data
             # Sub-deleghe fatte come Delegato
             for dl in deleghe_lista:
                 sub_deleghe = dl.sub_deleghe.filter(is_attiva=True)
@@ -315,7 +315,7 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
 
         # Trova il territorio di competenza dell'utente
         sub_deleghe = SubDelega.objects.filter(email=user.email, is_attiva=True)
-        delegati = DelegatoDiLista.objects.filter(email=user.email)
+        delegati = Delegato.objects.filter(email=user.email)
 
         comuni_ids = set()
         municipi_ids = set()
@@ -436,7 +436,7 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         # Ottieni ruoli per trovare sub-deleghe e delegati
         roles = get_user_delegation_roles(user, consultazione_id)
         sub_deleghe = roles['sub_deleghe'].prefetch_related('regioni', 'province', 'comuni')
-        delegati = roles['deleghe_lista'].prefetch_related('territorio_regioni', 'territorio_province', 'territorio_comuni')
+        delegati = roles['deleghe_lista'].prefetch_related('regioni', 'province', 'comuni')
 
         # Prendi tutte le SectionAssignment nel territorio
         assignments = SectionAssignment.objects.filter(
@@ -506,21 +506,21 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         # Helper function per verificare se una sezione matcha un delegato
         def sezione_matches_delegato(sezione, delegato):
             """Verifica se una sezione è coperta da un delegato"""
-            # Check regioni (territorio_regioni)
-            regioni_ids = list(delegato.territorio_regioni.values_list('id', flat=True))
+            # Check regioni
+            regioni_ids = list(delegato.regioni.values_list('id', flat=True))
             if regioni_ids:
                 if sezione.comune and sezione.comune.provincia and sezione.comune.provincia.regione_id in regioni_ids:
                     return True
 
-            # Check province (territorio_province)
-            province_ids = list(delegato.territorio_province.values_list('id', flat=True))
+            # Check province
+            province_ids = list(delegato.province.values_list('id', flat=True))
             if province_ids:
                 if sezione.comune and sezione.comune.provincia_id in province_ids:
                     return True
 
             # Check comuni + municipi
-            comuni_ids = list(delegato.territorio_comuni.values_list('id', flat=True))
-            municipi_nums = delegato.territorio_municipi
+            comuni_ids = list(delegato.comuni.values_list('id', flat=True))
+            municipi_nums = delegato.municipi
 
             if comuni_ids and municipi_nums:
                 if sezione.comune_id in comuni_ids and sezione.municipio and sezione.municipio.numero in municipi_nums:
@@ -800,7 +800,7 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         municipio_id = request.query_params.get('municipio')
 
         # Verifica che l'utente possa confermare (delegato o sub con firma)
-        delegati = DelegatoDiLista.objects.filter(email=user.email)
+        delegati = Delegato.objects.filter(email=user.email)
         sub_deleghe_firma = SubDelega.objects.filter(
             email=user.email,
             is_attiva=True,

@@ -144,18 +144,25 @@ def assign_permissions_for_role(user, role):
     role_permissions = {
         RoleAssignment.Role.DELEGATE: [
             'can_view_kpi',
+            'can_manage_elections',
+            'can_manage_delegations',
             'can_manage_rdl',
+            'can_manage_campaign',
             'has_scrutinio_access',
             'can_view_resources',
             'can_ask_to_ai_assistant',
+            'can_generate_documents',
             'can_manage_incidents',
         ],
         RoleAssignment.Role.SUBDELEGATE: [
             'can_view_kpi',
+            'can_manage_delegations',
             'can_manage_rdl',
+            'can_manage_campaign',
             'has_scrutinio_access',
             'can_view_resources',
             'can_ask_to_ai_assistant',
+            'can_generate_documents',
             'can_manage_incidents',
         ],
         RoleAssignment.Role.RDL: [

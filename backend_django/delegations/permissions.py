@@ -124,16 +124,16 @@ def get_sezioni_filter_for_user(user, consultazione_id=None):
         sezioni_filter = None
 
         for delega in roles['deleghe_lista'].prefetch_related(
-            'territorio_regioni', 'territorio_province', 'territorio_comuni'
+            'regioni', 'province', 'comuni'
         ):
             # Filtra per regioni
-            regioni_ids = list(delega.territorio_regioni.values_list('id', flat=True))
+            regioni_ids = list(delega.regioni.values_list('id', flat=True))
             if regioni_ids:
                 new_filter = Q(comune__provincia__regione_id__in=regioni_ids)
                 sezioni_filter = new_filter if sezioni_filter is None else (sezioni_filter | new_filter)
 
             # Filtra per province
-            province_ids = list(delega.territorio_province.values_list('id', flat=True))
+            province_ids = list(delega.province.values_list('id', flat=True))
             if province_ids:
                 new_filter = Q(comune__provincia_id__in=province_ids)
                 sezioni_filter = new_filter if sezioni_filter is None else (sezioni_filter | new_filter)
@@ -142,8 +142,8 @@ def get_sezioni_filter_for_user(user, consultazione_id=None):
             # Se sono specificati sia comuni che municipi, vanno in AND (solo quei municipi di quei comuni)
             # Se solo comuni, tutti i loro settori
             # Se solo municipi (senza comuni), tutti i settori in quei municipi
-            comuni_ids = list(delega.territorio_comuni.values_list('id', flat=True))
-            municipi_nums = delega.territorio_municipi
+            comuni_ids = list(delega.comuni.values_list('id', flat=True))
+            municipi_nums = delega.municipi
 
             if comuni_ids and municipi_nums:
                 # Comuni E municipi: restringe ai municipi specifici di quei comuni
