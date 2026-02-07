@@ -143,7 +143,9 @@ class SubDelegaAdmin(admin.ModelAdmin):
     list_filter = ['is_attiva', 'tipo_delega', 'firma_autenticata', 'delegato__consultazione', 'delegato__carica']
     search_fields = ['cognome', 'nome', 'email', 'delegato__cognome', 'delegato__nome']
     ordering = ['delegato', 'cognome', 'nome']
-    autocomplete_fields = ['delegato', 'regioni', 'province', 'comuni']
+    # Temporaneamente disabilitato per permettere la migration
+    # autocomplete_fields = ['delegato', 'regioni', 'province', 'comuni']
+    autocomplete_fields = ['regioni', 'province', 'comuni']
     filter_horizontal = ['regioni', 'province', 'comuni']
     inlines = [DesignazioneRDLInline]
 

@@ -98,7 +98,7 @@ class CampagnaReclutamento(models.Model):
 
     # Chi ha creato la campagna
     delegato = models.ForeignKey(
-        'delegations.DelegatoDiLista',
+        'delegations.Delegato',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
