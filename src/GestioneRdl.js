@@ -114,6 +114,9 @@ function GestioneRdl({ client, setError }) {
     // User territory from delegation chain
     const [territorioLabel, setTerritorioLabel] = useState('');
 
+    // Multi-select for bulk actions
+    const [selectedIds, setSelectedIds] = useState(new Set());
+
     // Modal states
     const [modal, setModal] = useState({
         show: false,
@@ -443,6 +446,9 @@ function GestioneRdl({ client, setError }) {
             case 'delete':
                 result = await client.rdlRegistrations.delete(targetId);
                 break;
+            case 'bulk_approve':
+                await handleBulkApprove();
+                return;
             default:
                 return;
         }
@@ -452,6 +458,62 @@ function GestioneRdl({ client, setError }) {
         } else {
             loadRegistrations();
         }
+    };
+
+    // Multi-select functions
+    const toggleSelectAll = () => {
+        const pendingRegs = filteredRegistrations.filter(r => r.status === 'PENDING');
+        if (selectedIds.size === pendingRegs.length && pendingRegs.length > 0) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(pendingRegs.map(r => r.id)));
+        }
+    };
+
+    const toggleSelect = (id) => {
+        const newSelected = new Set(selectedIds);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedIds(newSelected);
+    };
+
+    const handleBulkApprove = async () => {
+        const idsToApprove = Array.from(selectedIds);
+        if (idsToApprove.length === 0) return;
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const id of idsToApprove) {
+            const result = await client.rdlRegistrations.approve(id);
+            if (result.error) {
+                errorCount++;
+            } else {
+                successCount++;
+            }
+        }
+
+        if (errorCount > 0) {
+            setError(`Approvati ${successCount} RDL, ${errorCount} errori`);
+        }
+
+        setSelectedIds(new Set());
+        loadRegistrations();
+    };
+
+    const openBulkApproveModal = () => {
+        const count = selectedIds.size;
+        if (count === 0) return;
+
+        setModal({
+            show: true,
+            type: 'bulk_approve',
+            targetId: null,
+            targetName: `${count} RDL selezionati`
+        });
     };
 
     const handleEdit = (reg) => {
@@ -577,7 +639,7 @@ function GestioneRdl({ client, setError }) {
                     data_nascita: convertDateToISO(r.data_nascita),
                     note_correzione: `Errore CSV: ${r.error_message}` +
                         (r.comune_seggio ? `\nValore originale: ${r.comune_seggio}` : '') +
-                        (r.provincia_seggio ? ` (${r.provincia_seggio})` : '')
+                        (r.provincia_seggio && !r.comune_seggio?.includes(r.provincia_seggio) ? ` (${r.provincia_seggio})` : '')
                 })));
                 setUserTerritory(result.user_territory || []);
                 setShowErrorModal(true);
@@ -779,6 +841,31 @@ function GestioneRdl({ client, setError }) {
                     confirmVariant: 'danger',
                     showInput: false
                 };
+            case 'bulk_approve':
+                return {
+                    title: 'Approvazione Massiva',
+                    confirmText: 'Approva Tutti',
+                    confirmVariant: 'success',
+                    showInput: false,
+                    children: (
+                        <div>
+                            <p>Stai per approvare <strong>{modal.targetName}</strong> come RDL.</p>
+                            <div style={{
+                                background: '#fff3cd',
+                                border: '1px solid #ffc107',
+                                borderRadius: '6px',
+                                padding: '12px',
+                                marginBottom: '12px',
+                                fontSize: '0.9rem'
+                            }}>
+                                <strong>⚠️ Attenzione:</strong> Verifica di aver controllato tutti i candidati selezionati prima di procedere con l'approvazione massiva.
+                            </div>
+                            <p style={{ fontSize: '0.85rem', color: '#6c757d', marginBottom: 0 }}>
+                                Tutti gli RDL selezionati riceveranno le credenziali di accesso.
+                            </p>
+                        </div>
+                    )
+                };
             default:
                 return {};
         }
@@ -812,14 +899,23 @@ function GestioneRdl({ client, setError }) {
                 <div className="page-header-title">
                     <i className="fas fa-users"></i>
                     Gestione RDL
-                </div>
-                <div className="page-header-subtitle">
-                    Approva e gestisci le registrazioni dei Rappresentanti di Lista
                     {territorioLabel && (
-                        <span className="page-header-badge">
+                        <span style={{
+                            marginLeft: '12px',
+                            padding: '4px 12px',
+                            borderRadius: '6px',
+                            fontSize: '0.85rem',
+                            fontWeight: 500,
+                            backgroundColor: '#0d6efd',
+                            color: '#fff'
+                        }}>
+                            <i className="fas fa-map-marker-alt me-1"></i>
                             {territorioLabel}
                         </span>
                     )}
+                </div>
+                <div className="page-header-subtitle">
+                    Approva e gestisci le registrazioni dei Rappresentanti di Lista
                 </div>
             </div>
 
@@ -891,7 +987,7 @@ function GestioneRdl({ client, setError }) {
                             >
                                 <option value="">-- Provincia --</option>
                                 {province.map(p => (
-                                    <option key={p.id} value={p.id}>{p.nome} ({p.sigla})</option>
+                                    <option key={p.id} value={p.id}>{p.nome}{p.sigla ? ` (${p.sigla})` : ''}</option>
                                 ))}
                             </select>
                             <select
@@ -929,7 +1025,7 @@ function GestioneRdl({ client, setError }) {
                     </div>
                 )}
 
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button
                         className="btn btn-sm btn-outline-primary"
                         onClick={() => setShowImport(!showImport)}
@@ -944,6 +1040,46 @@ function GestioneRdl({ client, setError }) {
                         Aggiorna
                     </button>
                 </div>
+
+                {/* Bulk Actions */}
+                {pendingCount > 0 && (
+                    <div style={{
+                        marginTop: '12px',
+                        padding: '10px',
+                        background: '#f8f9fa',
+                        borderRadius: '6px',
+                        border: '1px solid #dee2e6'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0, cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={selectedIds.size > 0 && selectedIds.size === filteredRegistrations.filter(r => r.status === 'PENDING').length}
+                                    onChange={toggleSelectAll}
+                                    style={{ cursor: 'pointer' }}
+                                />
+                                <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                                    Seleziona tutti ({filteredRegistrations.filter(r => r.status === 'PENDING').length})
+                                </span>
+                            </label>
+                            {selectedIds.size > 0 && (
+                                <>
+                                    <span style={{ fontSize: '0.85rem', color: '#6c757d' }}>
+                                        {selectedIds.size} selezionati
+                                    </span>
+                                    <button
+                                        className="btn btn-success btn-sm"
+                                        onClick={openBulkApproveModal}
+                                        style={{ marginLeft: 'auto' }}
+                                    >
+                                        <i className="fas fa-check-double me-1"></i>
+                                        Approva Selezionati
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Import Section */}
@@ -1308,10 +1444,8 @@ function GestioneRdl({ client, setError }) {
                             ) : (
                                 /* View Mode */
                                 <div
-                                    onClick={() => toggleExpand(reg.id)}
                                     style={{
                                         padding: '12px',
-                                        cursor: 'pointer',
                                         background: expandedId === reg.id ? '#f8f9fa' : 'transparent'
                                     }}
                                 >
@@ -1322,8 +1456,25 @@ function GestioneRdl({ client, setError }) {
                                         alignItems: 'flex-start',
                                         marginBottom: '4px'
                                     }}>
-                                        <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>
-                                            {reg.cognome} {reg.nome}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                                            {reg.status === 'PENDING' && (
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedIds.has(reg.id)}
+                                                    onChange={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleSelect(reg.id);
+                                                    }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    style={{ cursor: 'pointer', width: '18px', height: '18px' }}
+                                                />
+                                            )}
+                                            <div
+                                                style={{ fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer', flex: 1 }}
+                                                onClick={() => toggleExpand(reg.id)}
+                                            >
+                                                {reg.cognome} {reg.nome}
+                                            </div>
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                                             {getStatusBadge(reg.status)}

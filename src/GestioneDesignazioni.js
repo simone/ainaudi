@@ -33,7 +33,7 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
     const [stats, setStats] = useState(null);
     const [designazioni, setDesignazioni] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeView, setActiveView] = useState('panoramica'); // 'panoramica' | 'importa'
+    const [activeView, setActiveView] = useState('panoramica'); // 'panoramica' | 'importa' | 'lista'
 
     // Upload state
     const [file, setFile] = useState(null);
@@ -44,6 +44,19 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
     const [loadingMappatura, setLoadingMappatura] = useState(false);
     const [mappaturaResult, setMappaturaResult] = useState(null);
     const [showMappaturaModal, setShowMappaturaModal] = useState(false);
+
+    // Multi-select for PDF generation
+    const [selectedDesignazioni, setSelectedDesignazioni] = useState(new Set());
+
+    // PDF generation modal
+    const [showPdfModal, setShowPdfModal] = useState(false);
+    const [pdfStep, setPdfStep] = useState('template'); // 'template' | 'form' | 'preview'
+    const [selectedTemplate, setSelectedTemplate] = useState(null);
+    const [templates, setTemplates] = useState([]);
+    const [delegatoData, setDelegatoData] = useState(null);
+    const [formData, setFormData] = useState({});
+    const [pdfPreview, setPdfPreview] = useState(null);
+    const [generatingPdf, setGeneratingPdf] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -221,6 +234,245 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
         }
     };
 
+    // Format date for display
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
+
+    // Format RDL data: "Cognome Nome nato a Luogo il DD/MM/YYYY, domiciliato in Indirizzo"
+    const formatRdlData = (rdl) => {
+        if (!rdl.cognome || !rdl.nome) return 'Non assegnato';
+
+        let text = `${rdl.cognome} ${rdl.nome}`;
+
+        if (rdl.luogo_nascita) {
+            text += ` nato a ${rdl.luogo_nascita}`;
+        }
+
+        if (rdl.data_nascita) {
+            text += ` il ${formatDate(rdl.data_nascita)}`;
+        }
+
+        if (rdl.domicilio) {
+            text += `, domiciliato in ${rdl.domicilio}`;
+        }
+
+        return text;
+    };
+
+    // Multi-select functions
+    const toggleSelectAll = () => {
+        const bozze = designazioni.filter(d => d.stato === 'BOZZA');
+        if (selectedDesignazioni.size === bozze.length && bozze.length > 0) {
+            setSelectedDesignazioni(new Set());
+        } else {
+            setSelectedDesignazioni(new Set(bozze.map(d => d.id)));
+        }
+    };
+
+    const toggleSelect = (id) => {
+        const newSelected = new Set(selectedDesignazioni);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedDesignazioni(newSelected);
+    };
+
+    const openPdfModal = async () => {
+        if (selectedDesignazioni.size === 0) return;
+        setShowPdfModal(true);
+        setPdfStep('template');
+
+        // Load templates and delegato data
+        await Promise.all([
+            loadTemplates(),
+            loadDelegatoData()
+        ]);
+    };
+
+    const loadTemplates = async () => {
+        try {
+            const result = await client.templates.list(consultazione.id);
+            if (result.error) {
+                setError(result.error);
+            } else {
+                setTemplates(result.templates || []);
+            }
+        } catch (err) {
+            setError(`Errore caricamento templates: ${err.message}`);
+        }
+    };
+
+    const loadDelegatoData = async () => {
+        try {
+            const chain = await client.deleghe.miaCatena();
+            if (chain.error) {
+                setError(chain.error);
+                return;
+            }
+
+            let data = {};
+
+            // Se subdelegato, prendi i dati dalla subdelega
+            if (chain.sub_deleghe_ricevute && chain.sub_deleghe_ricevute.length > 0) {
+                const subDelega = chain.sub_deleghe_ricevute[0];
+                data = {
+                    tipo_firmatario: 'subdelegato',
+                    cognome: subDelega.cognome || '',
+                    nome: subDelega.nome || '',
+                    luogo_nascita: subDelega.luogo_nascita || '',
+                    data_nascita: subDelega.data_nascita || '',
+                    domicilio: subDelega.domicilio || '',
+                    tipo_documento: subDelega.tipo_documento || '',
+                    numero_documento: subDelega.numero_documento || '',
+                    // Info delegato (per catena)
+                    delegato_cognome: subDelega.delegato?.cognome || '',
+                    delegato_nome: subDelega.delegato?.nome || '',
+                    delegato_carica: subDelega.delegato?.carica || ''
+                };
+            }
+            // Se delegato diretto
+            else if (chain.delega_ricevuta) {
+                const delega = chain.delega_ricevuta;
+                data = {
+                    tipo_firmatario: 'delegato',
+                    cognome: delega.cognome || '',
+                    nome: delega.nome || '',
+                    luogo_nascita: delega.luogo_nascita || '',
+                    data_nascita: delega.data_nascita || '',
+                    carica: delega.carica || '',
+                    circoscrizione: delega.circoscrizione || ''
+                };
+            }
+
+            setDelegatoData(data);
+            setFormData(data);
+        } catch (err) {
+            setError(`Errore caricamento dati delegato: ${err.message}`);
+        }
+    };
+
+    const closePdfModal = () => {
+        setShowPdfModal(false);
+        setPdfStep('template');
+        setSelectedTemplate(null);
+        setFormData({});
+        setPdfPreview(null);
+    };
+
+    const goToStep = (step) => {
+        setPdfStep(step);
+    };
+
+    const handleTemplateSelect = (template) => {
+        setSelectedTemplate(template);
+    };
+
+    const handleFormChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const validateForm = () => {
+        const required = ['cognome', 'nome', 'luogo_nascita', 'data_nascita'];
+
+        if (formData.tipo_firmatario === 'subdelegato') {
+            required.push('domicilio', 'tipo_documento', 'numero_documento');
+        }
+
+        const missing = required.filter(field => !formData[field]);
+        return missing;
+    };
+
+    const generatePreview = async () => {
+        setGeneratingPdf(true);
+        try {
+            // Prepara dati per preview
+            const previewData = {
+                delegato: formData,
+                designazioni: Array.from(selectedDesignazioni).map(id =>
+                    designazioni.find(d => d.id === id)
+                ),
+                consultazione_id: consultazione.id
+            };
+
+            const blob = await client.templates.preview(selectedTemplate.id, previewData);
+            if (blob) {
+                setPdfPreview(URL.createObjectURL(blob));
+                goToStep('preview');
+            } else {
+                setError('Errore generazione preview PDF');
+            }
+        } catch (err) {
+            setError(`Errore preview: ${err.message}`);
+        } finally {
+            setGeneratingPdf(false);
+        }
+    };
+
+    const generateBatch = async () => {
+        setGeneratingPdf(true);
+        try {
+            // Step 1: Crea batch
+            const batchResult = await client.batch.create({
+                consultazione_id: consultazione.id,
+                tipo: 'INDIVIDUALE',
+                solo_sezioni: Array.from(selectedDesignazioni).map(id => {
+                    const des = designazioni.find(d => d.id === id);
+                    return des?.sezione_id;
+                }).filter(Boolean),
+                delegato_data: formData,
+                template_id: selectedTemplate.id
+            });
+
+            if (batchResult.error) {
+                setError(batchResult.error);
+                return;
+            }
+
+            // Step 2: Genera PDF
+            const generaResult = await client.batch.genera(batchResult.id);
+            if (generaResult.error) {
+                setError(generaResult.error);
+                return;
+            }
+
+            // Step 3: Approva batch (questo conferma le designazioni BOZZA → CONFERMATA)
+            const approvaResult = await client.batch.approva(batchResult.id);
+            if (approvaResult.error) {
+                setError(approvaResult.error);
+                return;
+            }
+
+            // Step 4: Download PDF automatico
+            await client.batch.downloadPdf(batchResult.id);
+
+            // Success!
+            const numDesignazioni = selectedDesignazioni.size;
+            alert(
+                `✅ PDF generato con successo!\n\n` +
+                `• Batch ID: ${batchResult.id}\n` +
+                `• ${numDesignazioni} designazioni confermate (BOZZA → CONFERMATA)\n` +
+                `• Documento scaricato`
+            );
+
+            // Chiudi modale e ricarica dati
+            closePdfModal();
+            setSelectedDesignazioni(new Set());
+            loadData();
+        } catch (err) {
+            setError(`Errore generazione batch: ${err.message}`);
+        } finally {
+            setGeneratingPdf(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="loading-container" role="status" aria-live="polite">
@@ -260,6 +512,19 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
                     >
                         <i className="fas fa-chart-pie me-2"></i>
                         Panoramica
+                    </button>
+                </li>
+                <li className="nav-item">
+                    <button
+                        className={`nav-link ${activeView === 'lista' ? 'active' : ''}`}
+                        onClick={() => setActiveView('lista')}
+                        aria-selected={activeView === 'lista'}
+                    >
+                        <i className="fas fa-list me-2"></i>
+                        Lista Designazioni
+                        {stats && stats.bozze > 0 && (
+                            <span className="badge bg-warning text-dark ms-2">{stats.bozze}</span>
+                        )}
                     </button>
                 </li>
                 <li className="nav-item">
@@ -461,6 +726,191 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
                                 )}
                             </div>
                         </div>
+                    </div>
+
+                    {/* Refresh Button */}
+                    <div className="text-center mt-3">
+                        <button
+                            className="btn btn-outline-secondary"
+                            onClick={loadData}
+                            disabled={loading}
+                        >
+                            <i className="fas fa-sync-alt me-2"></i>
+                            Aggiorna dati
+                        </button>
+                    </div>
+                </>
+            )}
+
+            {/* Lista Designazioni View */}
+            {activeView === 'lista' && (
+                <>
+                    {/* Bulk Actions */}
+                    {stats && stats.bozze > 0 && (
+                        <div style={{
+                            background: 'white',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            marginBottom: '12px',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0, cursor: 'pointer' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedDesignazioni.size > 0 && selectedDesignazioni.size === designazioni.filter(d => d.stato === 'BOZZA').length}
+                                        onChange={toggleSelectAll}
+                                        style={{ cursor: 'pointer', width: '18px', height: '18px' }}
+                                    />
+                                    <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                                        Seleziona tutte le bozze ({designazioni.filter(d => d.stato === 'BOZZA').length})
+                                    </span>
+                                </label>
+                                {selectedDesignazioni.size > 0 && (
+                                    <>
+                                        <span style={{ fontSize: '0.9rem', color: '#6c757d' }}>
+                                            {selectedDesignazioni.size} selezionate
+                                        </span>
+                                        <button
+                                            className="btn btn-primary btn-sm"
+                                            onClick={openPdfModal}
+                                            style={{ marginLeft: 'auto' }}
+                                        >
+                                            <i className="fas fa-file-pdf me-2"></i>
+                                            Genera PDF
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Lista Designazioni */}
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '8px',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        marginBottom: '12px'
+                    }}>
+                        <div style={{
+                            padding: '12px 16px',
+                            borderBottom: '2px solid #e9ecef',
+                            fontWeight: 600,
+                            fontSize: '0.95rem',
+                            color: '#495057'
+                        }}>
+                            Designazioni ({designazioni.length})
+                        </div>
+
+                        {designazioni.length === 0 ? (
+                            <div style={{ padding: '40px', textAlign: 'center', color: '#6c757d' }}>
+                                <i className="fas fa-inbox fa-3x mb-3" style={{ opacity: 0.3 }}></i>
+                                <p>Nessuna designazione trovata</p>
+                                <p className="small">Usa "Carica Mappatura" o "Importa CSV" per creare designazioni</p>
+                            </div>
+                        ) : (
+                            designazioni.map(des => {
+                                const effettivoData = {
+                                    cognome: des.effettivo_cognome,
+                                    nome: des.effettivo_nome,
+                                    luogo_nascita: des.effettivo_luogo_nascita,
+                                    data_nascita: des.effettivo_data_nascita,
+                                    domicilio: des.effettivo_domicilio
+                                };
+
+                                const suppleenteData = {
+                                    cognome: des.supplente_cognome,
+                                    nome: des.supplente_nome,
+                                    luogo_nascita: des.supplente_luogo_nascita,
+                                    data_nascita: des.supplente_data_nascita,
+                                    domicilio: des.supplente_domicilio
+                                };
+
+                                return (
+                                    <div key={des.id} style={{
+                                        borderBottom: '1px solid #e9ecef',
+                                        padding: '16px',
+                                        cursor: des.stato === 'BOZZA' ? 'pointer' : 'default'
+                                    }}>
+                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                            {/* Checkbox per bozze */}
+                                            {des.stato === 'BOZZA' && (
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedDesignazioni.has(des.id)}
+                                                    onChange={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleSelect(des.id);
+                                                    }}
+                                                    style={{ cursor: 'pointer', width: '20px', height: '20px', marginTop: '4px' }}
+                                                />
+                                            )}
+
+                                            <div style={{ flex: 1 }}>
+                                                {/* Header con sezione e stato */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                        <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#212529' }}>
+                                                            <i className="fas fa-map-marker-alt me-2" style={{ color: '#6c757d' }}></i>
+                                                            Sezione {des.sezione_numero}
+                                                        </span>
+                                                        <span style={{ fontSize: '0.9rem', color: '#6c757d' }}>
+                                                            {des.comune}
+                                                            {des.municipio && ` - Municipio ${toRoman(des.municipio)}`}
+                                                        </span>
+                                                    </div>
+                                                    <span className={`badge ${getStatoBadgeClass(des.stato)}`}>
+                                                        {des.stato}
+                                                    </span>
+                                                </div>
+
+                                                {/* Effettivo */}
+                                                <div style={{ marginBottom: '8px' }}>
+                                                    <div style={{ fontSize: '0.85rem', color: '#6c757d', fontWeight: 500, marginBottom: '4px' }}>
+                                                        <i className="fas fa-user me-1"></i>
+                                                        EFFETTIVO
+                                                    </div>
+                                                    <div style={{ fontSize: '0.95rem', color: '#212529', paddingLeft: '20px' }}>
+                                                        {formatRdlData(effettivoData)}
+                                                    </div>
+                                                    {des.effettivo_email && (
+                                                        <div style={{ fontSize: '0.85rem', color: '#6c757d', paddingLeft: '20px', marginTop: '2px' }}>
+                                                            <i className="fas fa-envelope me-1"></i>
+                                                            {des.effettivo_email}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Supplente */}
+                                                <div>
+                                                    <div style={{ fontSize: '0.85rem', color: '#6c757d', fontWeight: 500, marginBottom: '4px' }}>
+                                                        <i className="fas fa-user-plus me-1"></i>
+                                                        SUPPLENTE
+                                                    </div>
+                                                    <div style={{ fontSize: '0.95rem', color: '#212529', paddingLeft: '20px' }}>
+                                                        {formatRdlData(suppleenteData)}
+                                                    </div>
+                                                    {des.supplente_email && (
+                                                        <div style={{ fontSize: '0.85rem', color: '#6c757d', paddingLeft: '20px', marginTop: '2px' }}>
+                                                            <i className="fas fa-envelope me-1"></i>
+                                                            {des.supplente_email}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Data designazione */}
+                                                {des.data_designazione && (
+                                                    <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '8px' }}>
+                                                        <i className="fas fa-calendar me-1"></i>
+                                                        Designato il {formatDate(des.data_designazione)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
                     </div>
 
                     {/* Refresh Button */}
@@ -770,6 +1220,324 @@ function GestioneDesignazioni({ client, setError, consultazione }) {
                     </div>
                 )}
             </div>
+
+            {/* Modale Generazione PDF */}
+            {showPdfModal && (
+                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <div>
+                                    <h5 className="modal-title">
+                                        <i className="fas fa-file-pdf me-2"></i>
+                                        Generazione PDF Designazioni
+                                    </h5>
+                                    {/* Step indicator */}
+                                    <div className="mt-2">
+                                        <small className="text-muted">
+                                            Step {pdfStep === 'template' ? '1' : pdfStep === 'form' ? '2' : '3'} di 3:
+                                            {' '}
+                                            {pdfStep === 'template' && 'Selezione Template'}
+                                            {pdfStep === 'form' && 'Dati Firmatario'}
+                                            {pdfStep === 'preview' && 'Preview e Generazione'}
+                                        </small>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={closePdfModal}
+                                    disabled={generatingPdf}
+                                ></button>
+                            </div>
+                            <div className="modal-body" style={{ maxHeight: '70vh' }}>
+                                {/* Info header */}
+                                <div className="alert alert-info mb-3">
+                                    <i className="fas fa-info-circle me-2"></i>
+                                    <strong>{selectedDesignazioni.size} designazioni selezionate</strong>
+                                </div>
+
+                                {/* STEP 1: Selezione Template */}
+                                {pdfStep === 'template' && (
+                                    <div>
+                                        <h6 className="mb-3">Seleziona il template del documento</h6>
+
+                                        {templates.length === 0 ? (
+                                            <div className="alert alert-warning">
+                                                <i className="fas fa-exclamation-triangle me-2"></i>
+                                                Nessun template disponibile per questa consultazione.
+                                            </div>
+                                        ) : (
+                                            <div className="list-group">
+                                                {templates.map(template => (
+                                                    <label
+                                                        key={template.id}
+                                                        className={`list-group-item list-group-item-action ${selectedTemplate?.id === template.id ? 'active' : ''}`}
+                                                        style={{ cursor: 'pointer' }}
+                                                    >
+                                                        <div className="d-flex align-items-start">
+                                                            <input
+                                                                type="radio"
+                                                                name="template"
+                                                                className="me-3 mt-1"
+                                                                checked={selectedTemplate?.id === template.id}
+                                                                onChange={() => handleTemplateSelect(template)}
+                                                                style={{ cursor: 'pointer' }}
+                                                            />
+                                                            <div>
+                                                                <h6 className="mb-1">{template.nome}</h6>
+                                                                {template.descrizione && (
+                                                                    <p className="mb-1 small">{template.descrizione}</p>
+                                                                )}
+                                                                {template.tipo && (
+                                                                    <span className="badge bg-secondary">{template.tipo}</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* STEP 2: Form Dati Firmatario */}
+                                {pdfStep === 'form' && (
+                                    <div>
+                                        <h6 className="mb-3">Verifica e completa i dati del firmatario</h6>
+
+                                        <div className="row g-3">
+                                            <div className="col-md-6">
+                                                <label className="form-label">Cognome *</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={formData.cognome || ''}
+                                                    onChange={(e) => handleFormChange('cognome', e.target.value)}
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="col-md-6">
+                                                <label className="form-label">Nome *</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={formData.nome || ''}
+                                                    onChange={(e) => handleFormChange('nome', e.target.value)}
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="col-md-6">
+                                                <label className="form-label">Luogo di nascita *</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={formData.luogo_nascita || ''}
+                                                    onChange={(e) => handleFormChange('luogo_nascita', e.target.value)}
+                                                    placeholder="es. Roma"
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="col-md-6">
+                                                <label className="form-label">Data di nascita *</label>
+                                                <input
+                                                    type="date"
+                                                    className="form-control"
+                                                    value={formData.data_nascita || ''}
+                                                    onChange={(e) => handleFormChange('data_nascita', e.target.value)}
+                                                    required
+                                                />
+                                            </div>
+
+                                            {formData.tipo_firmatario === 'subdelegato' && (
+                                                <>
+                                                    <div className="col-12">
+                                                        <label className="form-label">Domicilio *</label>
+                                                        <input
+                                                            type="text"
+                                                            className="form-control"
+                                                            value={formData.domicilio || ''}
+                                                            onChange={(e) => handleFormChange('domicilio', e.target.value)}
+                                                            placeholder="es. Via Roma, 123 - 00100 Roma"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <label className="form-label">Tipo documento *</label>
+                                                        <select
+                                                            className="form-select"
+                                                            value={formData.tipo_documento || ''}
+                                                            onChange={(e) => handleFormChange('tipo_documento', e.target.value)}
+                                                            required
+                                                        >
+                                                            <option value="">-- Seleziona --</option>
+                                                            <option value="Carta d'Identità">Carta d'Identità</option>
+                                                            <option value="Patente">Patente</option>
+                                                            <option value="Passaporto">Passaporto</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <label className="form-label">Numero documento *</label>
+                                                        <input
+                                                            type="text"
+                                                            className="form-control"
+                                                            value={formData.numero_documento || ''}
+                                                            onChange={(e) => handleFormChange('numero_documento', e.target.value)}
+                                                            placeholder="es. CA12345XX"
+                                                            required
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {formData.tipo_firmatario === 'delegato' && (
+                                                <>
+                                                    <div className="col-md-6">
+                                                        <label className="form-label">Carica</label>
+                                                        <input
+                                                            type="text"
+                                                            className="form-control"
+                                                            value={formData.carica || ''}
+                                                            onChange={(e) => handleFormChange('carica', e.target.value)}
+                                                            placeholder="es. Deputato"
+                                                        />
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <label className="form-label">Circoscrizione</label>
+                                                        <input
+                                                            type="text"
+                                                            className="form-control"
+                                                            value={formData.circoscrizione || ''}
+                                                            onChange={(e) => handleFormChange('circoscrizione', e.target.value)}
+                                                            placeholder="es. Lazio 1"
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        {validateForm().length > 0 && (
+                                            <div className="alert alert-warning mt-3">
+                                                <i className="fas fa-exclamation-triangle me-2"></i>
+                                                <strong>Campi mancanti:</strong> {validateForm().join(', ')}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* STEP 3: Preview PDF */}
+                                {pdfStep === 'preview' && (
+                                    <div>
+                                        <h6 className="mb-3">Anteprima documento</h6>
+
+                                        {pdfPreview ? (
+                                            <div style={{ height: '500px', border: '1px solid #dee2e6', borderRadius: '4px' }}>
+                                                <object
+                                                    data={pdfPreview}
+                                                    type="application/pdf"
+                                                    width="100%"
+                                                    height="100%"
+                                                >
+                                                    <p className="p-3">
+                                                        Il tuo browser non supporta la visualizzazione PDF.
+                                                        <a href={pdfPreview} download className="ms-2">Scarica il PDF</a>
+                                                    </p>
+                                                </object>
+                                            </div>
+                                        ) : (
+                                            <div className="alert alert-info">
+                                                <div className="spinner-border spinner-border-sm me-2"></div>
+                                                Generazione anteprima in corso...
+                                            </div>
+                                        )}
+
+                                        <div className="alert alert-warning mt-3">
+                                            <i className="fas fa-info-circle me-2"></i>
+                                            Verifica attentamente i dati prima di generare il documento finale.
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={closePdfModal}
+                                    disabled={generatingPdf}
+                                >
+                                    Annulla
+                                </button>
+
+                                {pdfStep !== 'template' && (
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-secondary"
+                                        onClick={() => goToStep(pdfStep === 'form' ? 'template' : 'form')}
+                                        disabled={generatingPdf}
+                                    >
+                                        <i className="fas fa-arrow-left me-2"></i>
+                                        Indietro
+                                    </button>
+                                )}
+
+                                {pdfStep === 'template' && (
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary"
+                                        onClick={() => goToStep('form')}
+                                        disabled={!selectedTemplate}
+                                    >
+                                        Avanti
+                                        <i className="fas fa-arrow-right ms-2"></i>
+                                    </button>
+                                )}
+
+                                {pdfStep === 'form' && (
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary"
+                                        onClick={generatePreview}
+                                        disabled={validateForm().length > 0 || generatingPdf}
+                                    >
+                                        {generatingPdf ? (
+                                            <>
+                                                <span className="spinner-border spinner-border-sm me-2"></span>
+                                                Generazione...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Genera Anteprima
+                                                <i className="fas fa-arrow-right ms-2"></i>
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+
+                                {pdfStep === 'preview' && (
+                                    <button
+                                        type="button"
+                                        className="btn btn-success"
+                                        onClick={generateBatch}
+                                        disabled={generatingPdf}
+                                    >
+                                        {generatingPdf ? (
+                                            <>
+                                                <span className="spinner-border spinner-border-sm me-2"></span>
+                                                Generazione PDF...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <i className="fas fa-check me-2"></i>
+                                                Genera PDF Finale
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

@@ -632,9 +632,11 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
                         continue
 
                 # Crea nuova designazione con snapshot dei dati
-                stato_iniziale = 'CONFERMATA' if (
-                    (sub_delega and sub_delega.tipo_delega == 'FIRMA_AUTENTICATA') or delegato_diretto
-                ) else 'BOZZA'
+                # IMPORTANTE: carica_mappatura crea SEMPRE BOZZE
+                # Le designazioni passano a CONFERMATA solo quando:
+                # 1. Si genera e approva il batch PDF
+                # 2. Un delegato/subdelegato con firma le conferma manualmente
+                stato_iniziale = 'BOZZA'
 
                 # Prepara dati designazione
                 designazione_data = {

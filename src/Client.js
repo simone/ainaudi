@@ -726,6 +726,103 @@ const Client = (server, pdfServer, token) => {
                 }),
         },
 
+        // Batch generazione documenti
+        batch: {
+            // Lista batch
+            list: async (consultazioneId) => {
+                const params = new URLSearchParams();
+                if (consultazioneId) params.append('consultazione', consultazioneId);
+                return fetch(`${server}/api/deleghe/batch/?${params.toString()}`, {
+                    headers: { 'Authorization': authHeader }
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                });
+            },
+
+            // Crea nuovo batch
+            create: async (data) =>
+                fetch(`${server}/api/deleghe/batch/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': authHeader
+                    },
+                    body: JSON.stringify(data)
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+
+            // Genera PDF per batch
+            genera: async (batchId) =>
+                fetch(`${server}/api/deleghe/batch/${batchId}/genera/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': authHeader }
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+
+            // Approva batch (conferma designazioni)
+            approva: async (batchId) =>
+                fetch(`${server}/api/deleghe/batch/${batchId}/approva/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': authHeader }
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+
+            // Download PDF
+            downloadPdf: async (batchId) => {
+                const response = await fetch(`${server}/api/deleghe/batch/${batchId}/download/`, {
+                    headers: { 'Authorization': authHeader }
+                });
+                if (!response.ok) {
+                    throw new Error('Errore download PDF');
+                }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `batch-${batchId}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            }
+        },
+
+        // Templates documenti
+        templates: {
+            // Lista templates disponibili
+            list: async (consultazioneId) => {
+                const params = new URLSearchParams();
+                if (consultazioneId) params.append('consultazione', consultazioneId);
+                return fetch(`${server}/api/documents/templates/?${params.toString()}`, {
+                    headers: { 'Authorization': authHeader }
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                });
+            },
+
+            // Preview PDF con dati
+            preview: async (templateId, data) =>
+                fetch(`${server}/api/documents/templates/${templateId}/preview/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': authHeader
+                    },
+                    body: JSON.stringify(data)
+                }).then(response => response.blob()).catch(error => {
+                    console.error(error);
+                    return null;
+                }),
+        },
+
         // Campagne di reclutamento
         campagne: {
             list: async (consultazioneId) => {
