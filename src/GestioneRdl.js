@@ -939,21 +939,14 @@ function GestioneRdl({ client, setError }) {
             </div>
 
             {/* Filtri compatti */}
-            <div style={{
-                background: 'white',
-                borderRadius: '8px',
-                padding: '12px',
-                marginBottom: '12px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-            }}>
-                <div className="d-flex gap-sm mb-sm">
+            <div className="rdl-filters">
+                <div className="rdl-filters-grid">
                     <select
                         className="form-select form-select-sm"
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="flex-fixed-120"
                     >
-                        <option value="">Tutti</option>
+                        <option value="">Tutti gli stati</option>
                         <option value="PENDING">In attesa</option>
                         <option value="APPROVED">Approvati</option>
                         <option value="REJECTED">Rifiutati</option>
@@ -961,32 +954,22 @@ function GestioneRdl({ client, setError }) {
                     <input
                         type="search"
                         className="form-control form-control-sm"
-                        placeholder="Cerca..."
+                        placeholder="Cerca per nome, email, telefono..."
                         value={searchFilter}
                         onChange={(e) => setSearchFilter(e.target.value)}
                     />
-                </div>
-
-                {/* Toggle filtri territorio */}
-                <div className="mb-sm">
                     <button
                         className={`btn btn-sm ${showTerritoryFilters ? 'btn-primary' : 'btn-outline-primary'}`}
                         onClick={() => setShowTerritoryFilters(!showTerritoryFilters)}
-                        className="w-100"
                     >
-                        <i className="fas fa-map-marker-alt me-1"></i>
-                        Filtri Territorio {(regioneFilter || provinciaFilter || comuneFilter || municipioFilter) && '●'}
+                        <i className="fas fa-map-marker-alt"></i>
+                        {(regioneFilter || provinciaFilter || comuneFilter || municipioFilter) && ' ●'}
                     </button>
                 </div>
 
                 {/* Filtri territorio a cascata */}
                 {showTerritoryFilters && (
-                    <div style={{
-                        background: '#f8f9fa',
-                        borderRadius: '6px',
-                        padding: '10px',
-                        marginBottom: '8px'
-                    }}>
+                    <div className="rdl-territory-filters">
                         <div className="grid-2-col">
                             <select
                                 className="form-select form-select-sm"
@@ -1034,62 +1017,55 @@ function GestioneRdl({ client, setError }) {
                         </div>
                         {(regioneFilter || provinciaFilter || comuneFilter || municipioFilter) && (
                             <button
-                                className="btn btn-sm btn-outline-secondary mt-2"
+                                className="btn btn-sm btn-outline-secondary w-100 mt-2"
                                 onClick={clearTerritoryFilters}
-                                className="w-100"
                             >
+                                <i className="fas fa-times me-1"></i>
                                 Cancella filtri territorio
                             </button>
                         )}
                     </div>
                 )}
 
-                <div className="d-flex gap-sm flex-wrap">
+                <div className="btn-group">
                     <button
                         className="btn btn-sm btn-outline-primary"
                         onClick={() => setShowImport(!showImport)}
-                        className="flex-1"
                     >
-                        {showImport ? 'Chiudi' : 'Import CSV'}
+                        <i className="fas fa-file-import me-1"></i>
+                        {showImport ? 'Chiudi Import' : 'Import CSV'}
                     </button>
                     <button
                         className="btn btn-sm btn-outline-secondary"
                         onClick={loadRegistrations}
+                        title="Ricarica dati"
                     >
-                        Aggiorna
+                        <i className="fas fa-sync-alt"></i>
                     </button>
                 </div>
 
                 {/* Bulk Actions */}
                 {pendingCount > 0 && (
-                    <div style={{
-                        marginTop: '12px',
-                        padding: '10px',
-                        background: '#f8f9fa',
-                        borderRadius: '6px',
-                        border: '1px solid #dee2e6'
-                    }}>
+                    <div className="rdl-bulk-actions">
                         <div className="d-flex align-items-center gap-sm flex-wrap">
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0, cursor: 'pointer' }}>
+                            <label className="rdl-checkbox-group">
                                 <input
                                     type="checkbox"
                                     checked={selectedIds.size > 0 && selectedIds.size === filteredRegistrations.filter(r => r.status === 'PENDING').length}
                                     onChange={toggleSelectAll}
-                                    style={{ cursor: 'pointer' }}
                                 />
-                                <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                                <span className="rdl-checkbox-label">
                                     Seleziona tutti ({filteredRegistrations.filter(r => r.status === 'PENDING').length})
                                 </span>
                             </label>
                             {selectedIds.size > 0 && (
                                 <>
-                                    <span style={{ fontSize: '0.85rem', color: '#6c757d' }}>
+                                    <span className="text-sm text-muted">
                                         {selectedIds.size} selezionati
                                     </span>
                                     <button
-                                        className="btn btn-success btn-sm"
+                                        className="btn btn-success btn-sm ms-auto"
                                         onClick={openBulkApproveModal}
-                                        style={{ marginLeft: 'auto' }}
                                     >
                                         <i className="fas fa-check-double me-1"></i>
                                         Approva Selezionati
