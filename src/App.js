@@ -433,59 +433,7 @@ function AppContent() {
                                             </li>
                                         )}
 
-                                        {/* 4. DELEGATI - Catena deleghe e designazioni */}
-                                        {(permissions.can_manage_delegations || permissions.can_generate_documents) && (
-                                            <li className="nav-item dropdown">
-                                                <a className={`nav-link dropdown-toggle ${['deleghe', 'designazioni', 'pdf', 'template_list', 'template_editor'].includes(activeTab) ? 'active' : ''}`}
-                                                   href="#"
-                                                   role="button"
-                                                   onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsDelegheDropdownOpen(!isDelegheDropdownOpen); }}
-                                                   aria-expanded={isDelegheDropdownOpen}>
-                                                    <i className="fas fa-user-tie me-1"></i>
-                                                    Delegati
-                                                </a>
-                                                <ul className={`dropdown-menu dropdown-menu-dark ${isDelegheDropdownOpen ? 'show' : ''}`}>
-                                                    {permissions.can_manage_delegations && (
-                                                        <li>
-                                                            <a className={`dropdown-item ${activeTab === 'deleghe' ? 'active' : ''}`}
-                                                               onClick={() => { activate('deleghe'); closeAllDropdowns(); }} href="#">
-                                                                <i className="fas fa-sitemap me-2"></i>
-                                                                Catena Deleghe
-                                                            </a>
-                                                        </li>
-                                                    )}
-                                                    {permissions.can_manage_delegations && (
-                                                        <li>
-                                                            <a className={`dropdown-item ${activeTab === 'designazioni' ? 'active' : ''}`}
-                                                               onClick={() => { activate('designazioni'); closeAllDropdowns(); }} href="#">
-                                                                <i className="fas fa-user-check me-2"></i>
-                                                                Designazioni
-                                                            </a>
-                                                        </li>
-                                                    )}
-                                                    {consultazione && permissions.can_generate_documents && (
-                                                        <li>
-                                                            <a className={`dropdown-item ${activeTab === 'template_list' ? 'active' : ''}`}
-                                                               onClick={() => { activate('template_list'); setTemplateIdToEdit(null); closeAllDropdowns(); }} href="#">
-                                                                <i className="fas fa-file-pdf me-2"></i>
-                                                                Template PDF
-                                                            </a>
-                                                        </li>
-                                                    )}
-                                                    {consultazione && permissions.can_generate_documents && (
-                                                        <li>
-                                                            <a className={`dropdown-item ${activeTab === 'pdf' ? 'active' : ''}`}
-                                                               onClick={() => { activate('pdf'); closeAllDropdowns(); }} href="#">
-                                                                <i className="fas fa-file-signature me-2"></i>
-                                                                Genera Moduli
-                                                            </a>
-                                                        </li>
-                                                    )}
-                                                </ul>
-                                            </li>
-                                        )}
-
-                                        {/* 5. RDL - Gestione RDL */}
+                                        {/* 4. RDL - Gestione RDL */}
                                         {(permissions.can_manage_rdl || permissions.can_manage_territory || permissions.can_manage_delegations) && (
                                             <li className="nav-item dropdown">
                                                 <a className={`nav-link dropdown-toggle ${['campagne', 'gestione_rdl', 'designazione', 'sezioni'].includes(activeTab) ? 'active' : ''}`}
@@ -530,6 +478,58 @@ function AppContent() {
                                                                onClick={() => { activate('mappatura-gerarchica'); closeAllDropdowns(); }} href="#">
                                                                 <i className="fas fa-sitemap me-2"></i>
                                                                 Mappatura
+                                                            </a>
+                                                        </li>
+                                                    )}
+                                                </ul>
+                                            </li>
+                                        )}
+
+                                        {/* 5. DELEGATI - Catena deleghe e designazioni */}
+                                        {(permissions.can_manage_delegations || permissions.can_generate_documents) && (
+                                            <li className="nav-item dropdown">
+                                                <a className={`nav-link dropdown-toggle ${['deleghe', 'designazioni', 'pdf', 'template_list', 'template_editor'].includes(activeTab) ? 'active' : ''}`}
+                                                   href="#"
+                                                   role="button"
+                                                   onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsDelegheDropdownOpen(!isDelegheDropdownOpen); }}
+                                                   aria-expanded={isDelegheDropdownOpen}>
+                                                    <i className="fas fa-user-tie me-1"></i>
+                                                    Delegati
+                                                </a>
+                                                <ul className={`dropdown-menu dropdown-menu-dark ${isDelegheDropdownOpen ? 'show' : ''}`}>
+                                                    {permissions.can_manage_delegations && (
+                                                        <li>
+                                                            <a className={`dropdown-item ${activeTab === 'deleghe' ? 'active' : ''}`}
+                                                               onClick={() => { activate('deleghe'); closeAllDropdowns(); }} href="#">
+                                                                <i className="fas fa-sitemap me-2"></i>
+                                                                Catena Deleghe
+                                                            </a>
+                                                        </li>
+                                                    )}
+                                                    {permissions.can_manage_delegations && (
+                                                        <li>
+                                                            <a className={`dropdown-item ${activeTab === 'designazioni' ? 'active' : ''}`}
+                                                               onClick={() => { activate('designazioni'); closeAllDropdowns(); }} href="#">
+                                                                <i className="fas fa-user-check me-2"></i>
+                                                                Designazioni
+                                                            </a>
+                                                        </li>
+                                                    )}
+                                                    {consultazione && permissions.can_generate_documents && (
+                                                        <li>
+                                                            <a className={`dropdown-item ${activeTab === 'template_list' ? 'active' : ''}`}
+                                                               onClick={() => { activate('template_list'); setTemplateIdToEdit(null); closeAllDropdowns(); }} href="#">
+                                                                <i className="fas fa-file-pdf me-2"></i>
+                                                                Template PDF
+                                                            </a>
+                                                        </li>
+                                                    )}
+                                                    {consultazione && permissions.can_generate_documents && (
+                                                        <li>
+                                                            <a className={`dropdown-item ${activeTab === 'pdf' ? 'active' : ''}`}
+                                                               onClick={() => { activate('pdf'); closeAllDropdowns(); }} href="#">
+                                                                <i className="fas fa-file-signature me-2"></i>
+                                                                Genera Moduli
                                                             </a>
                                                         </li>
                                                     )}
