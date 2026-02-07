@@ -810,7 +810,7 @@ function GestioneRdl({ client, setError }) {
                                 fontSize: '0.9rem'
                             }}>
                                 <strong>Prima di approvare, verifica di aver:</strong>
-                                <ul style={{ margin: '8px 0 0', paddingLeft: '20px' }}>
+                                <ul className="mb-0 mt-sm ps-4">
                                     <li>Controllato che i dati anagrafici siano corretti</li>
                                     <li>Verificato il numero di telefono (chiamalo/messaggialo)</li>
                                     <li>Verificato che l'email sia valida e raggiungibile</li>
@@ -851,14 +851,7 @@ function GestioneRdl({ client, setError }) {
                     children: (
                         <div>
                             <p>Stai per approvare <strong>{modal.targetName}</strong> come RDL.</p>
-                            <div style={{
-                                background: '#fff3cd',
-                                border: '1px solid #ffc107',
-                                borderRadius: '6px',
-                                padding: '12px',
-                                marginBottom: '12px',
-                                fontSize: '0.9rem'
-                            }}>
+                            <div className="alert alert-warning mb-md" style={{ fontSize: '0.9rem' }}>
                                 <strong>⚠️ Attenzione:</strong> Verifica di aver controllato tutti i candidati selezionati prima di procedere con l'approvazione massiva.
                             </div>
                             <p className="text-sm text-muted mb-0">
@@ -1086,8 +1079,8 @@ function GestioneRdl({ client, setError }) {
                     marginBottom: '12px',
                     fontSize: '0.85rem'
                 }}>
-                    <div style={{ fontWeight: 600, marginBottom: '8px' }}>Import CSV</div>
-                    <div style={{ marginBottom: '8px', color: '#666' }}>
+                    <div className="fw-semibold mb-sm">Import CSV</div>
+                    <div className="mb-sm text-muted">
                         Seleziona un file CSV da importare. Il sistema ti permetterà di mappare le colonne.
                     </div>
                     <input
@@ -1104,16 +1097,16 @@ function GestioneRdl({ client, setError }) {
                             background: importResult.errors?.length ? '#fff3cd' : '#d1e7dd',
                             borderRadius: '4px'
                         }}>
-                            <div style={{ fontWeight: 500 }}>
+                            <div className="fw-medium">
                                 {importResult.created} creati, {importResult.updated} aggiornati
                                 {importResult.skipped > 0 && (
-                                    <span style={{ color: '#6c757d', marginLeft: '8px' }}>
+                                    <span className="text-muted ms-2">
                                         ({importResult.skipped} skippati perché fuori dalla tua area)
                                     </span>
                                 )}
                             </div>
                             {importResult.errors?.length > 0 && (
-                                <ul style={{ margin: '4px 0 0', paddingLeft: '20px' }}>
+                                <ul className="mb-0 mt-xs ps-4">
                                     {importResult.errors.slice(0, 3).map((err, i) => (
                                         <li key={i}>{err}</li>
                                     ))}
@@ -1135,7 +1128,7 @@ function GestioneRdl({ client, setError }) {
                     </div>
                     <div className="card-body">
                         {usingSavedMapping && (
-                            <div className="alert alert-success mb-3" style={{ fontSize: '0.85rem' }}>
+                            <div className="alert alert-success mb-3 text-sm">
                                 <i className="fas fa-check-circle me-2"></i>
                                 <strong>Mapping salvato trovato!</strong> Le colonne sono state mappate automaticamente in base a un import precedente con la stessa struttura.
                             </div>
@@ -1150,7 +1143,7 @@ function GestioneRdl({ client, setError }) {
                             <div className="grid-2-col gap-md">
                                 {requiredFields.map(field => (
                                     <div key={field.key}>
-                                        <label className="form-label mb-1" style={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                                        <label className="form-label mb-1 rdl-form-label">
                                             {field.label} <span className="text-danger">*</span>
                                         </label>
                                         <select
@@ -1174,7 +1167,7 @@ function GestioneRdl({ client, setError }) {
                             <div className="grid-2-col gap-md">
                                 {optionalFields.map(field => (
                                     <div key={field.key}>
-                                        <label className="form-label mb-1" style={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                                        <label className="form-label mb-1 rdl-form-label">
                                             {field.label}
                                         </label>
                                         <select
@@ -1259,7 +1252,7 @@ function GestioneRdl({ client, setError }) {
                 </div>
 
                 {filteredRegistrations.length === 0 ? (
-                    <div style={{ padding: '20px', textAlign: 'center', color: '#6c757d' }}>
+                    <div className="rdl-loading">
                         Nessuna registrazione trovata
                     </div>
                 ) : (
@@ -1269,11 +1262,11 @@ function GestioneRdl({ client, setError }) {
                         }}>
                             {editingId === reg.id ? (
                                 /* Edit Mode - Complete with labels */
-                                <div style={{ padding: '12px', background: '#f8f9fa' }}>
+                                <div className="rdl-edit-container">
                                     <div className="grid-2-col gap-md">
                                         {/* Dati anagrafici */}
                                         <div>
-                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Nome</label>
+                                            <label className="form-label mb-1 rdl-form-label">Nome</label>
                                             <input
                                                 type="text"
                                                 className="form-control form-control-sm"
@@ -1282,7 +1275,7 @@ function GestioneRdl({ client, setError }) {
                                             />
                                         </div>
                                         <div>
-                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Cognome</label>
+                                            <label className="form-label mb-1 rdl-form-label">Cognome</label>
                                             <input
                                                 type="text"
                                                 className="form-control form-control-sm"
@@ -1291,7 +1284,7 @@ function GestioneRdl({ client, setError }) {
                                             />
                                         </div>
                                         <div style={{ gridColumn: '1 / -1' }}>
-                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Email</label>
+                                            <label className="form-label mb-1 rdl-form-label">Email</label>
                                             <input
                                                 type="email"
                                                 className="form-control form-control-sm"
@@ -1300,7 +1293,7 @@ function GestioneRdl({ client, setError }) {
                                             />
                                         </div>
                                         <div>
-                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Telefono</label>
+                                            <label className="form-label mb-1 rdl-form-label">Telefono</label>
                                             <input
                                                 type="tel"
                                                 className="form-control form-control-sm"
@@ -1309,7 +1302,7 @@ function GestioneRdl({ client, setError }) {
                                             />
                                         </div>
                                         <div>
-                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Data nascita</label>
+                                            <label className="form-label mb-1 rdl-form-label">Data nascita</label>
                                             <input
                                                 type="date"
                                                 className="form-control form-control-sm"
@@ -1318,7 +1311,7 @@ function GestioneRdl({ client, setError }) {
                                             />
                                         </div>
                                         <div style={{ gridColumn: '1 / -1' }}>
-                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Comune nascita</label>
+                                            <label className="form-label mb-1 rdl-form-label">Comune nascita</label>
                                             <input
                                                 type="text"
                                                 className="form-control form-control-sm"
@@ -1329,10 +1322,10 @@ function GestioneRdl({ client, setError }) {
 
                                         {/* Residenza */}
                                         <div style={{ gridColumn: '1 / -1', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid #dee2e6' }}>
-                                            <strong style={{ fontSize: '0.85rem' }}>Residenza</strong>
+                                            <strong className="text-sm">Residenza</strong>
                                         </div>
                                         <div style={{ gridColumn: '1 / -1' }}>
-                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Comune residenza</label>
+                                            <label className="form-label mb-1 rdl-form-label">Comune residenza</label>
                                             <input
                                                 type="text"
                                                 className="form-control form-control-sm"
@@ -1341,7 +1334,7 @@ function GestioneRdl({ client, setError }) {
                                             />
                                         </div>
                                         <div style={{ gridColumn: '1 / -1' }}>
-                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Indirizzo residenza</label>
+                                            <label className="form-label mb-1 rdl-form-label">Indirizzo residenza</label>
                                             <input
                                                 type="text"
                                                 className="form-control form-control-sm"
@@ -1350,7 +1343,7 @@ function GestioneRdl({ client, setError }) {
                                             />
                                         </div>
                                         <div>
-                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Municipio</label>
+                                            <label className="form-label mb-1 rdl-form-label">Municipio</label>
                                             <input
                                                 type="number"
                                                 className="form-control form-control-sm"
@@ -1363,7 +1356,7 @@ function GestioneRdl({ client, setError }) {
 
                                         {/* Fuorisede */}
                                         <div style={{ gridColumn: '1 / -1', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid #dee2e6' }}>
-                                            <strong style={{ fontSize: '0.85rem' }}>Fuorisede</strong>
+                                            <strong className="text-sm">Fuorisede</strong>
                                         </div>
                                         <div style={{ gridColumn: '1 / -1' }}>
                                             <div className="form-check">
@@ -1382,7 +1375,7 @@ function GestioneRdl({ client, setError }) {
                                         {editData.fuorisede && (
                                             <>
                                                 <div style={{ gridColumn: '1 / -1' }}>
-                                                    <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Comune domicilio</label>
+                                                    <label className="form-label mb-1 rdl-form-label">Comune domicilio</label>
                                                     <input
                                                         type="text"
                                                         className="form-control form-control-sm"
@@ -1391,7 +1384,7 @@ function GestioneRdl({ client, setError }) {
                                                     />
                                                 </div>
                                                 <div style={{ gridColumn: '1 / -1' }}>
-                                                    <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Indirizzo domicilio</label>
+                                                    <label className="form-label mb-1 rdl-form-label">Indirizzo domicilio</label>
                                                     <input
                                                         type="text"
                                                         className="form-control form-control-sm"
@@ -1404,10 +1397,10 @@ function GestioneRdl({ client, setError }) {
 
                                         {/* Preferenze */}
                                         <div style={{ gridColumn: '1 / -1', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid #dee2e6' }}>
-                                            <strong style={{ fontSize: '0.85rem' }}>Preferenze</strong>
+                                            <strong className="text-sm">Preferenze</strong>
                                         </div>
                                         <div style={{ gridColumn: '1 / -1' }}>
-                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Seggio preferenza</label>
+                                            <label className="form-label mb-1 rdl-form-label">Seggio preferenza</label>
                                             <input
                                                 type="text"
                                                 className="form-control form-control-sm"
@@ -1416,7 +1409,7 @@ function GestioneRdl({ client, setError }) {
                                             />
                                         </div>
                                         <div style={{ gridColumn: '1 / -1' }}>
-                                            <label className="form-label mb-1" style={{ fontSize: '0.8rem', fontWeight: 500 }}>Note</label>
+                                            <label className="form-label mb-1 rdl-form-label">Note</label>
                                             <textarea
                                                 className="form-control form-control-sm"
                                                 rows="2"
@@ -1425,7 +1418,7 @@ function GestioneRdl({ client, setError }) {
                                             />
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                                    <div className="d-flex gap-sm mt-md">
                                         <button className="btn btn-success btn-sm" onClick={handleSaveEdit} className="flex-1">
                                             <i className="fas fa-save me-1"></i>
                                             Salva
@@ -1451,7 +1444,7 @@ function GestioneRdl({ client, setError }) {
                                         alignItems: 'flex-start',
                                         marginBottom: '4px'
                                     }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                                        <div className="d-flex align-items-center gap-sm flex-1">
                                             {reg.status === 'PENDING' && (
                                                 <input
                                                     type="checkbox"
@@ -1471,7 +1464,7 @@ function GestioneRdl({ client, setError }) {
                                                 {reg.cognome} {reg.nome}
                                             </div>
                                         </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                        <div className="d-flex flex-column align-items-end gap-xs">
                                             {getStatusBadge(reg.status)}
                                             {reg.fuorisede && (
                                                 <span style={{
@@ -1491,7 +1484,7 @@ function GestioneRdl({ client, setError }) {
                                     </div>
 
                                     {/* Info secondarie */}
-                                    <div style={{ fontSize: '0.8rem', color: '#6c757d' }}>
+                                    <div className="text-sm text-muted">
                                         <div style={{ marginBottom: '4px' }}>
                                             <i className="fas fa-envelope me-1"></i>
                                             {reg.email}
@@ -1510,7 +1503,7 @@ function GestioneRdl({ client, setError }) {
                                                     <button
                                                         onClick={() => downloadVCard(`${reg.cognome} ${reg.nome}`, reg.telefono, reg.email)}
                                                         className="btn btn-link btn-sm p-0 ms-2"
-                                                        style={{ fontSize: '0.8rem', color: '#6c757d' }}
+                                                        className="text-sm text-muted"
                                                         title="Salva contatto"
                                                     >
                                                         <i className="fas fa-user-plus"></i>
@@ -1518,7 +1511,7 @@ function GestioneRdl({ client, setError }) {
                                                 </span>
                                             )}
                                         </div>
-                                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                        <div className="d-flex gap-md flex-wrap">
                                             <span>
                                                 <i className="fas fa-map-marker-alt me-1"></i>
                                                 <strong>{reg.comune_residenza || reg.comune}</strong>
@@ -1539,14 +1532,14 @@ function GestioneRdl({ client, setError }) {
                                             )}
                                         </div>
                                         {reg.fuorisede && reg.comune_domicilio && (
-                                            <div style={{ marginTop: '4px', fontSize: '0.75rem' }}>
+                                            <div className="mt-xs text-xs">
                                                 <i className="fas fa-suitcase me-1"></i>
                                                 <strong>Domicilio:</strong> {reg.comune_domicilio}
                                                 {reg.indirizzo_domicilio && `, ${reg.indirizzo_domicilio}`}
                                             </div>
                                         )}
                                         {reg.notes && (
-                                            <div style={{ marginTop: '4px', fontStyle: 'italic', fontSize: '0.75rem' }}>
+                                            <div className="mt-xs text-xs fst-italic">
                                                 <i className="fas fa-sticky-note me-1"></i>
                                                 {reg.notes}
                                             </div>
@@ -1578,10 +1571,10 @@ function GestioneRdl({ client, setError }) {
                                             }}>
                                                 <div className="grid-2-col" style={{ gap: '6px' }}>
                                                     <div style={{ gridColumn: '1 / -1' }}>
-                                                        <span style={{ color: '#6c757d' }}>Email:</span> {reg.email}
+                                                        <span className="text-muted">Email:</span> {reg.email}
                                                     </div>
                                                     <div>
-                                                        <span style={{ color: '#6c757d' }}>Telefono:</span>{' '}
+                                                        <span className="text-muted">Telefono:</span>{' '}
                                                         {reg.telefono ? (
                                                             <>
                                                                 <a
@@ -1596,7 +1589,7 @@ function GestioneRdl({ client, setError }) {
                                                                 <button
                                                                     onClick={() => downloadVCard(`${reg.cognome} ${reg.nome}`, reg.telefono, reg.email)}
                                                                     className="btn btn-link btn-sm p-0 ms-1"
-                                                                    style={{ fontSize: '0.7rem', color: '#6c757d' }}
+                                                                    className="text-xxs text-muted"
                                                                     title="Salva contatto"
                                                                 >
                                                                     <i className="fas fa-user-plus"></i>
@@ -1605,16 +1598,16 @@ function GestioneRdl({ client, setError }) {
                                                         ) : '-'}
                                                     </div>
                                                     <div>
-                                                        <span style={{ color: '#6c757d' }}>Municipio:</span> {reg.municipio || '-'}
+                                                        <span className="text-muted">Municipio:</span> {reg.municipio || '-'}
                                                     </div>
-                                                    <div><span style={{ color: '#6c757d' }}>Nato a:</span> {reg.comune_nascita || '-'}</div>
-                                                    <div><span style={{ color: '#6c757d' }}>il:</span> {formatDate(reg.data_nascita) || '-'}</div>
+                                                    <div><span className="text-muted">Nato a:</span> {reg.comune_nascita || '-'}</div>
+                                                    <div><span className="text-muted">il:</span> {formatDate(reg.data_nascita) || '-'}</div>
                                                     <div style={{ gridColumn: '1 / -1', marginTop: '4px', paddingTop: '4px', borderTop: '1px solid #e9ecef' }}>
-                                                        <span style={{ color: '#6c757d' }}>Residenza:</span> {reg.comune_residenza || '-'}, {reg.indirizzo_residenza || '-'}
+                                                        <span className="text-muted">Residenza:</span> {reg.comune_residenza || '-'}, {reg.indirizzo_residenza || '-'}
                                                     </div>
                                                     {reg.fuorisede !== null && (
                                                         <div style={{ gridColumn: '1 / -1' }}>
-                                                            <span style={{ color: '#6c757d' }}>Fuorisede:</span>{' '}
+                                                            <span className="text-muted">Fuorisede:</span>{' '}
                                                             {reg.fuorisede ? (
                                                                 <span style={{
                                                                     background: '#0dcaf0',
@@ -1625,28 +1618,28 @@ function GestioneRdl({ client, setError }) {
                                                                     fontWeight: 500
                                                                 }}>SI</span>
                                                             ) : (
-                                                                <span style={{ color: '#6c757d' }}>No</span>
+                                                                <span className="text-muted">No</span>
                                                             )}
                                                         </div>
                                                     )}
                                                     {reg.fuorisede && reg.comune_domicilio && (
                                                         <div style={{ gridColumn: '1 / -1' }}>
-                                                            <span style={{ color: '#6c757d' }}>Domicilio:</span> {reg.comune_domicilio}, {reg.indirizzo_domicilio || '-'}
+                                                            <span className="text-muted">Domicilio:</span> {reg.comune_domicilio}, {reg.indirizzo_domicilio || '-'}
                                                         </div>
                                                     )}
                                                     {reg.seggio_preferenza && (
                                                         <div style={{ gridColumn: '1 / -1' }}>
-                                                            <span style={{ color: '#6c757d' }}>Preferenza:</span> {reg.seggio_preferenza}
+                                                            <span className="text-muted">Preferenza:</span> {reg.seggio_preferenza}
                                                         </div>
                                                     )}
                                                     {reg.notes && (
                                                         <div style={{ gridColumn: '1 / -1' }}>
-                                                            <span style={{ color: '#6c757d' }}>Note:</span> {reg.notes}
+                                                            <span className="text-muted">Note:</span> {reg.notes}
                                                         </div>
                                                     )}
                                                     {/* Origine registrazione */}
                                                     <div style={{ gridColumn: '1 / -1', marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #dee2e6' }}>
-                                                        <span style={{ color: '#6c757d' }}>Origine:</span>{' '}
+                                                        <span className="text-muted">Origine:</span>{' '}
                                                         {reg.campagna_slug ? (
                                                             <a
                                                                 href={`/campagna/${reg.campagna_slug}`}
@@ -1676,7 +1669,7 @@ function GestioneRdl({ client, setError }) {
                                             </div>
 
                                             {/* Azioni */}
-                                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                            <div className="d-flex gap-xs flex-wrap">
                                                 {reg.status === 'PENDING' && (
                                                     <>
                                                         <button
@@ -1903,7 +1896,7 @@ function GestioneRdl({ client, setError }) {
                                             <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
                                                 Comune Seggio *
                                                 {record.error_fields?.includes('comune_seggio') && (
-                                                    <span style={{ color: '#dc3545', fontSize: '0.75rem', marginLeft: '8px' }}>
+                                                    <span className="text-danger text-xs ms-2">
                                                         ← {record.error_message}
                                                     </span>
                                                 )}
@@ -1984,7 +1977,7 @@ function GestioneRdl({ client, setError }) {
                                             <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
                                                 Data Nascita *
                                                 {record.error_fields?.includes('data_nascita') && (
-                                                    <span style={{ color: '#dc3545', fontSize: '0.75rem', marginLeft: '8px' }}>
+                                                    <span className="text-danger text-xs ms-2">
                                                         Formato errato
                                                     </span>
                                                 )}
@@ -2000,7 +1993,7 @@ function GestioneRdl({ client, setError }) {
                                                 }}
                                             />
                                             {record.data_nascita && (
-                                                <small style={{ color: '#6c757d', fontSize: '0.7rem', display: 'block', marginTop: '2px' }}>
+                                                <small className="text-muted text-xxs d-block" style={{ marginTop: '2px' }}>
                                                     {new Date(record.data_nascita).toLocaleDateString('it-IT')}
                                                 </small>
                                             )}
@@ -2044,7 +2037,7 @@ function GestioneRdl({ client, setError }) {
                                                 fontFamily: 'monospace'
                                             }}
                                         />
-                                        <small style={{ color: '#6c757d', fontSize: '0.75rem', display: 'block', marginTop: '4px' }}>
+                                        <small className="text-muted text-xs d-block mt-xs">
                                             <i className="fas fa-info-circle me-1"></i>
                                             Queste note verranno salvate nel campo "Note" della registrazione per riferimento futuro.
                                         </small>
