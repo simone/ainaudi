@@ -1067,6 +1067,34 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                         const uniquePlessi = new Set(allSezioni.map(s => s.plesso));
                         const isOnMultiplePlessi = uniquePlessi.size > 1;
 
+                        // Check if preference is already assigned
+                        // Extract numbers from preference text
+                        const parseNumeriPreferenza = (testo) => {
+                            if (!testo) return [];
+                            const numeri = new Set();
+                            const patterns = testo.match(/(\d+)(?:\s*[-–]\s*(\d+))?/g) || [];
+                            patterns.forEach(pattern => {
+                                const match = pattern.match(/(\d+)(?:\s*[-–]\s*(\d+))?/);
+                                if (match) {
+                                    const start = parseInt(match[1]);
+                                    const end = match[2] ? parseInt(match[2]) : start;
+                                    for (let n = start; n <= end; n++) {
+                                        numeri.add(n);
+                                    }
+                                }
+                            });
+                            return Array.from(numeri);
+                        };
+
+                        const numeriPreferenza = parseNumeriPreferenza(rdl.seggio_preferenza);
+                        const numeriAssegnati = new Set(allSezioni.map(s => parseInt(s.numero)));
+
+                        // Show button only if:
+                        // 1. Has preference AND
+                        // 2. (No numbers in preference OR at least one number is not yet assigned)
+                        const hasPrefenzaNonAssegnata = numeriPreferenza.length === 0 ||
+                            numeriPreferenza.some(num => !numeriAssegnati.has(num));
+
                         return (
                         <div key={rdl.rdl_registration_id} className={`mappatura-rdl-card ${isOnMultiplePlessi ? 'multi-plesso' : ''}`}>
                             <div className="mappatura-rdl-header">
@@ -1139,14 +1167,14 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                 >
                                     + Aggiungi Sezione
                                 </button>
-                                {rdl.seggio_preferenza && (
+                                {rdl.seggio_preferenza && hasPrefenzaNonAssegnata && (
                                     <button
                                         className="btn btn-sm btn-outline-success ms-2"
                                         onClick={() => openAssegnaPreferenzeModal(rdl)}
                                         title="Analizza la preferenza e assegna automaticamente"
                                     >
                                         <i className="fas fa-magic me-1"></i>
-                                        Assegna Preferenze
+                                        Assegna Preferita
                                     </button>
                                 )}
                             </div>
