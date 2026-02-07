@@ -2,6 +2,48 @@ import React, { useState, useEffect, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
 
 /**
+ * Genera un link WhatsApp per un numero di telefono
+ */
+const getWhatsAppLink = (phone) => {
+    if (!phone) return null;
+    // Rimuovi spazi, trattini, parentesi
+    const cleaned = phone.replace(/[\s\-\(\)]/g, '');
+    // Se inizia con 3 (numero italiano mobile) aggiungi prefisso +39
+    const international = cleaned.startsWith('3') && cleaned.length === 10
+        ? `39${cleaned}`
+        : cleaned.startsWith('+') ? cleaned.substring(1) : cleaned;
+    return `https://wa.me/${international}`;
+};
+
+/**
+ * Genera e scarica un file vCard per salvare il contatto
+ */
+const downloadVCard = (name, phone, email) => {
+    if (!phone) return;
+    const cleaned = phone.replace(/[\s\-\(\)]/g, '');
+    const international = cleaned.startsWith('3') && cleaned.length === 10
+        ? `+39${cleaned}`
+        : cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
+
+    const vcard = `BEGIN:VCARD
+VERSION:3.0
+FN:${name}
+TEL;TYPE=CELL:${international}
+${email ? `EMAIL:${email}` : ''}
+END:VCARD`;
+
+    const blob = new Blob([vcard], { type: 'text/vcard' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${name.replace(/\s+/g, '_')}.vcf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+};
+
+/**
  * Converte un numero in numeri romani
  */
 const toRoman = (num) => {
@@ -1310,7 +1352,23 @@ function GestioneRdl({ client, setError }) {
                                             {reg.telefono && (
                                                 <span className="ms-3">
                                                     <i className="fas fa-phone me-1"></i>
-                                                    {reg.telefono}
+                                                    <a
+                                                        href={getWhatsAppLink(reg.telefono)}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        style={{ color: '#25D366', textDecoration: 'none' }}
+                                                        title="Contatta su WhatsApp"
+                                                    >
+                                                        {reg.telefono}
+                                                    </a>
+                                                    <button
+                                                        onClick={() => downloadVCard(`${reg.cognome} ${reg.nome}`, reg.telefono, reg.email)}
+                                                        className="btn btn-link btn-sm p-0 ms-2"
+                                                        style={{ fontSize: '0.8rem', color: '#6c757d' }}
+                                                        title="Salva contatto"
+                                                    >
+                                                        <i className="fas fa-user-plus"></i>
+                                                    </button>
                                                 </span>
                                             )}
                                         </div>
@@ -1377,7 +1435,28 @@ function GestioneRdl({ client, setError }) {
                                                         <span style={{ color: '#6c757d' }}>Email:</span> {reg.email}
                                                     </div>
                                                     <div>
-                                                        <span style={{ color: '#6c757d' }}>Telefono:</span> {reg.telefono || '-'}
+                                                        <span style={{ color: '#6c757d' }}>Telefono:</span>{' '}
+                                                        {reg.telefono ? (
+                                                            <>
+                                                                <a
+                                                                    href={getWhatsAppLink(reg.telefono)}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    style={{ color: '#25D366', textDecoration: 'none' }}
+                                                                    title="Contatta su WhatsApp"
+                                                                >
+                                                                    {reg.telefono}
+                                                                </a>
+                                                                <button
+                                                                    onClick={() => downloadVCard(`${reg.cognome} ${reg.nome}`, reg.telefono, reg.email)}
+                                                                    className="btn btn-link btn-sm p-0 ms-1"
+                                                                    style={{ fontSize: '0.7rem', color: '#6c757d' }}
+                                                                    title="Salva contatto"
+                                                                >
+                                                                    <i className="fas fa-user-plus"></i>
+                                                                </button>
+                                                            </>
+                                                        ) : '-'}
                                                     </div>
                                                     <div>
                                                         <span style={{ color: '#6c757d' }}>Municipio:</span> {reg.municipio || '-'}

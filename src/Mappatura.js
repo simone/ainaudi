@@ -1,6 +1,46 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ConfirmModal from './ConfirmModal';
 
+/**
+ * Genera un link WhatsApp per un numero di telefono
+ */
+const getWhatsAppLink = (phone) => {
+    if (!phone) return null;
+    const cleaned = phone.replace(/[\s\-\(\)]/g, '');
+    const international = cleaned.startsWith('3') && cleaned.length === 10
+        ? `39${cleaned}`
+        : cleaned.startsWith('+') ? cleaned.substring(1) : cleaned;
+    return `https://wa.me/${international}`;
+};
+
+/**
+ * Genera e scarica un file vCard per salvare il contatto
+ */
+const downloadVCard = (name, phone, email) => {
+    if (!phone) return;
+    const cleaned = phone.replace(/[\s\-\(\)]/g, '');
+    const international = cleaned.startsWith('3') && cleaned.length === 10
+        ? `+39${cleaned}`
+        : cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
+
+    const vcard = `BEGIN:VCARD
+VERSION:3.0
+FN:${name}
+TEL;TYPE=CELL:${international}
+${email ? `EMAIL:${email}` : ''}
+END:VCARD`;
+
+    const blob = new Blob([vcard], { type: 'text/vcard' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${name.replace(/\s+/g, '_')}.vcf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+};
+
 function Mappatura({ client, setError }) {
     // View state
     const [activeTab, setActiveTab] = useState('sezioni'); // 'sezioni' or 'rdl'
@@ -1027,7 +1067,32 @@ function Mappatura({ client, setError }) {
                             </div>
                             <div className="mappatura-rdl-details">
                                 <div className="mappatura-rdl-email">{rdl.email}</div>
-                                <div className="mappatura-rdl-phone">{rdl.telefono}</div>
+                                <div className="mappatura-rdl-phone">
+                                    {rdl.telefono ? (
+                                        <>
+                                            <a
+                                                href={getWhatsAppLink(rdl.telefono)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{ color: '#25D366', textDecoration: 'none' }}
+                                                title="Contatta su WhatsApp"
+                                            >
+                                                {rdl.telefono}
+                                            </a>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    downloadVCard(`${rdl.cognome} ${rdl.nome}`, rdl.telefono, rdl.email);
+                                                }}
+                                                className="btn btn-link btn-sm p-0 ms-1"
+                                                style={{ fontSize: '0.7rem', color: '#6c757d' }}
+                                                title="Salva contatto"
+                                            >
+                                                <i className="fas fa-user-plus"></i>
+                                            </button>
+                                        </>
+                                    ) : '-'}
+                                </div>
                                 {rdl.seggio_preferenza && (
                                     <div className="mappatura-rdl-pref">Pref: {rdl.seggio_preferenza}</div>
                                 )}
