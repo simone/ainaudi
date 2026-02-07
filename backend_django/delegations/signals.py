@@ -197,7 +197,7 @@ def log_provisioning_action(action, user, target_model, target_id, details=None)
     """Log a provisioning action to the audit log."""
     try:
         AuditLog.objects.create(
-            user=user,
+            user_email=user.email if user else '',
             action=action,
             target_model=target_model,
             target_id=str(target_id),
