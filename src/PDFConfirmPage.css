@@ -93,7 +93,7 @@
     text-decoration: none;
     border-radius: var(--radius-sm);
     font-weight: bold;
-    transition: all 0.3s;
+    transition: all var(--transition-normal);
 }
 
 .btn-primary {

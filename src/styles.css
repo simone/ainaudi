@@ -6,13 +6,13 @@
    CSS Variables - Sistema colori semantico
    -------------------------------------------------------------------------- */
 :root {
-  /* Colori primari AInaudi */
+  /* Base Palette - Colori primari AInaudi */
   --color-primary: #007bff;
   --color-primary-dark: #0056b3;
   --color-ainaudi-blue: #003366;
   --color-ainaudi-gold: #e9d483;
 
-  /* Colori semantici */
+  /* Base Palette - Colori semantici */
   --color-success: #198754;
   --color-success-light: #d1e7dd;
   --color-danger: #dc3545;
@@ -22,12 +22,34 @@
   --color-info: #0dcaf0;
   --color-info-light: #cff4fc;
 
-  /* Grigi */
+  /* Base Palette - Grigi */
   --color-gray-100: #f8f9fa;
   --color-gray-200: #e9ecef;
   --color-gray-300: #dee2e6;
   --color-gray-600: #6c757d;
   --color-gray-800: #343a40;
+
+  /* Semantic Tokens - Backgrounds (theme-aware) */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e9ecef;
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Semantic Tokens - Text (theme-aware) */
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --text-muted: #6c757d;
+  --text-inverse: #ffffff;
+
+  /* Semantic Tokens - Borders (theme-aware) */
+  --border-primary: #dee2e6;
+  --border-secondary: #ced4da;
+  --border-focus: #80bdff;
+
+  /* Semantic Tokens - Surfaces (theme-aware) */
+  --surface-card: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-input: #ffffff;
 
   /* Typography Scale */
   --font-size-h1: 2rem;
@@ -77,13 +99,51 @@
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
 
-  /* Transitions */
+  /* Transitions - Combined (legacy compatibility) */
   --transition-fast: 0.15s ease-in-out;
   --transition-normal: 0.3s ease-in-out;
   --transition-slow: 0.5s ease-in-out;
 
+  /* Durations - Granular control */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+
+  /* Easing Functions */
+  --ease-in-out: ease-in-out;
+  --ease-out: ease-out;
+  --ease-in: ease-in;
+  --ease-linear: linear;
+
   /* Touch target minimo (44px per WCAG) */
   --touch-target-min: 44px;
+}
+
+/* --------------------------------------------------------------------------
+   Dark Theme - Semantic tokens override
+   -------------------------------------------------------------------------- */
+[data-theme="dark"] {
+  /* Backgrounds */
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #242424;
+  --bg-tertiary: #2d2d2d;
+  --bg-overlay: rgba(0, 0, 0, 0.7);
+
+  /* Text */
+  --text-primary: #f8f9fa;
+  --text-secondary: #dee2e6;
+  --text-muted: #adb5bd;
+  --text-inverse: #212529;
+
+  /* Borders */
+  --border-primary: #495057;
+  --border-secondary: #343a40;
+  --border-focus: #4da3ff;
+
+  /* Surfaces */
+  --surface-card: #242424;
+  --surface-elevated: #2d2d2d;
+  --surface-input: #343a40;
 }
 
 /* --------------------------------------------------------------------------
@@ -2320,6 +2380,176 @@ small.text-muted {
 
 .shadow-lg {
   box-shadow: var(--shadow-lg);
+}
+
+/* --------------------------------------------------------------------------
+   Advanced Utility Classes
+   -------------------------------------------------------------------------- */
+
+/* Aspect Ratio Utilities */
+.aspect-video {
+  aspect-ratio: 16 / 9;
+}
+
+.aspect-square {
+  aspect-ratio: 1 / 1;
+}
+
+.aspect-4-3 {
+  aspect-ratio: 4 / 3;
+}
+
+/* Object Fit Utilities */
+.object-cover {
+  object-fit: cover;
+}
+
+.object-contain {
+  object-fit: contain;
+}
+
+.object-fill {
+  object-fit: fill;
+}
+
+.object-none {
+  object-fit: none;
+}
+
+/* Position Utilities */
+.position-relative {
+  position: relative;
+}
+
+.position-absolute {
+  position: absolute;
+}
+
+.position-fixed {
+  position: fixed;
+}
+
+.position-sticky {
+  position: sticky;
+}
+
+/* Z-Index Utilities */
+.z-0 {
+  z-index: 0;
+}
+
+.z-10 {
+  z-index: 10;
+}
+
+.z-20 {
+  z-index: 20;
+}
+
+.z-30 {
+  z-index: 30;
+}
+
+.z-40 {
+  z-index: 40;
+}
+
+.z-50 {
+  z-index: 50;
+}
+
+/* Overflow Utilities */
+.overflow-hidden {
+  overflow: hidden;
+}
+
+.overflow-auto {
+  overflow: auto;
+}
+
+.overflow-scroll {
+  overflow: scroll;
+}
+
+.overflow-x-hidden {
+  overflow-x: hidden;
+}
+
+.overflow-y-auto {
+  overflow-y: auto;
+}
+
+/* Text Utilities */
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Backdrop Filters */
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.backdrop-blur-md {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.backdrop-blur-lg {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Pointer Events */
+.pointer-events-none {
+  pointer-events: none;
+}
+
+.pointer-events-auto {
+  pointer-events: auto;
+}
+
+/* User Select */
+.select-none {
+  user-select: none;
+}
+
+.select-text {
+  user-select: text;
+}
+
+.select-all {
+  user-select: all;
 }
 
 /* Responsive Grid (Stack on Mobile) */
