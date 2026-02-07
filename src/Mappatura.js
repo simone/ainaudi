@@ -1416,7 +1416,7 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                 onConfirm={handleAssegnaPreferenze}
                 onCancel={closeAssegnaPreferenzeModal}
                 title={`Assegna Preferenze: ${assegnaPreferenzeModal.rdl?.cognome} ${assegnaPreferenzeModal.rdl?.nome}`}
-                confirmText={`Assegna ${assegnaPreferenzeModal.selectedSezioni.size} sezioni`}
+                confirmText={`Assegna ${assegnaPreferenzeModal.selectedSezioni.size} ${assegnaPreferenzeModal.selectedSezioni.size === 1 ? 'sezione' : 'sezioni'}`}
                 confirmVariant="success"
                 confirmDisabled={assegnaPreferenzeModal.selectedSezioni.size === 0}
             >
@@ -1491,10 +1491,10 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                                             </span>
                                                         </div>
                                                         {sez.denominazione && (
-                                                            <div style={{ fontSize: '0.75rem', color: '#6c757d' }}>{sez.denominazione}</div>
+                                                            <div className="mappatura-sezione-denominazione">{sez.denominazione}</div>
                                                         )}
                                                         {sez.indirizzo && (
-                                                            <div style={{ fontSize: '0.7rem', color: '#6c757d' }}>
+                                                            <div className="mappatura-sezione-indirizzo">
                                                                 <i className="fas fa-map-marker-alt me-1"></i>
                                                                 {sez.indirizzo}
                                                             </div>

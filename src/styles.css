@@ -1591,6 +1591,23 @@ small.text-muted {
   opacity: 0.8;
 }
 
+.mappatura-sezione-denominazione {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+.mappatura-sezione-indirizzo {
+  font-size: 0.7rem;
+  color: #6c757d;
+  margin-top: 2px;
+}
+
+.mappatura-add-sezione-item.selected .mappatura-sezione-denominazione,
+.mappatura-add-sezione-item.selected .mappatura-sezione-indirizzo {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .mappatura-filters-grid {
