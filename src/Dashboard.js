@@ -42,7 +42,7 @@ function Dashboard({ user, permissions, consultazione, hasContributions, onNavig
                 'Liste e candidati',
                 'Colori e denominazioni'
             ],
-            permission: permissions.referenti && consultazione?.schede?.length > 0,
+            permission: permissions.can_manage_elections && consultazione?.schede?.length > 0,
             action: () => {
                 // Apri la prima scheda
                 if (consultazione?.schede?.[0]) {
@@ -68,7 +68,7 @@ function Dashboard({ user, permissions, consultazione, hasContributions, onNavig
                 'Generazione documenti PDF',
                 'Firma autenticata'
             ],
-            permission: permissions.referenti,
+            permission: permissions.can_manage_delegations,
             action: () => onNavigate('deleghe'),
             cta: 'Gestisci Deleghe'
         },
@@ -88,8 +88,8 @@ function Dashboard({ user, permissions, consultazione, hasContributions, onNavig
                 'Gestione sezioni',
                 'Mappatura RDL-Sezioni'
             ],
-            permission: permissions.referenti || permissions.gestione_rdl,
-            action: () => onNavigate(permissions.gestione_rdl ? 'gestione_rdl' : 'campagne'),
+            permission: permissions.can_manage_campaign || permissions.can_manage_rdl,
+            action: () => onNavigate(permissions.can_manage_rdl ? 'gestione_rdl' : 'campagne'),
             cta: 'Gestisci RDL'
         },
 
@@ -108,7 +108,7 @@ function Dashboard({ user, permissions, consultazione, hasContributions, onNavig
                 'Schede bianche/nulle',
                 'Salvataggio automatico'
             ],
-            permission: permissions.sections && consultazione,
+            permission: permissions.has_scrutinio_access && consultazione,
             action: () => onNavigate('sections'),
             cta: 'Inserisci Dati',
             highlight: true
@@ -129,7 +129,7 @@ function Dashboard({ user, permissions, consultazione, hasContributions, onNavig
                 'Affluenza e percentuali',
                 'Confronto territoriale'
             ],
-            permission: permissions.kpi && consultazione && hasContributions,
+            permission: permissions.can_view_kpi && consultazione && hasContributions,
             action: () => onNavigate('kpi'),
             cta: 'Segui Live',
             badge: 'LIVE',
