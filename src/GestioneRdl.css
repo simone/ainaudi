@@ -1,0 +1,305 @@
+/* GestioneRdl.css - Styles for RDL Management Component */
+
+/* ==========================================================================
+   Page Structure
+   ========================================================================== */
+
+.gestione-rdl-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--spacing-md);
+}
+
+/* ==========================================================================
+   Filters Section
+   ========================================================================== */
+
+.rdl-filters {
+  background: white;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+  border: 1px solid var(--color-gray-300);
+}
+
+.rdl-filters-grid {
+  display: grid;
+  gap: var(--spacing-sm);
+  grid-template-columns: 1fr 1fr auto;
+  align-items: end;
+}
+
+.rdl-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin: 0;
+  cursor: pointer;
+}
+
+.rdl-checkbox-group input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.rdl-checkbox-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  user-select: none;
+}
+
+/* ==========================================================================
+   Cards & Lists
+   ========================================================================== */
+
+.rdl-card {
+  background: white;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  transition: box-shadow var(--transition-fast);
+}
+
+.rdl-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.rdl-card-compact {
+  padding: var(--spacing-sm);
+  font-size: 0.8rem;
+  border: 1px solid var(--color-gray-300);
+  background: white;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.rdl-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-sm);
+}
+
+.rdl-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* ==========================================================================
+   Badges & Labels
+   ========================================================================== */
+
+.rdl-badge {
+  font-size: 0.7rem;
+  padding: var(--spacing-xxs) 6px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  display: inline-block;
+}
+
+.rdl-badge-info {
+  background: #d4e6f1;
+  color: #1a5276;
+}
+
+.rdl-badge-muted {
+  background: var(--color-gray-200);
+  color: var(--color-gray-600);
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  margin-left: var(--spacing-xs);
+}
+
+.rdl-badge-primary {
+  background: #cfe2ff;
+  color: #084298;
+}
+
+.rdl-badge-success {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.rdl-badge-danger {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.rdl-badge-warning {
+  background: var(--color-warning-light);
+  color: #856404;
+}
+
+/* ==========================================================================
+   Sections & Groups
+   ========================================================================== */
+
+.rdl-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.rdl-section-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-gray-600);
+  text-transform: uppercase;
+  margin-bottom: var(--spacing-xs);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.rdl-data-row {
+  display: flex;
+  gap: var(--spacing-xs);
+  font-size: 0.85rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+.rdl-data-label {
+  color: var(--color-gray-600);
+  min-width: 80px;
+}
+
+.rdl-data-value {
+  flex: 1;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Edit Mode
+   ========================================================================== */
+
+.rdl-edit-container {
+  padding: var(--spacing-md);
+  background: var(--color-gray-100);
+  border-radius: var(--radius-sm);
+}
+
+.rdl-form-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  color: var(--color-gray-800);
+}
+
+/* ==========================================================================
+   Loading & Empty States
+   ========================================================================== */
+
+.rdl-loading {
+  padding: var(--spacing-xl);
+  text-align: center;
+  color: var(--color-gray-600);
+}
+
+.rdl-empty {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--color-gray-600);
+}
+
+.rdl-empty-icon {
+  font-size: 3rem;
+  color: var(--color-gray-300);
+  margin-bottom: var(--spacing-md);
+}
+
+.rdl-empty-text {
+  font-size: 1.1rem;
+  color: var(--color-gray-600);
+}
+
+/* ==========================================================================
+   Stats & Metrics
+   ========================================================================== */
+
+.rdl-stats {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: white;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.rdl-stat-box {
+  flex: 1;
+  text-align: center;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
+  background: var(--color-gray-100);
+}
+
+.rdl-stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-xs);
+}
+
+.rdl-stat-label {
+  font-size: 0.85rem;
+  color: var(--color-gray-600);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.rdl-stat-box.success .rdl-stat-value {
+  color: var(--color-success);
+}
+
+.rdl-stat-box.warning .rdl-stat-value {
+  color: var(--color-warning);
+}
+
+.rdl-stat-box.danger .rdl-stat-value {
+  color: var(--color-danger);
+}
+
+.rdl-stat-box.primary .rdl-stat-value {
+  color: var(--color-primary);
+}
+
+/* ==========================================================================
+   Accordion / Expandable
+   ========================================================================== */
+
+.rdl-accordion-toggle {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.rdl-expandable-content {
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--color-gray-200);
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .rdl-filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rdl-stats {
+    flex-direction: column;
+  }
+
+  .rdl-card-header {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+}

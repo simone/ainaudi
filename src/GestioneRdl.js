@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
+import './GestioneRdl.css';
 
 /**
  * Genera un link WhatsApp per un numero di telefono
@@ -900,15 +901,7 @@ function GestioneRdl({ client, setError }) {
                     <i className="fas fa-users"></i>
                     Gestione RDL
                     {territorioLabel && (
-                        <span style={{
-                            marginLeft: '12px',
-                            padding: '4px 12px',
-                            borderRadius: '6px',
-                            fontSize: '0.85rem',
-                            fontWeight: 500,
-                            backgroundColor: '#0d6efd',
-                            color: '#fff'
-                        }}>
+                        <span className="rdl-badge rdl-badge-primary" style={{ marginLeft: '12px' }}>
                             <i className="fas fa-map-marker-alt me-1"></i>
                             {territorioLabel}
                         </span>
@@ -916,6 +909,32 @@ function GestioneRdl({ client, setError }) {
                 </div>
                 <div className="page-header-subtitle">
                     Approva e gestisci le registrazioni dei Rappresentanti di Lista
+                </div>
+            </div>
+
+            {/* Stats Bar */}
+            <div className="rdl-stats">
+                <div className="rdl-stat-box primary">
+                    <div className="rdl-stat-value">{filteredRegistrations.length}</div>
+                    <div className="rdl-stat-label">Totale</div>
+                </div>
+                <div className="rdl-stat-box success">
+                    <div className="rdl-stat-value">
+                        {filteredRegistrations.filter(r => r.status === 'APPROVED').length}
+                    </div>
+                    <div className="rdl-stat-label">Approvati</div>
+                </div>
+                <div className="rdl-stat-box warning">
+                    <div className="rdl-stat-value">
+                        {filteredRegistrations.filter(r => r.status === 'PENDING').length}
+                    </div>
+                    <div className="rdl-stat-label">Pendenti</div>
+                </div>
+                <div className="rdl-stat-box danger">
+                    <div className="rdl-stat-value">
+                        {filteredRegistrations.filter(r => r.status === 'REJECTED').length}
+                    </div>
+                    <div className="rdl-stat-label">Rifiutati</div>
                 </div>
             </div>
 
