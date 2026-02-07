@@ -54,6 +54,7 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
     const [comuneFilter, setComuneFilter] = useState(initialComuneId || '');
     const [municipioFilter, setMunicipioFilter] = useState(initialMunicipioId || '');
     const [searchFilter, setSearchFilter] = useState('');
+    const [sezioneSearchFilter, setSezioneSearchFilter] = useState('');
     const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'assigned' | 'unassigned'
 
     // Totals for stats bar
@@ -108,10 +109,16 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
         loadData();
     }, [comuneFilter, municipioFilter, filterStatus, activeTab]);
 
-    // Clear selection when filters change
+    // Clear selection when filters change or tab changes
     useEffect(() => {
         setSelectedSezioni(new Set());
-    }, [comuneFilter, municipioFilter, filterStatus]);
+    }, [comuneFilter, municipioFilter, filterStatus, activeTab]);
+
+    // Clear search filters when tab changes
+    useEffect(() => {
+        setSearchFilter('');
+        setSezioneSearchFilter('');
+    }, [activeTab]);
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -359,8 +366,39 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
         }
     };
 
+    // Filter plessi and sezioni based on search
+    const filterPlessiBySearch = (plessiList) => {
+        if (!sezioneSearchFilter) return plessiList;
+
+        const searchLower = sezioneSearchFilter.toLowerCase();
+
+        return plessiList.map(plesso => {
+            // Check if plesso matches
+            const plessoMatches =
+                plesso.denominazione?.toLowerCase().includes(searchLower) ||
+                plesso.indirizzo?.toLowerCase().includes(searchLower);
+
+            // Filter sezioni by numero
+            const filteredSezioni = plesso.sezioni.filter(sez =>
+                sez.numero?.toString().includes(searchLower) ||
+                plessoMatches // Include all sezioni if plesso matches
+            );
+
+            // Return plesso only if it has matching sezioni
+            if (filteredSezioni.length > 0) {
+                return {
+                    ...plesso,
+                    sezioni: filteredSezioni
+                };
+            }
+            return null;
+        }).filter(p => p !== null);
+    };
+
+    const filteredPlessi = filterPlessiBySearch(plessi);
+
     // Get all sections flat for flat view
-    const allSezioniFlat = plessi.flatMap(p =>
+    const allSezioniFlat = filteredPlessi.flatMap(p =>
         p.sezioni.map(s => ({ ...s, plesso: p.denominazione, plessoIndirizzo: p.indirizzo }))
     );
 
@@ -603,33 +641,42 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
             {/* Filtri */}
             <div className="mappatura-filters">
                 {activeTab === 'sezioni' && (
-                    <div className="mappatura-filters-row">
-                        <select
-                            className="form-select form-select-sm"
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                        >
-                            <option value="all">Tutte le sezioni</option>
-                            <option value="unassigned">Non assegnate</option>
-                            <option value="assigned">Assegnate</option>
-                        </select>
-                        <div className="mappatura-view-toggle">
-                            <button
-                                className={viewMode === 'grouped' ? 'active' : ''}
-                                onClick={() => setViewMode('grouped')}
-                                title="Vista per plesso"
+                    <>
+                        <div className="mappatura-filters-row">
+                            <select
+                                className="form-select form-select-sm"
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
                             >
-                                Per Plesso
-                            </button>
-                            <button
-                                className={viewMode === 'flat' ? 'active' : ''}
-                                onClick={() => setViewMode('flat')}
-                                title="Vista lista"
-                            >
-                                Lista
-                            </button>
+                                <option value="all">Tutte le sezioni</option>
+                                <option value="unassigned">Non assegnate</option>
+                                <option value="assigned">Assegnate</option>
+                            </select>
+                            <div className="mappatura-view-toggle">
+                                <button
+                                    className={viewMode === 'grouped' ? 'active' : ''}
+                                    onClick={() => setViewMode('grouped')}
+                                    title="Vista per plesso"
+                                >
+                                    Per Plesso
+                                </button>
+                                <button
+                                    className={viewMode === 'flat' ? 'active' : ''}
+                                    onClick={() => setViewMode('flat')}
+                                    title="Vista lista"
+                                >
+                                    Lista
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                        <input
+                            type="search"
+                            className="form-control form-control-sm mt-2"
+                            placeholder="Cerca per numero sezione, indirizzo o plesso..."
+                            value={sezioneSearchFilter}
+                            onChange={(e) => setSezioneSearchFilter(e.target.value)}
+                        />
+                    </>
                 )}
                 {activeTab === 'rdl' && (
                     <input
@@ -661,15 +708,15 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                         </div>
                     )}
 
-                    {!loading && plessi.length === 0 && (
+                    {!loading && filteredPlessi.length === 0 && (
                         <div className="mappatura-empty">
-                            Nessuna sezione trovata
+                            {sezioneSearchFilter ? `Nessuna sezione trovata per "${sezioneSearchFilter}"` : 'Nessuna sezione trovata'}
                         </div>
                     )}
 
                     {viewMode === 'grouped' ? (
                         /* Vista raggruppata per plesso */
-                        plessi.map(plesso => (
+                        filteredPlessi.map(plesso => (
                             <div key={plesso.denominazione} className="mappatura-plesso">
                                 <div className="mappatura-plesso-header">
                                     {/* Checkbox select all in plesso */}
