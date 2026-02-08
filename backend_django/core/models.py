@@ -344,32 +344,49 @@ class CustomPermission(models.Model):
     Proxy model per definire custom permissions per il sistema.
     Non crea tabella, usa django.contrib.auth.Permission.
 
-    Permessi definiti:
-    - can_manage_territory: Gestione territorio (solo superuser)
-    - can_view_kpi: Visualizzazione dashboard KPI
-    - can_manage_elections: Gestione consultazioni elettorali
-    - can_manage_delegations: Gestione catena deleghe
-    - can_manage_rdl: Gestione RDL registrations
-    - can_manage_campaign: Gestione campagne reclutamento RDL
-    - has_scrutinio_access: Inserimento dati scrutinio
-    - can_view_resources: Accesso risorse/documenti
-    - can_ask_to_ai_assistant: Uso chatbot AI
-    - can_generate_documents: Generazione PDF
-    - can_manage_incidents: Gestione segnalazioni
+    Permessi definiti (uno per ogni voce del menu):
+    1. can_view_dashboard: Dashboard
+    2. can_manage_territory: Territorio (admin territorio)
+    3. can_manage_elections: Consultazione (schede elettorali)
+    4. can_manage_campaign: Campagne reclutamento RDL
+    5. can_manage_rdl: Gestione RDL registrations
+    6. can_manage_sections: Gestione Sezioni elettorali
+    7. can_manage_mappatura: Mappatura RDL → Sezioni
+    8. can_manage_delegations: Catena Deleghe
+    9. can_manage_designazioni: Designazioni RDL formali
+    10. can_manage_templates: Template PDF
+    11. can_generate_documents: Genera Moduli PDF
+    12. has_scrutinio_access: Scrutinio (inserimento dati)
+    13. can_view_resources: Risorse/Documenti
+    14. can_view_live_results: Risultati Live (scrutinio aggregato)
+    15. can_view_kpi: Diretta (KPI dashboard)
+
+    Extra:
+    - can_ask_to_ai_assistant: Uso chatbot AI (futuro)
+    - can_manage_incidents: Gestione segnalazioni (futuro)
     """
     class Meta:
         managed = False
         default_permissions = ()
         permissions = [
-            ('can_manage_territory', 'Can manage territory (regions, provinces, comuni, sections)'),
-            ('can_view_kpi', 'Can view KPI dashboard'),
+            # Menu principale (15 voci)
+            ('can_view_dashboard', 'Can view dashboard'),
+            ('can_manage_territory', 'Can manage territory (regions, provinces, comuni)'),
             ('can_manage_elections', 'Can manage elections and ballots'),
-            ('can_manage_delegations', 'Can manage delegations chain'),
-            ('can_manage_rdl', 'Can manage RDL registrations'),
             ('can_manage_campaign', 'Can manage RDL recruitment campaigns'),
+            ('can_manage_rdl', 'Can manage RDL registrations'),
+            ('can_manage_sections', 'Can manage electoral sections'),
+            ('can_manage_mappatura', 'Can manage RDL to sections mapping'),
+            ('can_manage_delegations', 'Can manage delegations chain'),
+            ('can_manage_designazioni', 'Can manage formal RDL designations'),
+            ('can_manage_templates', 'Can manage PDF templates'),
+            ('can_generate_documents', 'Can generate PDF documents'),
             ('has_scrutinio_access', 'Can enter section scrutinio data'),
             ('can_view_resources', 'Can view resources and documents'),
+            ('can_view_live_results', 'Can view live election results'),
+            ('can_view_kpi', 'Can view KPI dashboard'),
+
+            # Funzionalità extra (future)
             ('can_ask_to_ai_assistant', 'Can use AI assistant chatbot'),
-            ('can_generate_documents', 'Can generate PDF documents'),
             ('can_manage_incidents', 'Can manage incident reports'),
         ]

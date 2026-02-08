@@ -120,15 +120,43 @@ def ensure_role_assigned(user, role, scope_type=None, scope_value=None, assigned
         return assignment, False
 
 
-def assign_permissions_for_role(user, role):
+def ensure_group_exists(group_name):
     """
-    Assegna permessi Django basati sul ruolo.
+    Assicura che un gruppo esista.
 
-    Mapping ruolo → permessi:
-    - DELEGATO: tutti tranne can_manage_territory
-    - SUB_DELEGATO: gestione deleghe, RDL, scrutinio, resources
-    - RDL: solo scrutinio, resources, AI, incidents
-    - KPI_VIEWER: solo KPI e resources
+    Se il gruppo non esiste, lo crea (vuoto, senza permessi).
+    I permessi vengono assegnati ai gruppi manualmente dall'admin tramite migrations.
+
+    Args:
+        group_name: Nome del gruppo
+
+    Returns:
+        Group instance
+    """
+    from django.contrib.auth.models import Group
+
+    # Get or create group
+    group, created = Group.objects.get_or_create(name=group_name)
+
+    if created:
+        logger.info(f"Created group {group_name} (permissions managed by admin)")
+
+    return group
+
+
+def assign_group_for_role(user, role):
+    """
+    Assegna il gruppo Django appropriato basato sul ruolo.
+
+    Mapping ruolo → gruppo:
+    - DELEGATE → Delegato
+    - SUBDELEGATE → Subdelegato
+    - RDL → RDL
+    - KPI_VIEWER → Diretta
+
+    Se il gruppo non esiste, lo crea (vuoto).
+    I permessi sono gestiti dall'admin tramite migrations, non dai signals.
+    I permessi vengono ereditati dal gruppo, non assegnati direttamente all'utente.
 
     Args:
         user: User instance
@@ -137,60 +165,30 @@ def assign_permissions_for_role(user, role):
     if not user or user.is_superuser:
         return
 
-    from django.contrib.auth.models import Permission
-    from django.contrib.contenttypes.models import ContentType
-
-    # Mapping ruolo → codenames permessi
-    role_permissions = {
-        RoleAssignment.Role.DELEGATE: [
-            'can_manage_delegations',
-            'can_manage_rdl',
-            'can_view_resources',
-            'can_generate_documents',
-            'can_view_kpi',  # Accesso KPI e scrutinio aggregato
-        ],
-        RoleAssignment.Role.SUBDELEGATE: [
-            'can_manage_rdl',
-            'can_view_resources',
-            'can_view_kpi',  # Accesso KPI e scrutinio aggregato
-        ],
-        RoleAssignment.Role.RDL: [
-            'has_scrutinio_access',
-            'can_view_resources',
-        ],
-        RoleAssignment.Role.KPI_VIEWER: [
-            'can_view_kpi',
-            'can_view_resources',
-        ],
+    # Mapping ruolo → nome gruppo
+    role_to_group = {
+        RoleAssignment.Role.DELEGATE: 'Delegato',
+        RoleAssignment.Role.SUBDELEGATE: 'Subdelegato',
+        RoleAssignment.Role.RDL: 'RDL',
+        RoleAssignment.Role.KPI_VIEWER: 'Diretta',
     }
 
-    codenames = role_permissions.get(role, [])
-    if not codenames:
-        logger.warning(f"No permissions defined for role: {role}")
+    group_name = role_to_group.get(role)
+    if not group_name:
+        logger.warning(f"No group mapping for role: {role}")
         return
 
     try:
-        # Get content type per CustomPermission
-        content_type = ContentType.objects.get(
-            app_label='core',
-            model='custompermission'
-        )
+        # Ensure group exists (without managing permissions)
+        group = ensure_group_exists(group_name)
 
-        # Get permissions to assign
-        permissions = Permission.objects.filter(
-            codename__in=codenames,
-            content_type=content_type
-        )
+        # Add user to group (idempotente)
+        user.groups.add(group)
 
-        # Assegna permessi (add è idempotente, non duplica)
-        user.user_permissions.add(*permissions)
+        logger.info(f"Added {user.email} to group {group_name} for role {role}")
 
-        logger.info(f"Assigned {len(permissions)} permissions to {user.email} for role {role}")
-
-    except ContentType.DoesNotExist:
-        logger.error("CustomPermission content type not found. Run migrations first.")
     except Exception as e:
-        logger.error(f"Failed to assign permissions for {user.email}: {e}")
+        logger.error(f"Failed to assign group for {user.email}: {e}")
 
 
 def log_provisioning_action(action, user, target_model, target_id, details=None):
@@ -358,8 +356,8 @@ def provision_delegato_user(sender, instance, created, **kwargs):
             scope_type=RoleAssignment.ScopeType.GLOBAL,
         )
 
-        # Assign permissions basati sul ruolo
-        assign_permissions_for_role(user, RoleAssignment.Role.DELEGATE)
+        # Assign group basato sul ruolo
+        assign_group_for_role(user, RoleAssignment.Role.DELEGATE)
 
         # Log action
         log_provisioning_action(
@@ -459,8 +457,8 @@ def provision_subdelegato_user(sender, instance, created, **kwargs):
             role=RoleAssignment.Role.SUBDELEGATE,
         )
 
-        # Assign permissions basati sul ruolo
-        assign_permissions_for_role(user, RoleAssignment.Role.SUBDELEGATE)
+        # Assign group basato sul ruolo
+        assign_group_for_role(user, RoleAssignment.Role.SUBDELEGATE)
 
         # Log action
         log_provisioning_action(
@@ -556,8 +554,8 @@ def provision_rdl_users(sender, instance, created, **kwargs):
                 scope_value=scope_value,
             )
 
-            # Assign permissions basati sul ruolo
-            assign_permissions_for_role(user, RoleAssignment.Role.RDL)
+            # Assign group basato sul ruolo
+            assign_group_for_role(user, RoleAssignment.Role.RDL)
 
             # Log action
             log_provisioning_action(
@@ -595,8 +593,8 @@ def provision_rdl_users(sender, instance, created, **kwargs):
                 scope_value=scope_value,
             )
 
-            # Assign permissions basati sul ruolo
-            assign_permissions_for_role(user, RoleAssignment.Role.RDL)
+            # Assign group basato sul ruolo
+            assign_group_for_role(user, RoleAssignment.Role.RDL)
 
             # Log action
             log_provisioning_action(

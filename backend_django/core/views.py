@@ -305,19 +305,31 @@ class PermissionsView(APIView):
     Ritorna permessi basati su django.contrib.auth.permissions assegnati
     automaticamente dai signals in base alla catena delle deleghe.
 
+    Ogni voce del menu ha il suo permesso specifico.
+
     Returns:
     {
         "is_superuser": true/false,
-        "can_manage_territory": true/false,
-        "can_view_kpi": true/false,
-        "can_manage_elections": true/false,
-        "can_manage_delegations": true/false,
-        "can_manage_rdl": true/false,
-        "can_manage_campaign": true/false,
-        "has_scrutinio_access": true/false,
-        "can_view_resources": true/false,
+
+        # Menu permissions (15 voci)
+        "can_view_dashboard": true/false,        # Dashboard
+        "can_manage_territory": true/false,      # Territorio
+        "can_manage_elections": true/false,      # Consultazione
+        "can_manage_campaign": true/false,       # Campagne
+        "can_manage_rdl": true/false,            # Gestione RDL
+        "can_manage_sections": true/false,       # Gestione Sezioni
+        "can_manage_mappatura": true/false,      # Mappatura
+        "can_manage_delegations": true/false,    # Catena Deleghe
+        "can_manage_designazioni": true/false,   # Designazioni
+        "can_manage_templates": true/false,      # Template PDF
+        "can_generate_documents": true/false,    # Genera Moduli
+        "has_scrutinio_access": true/false,      # Scrutinio
+        "can_view_resources": true/false,        # Risorse
+        "can_view_live_results": true/false,     # Risultati Live
+        "can_view_kpi": true/false,              # Diretta (KPI)
+
+        # Future features
         "can_ask_to_ai_assistant": true/false,
-        "can_generate_documents": true/false,
         "can_manage_incidents": true/false,
 
         # Backwards compatibility (deprecati)
@@ -345,16 +357,26 @@ class PermissionsView(APIView):
         if user.is_superuser:
             return Response({
                 'is_superuser': True,
+
+                # Menu permissions (uno per voce)
+                'can_view_dashboard': True,
                 'can_manage_territory': True,
-                'can_view_kpi': True,
                 'can_manage_elections': True,
-                'can_manage_delegations': True,
-                'can_manage_rdl': True,
                 'can_manage_campaign': True,
+                'can_manage_rdl': True,
+                'can_manage_sections': True,
+                'can_manage_mappatura': True,
+                'can_manage_delegations': True,
+                'can_manage_designazioni': True,
+                'can_manage_templates': True,
+                'can_generate_documents': True,
                 'has_scrutinio_access': True,
                 'can_view_resources': True,
+                'can_view_live_results': True,
+                'can_view_kpi': True,
+
+                # Future features
                 'can_ask_to_ai_assistant': True,
-                'can_generate_documents': True,
                 'can_manage_incidents': True,
 
                 # Backwards compatibility
@@ -398,16 +420,26 @@ class PermissionsView(APIView):
         # Check Django permissions (assegnati automaticamente dai signals)
         permissions = {
             'is_superuser': False,
+
+            # Menu permissions (uno per voce)
+            'can_view_dashboard': user.has_perm('core.can_view_dashboard'),
             'can_manage_territory': user.has_perm('core.can_manage_territory'),
-            'can_view_kpi': user.has_perm('core.can_view_kpi'),
             'can_manage_elections': user.has_perm('core.can_manage_elections'),
-            'can_manage_delegations': user.has_perm('core.can_manage_delegations'),
-            'can_manage_rdl': user.has_perm('core.can_manage_rdl'),
             'can_manage_campaign': user.has_perm('core.can_manage_campaign'),
+            'can_manage_rdl': user.has_perm('core.can_manage_rdl'),
+            'can_manage_sections': user.has_perm('core.can_manage_sections'),
+            'can_manage_mappatura': user.has_perm('core.can_manage_mappatura'),
+            'can_manage_delegations': user.has_perm('core.can_manage_delegations'),
+            'can_manage_designazioni': user.has_perm('core.can_manage_designazioni'),
+            'can_manage_templates': user.has_perm('core.can_manage_templates'),
+            'can_generate_documents': user.has_perm('core.can_generate_documents'),
             'has_scrutinio_access': user.has_perm('core.has_scrutinio_access'),
             'can_view_resources': user.has_perm('core.can_view_resources'),
+            'can_view_live_results': user.has_perm('core.can_view_live_results'),
+            'can_view_kpi': user.has_perm('core.can_view_kpi'),
+
+            # Future features
             'can_ask_to_ai_assistant': user.has_perm('core.can_ask_to_ai_assistant'),
-            'can_generate_documents': user.has_perm('core.can_generate_documents'),
             'can_manage_incidents': user.has_perm('core.can_manage_incidents'),
 
             # Backwards compatibility (deprecare in futuro)
