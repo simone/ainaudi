@@ -1,388 +1,785 @@
-/* GestioneDesignazioni.css - Styles for formal RDL designation management */
+/* GestioneDesignazioni.css - Mobile-First Responsive Design */
 
 /* ==========================================================================
-   Page Structure
+   CSS Variables & Base
    ========================================================================== */
 
-.gestione-designazioni-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: var(--spacing-md);
+:root {
+  --gd-spacing-xs: 0.25rem;
+  --gd-spacing-sm: 0.5rem;
+  --gd-spacing-md: 1rem;
+  --gd-spacing-lg: 0;
+  --gd-spacing-xl: 2rem;
+  --gd-radius-sm: 6px;
+  --gd-radius-md: 8px;
+  --gd-radius-lg: 12px;
+  --gd-touch-target: 44px;
+  --gd-transition: 0.2s ease;
 }
 
 /* ==========================================================================
-   Territory Selection
+   Page Container - Mobile First
    ========================================================================== */
 
-.territory-selector {
-  padding: var(--spacing-md);
+.gd-container {
+  padding: var(--gd-spacing-sm);
+  max-width: 100%;
 }
 
-.territory-level {
-  margin-bottom: var(--spacing-lg);
+@media (min-width: 576px) {
+  .gd-container {
+    padding: var(--gd-spacing-md);
+  }
 }
 
-.territory-level h6 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--color-gray-800);
-  margin-bottom: var(--spacing-md);
+@media (min-width: 992px) {
+  .gd-container {
+    padding: var(--gd-spacing-lg);
+    max-width: 1400px;
+    margin: 0 auto;
+  }
 }
 
-.territory-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--spacing-md);
+/* ==========================================================================
+   Breadcrumb - Touch Friendly
+   ========================================================================== */
+
+.gd-breadcrumb {
+  margin-bottom: var(--gd-spacing-md);
 }
 
-.territory-card {
+.gd-breadcrumb-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gd-spacing-sm);
+  padding: var(--gd-spacing-sm) var(--gd-spacing-md);
+  min-height: var(--gd-touch-target);
+  font-size: 0.9rem;
+  color: #0d6efd;
+  text-decoration: none;
+  border-radius: var(--gd-radius-sm);
+  transition: background var(--gd-transition);
+}
+
+.gd-breadcrumb-link:hover,
+.gd-breadcrumb-link:focus {
+  background: rgba(13, 110, 253, 0.1);
+  text-decoration: none;
+}
+
+.gd-breadcrumb-current {
+  font-size: 0.9rem;
+  color: #6c757d;
+  padding: var(--gd-spacing-sm) var(--gd-spacing-md);
+}
+
+@media (min-width: 768px) {
+  .gd-breadcrumb-link,
+  .gd-breadcrumb-current {
+    font-size: 1rem;
+  }
+}
+
+/* ==========================================================================
+   Cards - Mobile First
+   ========================================================================== */
+
+.gd-card {
   background: white;
-  border: 2px solid var(--color-gray-300);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-lg);
-  text-align: center;
-  cursor: pointer;
-  transition: all var(--transition-fast);
+  border: 1px solid #dee2e6;
+  border-radius: var(--gd-radius-md);
+  margin-bottom: var(--gd-spacing-md);
+  overflow: hidden;
 }
 
-.territory-card:hover {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-2px);
+.gd-card-header {
+  padding: var(--gd-spacing-md);
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
 }
 
-.territory-card i {
-  font-size: 2rem;
-  color: var(--color-primary);
-  margin-bottom: var(--spacing-sm);
-  display: block;
-}
-
-.territory-card span {
-  display: block;
-  font-weight: 600;
-  color: var(--color-gray-800);
-}
-
-/* ==========================================================================
-   Tabs
-   ========================================================================== */
-
-.designazioni-tabs {
+.gd-card-header-content {
   display: flex;
-  gap: var(--spacing-xs);
-  margin-bottom: var(--spacing-md);
-  border-bottom: 2px solid var(--color-gray-300);
+  flex-direction: column;
+  gap: var(--gd-spacing-md);
 }
 
-.tab-button {
-  background: none;
-  border: none;
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: 0.95rem;
+@media (min-width: 768px) {
+  .gd-card-header-content {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.gd-card-title {
+  font-size: 1rem;
   font-weight: 600;
-  color: var(--color-gray-600);
-  cursor: pointer;
-  border-bottom: 3px solid transparent;
-  transition: all var(--transition-fast);
+  color: #212529;
+  margin: 0;
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  position: relative;
+  gap: var(--gd-spacing-sm);
 }
 
-.tab-button:hover {
-  color: var(--color-primary);
-  background: var(--color-gray-100);
+@media (min-width: 768px) {
+  .gd-card-title {
+    font-size: 1.125rem;
+  }
 }
 
-.tab-button.active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
-}
-
-.tab-badge {
-  background: var(--color-primary);
-  color: white;
-  font-size: 0.75rem;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-weight: 700;
-  min-width: 20px;
-  text-align: center;
-}
-
-.tab-content-area {
-  min-height: 400px;
+.gd-card-body {
+  padding: var(--gd-spacing-md);
 }
 
 /* ==========================================================================
-   Cards & Lists
+   Processo in Corso - Stacked Mobile
    ========================================================================== */
 
-.rdl-card {
+.gd-processo-alert {
+  padding: var(--gd-spacing-md);
+  margin-bottom: var(--gd-spacing-md);
+  background: #d1ecf1;
+  border-radius: var(--gd-radius-md);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.gd-processo-alert strong {
+  display: block;
+  margin-bottom: var(--gd-spacing-sm);
+}
+
+.gd-pdf-document {
+  padding: var(--gd-spacing-md);
+  margin-bottom: var(--gd-spacing-md);
+  border: 1px solid #dee2e6;
+  border-radius: var(--gd-radius-md);
   background: white;
-  border: 1px solid var(--color-gray-300);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  margin-bottom: var(--spacing-sm);
-  transition: box-shadow var(--transition-fast);
 }
 
-.rdl-card:hover {
-  box-shadow: var(--shadow-sm);
+.gd-pdf-document-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gd-spacing-md);
+  margin-bottom: var(--gd-spacing-md);
 }
 
-.rdl-card-compact {
-  padding: var(--spacing-sm);
+@media (min-width: 768px) {
+  .gd-pdf-document-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.gd-pdf-document-info {
+  flex: 1;
+}
+
+.gd-pdf-document-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: var(--gd-spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--gd-spacing-sm);
+}
+
+.gd-pdf-document-subtitle {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin-bottom: var(--gd-spacing-sm);
+  display: block;
+}
+
+.gd-pdf-document-actions {
+  display: flex;
+  gap: var(--gd-spacing-sm);
+}
+
+/* Pulsante Visualizza PDF - Touch Friendly */
+.gd-btn-preview {
+  min-height: var(--gd-touch-target);
+  padding: var(--gd-spacing-sm) var(--gd-spacing-md);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gd-spacing-sm);
+}
+
+/* Azioni Finali Processo */
+.gd-processo-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gd-spacing-sm);
+  margin-top: var(--gd-spacing-md);
+}
+
+@media (min-width: 576px) {
+  .gd-processo-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
+
+.gd-processo-actions .btn {
+  min-height: var(--gd-touch-target);
+  flex: 1;
+}
+
+@media (min-width: 576px) {
+  .gd-processo-actions .btn {
+    flex: 0 0 auto;
+  }
+}
+
+/* ==========================================================================
+   Sezioni Mappate - Mobile Optimized
+   ========================================================================== */
+
+.gd-select-all-bar {
+  padding: var(--gd-spacing-md);
+  background: #f8f9fa;
+  border-radius: var(--gd-radius-sm);
+  margin-bottom: var(--gd-spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gd-spacing-sm);
+}
+
+@media (min-width: 576px) {
+  .gd-select-all-bar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.gd-select-all-label {
+  display: flex;
+  align-items: center;
+  gap: var(--gd-spacing-sm);
+  cursor: pointer;
+  min-height: var(--gd-touch-target);
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.gd-select-all-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.gd-select-counter {
+  font-size: 0.85rem;
+  color: #6c757d;
+  padding: var(--gd-spacing-xs) var(--gd-spacing-sm);
+}
+
+/* Sezione Item - Stacked Mobile */
+.gd-sezione-item {
+  padding: var(--gd-spacing-md);
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  gap: var(--gd-spacing-md);
+  min-height: 60px;
+  align-items: flex-start;
+}
+
+.gd-sezione-item:last-child {
+  border-bottom: none;
+}
+
+.gd-sezione-item:hover {
+  background: #f8f9fa;
+}
+
+.gd-sezione-checkbox {
+  flex-shrink: 0;
+  padding: var(--gd-spacing-sm);
+}
+
+.gd-sezione-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.gd-sezione-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gd-spacing-sm);
+  font-size: 0.9rem;
+}
+
+@media (min-width: 768px) {
+  .gd-sezione-content {
+    font-size: 0.95rem;
+  }
+}
+
+.gd-sezione-numero {
+  font-weight: 600;
+  color: #212529;
+  font-size: 1rem;
+}
+
+.gd-sezione-rdl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gd-spacing-xs);
+}
+
+@media (min-width: 576px) {
+  .gd-sezione-rdl {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--gd-spacing-md);
+  }
+}
+
+.gd-rdl-effettivo {
+  color: #0d6efd;
+}
+
+.gd-rdl-supplente {
+  color: #6c757d;
+}
+
+.gd-rdl-label {
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Archivio Processi - Accordion Mobile
+   ========================================================================== */
+
+.gd-archivio-item {
+  margin-bottom: var(--gd-spacing-md);
+  border: 1px solid #dee2e6;
+  border-radius: var(--gd-radius-md);
+  overflow: hidden;
+}
+
+.gd-archivio-header {
+  padding: var(--gd-spacing-md);
+  background: #f8f9fa;
+  cursor: pointer;
+  display: flex;
+  gap: var(--gd-spacing-sm);
+  align-items: flex-start;
+  transition: background var(--gd-transition);
+  min-height: 60px;
+}
+
+.gd-archivio-header:hover {
+  background: #e9ecef;
+}
+
+.gd-archivio-header:active {
+  background: #dee2e6;
+}
+
+.gd-archivio-chevron {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+}
+
+.gd-archivio-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gd-spacing-sm);
+}
+
+@media (min-width: 768px) {
+  .gd-archivio-info {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.gd-archivio-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #212529;
+  margin-bottom: var(--gd-spacing-xs);
+}
+
+.gd-archivio-delegato {
+  font-size: 0.85rem;
+  color: #0d6efd;
+  display: flex;
+  align-items: center;
+  gap: var(--gd-spacing-xs);
+}
+
+.gd-archivio-meta {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.gd-archivio-badge {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+@media (min-width: 768px) {
+  .gd-archivio-badge {
+    align-self: center;
+  }
+}
+
+.gd-archivio-body {
+  padding: var(--gd-spacing-md);
+  border-top: 1px solid #dee2e6;
+  background: white;
+}
+
+.gd-archivio-section {
+  margin-bottom: var(--gd-spacing-lg);
+}
+
+.gd-archivio-section:last-child {
+  margin-bottom: 0;
+}
+
+.gd-archivio-section-title {
   font-size: 0.8rem;
-  border: 1px solid var(--color-gray-300);
-  background: white;
-  border-radius: var(--radius-sm);
-  margin-bottom: var(--spacing-sm);
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  margin-bottom: var(--gd-spacing-sm);
+  letter-spacing: 0.5px;
 }
 
-.rdl-card-header {
+/* Pulsanti PDF Archivio - Stack su mobile */
+.gd-archivio-pdf-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gd-spacing-sm);
+}
+
+@media (min-width: 576px) {
+  .gd-archivio-pdf-buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+.gd-archivio-pdf-buttons .btn {
+  min-height: var(--gd-touch-target);
+  flex: 1;
+}
+
+@media (min-width: 576px) {
+  .gd-archivio-pdf-buttons .btn {
+    flex: 0 0 auto;
+  }
+}
+
+/* Lista Sezioni Archivio */
+.gd-sezioni-archive-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border-top: 1px solid #dee2e6;
+}
+
+/* Le sezioni nell'archivio usano la stessa struttura delle sezioni mappate */
+.gd-sezioni-archive-list .gd-sezione-item {
+  border-bottom: 1px solid #dee2e6;
+}
+
+.gd-sezioni-archive-list .gd-sezione-item:last-child {
+  border-bottom: none;
+}
+
+.gd-sezioni-archive-list .gd-sezione-item:hover {
+  background: #f8f9fa;
+}
+
+/* ==========================================================================
+   Navigazione Territoriale - Mobile Cards
+   ========================================================================== */
+
+.gd-territory-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gd-spacing-md);
+  margin-bottom: var(--gd-spacing-lg);
+}
+
+@media (min-width: 768px) {
+  .gd-territory-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.gd-territory-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #212529;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--gd-spacing-sm);
+}
+
+@media (min-width: 768px) {
+  .gd-territory-title {
+    font-size: 1.5rem;
+  }
+}
+
+.gd-territory-subtitle {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin-top: var(--gd-spacing-xs);
+}
+
+.gd-territory-search {
+  margin-bottom: var(--gd-spacing-md);
+}
+
+.gd-territory-search input {
+  font-size: 1rem;
+  padding: var(--gd-spacing-sm) var(--gd-spacing-md);
+  min-height: var(--gd-touch-target);
+}
+
+/* Territory Cards */
+.gd-territory-card {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: var(--gd-radius-md);
+  padding: var(--gd-spacing-md);
+  margin-bottom: var(--gd-spacing-sm);
+  cursor: pointer;
+  transition: all var(--gd-transition);
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--spacing-sm);
-}
-
-.rdl-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-/* ==========================================================================
-   Badges & Labels
-   ========================================================================== */
-
-.rdl-badge {
-  font-size: 0.7rem;
-  padding: var(--spacing-xxs) 6px;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  display: inline-block;
-}
-
-.rdl-badge-info {
-  background: #d4e6f1;
-  color: #1a5276;
-}
-
-.rdl-badge-muted {
-  background: var(--color-gray-200);
-  color: var(--color-gray-600);
-  font-size: 0.75rem;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  margin-left: var(--spacing-xs);
-}
-
-.rdl-badge-primary {
-  background: #cfe2ff;
-  color: #084298;
-}
-
-.rdl-badge-success {
-  background: var(--color-success-light);
-  color: var(--color-success);
-}
-
-.rdl-badge-danger {
-  background: var(--color-danger-light);
-  color: var(--color-danger);
-}
-
-.rdl-badge-warning {
-  background: var(--color-warning-light);
-  color: #856404;
-}
-
-/* ==========================================================================
-   Sections & Groups
-   ========================================================================== */
-
-.rdl-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-md);
-}
-
-.rdl-section-header {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-gray-700);
-  text-transform: uppercase;
-  margin-bottom: var(--spacing-sm);
-  padding-bottom: var(--spacing-xs);
-  border-bottom: 2px solid var(--color-gray-200);
-  display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: var(--gd-spacing-md);
+  min-height: 60px;
 }
 
-.rdl-data-row {
-  display: flex;
-  gap: var(--spacing-xs);
-  font-size: 0.85rem;
-  margin-bottom: var(--spacing-xs);
+.gd-territory-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+  border-color: #0d6efd;
 }
 
-.rdl-data-label {
-  color: var(--color-gray-600);
-  min-width: 80px;
+.gd-territory-card:active {
+  transform: translateY(0);
 }
 
-.rdl-data-value {
+.gd-territory-card-content {
   flex: 1;
-  font-weight: 500;
+  min-width: 0;
 }
 
-/* ==========================================================================
-   Edit Mode
-   ========================================================================== */
-
-.rdl-edit-container {
-  padding: var(--spacing-md);
-  background: var(--color-gray-100);
-  border-radius: var(--radius-sm);
+.gd-territory-card-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #212529;
+  margin-bottom: var(--gd-spacing-xs);
 }
 
-.rdl-form-label {
+.gd-territory-card-name .sigla {
   font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--color-gray-800);
+  color: #6c757d;
+  font-weight: 400;
+  margin-left: var(--gd-spacing-xs);
 }
 
-/* ==========================================================================
-   Loading & Empty States
-   ========================================================================== */
-
-.rdl-loading {
-  padding: var(--spacing-xl);
-  text-align: center;
-  color: var(--color-gray-600);
+.gd-territory-card-stats {
+  font-size: 0.85rem;
+  color: #6c757d;
 }
 
-.rdl-empty {
-  text-align: center;
-  padding: var(--spacing-xl);
-  color: var(--color-gray-600);
-}
-
-.rdl-empty-icon {
-  font-size: 3rem;
-  color: var(--color-gray-300);
-  margin-bottom: var(--spacing-md);
-}
-
-.rdl-empty-text {
-  font-size: 1.1rem;
-  color: var(--color-gray-600);
-}
-
-/* ==========================================================================
-   Stats & Metrics
-   ========================================================================== */
-
-.rdl-stats {
+.gd-territory-card-badges {
   display: flex;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: white;
-  border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-md);
-  box-shadow: var(--shadow-sm);
+  flex-direction: column;
+  gap: var(--gd-spacing-xs);
+  align-items: flex-end;
 }
 
-.rdl-stat-box {
-  flex: 1;
-  text-align: center;
-  padding: var(--spacing-md);
-  border-radius: var(--radius-sm);
-  background: var(--color-gray-100);
+@media (min-width: 576px) {
+  .gd-territory-card-badges {
+    flex-direction: row;
+    gap: var(--gd-spacing-sm);
+  }
 }
 
-.rdl-stat-value {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: var(--spacing-xs);
-}
-
-.rdl-stat-label {
+/* Progress bar per altri livelli */
+.gd-territory-progress {
   font-size: 0.85rem;
-  color: var(--color-gray-600);
-  text-transform: uppercase;
+  text-align: right;
+}
+
+.gd-territory-progress-text {
+  margin-bottom: var(--gd-spacing-xs);
   font-weight: 600;
 }
 
-.rdl-stat-box.success .rdl-stat-value {
-  color: var(--color-success);
+.gd-territory-progress-bar {
+  width: 100px;
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
 }
 
-.rdl-stat-box.warning .rdl-stat-value {
-  color: var(--color-warning);
-}
-
-.rdl-stat-box.danger .rdl-stat-value {
-  color: var(--color-danger);
-}
-
-.rdl-stat-box.primary .rdl-stat-value {
-  color: var(--color-primary);
-}
-
-/* ==========================================================================
-   Accordion / Expandable
-   ========================================================================== */
-
-.rdl-accordion-toggle {
-  cursor: pointer;
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-.rdl-expandable-content {
-  margin-top: var(--spacing-sm);
-  padding-top: var(--spacing-sm);
-  border-top: 1px solid var(--color-gray-200);
+.gd-territory-progress-fill {
+  height: 100%;
+  background: #198754;
+  transition: width 0.3s ease;
 }
 
 /* ==========================================================================
-   Responsive
+   Empty States
    ========================================================================== */
 
-@media (max-width: 768px) {
-  .territory-grid {
-    grid-template-columns: 1fr;
+.gd-empty-state {
+  text-align: center;
+  padding: var(--gd-spacing-xl);
+  color: #6c757d;
+}
+
+.gd-empty-icon {
+  font-size: 3rem;
+  color: #dee2e6;
+  margin-bottom: var(--gd-spacing-md);
+}
+
+.gd-empty-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: var(--gd-spacing-sm);
+}
+
+.gd-empty-subtitle {
+  font-size: 0.9rem;
+  margin-top: var(--gd-spacing-sm);
+}
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+
+.gd-btn-group-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gd-spacing-sm);
+}
+
+@media (min-width: 576px) {
+  .gd-btn-group-mobile {
+    flex-direction: row;
+  }
+}
+
+.gd-text-mobile-center {
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .gd-text-mobile-center {
+    text-align: left;
+  }
+}
+
+/* ==========================================================================
+   Accessibility - Touch & Focus
+   ========================================================================== */
+
+/* Aumenta area tap per checkbox */
+.gd-checkbox-wrapper {
+  padding: var(--gd-spacing-sm);
+  margin: calc(var(--gd-spacing-sm) * -1);
+}
+
+/* Focus visibile per accessibilità */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 2px solid #0d6efd;
+  outline-offset: 2px;
+}
+
+/* Touch feedback */
+@media (hover: none) {
+  .gd-territory-card:hover {
+    transform: none;
   }
 
-  .designazioni-tabs {
-    flex-direction: column;
+  .gd-archivio-header:hover {
+    background: #f8f9fa;
+  }
+}
+
+/* ==========================================================================
+   Loading States
+   ========================================================================== */
+
+.gd-loading {
+  text-align: center;
+  padding: var(--gd-spacing-xl);
+}
+
+.gd-loading .spinner-border {
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: var(--gd-spacing-md);
+}
+
+/* ==========================================================================
+   Alerts & Messages
+   ========================================================================== */
+
+.gd-alert {
+  padding: var(--gd-spacing-md);
+  border-radius: var(--gd-radius-md);
+  margin-bottom: var(--gd-spacing-md);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+@media (min-width: 768px) {
+  .gd-alert {
+    font-size: 0.95rem;
+  }
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+
+@media print {
+  .gd-processo-actions,
+  .gd-archivio-pdf-buttons,
+  .gd-btn-preview,
+  button,
+  .btn {
+    display: none !important;
   }
 
-  .tab-button {
-    border-bottom: none;
-    border-left: 3px solid transparent;
-    justify-content: flex-start;
-  }
-
-  .tab-button.active {
-    border-bottom-color: transparent;
-    border-left-color: var(--color-primary);
-  }
-
-  .rdl-stats {
-    flex-direction: column;
-  }
-
-  .rdl-card-header {
-    flex-direction: column;
-    gap: var(--spacing-sm);
+  .gd-archivio-body {
+    display: block !important;
   }
 }

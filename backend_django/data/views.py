@@ -2914,16 +2914,29 @@ class RdlRegistrationImportView(APIView):
                 if notes:
                     defaults_dict['notes'] = notes
 
-                registration, was_created = RdlRegistration.objects.update_or_create(
-                    email=email,
-                    comune=comune,
-                    defaults=defaults_dict
-                )
+                # Check if registration already exists
+                try:
+                    existing = RdlRegistration.objects.get(email=email, comune=comune)
 
-                if was_created:
-                    created += 1
-                else:
+                    # Skip if already APPROVED (confermato)
+                    if existing.status == RdlRegistration.Status.APPROVED:
+                        skipped += 1
+                        continue
+
+                    # Update if not approved (PENDING, REJECTED, etc.)
+                    for key, value in defaults_dict.items():
+                        setattr(existing, key, value)
+                    existing.save()
                     updated += 1
+
+                except RdlRegistration.DoesNotExist:
+                    # Create new registration
+                    RdlRegistration.objects.create(
+                        email=email,
+                        comune=comune,
+                        **defaults_dict
+                    )
+                    created += 1
 
             except Exception as e:
                 errors.append(f'Riga {i}: {str(e)}')
