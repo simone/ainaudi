@@ -11,7 +11,8 @@ Endpoints:
 - GET /api/deleghe/designazioni/bozze_da_confermare/ - Lista bozze da confermare
 - POST /api/deleghe/designazioni/{id}/conferma/ - Conferma una bozza
 - POST /api/deleghe/designazioni/{id}/rifiuta/ - Rifiuta una bozza
-- /api/deleghe/batch/ - Generazione batch documenti
+- /api/deleghe/batch/ - Generazione batch documenti (vecchio workflow)
+- /api/deleghe/processi/ - Processo completo designazione (nuovo workflow template-driven)
 - /api/deleghe/campagne/ - CRUD Campagne di reclutamento
 """
 from django.urls import path, include
@@ -21,6 +22,7 @@ from .views import (
     SubDelegaViewSet,
     DesignazioneRDLViewSet,
     BatchGenerazioneDocumentiViewSet,
+    ProcessoDesignazioneViewSet,
 )
 from .views_campagna import (
     CampagnaListCreateView,
@@ -32,7 +34,8 @@ from .views_campagna import (
 router = DefaultRouter()
 router.register(r'sub-deleghe', SubDelegaViewSet, basename='sub-delega')
 router.register(r'designazioni', DesignazioneRDLViewSet, basename='designazione')
-router.register(r'batch', BatchGenerazioneDocumentiViewSet, basename='batch')
+router.register(r'batch', BatchGenerazioneDocumentiViewSet, basename='batch')  # Vecchio endpoint (retrocompatibilità)
+router.register(r'processi', ProcessoDesignazioneViewSet, basename='processo')  # Nuovo workflow template-driven
 
 urlpatterns = [
     path('mia-catena/', MiaCatenaView.as_view(), name='mia-catena'),

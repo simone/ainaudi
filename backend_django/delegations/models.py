@@ -423,14 +423,14 @@ class DesignazioneRDL(models.Model):
     )
     data_approvazione = models.DateTimeField(_('data approvazione'), null=True, blank=True)
 
-    # Batch PDF (per tracking conferma via PDF)
-    batch_pdf = models.ForeignKey(
-        'BatchGenerazioneDocumenti',
-        on_delete=models.SET_NULL,
+    # Processo designazione (per tracking conferma)
+    processo = models.ForeignKey(
+        'ProcessoDesignazione',
+        on_delete=models.CASCADE,
         null=True, blank=True,
         related_name='designazioni',
-        verbose_name=_('batch PDF'),
-        help_text=_('Batch di generazione PDF associato')
+        verbose_name=_('processo designazione'),
+        help_text=_('Processo di designazione a cui appartiene questa designazione')
     )
 
     # Revoca
@@ -619,54 +619,125 @@ class DesignazioneRDL(models.Model):
 # BATCH GENERAZIONE DOCUMENTI
 # =============================================================================
 
-class BatchGenerazioneDocumenti(models.Model):
+class ProcessoDesignazione(models.Model):
     """
-    Batch per generare documenti di designazione RDL in blocco.
-    Utile per stampare tutte le designazioni di un territorio.
-    """
-    class Tipo(models.TextChoices):
-        INDIVIDUALE = 'INDIVIDUALE', _('Moduli Individuali')
-        RIEPILOGATIVO = 'RIEPILOGATIVO', _('Modulo Riepilogativo')
+    Processo completo di designazione RDL con generazione documenti.
 
+    Workflow:
+    1. SELEZIONE_TEMPLATE: User seleziona sezioni e avvia processo
+    2. Frontend sceglie template + compila dati delegato
+    3. BOZZA: Designazioni create (fotografa mappatura)
+    4. IN_GENERAZIONE: Backend genera PDF sincrono
+    5. GENERATO: PDF pronti per download e controllo
+    6. APPROVATO: User conferma → designazioni diventano CONFERMATE
+    7. ANNULLATO: User annulla → elimina tutto
+    """
     class Stato(models.TextChoices):
-        BOZZA = 'BOZZA', _('Bozza')
-        GENERATO = 'GENERATO', _('Generato')
-        APPROVATO = 'APPROVATO', _('Approvato')
-        INVIATO = 'INVIATO', _('Inviato')
+        SELEZIONE_TEMPLATE = 'SELEZIONE_TEMPLATE', _('Selezione Template')
+        BOZZA = 'BOZZA', _('Bozza (designazioni create)')
+        IN_GENERAZIONE = 'IN_GENERAZIONE', _('Generazione PDF in corso')
+        GENERATO = 'GENERATO', _('PDF Generati')
+        APPROVATO = 'APPROVATO', _('Confermato')
+        ANNULLATO = 'ANNULLATO', _('Annullato')
+        INVIATO = 'INVIATO', _('Inviato a Prefettura')
+
+    class Tipo(models.TextChoices):
+        """Tipo di documento (per retrocompatibilità con vecchio frontend)."""
+        INDIVIDUALE = 'INDIVIDUALE', _('Individuale (uno per sezione)')
+        RIEPILOGATIVO = 'RIEPILOGATIVO', _('Riepilogativo (cumulativo)')
 
     # Consultazione elettorale di riferimento
     consultazione = models.ForeignKey(
         'elections.ConsultazioneElettorale',
         on_delete=models.CASCADE,
-        related_name='batch_documenti',
+        related_name='processi_designazione',
         verbose_name=_('consultazione'),
         null=True,
         blank=True
     )
 
-    tipo = models.CharField(_('tipo'), max_length=20, choices=Tipo.choices)
+    # Comune di riferimento (per filtraggio territoriale)
+    comune = models.ForeignKey(
+        'territory.Comune',
+        on_delete=models.CASCADE,
+        related_name='processi_designazione',
+        verbose_name=_('comune'),
+        help_text=_('Comune per cui si generano le designazioni'),
+        null=True,
+        blank=True
+    )
+
+    # Delegato per cui si generano i documenti
+    delegato = models.ForeignKey(
+        Delegato,
+        on_delete=models.CASCADE,
+        related_name='processi_designazione',
+        verbose_name=_('delegato'),
+        help_text=_('Delegato che avvia il processo (o per cui si generano i documenti)'),
+        null=True,
+        blank=True
+    )
+
+    # Template selezionati
+    template_individuale = models.ForeignKey(
+        'documents.Template',
+        on_delete=models.SET_NULL,
+        related_name='processi_individuali',
+        verbose_name=_('template individuale'),
+        help_text=_('Template per documento individuale (un PDF per sezione)'),
+        null=True,
+        blank=True
+    )
+    template_cumulativo = models.ForeignKey(
+        'documents.Template',
+        on_delete=models.SET_NULL,
+        related_name='processi_cumulativi',
+        verbose_name=_('template cumulativo'),
+        help_text=_('Template per documento riepilogativo (PDF multi-pagina)'),
+        null=True,
+        blank=True
+    )
+
+    # Snapshot dati delegato compilati (usati per generare PDF)
+    dati_delegato = models.JSONField(
+        _('dati delegato compilati'),
+        default=dict,
+        blank=True,
+        help_text=_('Snapshot dati delegato/subdelegato usati per generare PDF')
+    )
+
     stato = models.CharField(
         _('stato'),
-        max_length=20,
+        max_length=30,
         choices=Stato.choices,
-        default=Stato.BOZZA
+        default=Stato.SELEZIONE_TEMPLATE
     )
 
-    # Filtri per le designazioni da includere
-    solo_sezioni = models.JSONField(
-        _('solo sezioni'),
-        default=list,
+    # Tipo di documento (per retrocompatibilità)
+    tipo = models.CharField(
+        _('tipo documento'),
+        max_length=20,
+        choices=Tipo.choices,
+        null=True,
         blank=True,
-        help_text=_('Lista di ID sezioni da includere (vuoto = tutte)')
+        help_text=_('Tipo di documento (INDIVIDUALE/RIEPILOGATIVO) - per retrocompatibilità con vecchio frontend')
     )
 
-    # Documento generato
-    documento = models.FileField(
-        _('documento'),
-        upload_to='deleghe/batch/',
-        null=True, blank=True
+    # Documenti generati
+    documento_individuale = models.FileField(
+        _('documento individuale'),
+        upload_to='deleghe/processi/',
+        null=True, blank=True,
+        help_text=_('PDF multi-pagina con una pagina per sezione')
     )
-    data_generazione = models.DateTimeField(_('data generazione'), null=True, blank=True)
+    documento_cumulativo = models.FileField(
+        _('documento cumulativo'),
+        upload_to='deleghe/processi/',
+        null=True, blank=True,
+        help_text=_('PDF riepilogativo multi-pagina')
+    )
+    data_generazione_individuale = models.DateTimeField(_('data generazione individuale'), null=True, blank=True)
+    data_generazione_cumulativo = models.DateTimeField(_('data generazione cumulativo'), null=True, blank=True)
 
     # Conteggi
     n_designazioni = models.IntegerField(_('numero designazioni'), default=0)
@@ -675,14 +746,17 @@ class BatchGenerazioneDocumenti(models.Model):
     # Audit
     created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
     created_by_email = models.EmailField(_('creato da (email)'), blank=True)
+    approvata_at = models.DateTimeField(_('data approvazione'), null=True, blank=True)
+    approvata_da_email = models.EmailField(_('approvata da (email)'), blank=True)
 
     class Meta:
-        verbose_name = _('Batch Generazione Documenti')
-        verbose_name_plural = _('Batch Generazione Documenti')
+        verbose_name = _('Processo Designazione RDL')
+        verbose_name_plural = _('Processi Designazione RDL')
         ordering = ['-created_at']
+        db_table = 'delegations_processodesignazione'
 
     def __str__(self):
-        return f"Batch {self.tipo} - {self.consultazione.nome} ({self.stato})"
+        return f"Processo #{self.id} - {self.consultazione.nome if self.consultazione else 'N/A'} ({self.stato})"
 
     @property
     def created_by(self):
@@ -716,3 +790,7 @@ class BatchGenerazioneDocumenti(models.Model):
             approvata_da_email=user_email,
             data_approvazione=timezone.now()
         )
+
+
+# Alias per retrocompatibilità con codice esistente
+BatchGenerazioneDocumenti = ProcessoDesignazione

@@ -701,8 +701,8 @@ const Client = (server, pdfServer, token) => {
         designazioni: {
             list: async (consultazioneId) => {
                 const url = consultazioneId
-                    ? `${server}/api/delegations/designazioni/?consultazione=${consultazioneId}`
-                    : `${server}/api/delegations/designazioni/`;
+                    ? `${server}/api/deleghe/designazioni/?consultazione=${consultazioneId}`
+                    : `${server}/api/deleghe/designazioni/`;
                 return fetch(url, {
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
@@ -712,7 +712,7 @@ const Client = (server, pdfServer, token) => {
             },
 
             create: async (data) =>
-                fetch(`${server}/api/delegations/designazioni/`, {
+                fetch(`${server}/api/deleghe/designazioni/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -725,7 +725,7 @@ const Client = (server, pdfServer, token) => {
                 }),
 
             revoke: async (id) =>
-                fetch(`${server}/api/delegations/designazioni/${id}/`, {
+                fetch(`${server}/api/deleghe/designazioni/${id}/`, {
                     method: 'DELETE',
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.ok ? {} : response.json()).catch(error => {
@@ -738,7 +738,7 @@ const Client = (server, pdfServer, token) => {
                 if (filters.comune) params.append('comune', filters.comune);
                 if (filters.municipio) params.append('municipio', filters.municipio);
                 const queryString = params.toString();
-                return fetch(`${server}/api/delegations/designazioni/sezioni_disponibili/${queryString ? `?${queryString}` : ''}`, {
+                return fetch(`${server}/api/deleghe/designazioni/sezioni_disponibili/${queryString ? `?${queryString}` : ''}`, {
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
                     console.error(error);
@@ -752,7 +752,7 @@ const Client = (server, pdfServer, token) => {
                 if (filters.comune) params.append('comune', filters.comune);
                 if (filters.municipio) params.append('municipio', filters.municipio);
                 const queryString = params.toString();
-                return fetch(`${server}/api/delegations/designazioni/rdl_disponibili/${queryString ? `?${queryString}` : ''}`, {
+                return fetch(`${server}/api/deleghe/designazioni/rdl_disponibili/${queryString ? `?${queryString}` : ''}`, {
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
                     console.error(error);
@@ -762,7 +762,7 @@ const Client = (server, pdfServer, token) => {
 
             // Crea mappatura (RDL -> Sezione)
             mappatura: async (rdlRegistrationId, sezioneId, ruolo) =>
-                fetch(`${server}/api/delegations/designazioni/mappatura/`, {
+                fetch(`${server}/api/deleghe/designazioni/mappatura/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -782,7 +782,7 @@ const Client = (server, pdfServer, token) => {
             uploadCsv: async (file) => {
                 const formData = new FormData();
                 formData.append('file', file);
-                return fetch(`${server}/api/delegations/designazioni/upload_csv/`, {
+                return fetch(`${server}/api/deleghe/designazioni/upload_csv/`, {
                     method: 'POST',
                     headers: { 'Authorization': authHeader },
                     body: formData
@@ -794,7 +794,7 @@ const Client = (server, pdfServer, token) => {
 
             // Carica mappatura da SectionAssignment
             caricaMappatura: async (consultazioneId) => {
-                return fetch(`${server}/api/delegations/designazioni/carica_mappatura/`, {
+                return fetch(`${server}/api/deleghe/designazioni/carica_mappatura/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -813,7 +813,7 @@ const Client = (server, pdfServer, token) => {
                 if (filters.comune) params.append('comune', filters.comune);
                 if (filters.municipio) params.append('municipio', filters.municipio);
                 const queryString = params.toString();
-                return fetch(`${server}/api/delegations/designazioni/bozze_da_confermare/${queryString ? `?${queryString}` : ''}`, {
+                return fetch(`${server}/api/deleghe/designazioni/bozze_da_confermare/${queryString ? `?${queryString}` : ''}`, {
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
                     console.error(error);
@@ -823,7 +823,7 @@ const Client = (server, pdfServer, token) => {
 
             // Conferma una bozza
             conferma: async (id) =>
-                fetch(`${server}/api/delegations/designazioni/${id}/conferma/`, {
+                fetch(`${server}/api/deleghe/designazioni/${id}/conferma/`, {
                     method: 'POST',
                     headers: { 'Authorization': authHeader }
                 }).then(response => response.json()).catch(error => {
@@ -833,7 +833,7 @@ const Client = (server, pdfServer, token) => {
 
             // Rifiuta una bozza
             rifiuta: async (id, motivo = '') =>
-                fetch(`${server}/api/delegations/designazioni/${id}/rifiuta/`, {
+                fetch(`${server}/api/deleghe/designazioni/${id}/rifiuta/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -911,6 +911,197 @@ const Client = (server, pdfServer, token) => {
                 link.click();
                 document.body.removeChild(link);
                 window.URL.revokeObjectURL(url);
+            },
+
+            // Elimina batch
+            delete: async (batchId) =>
+                fetch(`${server}/api/deleghe/batch/${batchId}/`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': authHeader }
+                }).then(async response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else if (response.status === 404) {
+                        // Batch già eliminato, tratta come successo
+                        return { message: 'Batch già eliminato', deleted: true };
+                    } else {
+                        const error = await response.json();
+                        return { error: error.error || 'Errore eliminazione batch' };
+                    }
+                }).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                })
+        },
+
+        // Processi (nuovo workflow template-driven)
+        processi: {
+            // Avvia processo (fotografa mappatura + analizza template)
+            avvia: async (data) =>
+                fetch(`${server}/api/deleghe/processi/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': authHeader
+                    },
+                    body: JSON.stringify(data)
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+
+            // Get campi richiesti per template
+            getCampiRichiesti: async (processoId, templateIndId, templateCumId, delegatoId, subdelegatoId) => {
+                const body = {
+                    template_individuale_id: templateIndId,
+                    template_cumulativo_id: templateCumId
+                };
+                if (delegatoId) body.delegato_id = delegatoId;
+                if (subdelegatoId) body.subdelegato_id = subdelegatoId;
+
+                return fetch(`${server}/api/deleghe/processi/${processoId}/get_campi_richiesti/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': authHeader
+                    },
+                    body: JSON.stringify(body)
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                });
+            },
+
+            // Configura processo (template + dati + genera PDF)
+            configura: async (processoId, data) =>
+                fetch(`${server}/api/deleghe/processi/${processoId}/configura/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': authHeader
+                    },
+                    body: JSON.stringify(data)
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+
+            // Genera PDF individuale
+            generaIndividuale: async (processoId) =>
+                fetch(`${server}/api/deleghe/processi/${processoId}/genera_individuale/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': authHeader }
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+
+            // Genera PDF cumulativo
+            generaCumulativo: async (processoId) =>
+                fetch(`${server}/api/deleghe/processi/${processoId}/genera_cumulativo/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': authHeader }
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+
+            // Preview PDF individuale (restituisce blob URL per viewer)
+            previewIndividuale: async (processoId) => {
+                const response = await fetch(`${server}/api/deleghe/processi/${processoId}/download_individuale/`, {
+                    headers: { 'Authorization': authHeader }
+                });
+                if (!response.ok) {
+                    throw new Error('Errore caricamento PDF individuale');
+                }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                return url; // Restituisci blob URL (caller deve revocarlo)
+            },
+
+            // Preview PDF cumulativo (restituisce blob URL per viewer)
+            previewCumulativo: async (processoId) => {
+                const response = await fetch(`${server}/api/deleghe/processi/${processoId}/download_cumulativo/`, {
+                    headers: { 'Authorization': authHeader }
+                });
+                if (!response.ok) {
+                    throw new Error('Errore caricamento PDF cumulativo');
+                }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                return url; // Restituisci blob URL (caller deve revocarlo)
+            },
+
+            // Download PDF individuale
+            downloadIndividuale: async (processoId) => {
+                const response = await fetch(`${server}/api/deleghe/processi/${processoId}/download_individuale/`, {
+                    headers: { 'Authorization': authHeader }
+                });
+                if (!response.ok) {
+                    throw new Error('Errore download PDF individuale');
+                }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `designazioni_individuale_${processoId}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            },
+
+            // Download PDF cumulativo
+            downloadCumulativo: async (processoId) => {
+                const response = await fetch(`${server}/api/deleghe/processi/${processoId}/download_cumulativo/`, {
+                    headers: { 'Authorization': authHeader }
+                });
+                if (!response.ok) {
+                    throw new Error('Errore download PDF cumulativo');
+                }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `designazioni_cumulativo_${processoId}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            },
+
+            // Conferma processo
+            conferma: async (processoId) =>
+                fetch(`${server}/api/deleghe/processi/${processoId}/conferma/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': authHeader }
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+
+            // Annulla processo
+            annulla: async (processoId) =>
+                fetch(`${server}/api/deleghe/processi/${processoId}/annulla/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': authHeader }
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+
+            // Archivio processi completati o storico
+            archivio: async (consultazioneId, comuneId, tipo = 'completati') => {
+                const params = new URLSearchParams();
+                if (consultazioneId) params.append('consultazione', consultazioneId);
+                if (comuneId) params.append('comune_id', comuneId);
+                if (tipo) params.append('tipo', tipo);
+                return fetch(`${server}/api/deleghe/processi/archivio/?${params.toString()}`, {
+                    headers: { 'Authorization': authHeader }
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                });
             }
         },
 
@@ -1756,6 +1947,8 @@ const Client = (server, pdfServer, token) => {
     };
 
     return {
+        server,  // Esponi URL del server per costruire URL diretti
+        pdfServer,  // Esponi URL del PDF server
         permissions,
         election,
         sections,

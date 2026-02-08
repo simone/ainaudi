@@ -132,13 +132,32 @@ class CanAskToAIAssistant(HasCustomPermission):
     permission_codename = 'can_ask_to_ai_assistant'
 
 
-class CanGenerateDocuments(HasCustomPermission):
+class CanGenerateDocuments(BasePermission):
     """
     Permission: Generazione PDF deleghe.
 
-    Ruoli: Delegato, SubDelegato
+    Ruoli: Delegato, SubDelegato con firma autenticata
     """
-    permission_codename = 'can_generate_documents'
+    def has_permission(self, request, view):
+        if request.user.is_superuser:
+            return True
+
+        # Import qui per evitare circular imports
+        from delegations.models import Delegato, SubDelega
+
+        # Check se è Delegato
+        if Delegato.objects.filter(email=request.user.email).exists():
+            return True
+
+        # Check se è SubDelegato con firma autenticata
+        if SubDelega.objects.filter(
+            email=request.user.email,
+            is_attiva=True,
+            tipo_delega='FIRMA_AUTENTICATA'
+        ).exists():
+            return True
+
+        return False
 
 
 class CanManageIncidents(HasCustomPermission):

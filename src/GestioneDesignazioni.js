@@ -1,1544 +1,1228 @@
+// GestioneDesignazioni.js - Process-driven interface for formal RDL designations
 import React, { useState, useEffect } from 'react';
+import './GestioneDesignazioni.css';
+import WizardDesignazioni from './components/designazioni/WizardDesignazioni';
+import ConfirmModal from './ConfirmModal';
+import PDFViewer from './PDFViewer';
 
 /**
- * Converte un numero in numeri romani
+ * Workflow process-driven per designazioni formali RDL.
+ *
+ * Step 1: Seleziona sezioni mappate (checkbox)
+ * Step 2: Avvia Processo → fotografa + genera 2 PDF automaticamente
+ * Step 3: Controlla PDF
+ * Step 4: Conferma Processo → tutto CONFERMATO oppure Annulla → tutto eliminato
  */
-const toRoman = (num) => {
-    const romanNumerals = [
-        { value: 1000, numeral: 'M' },
-        { value: 900, numeral: 'CM' },
-        { value: 500, numeral: 'D' },
-        { value: 400, numeral: 'CD' },
-        { value: 100, numeral: 'C' },
-        { value: 90, numeral: 'XC' },
-        { value: 50, numeral: 'L' },
-        { value: 40, numeral: 'XL' },
-        { value: 10, numeral: 'X' },
-        { value: 9, numeral: 'IX' },
-        { value: 5, numeral: 'V' },
-        { value: 4, numeral: 'IV' },
-        { value: 1, numeral: 'I' }
-    ];
-    let result = '';
-    for (const { value, numeral } of romanNumerals) {
-        while (num >= value) {
-            result += numeral;
-            num -= value;
-        }
-    }
-    return result;
-};
-
-function GestioneDesignazioni({ client, setError, consultazione }) {
-    const [stats, setStats] = useState(null);
-    const [designazioni, setDesignazioni] = useState([]);
+function GestioneDesignazioni({ client, consultazione, setError }) {
     const [loading, setLoading] = useState(true);
-    const [activeView, setActiveView] = useState('panoramica'); // 'panoramica' | 'importa' | 'lista'
+    const [data, setData] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [path, setPath] = useState({
+        regione_id: null,
+        provincia_id: null,
+        comune_id: null,
+        municipio_id: null
+    });
 
-    // Upload state
-    const [file, setFile] = useState(null);
-    const [uploading, setUploading] = useState(false);
-    const [uploadResult, setUploadResult] = useState(null);
+    // Data states
+    const [mappature, setMappature] = useState([]); // Sezioni mappate disponibili
+    const [processiArchivio, setProcessiArchivio] = useState([]); // Processi completati (APPROVATO)
+    const [processiStorico, setProcessiStorico] = useState([]); // Processi annullati/non completati per audit
+    const [expandedProcessi, setExpandedProcessi] = useState(new Set()); // ID processi espansi
+    const [selectedSezioni, setSelectedSezioni] = useState(new Set()); // Sezioni selezionate per processo
+    const [processoInCorso, setProcessoInCorso] = useState(null); // Processo attivo {batch_ind, batch_riep, designazioni}
+    const [processiCompletati, setProcessiCompletati] = useState([]); // Archivio processi confermati
 
-    // Carica mappatura state
-    const [loadingMappatura, setLoadingMappatura] = useState(false);
-    const [mappaturaResult, setMappaturaResult] = useState(null);
-    const [showMappaturaModal, setShowMappaturaModal] = useState(false);
+    // Loading states
+    const [loadingData, setLoadingData] = useState(false);
+    const [avviandoProcesso, setAvviandoProcesso] = useState(false);
 
-    // Multi-select for PDF generation
-    const [selectedDesignazioni, setSelectedDesignazioni] = useState(new Set());
+    // Messages
+    const [successMessage, setSuccessMessage] = useState(null);
 
-    // PDF generation modal
-    const [showPdfModal, setShowPdfModal] = useState(false);
-    const [pdfStep, setPdfStep] = useState('template'); // 'template' | 'form' | 'preview'
-    const [selectedTemplate, setSelectedTemplate] = useState(null);
-    const [templates, setTemplates] = useState([]);
-    const [delegatoData, setDelegatoData] = useState(null);
-    const [formData, setFormData] = useState({});
-    const [pdfPreview, setPdfPreview] = useState(null);
-    const [generatingPdf, setGeneratingPdf] = useState(false);
+    // Wizard state
+    const [showWizard, setShowWizard] = useState(false);
+
+    // Confirm modal state
+    const [showAnnullaModal, setShowAnnullaModal] = useState(false);
+
+    // PDF Viewer state
+    const [pdfViewer, setPdfViewer] = useState(null); // { url, titolo, blobUrl } quando aperto
+    const [loadingPdf, setLoadingPdf] = useState(false);
 
     useEffect(() => {
-        loadData();
-    }, []);
+        if (client && consultazione) {
+            loadData();
+        }
+    }, [client, consultazione, path.regione_id, path.provincia_id, path.comune_id, path.municipio_id]);
+
+    // Debug: Log pdfViewer state changes
+    useEffect(() => {
+        console.log('[GestioneDesignazioni] pdfViewer state changed:', pdfViewer);
+    }, [pdfViewer]);
 
     const loadData = async () => {
         setLoading(true);
         try {
-            // Get user's delegation chain
-            const chain = await client.deleghe.miaCatena();
+            const result = await client.mappatura.gerarchica({
+                consultazione_id: consultazione.id,
+                regione_id: path.regione_id,
+                provincia_id: path.provincia_id,
+                comune_id: path.comune_id,
+                municipio_id: path.municipio_id
+            });
 
-            if (chain.error) {
-                setError(chain.error);
+            if (result.error) {
+                throw new Error(result.error);
+            }
+
+            setData(result);
+
+            // Auto-skip if only one choice
+            if (result.auto_skip && result.items && result.items.length === 1) {
+                handleDrillDown(result.items[0]);
                 return;
             }
 
-            // Combine all designations (both made and received)
-            const allDesignazioni = [
-                ...chain.designazioni_fatte.map(d => ({ ...d, ruolo: 'designante', tipo: 'designazione' })),
-                ...chain.designazioni_ricevute.map(d => ({ ...d, ruolo: 'designato', tipo: 'designazione' }))
-            ];
-
-            // Get section stats to check for unmapped assignments
-            const statsData = await client.sections.stats();
-            const sezioniAssegnate = statsData?.visibili?.assegnate || 0;
-            const sezioniVisibili = statsData?.visibili?.sezioni || 0;
-
-            // Calculate stats
-            const totale = allDesignazioni.length;
-            // Nel nuovo modello, ogni designazione può avere effettivo E supplente
-            const effettivo = allDesignazioni.filter(d => d.effettivo).length;
-            const supplente = allDesignazioni.filter(d => d.supplente).length;
-            const confermate = allDesignazioni.filter(d => d.stato === 'CONFERMATA').length;
-            const bozze = allDesignazioni.filter(d => d.stato === 'BOZZA').length;
-
-            // Extract territory from sub-delegations
-            let territorioLabel = '';
-            if (chain.sub_deleghe_ricevute && chain.sub_deleghe_ricevute.length > 0) {
-                const subDelega = chain.sub_deleghe_ricevute[0];
-
-                // Build territory label
-                const parti = [];
-
-                // Comuni
-                if (subDelega.comuni && subDelega.comuni.length > 0) {
-                    const comuniNames = subDelega.comuni.map(c => c.nome);
-                    if (comuniNames.length <= 2) {
-                        parti.push(comuniNames.join(', '));
-                    } else {
-                        parti.push(`${comuniNames[0]} (+${comuniNames.length - 1} comuni)`);
-                    }
-                }
-
-                // Municipi
-                if (subDelega.municipi && subDelega.municipi.length > 0) {
-                    const municString = subDelega.municipi
-                        .map(m => `Mun. ${toRoman(m)}`)
-                        .join(', ');
-                    if (parti.length > 0) {
-                        parti[0] = `${parti[0]} - ${municString}`;
-                    } else {
-                        parti.push(municString);
-                    }
-                }
-
-                territorioLabel = parti.join(', ');
-            } else if (chain.delega_ricevuta) {
-                // Delegato di lista - show circoscrizione
-                territorioLabel = chain.delega_ricevuta.circoscrizione || 'Nazionale';
+            // If we reached comune level, load designazioni data
+            if (path.comune_id) {
+                await loadComuneData(path.comune_id, path.municipio_id);
             }
 
-            setStats({
-                totale,
-                effettivo,
-                supplente,
-                confermate,
-                bozze,
-                is_delegato: chain.is_delegato,
-                is_sub_delegato: chain.is_sub_delegato,
-                is_rdl: chain.is_rdl,
-                sezioni_assegnate: sezioniAssegnate,
-                sezioni_visibili: sezioniVisibili,
-                assegnazioni_non_convertite: Math.max(0, sezioniAssegnate - totale),
-                territorio: territorioLabel
-            });
-
-            setDesignazioni(allDesignazioni);
+            window.scrollTo(0, 0);
         } catch (err) {
-            setError(`Errore nel caricamento designazioni: ${err.message}`);
+            console.error('[GestioneDesignazioni] Error loading data:', err);
+            setError?.('Errore caricamento dati: ' + err.message);
         } finally {
             setLoading(false);
         }
     };
 
-    const calcPercentuale = (parte, totale) => {
-        if (!totale) return 0;
-        return Math.round((parte / totale) * 100);
-    };
+    const loadComuneData = async (comuneId, municipioId) => {
+        if (!comuneId || !consultazione) return;
 
-    const getStatoBadgeClass = (stato) => {
-        switch (stato) {
-            case 'CONFERMATA':
-                return 'bg-success';
-            case 'BOZZA':
-                return 'bg-warning';
-            case 'RIFIUTATA':
-                return 'bg-danger';
-            default:
-                return 'bg-secondary';
-        }
-    };
-
-    const handleFileChange = (e) => {
-        const selectedFile = e.target.files[0];
-        if (selectedFile) {
-            if (!selectedFile.name.endsWith('.csv')) {
-                setError('Seleziona un file CSV');
-                return;
-            }
-            setFile(selectedFile);
-            setUploadResult(null);
-        }
-    };
-
-    const handleUpload = async () => {
-        if (!file) {
-            setError('Seleziona un file prima di caricare');
-            return;
-        }
-
-        setUploading(true);
-        setError(null);
-        setUploadResult(null);
-
+        setLoadingData(true);
         try {
-            const res = await client.deleghe.designazioni.uploadCsv(file);
-            if (res.error) {
-                setError(res.error);
-            } else {
-                setUploadResult(res);
-                // Ricarica i dati dopo l'upload
-                loadData();
-            }
-        } catch (err) {
-            setError(`Errore durante il caricamento: ${err.message}`);
-        } finally {
-            setUploading(false);
-        }
-    };
+            console.log('[GestioneDesignazioni] Loading data for comune:', comuneId);
 
-    const handleCaricaMappatura = async () => {
-        if (!consultazione || !consultazione.id) {
-            setError('Nessuna consultazione attiva selezionata');
-            return;
-        }
-
-        setLoadingMappatura(true);
-        setError(null);
-        setMappaturaResult(null);
-        setShowMappaturaModal(false);
-
-        try {
-            const res = await client.deleghe.designazioni.caricaMappatura(consultazione.id);
-            if (res.error) {
-                setError(res.error);
-            } else {
-                setMappaturaResult(res);
-                // Ricarica i dati dopo il caricamento
-                loadData();
-            }
-        } catch (err) {
-            setError(`Errore durante il caricamento mappatura: ${err.message}`);
-        } finally {
-            setLoadingMappatura(false);
-        }
-    };
-
-    // Format date for display
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '';
-        const date = new Date(dateStr);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-    };
-
-    // Format RDL data: "Cognome Nome nato a Luogo il DD/MM/YYYY, domiciliato in Indirizzo"
-    const formatRdlData = (rdl) => {
-        if (!rdl.cognome || !rdl.nome) return 'Non assegnato';
-
-        let text = `${rdl.cognome} ${rdl.nome}`;
-
-        if (rdl.luogo_nascita) {
-            text += ` nato a ${rdl.luogo_nascita}`;
-        }
-
-        if (rdl.data_nascita) {
-            text += ` il ${formatDate(rdl.data_nascita)}`;
-        }
-
-        if (rdl.domicilio) {
-            text += `, domiciliato in ${rdl.domicilio}`;
-        }
-
-        return text;
-    };
-
-    // Multi-select functions
-    const toggleSelectAll = () => {
-        const bozze = designazioni.filter(d => d.stato === 'BOZZA');
-        if (selectedDesignazioni.size === bozze.length && bozze.length > 0) {
-            setSelectedDesignazioni(new Set());
-        } else {
-            setSelectedDesignazioni(new Set(bozze.map(d => d.id)));
-        }
-    };
-
-    const toggleSelect = (id) => {
-        const newSelected = new Set(selectedDesignazioni);
-        if (newSelected.has(id)) {
-            newSelected.delete(id);
-        } else {
-            newSelected.add(id);
-        }
-        setSelectedDesignazioni(newSelected);
-    };
-
-    const openPdfModal = async () => {
-        if (selectedDesignazioni.size === 0) return;
-        setShowPdfModal(true);
-        setPdfStep('template');
-
-        // Load templates and delegato data
-        await Promise.all([
-            loadTemplates(),
-            loadDelegatoData()
-        ]);
-    };
-
-    const loadTemplates = async () => {
-        try {
-            const result = await client.templates.list(consultazione.id);
-            if (result.error) {
-                setError(result.error);
-            } else {
-                setTemplates(result.templates || []);
-            }
-        } catch (err) {
-            setError(`Errore caricamento templates: ${err.message}`);
-        }
-    };
-
-    const loadDelegatoData = async () => {
-        try {
-            const chain = await client.deleghe.miaCatena();
-            if (chain.error) {
-                setError(chain.error);
-                return;
-            }
-
-            let data = {};
-
-            // Se subdelegato, prendi i dati dalla subdelega
-            if (chain.sub_deleghe_ricevute && chain.sub_deleghe_ricevute.length > 0) {
-                const subDelega = chain.sub_deleghe_ricevute[0];
-                data = {
-                    tipo_firmatario: 'subdelegato',
-                    cognome: subDelega.cognome || '',
-                    nome: subDelega.nome || '',
-                    luogo_nascita: subDelega.luogo_nascita || '',
-                    data_nascita: subDelega.data_nascita || '',
-                    domicilio: subDelega.domicilio || '',
-                    tipo_documento: subDelega.tipo_documento || '',
-                    numero_documento: subDelega.numero_documento || '',
-                    // Info delegato (per catena)
-                    delegato_cognome: subDelega.delegato?.cognome || '',
-                    delegato_nome: subDelega.delegato?.nome || '',
-                    delegato_carica: subDelega.delegato?.carica || ''
-                };
-            }
-            // Se delegato diretto
-            else if (chain.delega_ricevuta) {
-                const delega = chain.delega_ricevuta;
-                data = {
-                    tipo_firmatario: 'delegato',
-                    cognome: delega.cognome || '',
-                    nome: delega.nome || '',
-                    luogo_nascita: delega.luogo_nascita || '',
-                    data_nascita: delega.data_nascita || '',
-                    carica: delega.carica || '',
-                    circoscrizione: delega.circoscrizione || ''
-                };
-            }
-
-            setDelegatoData(data);
-            setFormData(data);
-        } catch (err) {
-            setError(`Errore caricamento dati delegato: ${err.message}`);
-        }
-    };
-
-    const closePdfModal = () => {
-        setShowPdfModal(false);
-        setPdfStep('template');
-        setSelectedTemplate(null);
-        setFormData({});
-        setPdfPreview(null);
-    };
-
-    const goToStep = (step) => {
-        setPdfStep(step);
-    };
-
-    const handleTemplateSelect = (template) => {
-        setSelectedTemplate(template);
-    };
-
-    const handleFormChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const validateForm = () => {
-        const required = ['cognome', 'nome', 'luogo_nascita', 'data_nascita'];
-
-        if (formData.tipo_firmatario === 'subdelegato') {
-            required.push('domicilio', 'tipo_documento', 'numero_documento');
-        }
-
-        const missing = required.filter(field => !formData[field]);
-        return missing;
-    };
-
-    const generatePreview = async () => {
-        setGeneratingPdf(true);
-        try {
-            // Prepara dati per preview
-            const previewData = {
-                delegato: formData,
-                designazioni: Array.from(selectedDesignazioni).map(id =>
-                    designazioni.find(d => d.id === id)
-                ),
-                consultazione_id: consultazione.id
-            };
-
-            const blob = await client.templates.preview(selectedTemplate.id, previewData);
-            if (blob) {
-                setPdfPreview(URL.createObjectURL(blob));
-                goToStep('preview');
-            } else {
-                setError('Errore generazione preview PDF');
-            }
-        } catch (err) {
-            setError(`Errore preview: ${err.message}`);
-        } finally {
-            setGeneratingPdf(false);
-        }
-    };
-
-    const generateBatch = async () => {
-        setGeneratingPdf(true);
-        try {
-            // Step 1: Crea batch
-            const batchResult = await client.batch.create({
-                consultazione_id: consultazione.id,
-                tipo: 'INDIVIDUALE',
-                solo_sezioni: Array.from(selectedDesignazioni).map(id => {
-                    const des = designazioni.find(d => d.id === id);
-                    return des?.sezione_id;
-                }).filter(Boolean),
-                delegato_data: formData,
-                template_id: selectedTemplate.id
+            // 1. Load mappature (sezioni mappate)
+            const mappaturaResult = await client.mappatura.sezioni({
+                comune_id: comuneId,
+                municipio_id: municipioId
             });
 
-            if (batchResult.error) {
-                setError(batchResult.error);
-                return;
+            if (!mappaturaResult.error && mappaturaResult.plessi) {
+                const allSezioni = [];
+                mappaturaResult.plessi.forEach(plesso => {
+                    if (plesso.sezioni) {
+                        plesso.sezioni.forEach(sez => {
+                            // SOLO sezioni con effettivo o supplente
+                            if (sez.effettivo || sez.supplente) {
+                                allSezioni.push({
+                                    ...sez,
+                                    plesso_denominazione: plesso.denominazione,
+                                    sezione_numero: sez.numero,
+                                    rdl_effettivo: sez.effettivo,
+                                    rdl_supplente: sez.supplente
+                                });
+                            }
+                        });
+                    }
+                });
+                console.log('[GestioneDesignazioni] Sezioni mappate totali:', allSezioni.length);
+
+                // Filtra sezioni già in processi (BOZZA o CONFERMATA)
+                // Carica designazioni per sapere quali sezioni sono già processate
+                const designazioniResult = await client.deleghe.designazioni.list(consultazione.id);
+                console.log('[GestioneDesignazioni] Designazioni result:', designazioniResult);
+
+                if (!designazioniResult.error && designazioniResult.results) {
+                    // Carica anche i batch per verificare lo stato dei processi
+                    const batchTempResult = await client.deleghe.batch.list(consultazione.id);
+                    const allBatch = batchTempResult.error ? [] : batchTempResult.results;
+
+                    // Crea mappa batch_id -> stato per lookup veloce
+                    const batchStati = {};
+                    allBatch.forEach(b => {
+                        batchStati[b.id] = b.stato;
+                    });
+
+                    // Sezioni DA ESCLUDERE: solo quelle in processi ATTIVI o COMPLETATI
+                    // NON escludere sezioni in processi ERRORE, ANNULLATI o con batch mancanti
+                    const designazioniProcessate = designazioniResult.results.filter(d => {
+                        // SEMPRE escludi designazioni CONFERMATE (indipendentemente da processo/batch)
+                        if (d.stato === 'CONFERMATA') {
+                            return true; // Escludi sezioni confermate
+                        }
+
+                        // Per designazioni BOZZA: controlla se sono in processi attivi
+                        if (!d.processo || !d.batch_pdf) {
+                            // Designazione BOZZA orfana (processo eliminato) → sezione disponibile
+                            return false;
+                        }
+
+                        const batchStato = batchStati[d.batch_pdf];
+
+                        // Escludi BOZZE con batch in stato BOZZA o GENERATO (processo in corso)
+                        if (d.stato === 'BOZZA' && ['BOZZA', 'GENERATO'].includes(batchStato)) {
+                            return true; // Escludi sezioni in processi attivi
+                        }
+
+                        // Altrimenti sezione disponibile (BOZZE in batch ERRORE, APPROVATO senza conferma, etc.)
+                        return false;
+                    });
+
+                    const sezioniProcessate = new Set(designazioniProcessate.map(d => d.sezione));
+                    console.log('[GestioneDesignazioni] Sezioni già processate (escluse):', sezioniProcessate.size, Array.from(sezioniProcessate));
+
+                    // Debug: mostra quali designazioni sono state filtrate e perché
+                    const confermate = designazioniResult.results.filter(d => d.stato === 'CONFERMATA');
+                    console.log('[GestioneDesignazioni] Designazioni CONFERMATE totali:', confermate.length, confermate.map(d => `Sezione ${d.sezione}: ${d.effettivo_cognome}`));
+
+                    const bozzeAttive = designazioniResult.results.filter(d => {
+                        return d.stato === 'BOZZA' && d.processo && d.batch_pdf && ['BOZZA', 'GENERATO'].includes(batchStati[d.batch_pdf]);
+                    });
+                    console.log('[GestioneDesignazioni] BOZZE in processi attivi:', bozzeAttive.length);
+
+                    // Filtra sezioni disponibili (solo differenze - non ancora processate)
+                    const sezioniDisponibili = allSezioni.filter(sez => !sezioniProcessate.has(sez.id));
+                    console.log('[GestioneDesignazioni] Sezioni disponibili (differenze):', sezioniDisponibili.length);
+                    setMappature(sezioniDisponibili);
+                } else {
+                    // Se errore caricando designazioni, mostra tutto
+                    setMappature(allSezioni);
+                }
             }
 
-            // Step 2: Genera PDF
-            const generaResult = await client.batch.genera(batchResult.id);
-            if (generaResult.error) {
-                setError(generaResult.error);
-                return;
+            // 2. Check processo in corso (batch con stato BOZZA o GENERATO)
+            const batchResult = await client.deleghe.batch.list(consultazione.id);
+            console.log('[GestioneDesignazioni] Batch result:', batchResult);
+
+            if (!batchResult.error && batchResult.results) {
+                console.log('[GestioneDesignazioni] Total batch found:', batchResult.results.length);
+
+                const batchInCorso = batchResult.results.filter(b =>
+                    ['BOZZA', 'GENERATO'].includes(b.stato)
+                );
+                console.log('[GestioneDesignazioni] Batch in corso:', batchInCorso.length, batchInCorso);
+
+                if (batchInCorso.length > 0) {
+                    // Raggruppa batch individuale + riepilogativo dello stesso processo
+                    // I batch hanno un campo processo_id che indica a quale processo appartengono
+                    const individuale = batchInCorso.find(b => b.tipo === 'INDIVIDUALE');
+                    const riepilogativo = batchInCorso.find(b => b.tipo === 'RIEPILOGATIVO');
+
+                    console.log('[GestioneDesignazioni] Individuale:', individuale);
+                    console.log('[GestioneDesignazioni] Riepilogativo:', riepilogativo);
+
+                    if (individuale && riepilogativo) {
+                        // Usa il processo_id dal batch (dovrebbero avere lo stesso)
+                        const processoId = individuale.processo_id || riepilogativo.processo_id;
+
+                        const processo = {
+                            id: processoId,  // IMPORTANTE: Aggiungi processo_id
+                            batch_individuale: individuale,
+                            batch_riepilogativo: riepilogativo,
+                            created_at: individuale.created_at
+                        };
+                        console.log('[GestioneDesignazioni] Setting processo in corso:', processo);
+                        setProcessoInCorso(processo);
+                    } else if (individuale || riepilogativo) {
+                        console.warn('[GestioneDesignazioni] Batch incompleto - manca uno dei due tipi!');
+                        const batch = individuale || riepilogativo;
+                        const processoId = batch.processo_id;
+
+                        // Mostra comunque quello che c'è
+                        setProcessoInCorso({
+                            id: processoId,  // IMPORTANTE: Aggiungi processo_id
+                            batch_individuale: individuale || null,
+                            batch_riepilogativo: riepilogativo || null,
+                            created_at: batch.created_at
+                        });
+                    }
+                }
+
+                // OLD: Processi completati (APPROVATO, INVIATO) - sostituito con archivio
             }
 
-            // Step 3: Approva batch (questo conferma le designazioni BOZZA → CONFERMATA)
-            const approvaResult = await client.batch.approva(batchResult.id);
-            if (approvaResult.error) {
-                setError(approvaResult.error);
-                return;
+            // 3. Carica archivio processi completati (APPROVATO)
+            const archivioResult = await client.deleghe.processi.archivio(consultazione.id, comuneId, 'completati');
+            console.log('[GestioneDesignazioni] Archivio result:', archivioResult);
+
+            if (!archivioResult.error && Array.isArray(archivioResult)) {
+                console.log('[GestioneDesignazioni] Processi archiviati:', archivioResult.length);
+                archivioResult.forEach(p => {
+                    console.log('[GestioneDesignazioni] Processo archivio:', {
+                        id: p.id,
+                        documento_individuale_url: p.documento_individuale_url,
+                        documento_cumulativo_url: p.documento_cumulativo_url
+                    });
+                });
+                setProcessiArchivio(archivioResult);
             }
 
-            // Step 4: Download PDF automatico
-            await client.batch.downloadPdf(batchResult.id);
+            // 4. Carica storico processi (ANNULLATO, etc.) per audit
+            const storicoResult = await client.deleghe.processi.archivio(consultazione.id, comuneId, 'storico');
+            console.log('[GestioneDesignazioni] Storico result:', storicoResult);
 
-            // Success!
-            const numDesignazioni = selectedDesignazioni.size;
-            alert(
-                `✅ PDF generato con successo!\n\n` +
-                `• Batch ID: ${batchResult.id}\n` +
-                `• ${numDesignazioni} designazioni confermate (BOZZA → CONFERMATA)\n` +
-                `• Documento scaricato`
+            if (!storicoResult.error && Array.isArray(storicoResult)) {
+                console.log('[GestioneDesignazioni] Processi storici:', storicoResult.length);
+                setProcessiStorico(storicoResult);
+            }
+
+        } catch (err) {
+            console.error('[GestioneDesignazioni] Error loading comune data:', err);
+            setError?.('Errore caricamento dati comune: ' + err.message);
+        } finally {
+            setLoadingData(false);
+        }
+    };
+
+    const handleDrillDown = (item) => {
+        const newPath = { ...path };
+
+        switch (item.tipo) {
+            case 'regione':
+                newPath.regione_id = item.id;
+                newPath.provincia_id = null;
+                newPath.comune_id = null;
+                newPath.municipio_id = null;
+                break;
+            case 'provincia':
+                newPath.provincia_id = item.id;
+                newPath.comune_id = null;
+                newPath.municipio_id = null;
+                break;
+            case 'comune':
+                newPath.comune_id = item.id;
+                newPath.municipio_id = null;
+                break;
+            case 'municipio':
+                newPath.municipio_id = item.id;
+                break;
+            default:
+                return;
+        }
+
+        setPath(newPath);
+        setSearchQuery('');
+    };
+
+    const handleBack = () => {
+        const newPath = { ...path };
+
+        if (path.municipio_id) {
+            newPath.municipio_id = null;
+        } else if (path.comune_id) {
+            newPath.comune_id = null;
+        } else if (path.provincia_id) {
+            newPath.provincia_id = null;
+        } else if (path.regione_id) {
+            newPath.regione_id = null;
+        }
+
+        setPath(newPath);
+        setSearchQuery('');
+        setSelectedSezioni(new Set());
+    };
+
+    const handleToggleProcesso = (processoId) => {
+        const newExpanded = new Set(expandedProcessi);
+        if (newExpanded.has(processoId)) {
+            newExpanded.delete(processoId);
+        } else {
+            newExpanded.add(processoId);
+        }
+        setExpandedProcessi(newExpanded);
+    };
+
+    const handleToggleSezione = (sezioneId) => {
+        const newSelected = new Set(selectedSezioni);
+        if (newSelected.has(sezioneId)) {
+            newSelected.delete(sezioneId);
+        } else {
+            newSelected.add(sezioneId);
+        }
+        setSelectedSezioni(newSelected);
+    };
+
+    const handleToggleAll = () => {
+        if (selectedSezioni.size === mappature.length) {
+            setSelectedSezioni(new Set());
+        } else {
+            setSelectedSezioni(new Set(mappature.map(m => m.id)));
+        }
+    };
+
+    const handleAvviaProcesso = () => {
+        console.log('[GestioneDesignazioni] handleAvviaProcesso chiamato!');
+        console.log('[GestioneDesignazioni] selectedSezioni.size:', selectedSezioni.size);
+        console.log('[GestioneDesignazioni] showWizard prima:', showWizard);
+
+        if (selectedSezioni.size === 0) {
+            console.log('[GestioneDesignazioni] ERRORE: nessuna sezione selezionata');
+            setError?.('Seleziona almeno una sezione per avviare il processo');
+            return;
+        }
+
+        console.log('[GestioneDesignazioni] Apertura wizard per', selectedSezioni.size, 'sezioni');
+        console.log('[GestioneDesignazioni] Chiamata setShowWizard(true)');
+        setShowWizard(true);
+        console.log('[GestioneDesignazioni] showWizard dopo:', showWizard);
+    };
+
+    const handleWizardSuccess = () => {
+        console.log('[GestioneDesignazioni] Wizard completato con successo');
+        setSuccessMessage('✓ Processo di designazione completato con successo!');
+        setSelectedSezioni(new Set());
+        loadComuneData(path.comune_id, path.municipio_id);
+    };
+
+    const handleConfermaProcesso = async () => {
+        if (!processoInCorso) return;
+
+        try {
+            console.log('[GestioneDesignazioni] Conferma processo');
+
+            // Approva entrambi i batch
+            const approve1 = await client.deleghe.batch.approva(processoInCorso.batch_individuale.id);
+            if (approve1.error) {
+                throw new Error('Errore approvazione batch INDIVIDUALE: ' + approve1.error);
+            }
+
+            const approve2 = await client.deleghe.batch.approva(processoInCorso.batch_riepilogativo.id);
+            if (approve2.error) {
+                throw new Error('Errore approvazione batch RIEPILOGATIVO: ' + approve2.error);
+            }
+
+            setSuccessMessage(
+                `✓ Processo confermato con successo!\n` +
+                `Tutte le designazioni sono ora CONFERMATE`
             );
 
-            // Chiudi modale e ricarica dati
-            closePdfModal();
-            setSelectedDesignazioni(new Set());
-            loadData();
+            await loadComuneData(path.comune_id, path.municipio_id);
+
         } catch (err) {
-            setError(`Errore generazione batch: ${err.message}`);
+            console.error('[GestioneDesignazioni] Error conferma processo:', err);
+            setError?.('Errore conferma processo: ' + err.message);
+        }
+    };
+
+    const handleAnnullaProcesso = () => {
+        if (!processoInCorso) return;
+        setShowAnnullaModal(true);
+    };
+
+    const confirmAnnullaProcesso = async () => {
+        setShowAnnullaModal(false);
+
+        try {
+            console.log('[GestioneDesignazioni] Annullamento processo');
+
+            // Raccogli gli ID unici dei batch da eliminare
+            const batchIds = new Set();
+            if (processoInCorso.batch_individuale) {
+                batchIds.add(processoInCorso.batch_individuale.id);
+            }
+            if (processoInCorso.batch_riepilogativo) {
+                batchIds.add(processoInCorso.batch_riepilogativo.id);
+            }
+
+            // Elimina ogni batch unico
+            for (const batchId of batchIds) {
+                console.log('[GestioneDesignazioni] Eliminazione batch #', batchId);
+                const result = await client.deleghe.batch.delete(batchId);
+
+                if (result.error && !result.deleted) {
+                    throw new Error('Errore eliminazione batch #' + batchId + ': ' + result.error);
+                }
+
+                console.log('[GestioneDesignazioni] ✓ Batch #', batchId, 'eliminato');
+            }
+
+            setSuccessMessage('✓ Processo annullato con successo! Le sezioni sono di nuovo disponibili.');
+            setProcessoInCorso(null);
+            await loadComuneData(path.comune_id, path.municipio_id);
+
+        } catch (err) {
+            console.error('[GestioneDesignazioni] Error annulla processo:', err);
+            setError?.('Errore annullamento processo: ' + err.message);
+        }
+    };
+
+    const handlePreviewIndividuale = async (processoId) => {
+        if (!processoId) {
+            console.error('[GestioneDesignazioni] Processo ID mancante');
+            setError?.('Impossibile visualizzare: processo non trovato');
+            return;
+        }
+
+        setLoadingPdf(true);
+        try {
+            console.log('[GestioneDesignazioni] Caricamento PDF individuale, processo:', processoId);
+
+            // Usa il metodo preview che restituisce blob URL con autenticazione
+            const blobUrl = await client.deleghe.processi.previewIndividuale(processoId);
+
+            console.log('[GestioneDesignazioni] Blob URL ottenuto:', blobUrl);
+
+            // URL originale per apertura in nuova scheda (questo farà il download)
+            const serverUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
+            const originalUrl = `${serverUrl}/api/deleghe/processi/${processoId}/download_individuale/`;
+
+            const viewerData = {
+                url: blobUrl,  // Blob URL per il viewer
+                originalUrl,   // URL originale per download
+                blobUrl,       // Mantieni riferimento per revoke
+                titolo: `Designazioni Individuali - Processo #${processoId}`
+            };
+
+            console.log('[GestioneDesignazioni] Apertura PDFViewer con:', viewerData);
+            setPdfViewer(viewerData);
+        } catch (err) {
+            console.error('[GestioneDesignazioni] Errore caricamento PDF:', err);
+            setError?.('Errore caricamento PDF: ' + err.message);
         } finally {
-            setGeneratingPdf(false);
+            setLoadingPdf(false);
+        }
+    };
+
+    const handlePreviewCumulativo = async (processoId) => {
+        if (!processoId) {
+            console.error('[GestioneDesignazioni] Processo ID mancante');
+            setError?.('Impossibile visualizzare: processo non trovato');
+            return;
+        }
+
+        setLoadingPdf(true);
+        try {
+            console.log('[GestioneDesignazioni] Caricamento PDF cumulativo, processo:', processoId);
+
+            // Usa il metodo preview che restituisce blob URL con autenticazione
+            const blobUrl = await client.deleghe.processi.previewCumulativo(processoId);
+
+            console.log('[GestioneDesignazioni] Blob URL ottenuto:', blobUrl);
+
+            // URL originale per apertura in nuova scheda
+            const serverUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
+            const originalUrl = `${serverUrl}/api/deleghe/processi/${processoId}/download_cumulativo/`;
+
+            setPdfViewer({
+                url: blobUrl,
+                originalUrl,
+                blobUrl,
+                titolo: `Designazioni Cumulative - Processo #${processoId}`
+            });
+        } catch (err) {
+            console.error('[GestioneDesignazioni] Errore caricamento PDF:', err);
+            setError?.('Errore caricamento PDF: ' + err.message);
+        } finally {
+            setLoadingPdf(false);
+        }
+    };
+
+    // Cleanup blob URL quando chiudi il viewer
+    const handleClosePdfViewer = () => {
+        if (pdfViewer?.blobUrl) {
+            console.log('[GestioneDesignazioni] Revoke blob URL:', pdfViewer.blobUrl);
+            window.URL.revokeObjectURL(pdfViewer.blobUrl);
+        }
+        setPdfViewer(null);
+    };
+
+    // Rendering helpers
+    const canGoBack = path.regione_id || path.provincia_id || path.comune_id || path.municipio_id;
+
+    const getLevelIcon = () => {
+        switch (data?.level) {
+            case 'regioni': return 'fa-map';
+            case 'province': return 'fa-map-marked-alt';
+            case 'comuni': return 'fa-city';
+            case 'municipi': return 'fa-building';
+            default: return 'fa-th-list';
+        }
+    };
+
+    const getLevelTitle = () => {
+        switch (data?.level) {
+            case 'regioni': return 'Regioni';
+            case 'province': return 'Province';
+            case 'comuni': return 'Comuni';
+            case 'municipi': return 'Municipi';
+            default: return 'Designazioni';
+        }
+    };
+
+    const filteredItems = data?.items?.filter(item => {
+        if (!searchQuery) return true;
+        return item.nome.toLowerCase().includes(searchQuery.toLowerCase());
+    }) || [];
+
+    const styles = {
+        card: {
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '12px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+            cursor: 'pointer',
+            transition: 'transform 0.2s, box-shadow 0.2s'
+        },
+        cardHeader: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '12px'
         }
     };
 
     if (loading) {
         return (
-            <div className="loading-container" role="status" aria-live="polite">
-                <div className="spinner-border text-primary">
-                    <span className="visually-hidden">Caricamento in corso...</span>
+            <div className="container mt-4">
+                <div className="text-center p-5">
+                    <div className="spinner-border text-primary mb-3"></div>
+                    <p>Caricamento...</p>
                 </div>
-                <p className="loading-text">Caricamento designazioni...</p>
             </div>
         );
     }
 
-    return (
-        <>
-            {/* Page Header */}
-            <div className="page-header rdl">
-                <div className="page-header-title">
-                    <i className="fas fa-clipboard-list"></i>
-                    Designazioni RDL
-                </div>
-                <div className="page-header-subtitle">
-                    Gestione e monitoraggio designazioni Rappresentanti di Lista
-                    {stats && stats.territorio && (
-                        <span className="page-header-badge">
-                            {stats.territorio}
-                        </span>
-                    )}
-                </div>
-            </div>
-
-            {/* Tab Navigation */}
-            <ul className="nav nav-tabs mb-3">
-                <li className="nav-item">
-                    <button
-                        className={`nav-link ${activeView === 'panoramica' ? 'active' : ''}`}
-                        onClick={() => setActiveView('panoramica')}
-                        aria-selected={activeView === 'panoramica'}
-                    >
-                        <i className="fas fa-chart-pie me-2"></i>
-                        Panoramica
-                    </button>
-                </li>
-                <li className="nav-item">
-                    <button
-                        className={`nav-link ${activeView === 'lista' ? 'active' : ''}`}
-                        onClick={() => setActiveView('lista')}
-                        aria-selected={activeView === 'lista'}
-                    >
-                        <i className="fas fa-list me-2"></i>
-                        Lista Designazioni
-                        {stats && stats.bozze > 0 && (
-                            <span className="badge bg-warning text-dark ms-2">{stats.bozze}</span>
-                        )}
-                    </button>
-                </li>
-                <li className="nav-item">
-                    <button
-                        className={`nav-link ${activeView === 'importa' ? 'active' : ''}`}
-                        onClick={() => setActiveView('importa')}
-                        aria-selected={activeView === 'importa'}
-                    >
-                        <i className="fas fa-file-import me-2"></i>
-                        Importa CSV
-                    </button>
-                </li>
-            </ul>
-
-            {/* Panoramica View */}
-            {activeView === 'panoramica' && stats && (
-                <>
-                    {/* Alert: Assegnazioni da convertire */}
-                    {stats.assegnazioni_non_convertite > 0 && (
-                        <div className="alert alert-warning mb-4">
-                            <div className="d-flex align-items-center">
-                                <i className="fas fa-exclamation-triangle fa-2x me-3"></i>
-                                <div className="flex-grow-1">
-                                    <strong>Hai {stats.assegnazioni_non_convertite} assegnazioni RDL non ancora convertite in designazioni formali</strong>
-                                    <p className="mb-0 small mt-1">
-                                        Le assegnazioni sono state fatte tramite app mobile, ma non sono ancora state
-                                        convertite in designazioni formali. Clicca su "Carica Mappatura" qui sotto per convertirle.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Carica Mappatura Button */}
-                    <div className="alert alert-primary mb-4">
-                        <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                            <div className="d-flex align-items-center">
-                                <i className="fas fa-map-marked-alt fa-2x me-3"></i>
-                                <div>
-                                    <strong>Carica Mappatura dal Territorio</strong>
-                                    <p className="mb-0 small">
-                                        Converte le assegnazioni RDL-Sezione fatte tramite app in designazioni formali
-                                    </p>
-                                </div>
-                            </div>
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => setShowMappaturaModal(true)}
-                                disabled={loadingMappatura || !consultazione}
-                            >
-                                <i className="fas fa-download me-2"></i>
-                                Carica Mappatura
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Mappatura Result */}
-                    {mappaturaResult && (
-                        <div className={`alert ${mappaturaResult.errors?.length ? 'alert-warning' : 'alert-success'} mb-4`}>
-                            <h5>
-                                <i className={`fas ${mappaturaResult.errors?.length ? 'fa-exclamation-triangle' : 'fa-check-circle'} me-2`}></i>
-                                Mappatura caricata
-                            </h5>
-                            <ul className="mb-0">
-                                <li>Designazioni create: <strong>{mappaturaResult.created}</strong></li>
-                                <li>Già esistenti (saltate): <strong>{mappaturaResult.skipped}</strong></li>
-                                <li>Totale elaborato: <strong>{mappaturaResult.total}</strong></li>
-                            </ul>
-                            {mappaturaResult.errors?.length > 0 && (
-                                <div className="mt-2">
-                                    <strong>Errori:</strong>
-                                    <ul className="mb-0">
-                                        {mappaturaResult.errors.slice(0, 10).map((err, i) => (
-                                            <li key={i} className="text-danger small">{err}</li>
-                                        ))}
-                                        {mappaturaResult.errors.length > 10 && (
-                                            <li className="text-muted small">... e altri {mappaturaResult.errors.length - 10} errori</li>
-                                        )}
-                                    </ul>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Summary Cards */}
-                    <div className="row g-3 mb-4">
-                        {/* Card Assegnazioni Territorio */}
-                        <div className="col-6 col-lg-3">
-                            <div className="card h-100 border-info">
-                                <div className="card-body text-center p-2 p-md-3">
-                                    <div className="text-muted small">Assegnazioni Territorio</div>
-                                    <div className="fs-3 fw-bold text-info">
-                                        {stats.sezioni_assegnate}
-                                    </div>
-                                    <div className="text-muted small">
-                                        su {stats.sezioni_visibili} sezioni
-                                    </div>
-                                    {stats.assegnazioni_non_convertite > 0 && (
-                                        <div className="small text-warning mt-1">
-                                            {stats.assegnazioni_non_convertite} da convertire
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Card Totale Designazioni */}
-                        <div className="col-6 col-lg-3">
-                            <div className="card h-100 border-primary">
-                                <div className="card-body text-center p-2 p-md-3">
-                                    <div className="text-muted small">Designazioni Formali</div>
-                                    <div className="fs-3 fw-bold text-primary">
-                                        {stats.totale}
-                                    </div>
-                                    <div className="text-muted small">create</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Card Effettivi e Supplenti */}
-                        <div className="col-6 col-lg-3">
-                            <div className="card h-100 border-secondary">
-                                <div className="card-body p-2 p-md-3">
-                                    <div className="row g-2">
-                                        <div className="col-6">
-                                            <div className="text-center">
-                                                <div className="text-muted small">Effettivi</div>
-                                                <div className="fs-3 fw-bold text-primary">
-                                                    {stats.effettivo}
-                                                </div>
-                                                <div className="text-muted small">
-                                                    {calcPercentuale(stats.effettivo, stats.totale)}%
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="col-6">
-                                            <div className="text-center">
-                                                <div className="text-muted small">Supplenti</div>
-                                                <div className="fs-3 fw-bold text-info">
-                                                    {stats.supplente}
-                                                </div>
-                                                <div className="text-muted small">
-                                                    {calcPercentuale(stats.supplente, stats.totale)}%
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Card Confermate */}
-                        <div className="col-6 col-lg-3">
-                            <div className="card h-100 border-success">
-                                <div className="card-body text-center p-2 p-md-3">
-                                    <div className="text-muted small">Confermate</div>
-                                    <div className="fs-3 fw-bold text-success">
-                                        {stats.confermate}
-                                    </div>
-                                    <div className="text-muted small">
-                                        {calcPercentuale(stats.confermate, stats.totale)}%
-                                    </div>
-                                    {stats.bozze > 0 && (
-                                        <div className="small text-warning mt-1">
-                                            {stats.bozze} bozze
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="card mb-4">
-                        <div className="card-body">
-                            <h6 className="card-title">Stato designazioni</h6>
-                            <div className="progress" style={{ height: '24px' }}>
-                                <div
-                                    className="progress-bar bg-success"
-                                    style={{ width: `${calcPercentuale(stats.confermate, stats.totale)}%` }}
-                                    role="progressbar"
-                                    aria-valuenow={stats.confermate}
-                                    aria-valuemin="0"
-                                    aria-valuemax={stats.totale}
-                                >
-                                    {calcPercentuale(stats.confermate, stats.totale)}% confermate
-                                </div>
-                                {stats.bozze > 0 && (
-                                    <div
-                                        className="progress-bar bg-warning"
-                                        style={{ width: `${calcPercentuale(stats.bozze, stats.totale)}%` }}
-                                        role="progressbar"
-                                        aria-valuenow={stats.bozze}
-                                        aria-valuemin="0"
-                                        aria-valuemax={stats.totale}
-                                    >
-                                        {calcPercentuale(stats.bozze, stats.totale)}% bozze
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Refresh Button */}
-                    <div className="text-center mt-3">
-                        <button
-                            className="btn btn-outline-secondary"
-                            onClick={loadData}
-                            disabled={loading}
-                        >
-                            <i className="fas fa-sync-alt me-2"></i>
-                            Aggiorna dati
-                        </button>
-                    </div>
-                </>
-            )}
-
-            {/* Lista Designazioni View */}
-            {activeView === 'lista' && (
-                <>
-                    {/* Bulk Actions */}
-                    {stats && stats.bozze > 0 && (
-                        <div style={{
-                            background: 'white',
-                            borderRadius: '8px',
-                            padding: '12px',
-                            marginBottom: '12px',
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0, cursor: 'pointer' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedDesignazioni.size > 0 && selectedDesignazioni.size === designazioni.filter(d => d.stato === 'BOZZA').length}
-                                        onChange={toggleSelectAll}
-                                        style={{ cursor: 'pointer', width: '18px', height: '18px' }}
-                                    />
-                                    <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>
-                                        Seleziona tutte le bozze ({designazioni.filter(d => d.stato === 'BOZZA').length})
-                                    </span>
-                                </label>
-                                {selectedDesignazioni.size > 0 && (
-                                    <>
-                                        <span style={{ fontSize: '0.9rem', color: '#6c757d' }}>
-                                            {selectedDesignazioni.size} selezionate
-                                        </span>
-                                        <button
-                                            className="btn btn-primary btn-sm"
-                                            onClick={openPdfModal}
-                                            style={{ marginLeft: 'auto' }}
-                                        >
-                                            <i className="fas fa-file-pdf me-2"></i>
-                                            Genera PDF
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Lista Designazioni */}
-                    <div style={{
-                        background: 'white',
-                        borderRadius: '8px',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        marginBottom: '12px'
-                    }}>
-                        <div style={{
-                            padding: '12px 16px',
-                            borderBottom: '2px solid #e9ecef',
-                            fontWeight: 600,
-                            fontSize: '0.95rem',
-                            color: '#495057'
-                        }}>
-                            Designazioni ({designazioni.length})
-                        </div>
-
-                        {designazioni.length === 0 ? (
-                            <div style={{ padding: '40px', textAlign: 'center', color: '#6c757d' }}>
-                                <i className="fas fa-inbox fa-3x mb-3" style={{ opacity: 0.3 }}></i>
-                                <p>Nessuna designazione trovata</p>
-                                <p className="small">Usa "Carica Mappatura" o "Importa CSV" per creare designazioni</p>
-                            </div>
-                        ) : (
-                            designazioni.map(des => {
-                                const effettivoData = {
-                                    cognome: des.effettivo_cognome,
-                                    nome: des.effettivo_nome,
-                                    luogo_nascita: des.effettivo_luogo_nascita,
-                                    data_nascita: des.effettivo_data_nascita,
-                                    domicilio: des.effettivo_domicilio
-                                };
-
-                                const suppleenteData = {
-                                    cognome: des.supplente_cognome,
-                                    nome: des.supplente_nome,
-                                    luogo_nascita: des.supplente_luogo_nascita,
-                                    data_nascita: des.supplente_data_nascita,
-                                    domicilio: des.supplente_domicilio
-                                };
-
-                                return (
-                                    <div key={des.id} style={{
-                                        borderBottom: '1px solid #e9ecef',
-                                        padding: '16px',
-                                        cursor: des.stato === 'BOZZA' ? 'pointer' : 'default'
-                                    }}>
-                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                                            {/* Checkbox per bozze */}
-                                            {des.stato === 'BOZZA' && (
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedDesignazioni.has(des.id)}
-                                                    onChange={(e) => {
-                                                        e.stopPropagation();
-                                                        toggleSelect(des.id);
-                                                    }}
-                                                    style={{ cursor: 'pointer', width: '20px', height: '20px', marginTop: '4px' }}
-                                                />
-                                            )}
-
-                                            <div style={{ flex: 1 }}>
-                                                {/* Header con sezione e stato */}
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                        <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#212529' }}>
-                                                            <i className="fas fa-map-marker-alt me-2" style={{ color: '#6c757d' }}></i>
-                                                            Sezione {des.sezione_numero}
-                                                        </span>
-                                                        <span style={{ fontSize: '0.9rem', color: '#6c757d' }}>
-                                                            {des.comune}
-                                                            {des.municipio && ` - Municipio ${toRoman(des.municipio)}`}
-                                                        </span>
-                                                    </div>
-                                                    <span className={`badge ${getStatoBadgeClass(des.stato)}`}>
-                                                        {des.stato}
-                                                    </span>
-                                                </div>
-
-                                                {/* Effettivo */}
-                                                <div style={{ marginBottom: '8px' }}>
-                                                    <div style={{ fontSize: '0.85rem', color: '#6c757d', fontWeight: 500, marginBottom: '4px' }}>
-                                                        <i className="fas fa-user me-1"></i>
-                                                        EFFETTIVO
-                                                    </div>
-                                                    <div style={{ fontSize: '0.95rem', color: '#212529', paddingLeft: '20px' }}>
-                                                        {formatRdlData(effettivoData)}
-                                                    </div>
-                                                    {des.effettivo_email && (
-                                                        <div style={{ fontSize: '0.85rem', color: '#6c757d', paddingLeft: '20px', marginTop: '2px' }}>
-                                                            <i className="fas fa-envelope me-1"></i>
-                                                            {des.effettivo_email}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Supplente */}
-                                                <div>
-                                                    <div style={{ fontSize: '0.85rem', color: '#6c757d', fontWeight: 500, marginBottom: '4px' }}>
-                                                        <i className="fas fa-user-plus me-1"></i>
-                                                        SUPPLENTE
-                                                    </div>
-                                                    <div style={{ fontSize: '0.95rem', color: '#212529', paddingLeft: '20px' }}>
-                                                        {formatRdlData(suppleenteData)}
-                                                    </div>
-                                                    {des.supplente_email && (
-                                                        <div style={{ fontSize: '0.85rem', color: '#6c757d', paddingLeft: '20px', marginTop: '2px' }}>
-                                                            <i className="fas fa-envelope me-1"></i>
-                                                            {des.supplente_email}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Data designazione */}
-                                                {des.data_designazione && (
-                                                    <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '8px' }}>
-                                                        <i className="fas fa-calendar me-1"></i>
-                                                        Designato il {formatDate(des.data_designazione)}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
-
-                    {/* Refresh Button */}
-                    <div className="text-center mt-3">
-                        <button
-                            className="btn btn-outline-secondary"
-                            onClick={loadData}
-                            disabled={loading}
-                        >
-                            <i className="fas fa-sync-alt me-2"></i>
-                            Aggiorna dati
-                        </button>
-                    </div>
-                </>
-            )}
-
-            {/* Import CSV View */}
-            {activeView === 'importa' && (
-                <>
-                    <div className="alert alert-warning mb-3">
-                        <h6 className="alert-heading">
-                            <i className="fas fa-lightbulb me-2"></i>
-                            Due modi per caricare le designazioni
-                        </h6>
-                        <p className="mb-2">
-                            <strong>1. Carica Mappatura (consigliato):</strong> Usa il pulsante nella tab "Panoramica" per caricare
-                            automaticamente tutte le assegnazioni fatte tramite app mobile nel tuo territorio.
-                        </p>
-                        <p className="mb-0">
-                            <strong>2. Import CSV (manuale):</strong> Usa questa tab se hai un CSV preparato manualmente
-                            o se vuoi integrare designazioni da altre fonti.
-                        </p>
-                    </div>
-
-                    <div className="card">
-                        <div className="card-header bg-info text-white">
-                            <i className="fas fa-file-import me-2"></i>
-                            Importa Designazioni da CSV
-                        </div>
-                        <div className="card-body">
-                            <p className="alert alert-info">
-                                <i className="fas fa-info-circle me-2"></i>
-                                <strong>Import manuale:</strong> Carica un file CSV con le designazioni RDL.
-                                <br/>
-                                Il sistema creerà automaticamente le designazioni per ogni sezione specificata.
-                            </p>
-
-                            <p className="text-muted">
-                                Il file CSV deve avere le seguenti colonne:
-                            </p>
-                            <ul className="text-muted">
-                                <li><strong>SEZIONE</strong> *: Numero della sezione</li>
-                                <li><strong>COMUNE</strong> *: Nome del comune (es. ROMA)</li>
-                                <li><strong>MUNICIPIO</strong>: Numero del municipio (opzionale, per città con municipi)</li>
-                                <li><strong>EFFETTIVO_EMAIL</strong>: Email del RDL effettivo (opzionale se c'è supplente)</li>
-                                <li><strong>SUPPLENTE_EMAIL</strong>: Email del RDL supplente (opzionale se c'è effettivo)</li>
-                            </ul>
-
-                            <div className="mb-3">
-                                <label htmlFor="csvFile" className="form-label">Seleziona file CSV</label>
-                                <input
-                                    type="file"
-                                    className="form-control"
-                                    id="csvFile"
-                                    accept=".csv"
-                                    onChange={handleFileChange}
-                                    disabled={uploading}
-                                    aria-describedby="csvHelp"
-                                />
-                                <div id="csvHelp" className="form-text">
-                                    Formati supportati: .csv (separatore virgola)
-                                </div>
-                            </div>
-
-                            {file && (
-                                <div className="alert alert-info d-flex align-items-center">
-                                    <i className="fas fa-file-csv me-2"></i>
-                                    <div>
-                                        <strong>{file.name}</strong>
-                                        <span className="text-muted ms-2">({(file.size / 1024).toFixed(1)} KB)</span>
-                                    </div>
-                                </div>
-                            )}
-
-                            <button
-                                className="btn btn-primary"
-                                onClick={handleUpload}
-                                disabled={!file || uploading}
-                            >
-                                {uploading ? (
-                                    <>
-                                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                        Caricamento in corso...
-                                    </>
-                                ) : (
-                                    <>
-                                        <i className="fas fa-cloud-upload-alt me-2"></i>
-                                        Importa Designazioni
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-
-                    {uploadResult && (
-                        <div className={`alert ${uploadResult.errors?.length ? 'alert-warning' : 'alert-success'} mt-3`}>
-                            <h5>
-                                <i className={`fas ${uploadResult.errors?.length ? 'fa-exclamation-triangle' : 'fa-check-circle'} me-2`}></i>
-                                Importazione completata
-                            </h5>
-                            <ul className="mb-0">
-                                <li>Designazioni create: <strong>{uploadResult.created}</strong></li>
-                                <li>Designazioni aggiornate: <strong>{uploadResult.updated}</strong></li>
-                                <li>Totale elaborato: <strong>{uploadResult.total}</strong></li>
-                            </ul>
-                            {uploadResult.errors?.length > 0 && (
-                                <div className="mt-2">
-                                    <strong>Errori:</strong>
-                                    <ul className="mb-0">
-                                        {uploadResult.errors.slice(0, 10).map((err, i) => (
-                                            <li key={i} className="text-danger small">{err}</li>
-                                        ))}
-                                        {uploadResult.errors.length > 10 && (
-                                            <li className="text-muted small">... e altri {uploadResult.errors.length - 10} errori</li>
-                                        )}
-                                    </ul>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    <div className="card mt-3">
-                        <div className="card-header">
-                            <i className="fas fa-code me-2"></i>
-                            Esempio formato CSV
-                        </div>
-                        <div className="card-body">
-                            <pre className="mb-0 bg-light p-3 rounded" style={{ fontSize: '0.85em' }}>
-{`SEZIONE,COMUNE,MUNICIPIO,EFFETTIVO_EMAIL,SUPPLENTE_EMAIL
-1,ROMA,3,mario.rossi@example.com,anna.bianchi@example.com
-2,ROMA,1,luigi.verdi@example.com,
-3,ROMA,1,,maria.gialli@example.com
-1,MENTANA,,paolo.neri@example.com,carla.blu@example.com
-...`}
-                            </pre>
-                            <p className="text-muted small mt-2 mb-0">
-                                <i className="fas fa-lightbulb me-1"></i>
-                                <strong>Note:</strong>
-                            </p>
-                            <ul className="text-muted small">
-                                <li>Almeno una email (effettivo o supplente) deve essere presente</li>
-                                <li>Se il comune non ha municipi, lascia vuota la colonna MUNICIPIO</li>
-                                <li>Gli RDL devono essere già registrati nel sistema e approvati</li>
-                                <li>Se la designazione esiste già, verrà aggiornata</li>
-                            </ul>
-                        </div>
-                    </div>
-                </>
-            )}
-
-            {/* Modale Conferma Carica Mappatura */}
-            {showMappaturaModal && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">
-                                    <i className="fas fa-download me-2"></i>
-                                    Conferma Caricamento Mappatura
-                                </h5>
-                                <button
-                                    type="button"
-                                    className="btn-close"
-                                    onClick={() => setShowMappaturaModal(false)}
-                                    disabled={loadingMappatura}
-                                ></button>
-                            </div>
-                            <div className="modal-body">
-                                <p className="mb-3">
-                                    <strong>Questa operazione creerà le designazioni formali per tutte le assegnazioni RDL presenti nel tuo territorio.</strong>
-                                </p>
-                                <ul className="mb-3">
-                                    <li>Verranno convertite tutte le assegnazioni (SectionAssignment) in designazioni (DesignazioneRDL)</li>
-                                    <li>Le assegnazioni già convertite in designazioni verranno automaticamente saltate</li>
-                                    <li>Le designazioni con firma autenticata saranno subito CONFERMATE</li>
-                                    <li>Le altre designazioni saranno in stato BOZZA fino ad approvazione</li>
-                                </ul>
-                                <div className="alert alert-info mb-0">
-                                    <i className="fas fa-info-circle me-2"></i>
-                                    <small>
-                                        Questa operazione è sicura e può essere ripetuta più volte.
-                                        Non verranno create designazioni duplicate.
-                                    </small>
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    onClick={() => setShowMappaturaModal(false)}
-                                    disabled={loadingMappatura}
-                                >
-                                    Annulla
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn btn-primary"
-                                    onClick={handleCaricaMappatura}
-                                    disabled={loadingMappatura}
-                                >
-                                    {loadingMappatura ? (
-                                        <>
-                                            <span className="spinner-border spinner-border-sm me-2"></span>
-                                            Caricamento in corso...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <i className="fas fa-check me-2"></i>
-                                            Conferma e Carica
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Designazioni List (sempre visibile) */}
-            <div className="card mt-4">
-                <div className="card-header">
-                    <h5 className="mb-0">
-                        <i className="fas fa-list me-2"></i>
-                        Elenco Designazioni
-                    </h5>
-                </div>
-                {designazioni.length === 0 ? (
-                    <div className="card-body text-center text-muted py-4">
-                        <i className="fas fa-inbox fa-3x mb-3"></i>
-                        <p className="mb-0">Nessuna designazione presente</p>
-                    </div>
-                ) : (
-                    <div className="table-responsive">
-                        <table className="table table-hover mb-0">
-                            <thead className="table-light">
-                                <tr>
-                                    <th>Comune</th>
-                                    <th>Sezione</th>
-                                    <th>Plesso</th>
-                                    <th>Effettivo</th>
-                                    <th>Supplente</th>
-                                    <th>Stato</th>
-                                    <th>Tuo Ruolo</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {designazioni.map((des, index) => (
-                                    <tr key={index}>
-                                        <td className="fw-bold">
-                                            {des.sezione_comune || '-'}
-                                            {des.sezione_municipio && (
-                                                <small className="text-muted ms-1">
-                                                    (Mun. {toRoman(des.sezione_municipio)})
-                                                </small>
-                                            )}
-                                        </td>
-                                        <td>
-                                            {des.sezione_numero || '-'}
-                                        </td>
-                                        <td className="small">
-                                            {des.sezione_indirizzo || '-'}
-                                        </td>
-                                        <td>
-                                            {des.effettivo ? (
-                                                <div>
-                                                    <div className="fw-bold">{des.effettivo.cognome} {des.effettivo.nome}</div>
-                                                    {des.effettivo.email && <small className="text-muted">{des.effettivo.email}</small>}
-                                                </div>
-                                            ) : (
-                                                <span className="text-muted">-</span>
-                                            )}
-                                        </td>
-                                        <td>
-                                            {des.supplente ? (
-                                                <div>
-                                                    <div className="fw-bold">{des.supplente.cognome} {des.supplente.nome}</div>
-                                                    {des.supplente.email && <small className="text-muted">{des.supplente.email}</small>}
-                                                </div>
-                                            ) : (
-                                                <span className="text-muted">-</span>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${getStatoBadgeClass(des.stato)}`}>
-                                                {des.stato_display || des.stato}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${des.ruolo === 'designante' ? 'bg-secondary' : 'bg-primary'}`}>
-                                                {des.ruolo === 'designante' ? 'Designante' : 'Designato'}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
-
-            {/* Modale Generazione PDF */}
-            {showPdfModal && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <div>
-                                    <h5 className="modal-title">
-                                        <i className="fas fa-file-pdf me-2"></i>
-                                        Generazione PDF Designazioni
-                                    </h5>
-                                    {/* Step indicator */}
-                                    <div className="mt-2">
-                                        <small className="text-muted">
-                                            Step {pdfStep === 'template' ? '1' : pdfStep === 'form' ? '2' : '3'} di 3:
-                                            {' '}
-                                            {pdfStep === 'template' && 'Selezione Template'}
-                                            {pdfStep === 'form' && 'Dati Firmatario'}
-                                            {pdfStep === 'preview' && 'Preview e Generazione'}
-                                        </small>
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    className="btn-close"
-                                    onClick={closePdfModal}
-                                    disabled={generatingPdf}
-                                ></button>
-                            </div>
-                            <div className="modal-body" style={{ maxHeight: '70vh' }}>
-                                {/* Info header */}
-                                <div className="alert alert-info mb-3">
-                                    <i className="fas fa-info-circle me-2"></i>
-                                    <strong>{selectedDesignazioni.size} designazioni selezionate</strong>
-                                </div>
-
-                                {/* STEP 1: Selezione Template */}
-                                {pdfStep === 'template' && (
-                                    <div>
-                                        <h6 className="mb-3">Seleziona il template del documento</h6>
-
-                                        {templates.length === 0 ? (
-                                            <div className="alert alert-warning">
-                                                <i className="fas fa-exclamation-triangle me-2"></i>
-                                                Nessun template disponibile per questa consultazione.
-                                            </div>
-                                        ) : (
-                                            <div className="list-group">
-                                                {templates.map(template => (
-                                                    <label
-                                                        key={template.id}
-                                                        className={`list-group-item list-group-item-action ${selectedTemplate?.id === template.id ? 'active' : ''}`}
-                                                        style={{ cursor: 'pointer' }}
-                                                    >
-                                                        <div className="d-flex align-items-start">
-                                                            <input
-                                                                type="radio"
-                                                                name="template"
-                                                                className="me-3 mt-1"
-                                                                checked={selectedTemplate?.id === template.id}
-                                                                onChange={() => handleTemplateSelect(template)}
-                                                                style={{ cursor: 'pointer' }}
-                                                            />
-                                                            <div>
-                                                                <h6 className="mb-1">{template.nome}</h6>
-                                                                {template.descrizione && (
-                                                                    <p className="mb-1 small">{template.descrizione}</p>
-                                                                )}
-                                                                {template.tipo && (
-                                                                    <span className="badge bg-secondary">{template.tipo}</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* STEP 2: Form Dati Firmatario */}
-                                {pdfStep === 'form' && (
-                                    <div>
-                                        <h6 className="mb-3">Verifica e completa i dati del firmatario</h6>
-
-                                        <div className="row g-3">
-                                            <div className="col-md-6">
-                                                <label className="form-label">Cognome *</label>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    value={formData.cognome || ''}
-                                                    onChange={(e) => handleFormChange('cognome', e.target.value)}
-                                                    required
-                                                />
-                                            </div>
-                                            <div className="col-md-6">
-                                                <label className="form-label">Nome *</label>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    value={formData.nome || ''}
-                                                    onChange={(e) => handleFormChange('nome', e.target.value)}
-                                                    required
-                                                />
-                                            </div>
-                                            <div className="col-md-6">
-                                                <label className="form-label">Luogo di nascita *</label>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    value={formData.luogo_nascita || ''}
-                                                    onChange={(e) => handleFormChange('luogo_nascita', e.target.value)}
-                                                    placeholder="es. Roma"
-                                                    required
-                                                />
-                                            </div>
-                                            <div className="col-md-6">
-                                                <label className="form-label">Data di nascita *</label>
-                                                <input
-                                                    type="date"
-                                                    className="form-control"
-                                                    value={formData.data_nascita || ''}
-                                                    onChange={(e) => handleFormChange('data_nascita', e.target.value)}
-                                                    required
-                                                />
-                                            </div>
-
-                                            {formData.tipo_firmatario === 'subdelegato' && (
-                                                <>
-                                                    <div className="col-12">
-                                                        <label className="form-label">Domicilio *</label>
-                                                        <input
-                                                            type="text"
-                                                            className="form-control"
-                                                            value={formData.domicilio || ''}
-                                                            onChange={(e) => handleFormChange('domicilio', e.target.value)}
-                                                            placeholder="es. Via Roma, 123 - 00100 Roma"
-                                                            required
-                                                        />
-                                                    </div>
-                                                    <div className="col-md-6">
-                                                        <label className="form-label">Tipo documento *</label>
-                                                        <select
-                                                            className="form-select"
-                                                            value={formData.tipo_documento || ''}
-                                                            onChange={(e) => handleFormChange('tipo_documento', e.target.value)}
-                                                            required
-                                                        >
-                                                            <option value="">-- Seleziona --</option>
-                                                            <option value="Carta d'Identità">Carta d'Identità</option>
-                                                            <option value="Patente">Patente</option>
-                                                            <option value="Passaporto">Passaporto</option>
-                                                        </select>
-                                                    </div>
-                                                    <div className="col-md-6">
-                                                        <label className="form-label">Numero documento *</label>
-                                                        <input
-                                                            type="text"
-                                                            className="form-control"
-                                                            value={formData.numero_documento || ''}
-                                                            onChange={(e) => handleFormChange('numero_documento', e.target.value)}
-                                                            placeholder="es. CA12345XX"
-                                                            required
-                                                        />
-                                                    </div>
-                                                </>
-                                            )}
-
-                                            {formData.tipo_firmatario === 'delegato' && (
-                                                <>
-                                                    <div className="col-md-6">
-                                                        <label className="form-label">Carica</label>
-                                                        <input
-                                                            type="text"
-                                                            className="form-control"
-                                                            value={formData.carica || ''}
-                                                            onChange={(e) => handleFormChange('carica', e.target.value)}
-                                                            placeholder="es. Deputato"
-                                                        />
-                                                    </div>
-                                                    <div className="col-md-6">
-                                                        <label className="form-label">Circoscrizione</label>
-                                                        <input
-                                                            type="text"
-                                                            className="form-control"
-                                                            value={formData.circoscrizione || ''}
-                                                            onChange={(e) => handleFormChange('circoscrizione', e.target.value)}
-                                                            placeholder="es. Lazio 1"
-                                                        />
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-
-                                        {validateForm().length > 0 && (
-                                            <div className="alert alert-warning mt-3">
-                                                <i className="fas fa-exclamation-triangle me-2"></i>
-                                                <strong>Campi mancanti:</strong> {validateForm().join(', ')}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* STEP 3: Preview PDF */}
-                                {pdfStep === 'preview' && (
-                                    <div>
-                                        <h6 className="mb-3">Anteprima documento</h6>
-
-                                        {pdfPreview ? (
-                                            <div style={{ height: '500px', border: '1px solid #dee2e6', borderRadius: '4px' }}>
-                                                <object
-                                                    data={pdfPreview}
-                                                    type="application/pdf"
-                                                    width="100%"
-                                                    height="100%"
-                                                >
-                                                    <p className="p-3">
-                                                        Il tuo browser non supporta la visualizzazione PDF.
-                                                        <a href={pdfPreview} download className="ms-2">Scarica il PDF</a>
-                                                    </p>
-                                                </object>
-                                            </div>
-                                        ) : (
-                                            <div className="alert alert-info">
-                                                <div className="spinner-border spinner-border-sm me-2"></div>
-                                                Generazione anteprima in corso...
-                                            </div>
-                                        )}
-
-                                        <div className="alert alert-warning mt-3">
-                                            <i className="fas fa-info-circle me-2"></i>
-                                            Verifica attentamente i dati prima di generare il documento finale.
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="modal-footer">
-                                <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    onClick={closePdfModal}
-                                    disabled={generatingPdf}
-                                >
-                                    Annulla
-                                </button>
-
-                                {pdfStep !== 'template' && (
-                                    <button
-                                        type="button"
-                                        className="btn btn-outline-secondary"
-                                        onClick={() => goToStep(pdfStep === 'form' ? 'template' : 'form')}
-                                        disabled={generatingPdf}
-                                    >
+    // Vista Comune: Tab Mappature + Processo in Corso
+    if (path.comune_id) {
+        console.log('[GestioneDesignazioni] Render vista comune, showWizard:', showWizard);
+        return (
+            <div className="container-fluid mt-4">
+                <div className="row">
+                    <div className="col-12">
+                        {/* Breadcrumb */}
+                        <nav aria-label="breadcrumb">
+                            <ol className="breadcrumb">
+                                <li className="breadcrumb-item">
+                                    <a href="#" onClick={(e) => { e.preventDefault(); handleBack(); }}>
                                         <i className="fas fa-arrow-left me-2"></i>
                                         Indietro
-                                    </button>
-                                )}
+                                    </a>
+                                </li>
+                                <li className="breadcrumb-item active">
+                                    {data?.summary?.nome || 'Comune'}
+                                </li>
+                            </ol>
+                        </nav>
 
-                                {pdfStep === 'template' && (
-                                    <button
-                                        type="button"
-                                        className="btn btn-primary"
-                                        onClick={() => goToStep('form')}
-                                        disabled={!selectedTemplate}
-                                    >
-                                        Avanti
-                                        <i className="fas fa-arrow-right ms-2"></i>
-                                    </button>
-                                )}
+                        {/* Success message */}
+                        {successMessage && (
+                            <div className="alert alert-success alert-dismissible fade show" role="alert">
+                                <i className="fas fa-check-circle me-2"></i>
+                                <pre className="mb-0" style={{whiteSpace: 'pre-wrap'}}>{successMessage}</pre>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={() => setSuccessMessage(null)}
+                                ></button>
+                            </div>
+                        )}
 
-                                {pdfStep === 'form' && (
+                        {/* PROCESSO IN CORSO */}
+                        {processoInCorso && (
+                            <div className="card border-primary mb-4">
+                                <div className="card-header bg-primary text-white">
+                                    <h5 className="mb-0">
+                                        <i className="fas fa-cog fa-spin me-2"></i>
+                                        Processo di Designazione in Corso
+                                    </h5>
+                                </div>
+                                <div className="card-body">
+                                    <div className="alert alert-info mb-3">
+                                        <i className="fas fa-info-circle me-2"></i>
+                                        <strong>Controlla i documenti generati</strong>
+                                        <p className="mb-0 mt-2 small">
+                                            Verifica che i PDF siano corretti, poi conferma il processo per rendere definitive le designazioni.
+                                            Se trovi errori, puoi annullare il processo e riavviarne uno nuovo.
+                                        </p>
+                                    </div>
+
+                                    {/* Documento INDIVIDUALE */}
+                                    {processoInCorso.batch_individuale && (
+                                        <div className="mb-3 p-3 border rounded">
+                                            <div className="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h6 className="mb-1">
+                                                        <i className="fas fa-file-pdf me-2 text-danger"></i>
+                                                        Documento INDIVIDUALE
+                                                    </h6>
+                                                    <small className="text-muted">
+                                                        Un PDF per ogni sezione • Batch #{processoInCorso.batch_individuale.id}
+                                                    </small>
+                                                    <div className="mt-1">
+                                                        <span className={`badge ${processoInCorso.batch_individuale.stato === 'GENERATO' ? 'bg-success' : 'bg-warning'}`}>
+                                                            {processoInCorso.batch_individuale.stato}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    {processoInCorso.batch_individuale.stato === 'GENERATO' && (
+                                                        <button
+                                                            className="btn btn-primary btn-sm"
+                                                            onClick={() => handlePreviewIndividuale(processoInCorso.id)}
+                                                        >
+                                                            <i className="fas fa-eye me-1"></i>
+                                                            Visualizza PDF
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Documento RIEPILOGATIVO */}
+                                    {processoInCorso.batch_riepilogativo && (
+                                        <div className="mb-3 p-3 border rounded">
+                                            <div className="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h6 className="mb-1">
+                                                        <i className="fas fa-file-pdf me-2 text-danger"></i>
+                                                        Documento RIEPILOGATIVO
+                                                    </h6>
+                                                    <small className="text-muted">
+                                                        Un PDF cumulativo • Batch #{processoInCorso.batch_riepilogativo.id}
+                                                    </small>
+                                                    <div className="mt-1">
+                                                        <span className={`badge ${processoInCorso.batch_riepilogativo.stato === 'GENERATO' ? 'bg-success' : 'bg-warning'}`}>
+                                                            {processoInCorso.batch_riepilogativo.stato}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    {processoInCorso.batch_riepilogativo.stato === 'GENERATO' && (
+                                                        <button
+                                                            className="btn btn-primary btn-sm"
+                                                            onClick={() => handlePreviewCumulativo(processoInCorso.id)}
+                                                        >
+                                                            <i className="fas fa-eye me-1"></i>
+                                                            Visualizza PDF
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Azioni finali */}
+                                    <div className="d-flex gap-2 justify-content-end">
+                                        <button
+                                            className="btn btn-outline-danger"
+                                            onClick={handleAnnullaProcesso}
+                                        >
+                                            <i className="fas fa-times me-1"></i>
+                                            Annulla Processo
+                                        </button>
+                                        <button
+                                            className="btn btn-success"
+                                            onClick={handleConfermaProcesso}
+                                            disabled={
+                                                !processoInCorso.batch_individuale ||
+                                                !processoInCorso.batch_riepilogativo ||
+                                                processoInCorso.batch_individuale.stato !== 'GENERATO' ||
+                                                processoInCorso.batch_riepilogativo.stato !== 'GENERATO'
+                                            }
+                                        >
+                                            <i className="fas fa-check me-1"></i>
+                                            Conferma Processo
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SEZIONI MAPPATE */}
+                        <div className="card">
+                            <div style={styles.cardHeader}>
+                                <h6 className="mb-0">
+                                    <i className="fas fa-map-marked-alt me-2"></i>
+                                    Sezioni Mappate ({mappature.length})
+                                </h6>
+                                {console.log('[GestioneDesignazioni] Rendering pulsante Avvia, processoInCorso:', processoInCorso, 'mappature.length:', mappature.length)}
+                                {!processoInCorso && mappature.length > 0 && (
                                     <button
-                                        type="button"
-                                        className="btn btn-primary"
-                                        onClick={generatePreview}
-                                        disabled={validateForm().length > 0 || generatingPdf}
+                                        className="btn btn-primary btn-sm"
+                                        onClick={(e) => {
+                                            console.log('[GestioneDesignazioni] Click sul pulsante Avvia Processo!');
+                                            handleAvviaProcesso();
+                                        }}
+                                        disabled={selectedSezioni.size === 0 || avviandoProcesso}
                                     >
-                                        {generatingPdf ? (
+                                        {avviandoProcesso ? (
                                             <>
                                                 <span className="spinner-border spinner-border-sm me-2"></span>
-                                                Generazione...
+                                                Avvio processo...
                                             </>
                                         ) : (
                                             <>
-                                                Genera Anteprima
-                                                <i className="fas fa-arrow-right ms-2"></i>
-                                            </>
-                                        )}
-                                    </button>
-                                )}
-
-                                {pdfStep === 'preview' && (
-                                    <button
-                                        type="button"
-                                        className="btn btn-success"
-                                        onClick={generateBatch}
-                                        disabled={generatingPdf}
-                                    >
-                                        {generatingPdf ? (
-                                            <>
-                                                <span className="spinner-border spinner-border-sm me-2"></span>
-                                                Generazione PDF...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <i className="fas fa-check me-2"></i>
-                                                Genera PDF Finale
+                                                <i className="fas fa-play me-2"></i>
+                                                Avvia Processo ({selectedSezioni.size})
                                             </>
                                         )}
                                     </button>
                                 )}
                             </div>
+
+                            {processoInCorso && (
+                                <div className="alert alert-warning mb-0">
+                                    <i className="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Processo in corso</strong> - Completa o annulla il processo attivo prima di avviarne uno nuovo.
+                                </div>
+                            )}
+
+                            {!processoInCorso && mappature.length === 0 && (
+                                <div className="text-center p-4 text-muted">
+                                    <i className="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                    <p className="mb-0">Nessuna sezione mappata in questo comune</p>
+                                    <p className="small mt-2">
+                                        Vai su "Mappatura" per assegnare RDL alle sezioni
+                                    </p>
+                                </div>
+                            )}
+
+                            {!processoInCorso && mappature.length > 0 && (
+                                <>
+                                    <div className="mb-3 p-2 bg-light rounded d-flex align-items-center gap-3">
+                                        <label className="mb-0">
+                                            <input
+                                                type="checkbox"
+                                                className="form-check-input me-2"
+                                                checked={selectedSezioni.size === mappature.length}
+                                                onChange={handleToggleAll}
+                                            />
+                                            Seleziona tutte
+                                        </label>
+                                        <span className="text-muted small">
+                                            {selectedSezioni.size} di {mappature.length} selezionate
+                                        </span>
+                                    </div>
+
+                                    {mappature.map(sez => (
+                                        <div key={sez.id} className="d-flex align-items-center gap-2 py-1 px-2 border-bottom" style={{fontSize: '0.85rem'}}>
+                                            <input
+                                                type="checkbox"
+                                                className="form-check-input"
+                                                checked={selectedSezioni.has(sez.id)}
+                                                onChange={() => handleToggleSezione(sez.id)}
+                                            />
+                                            <strong style={{minWidth: '60px'}}>Sez. {sez.sezione_numero}</strong>
+                                            {sez.rdl_effettivo && (
+                                                <span className="text-primary">
+                                                    <strong>Eff:</strong> {sez.rdl_effettivo.cognome} {sez.rdl_effettivo.nome}
+                                                </span>
+                                            )}
+                                            {sez.rdl_supplente && (
+                                                <span className="text-secondary ms-2">
+                                                    | <strong>Sup:</strong> {sez.rdl_supplente.cognome} {sez.rdl_supplente.nome}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </>
+                            )}
                         </div>
+
+                        {/* ARCHIVIO PROCESSI COMPLETATI */}
+                        {processiArchivio.length > 0 && (
+                            <div className="card mt-4">
+                                <div style={styles.cardHeader}>
+                                    <h6 className="mb-0">
+                                        <i className="fas fa-check-circle me-2 text-success"></i>
+                                        Archivio Processi Completati ({processiArchivio.length})
+                                    </h6>
+                                </div>
+                                <div className="card-body">
+                                    {processiArchivio.map(processo => (
+                                        <div key={processo.id} className="mb-3 border rounded">
+                                            <div
+                                                className="d-flex justify-content-between align-items-center p-3"
+                                                style={{cursor: 'pointer', backgroundColor: '#f8f9fa'}}
+                                                onClick={() => handleToggleProcesso(processo.id)}
+                                            >
+                                                <div className="d-flex align-items-center gap-2 flex-grow-1">
+                                                    <i className={`fas fa-chevron-${expandedProcessi.has(processo.id) ? 'down' : 'right'}`}></i>
+                                                    <div className="flex-grow-1">
+                                                        <div>
+                                                            <strong>Processo #{processo.id}</strong>
+                                                            {processo.delegato && (
+                                                                <span className="ms-2 text-primary">
+                                                                    <i className="fas fa-user me-1"></i>
+                                                                    {processo.delegato.nome_completo} ({processo.delegato.tipo})
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <small className="text-muted">
+                                                            {processo.n_designazioni} sezioni • Completato {new Date(processo.approvata_at).toLocaleDateString()}
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <span className="badge bg-success">APPROVATO</span>
+                                            </div>
+
+                                            {expandedProcessi.has(processo.id) && (
+                                                <div className="p-3 border-top">
+                                                    {/* Documenti PDF */}
+                                                    <div className="mb-3">
+                                                        <h6 className="small text-uppercase text-muted mb-2">Documenti</h6>
+                                                        <div className="d-flex gap-2">
+                                                            {processo.documento_individuale_url && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        console.log('[Archivio] Click PDF Individuale, processo.id:', processo.id);
+                                                                        e.stopPropagation();
+                                                                        e.preventDefault();
+                                                                        handlePreviewIndividuale(processo.id);
+                                                                    }}
+                                                                    className="btn btn-sm btn-outline-primary"
+                                                                    type="button"
+                                                                >
+                                                                    <i className="fas fa-eye me-1"></i>
+                                                                    PDF Individuale
+                                                                </button>
+                                                            )}
+                                                            {processo.documento_cumulativo_url && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        console.log('[Archivio] Click PDF Cumulativo, processo.id:', processo.id);
+                                                                        e.stopPropagation();
+                                                                        e.preventDefault();
+                                                                        handlePreviewCumulativo(processo.id);
+                                                                    }}
+                                                                    className="btn btn-sm btn-outline-primary"
+                                                                    type="button"
+                                                                >
+                                                                    <i className="fas fa-eye me-1"></i>
+                                                                    PDF Cumulativo
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Lista Sezioni */}
+                                                    <div>
+                                                        <h6 className="small text-uppercase text-muted mb-2">Sezioni ({processo.sezioni.length})</h6>
+                                                        <div style={{maxHeight: '300px', overflowY: 'auto', fontSize: '0.85rem'}}>
+                                                            {processo.sezioni.map(sez => (
+                                                                <div key={sez.id} className="mb-1 p-1 bg-light">
+                                                                    <strong style={{display: 'inline-block', minWidth: '65px'}}>Sez. {sez.numero}</strong>
+                                                                    <span className="text-primary">
+                                                                        <strong>Eff:</strong> {sez.effettivo_cognome} {sez.effettivo_nome}
+                                                                        {sez.effettivo_data_nascita && <>, {sez.effettivo_data_nascita}</>}
+                                                                        {sez.effettivo_luogo_nascita && <>, {sez.effettivo_luogo_nascita}</>}
+                                                                        {sez.effettivo_domicilio && <> - {sez.effettivo_domicilio}</>}
+                                                                    </span>
+                                                                    {sez.supplente_cognome && (
+                                                                        <span className="text-secondary ms-2">
+                                                                            | <strong>Sup:</strong> {sez.supplente_cognome} {sez.supplente_nome}
+                                                                            {sez.supplente_data_nascita && <>, {sez.supplente_data_nascita}</>}
+                                                                            {sez.supplente_luogo_nascita && <>, {sez.supplente_luogo_nascita}</>}
+                                                                            {sez.supplente_domicilio && <> - {sez.supplente_domicilio}</>}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ARCHIVIO STORICO (Annullati / Non Completati) */}
+                        {processiStorico.length > 0 && (
+                            <div className="card mt-4">
+                                <div style={styles.cardHeader}>
+                                    <h6 className="mb-0">
+                                        <i className="fas fa-history me-2 text-muted"></i>
+                                        Archivio Storico ({processiStorico.length})
+                                    </h6>
+                                    <small className="text-muted">Processi non completati o annullati (audit)</small>
+                                </div>
+                                <div className="card-body">
+                                    {processiStorico.map(processo => (
+                                        <div key={processo.id} className="mb-3 border rounded">
+                                            <div
+                                                className="d-flex justify-content-between align-items-center p-3"
+                                                style={{cursor: 'pointer', backgroundColor: '#f8f9fa'}}
+                                                onClick={() => handleToggleProcesso(processo.id)}
+                                            >
+                                                <div className="d-flex align-items-center gap-2 flex-grow-1">
+                                                    <i className={`fas fa-chevron-${expandedProcessi.has(processo.id) ? 'down' : 'right'}`}></i>
+                                                    <div className="flex-grow-1">
+                                                        <div>
+                                                            <strong>Processo #{processo.id}</strong>
+                                                            {processo.delegato && (
+                                                                <span className="ms-2 text-primary">
+                                                                    <i className="fas fa-user me-1"></i>
+                                                                    {processo.delegato.nome_completo} ({processo.delegato.tipo})
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <small className="text-muted">
+                                                            {processo.n_designazioni} sezioni • Creato {new Date(processo.created_at).toLocaleDateString()}
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <span className={`badge ${processo.stato === 'ANNULLATO' ? 'bg-danger' : 'bg-secondary'}`}>
+                                                    {processo.stato}
+                                                </span>
+                                            </div>
+
+                                            {expandedProcessi.has(processo.id) && (
+                                                <div className="p-3 border-top">
+                                                    {/* Informazioni processo */}
+                                                    <div className="mb-3">
+                                                        <div className="small text-muted">
+                                                            Creato da: {processo.created_by_email} • {new Date(processo.created_at).toLocaleString()}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Lista Sezioni */}
+                                                    <div>
+                                                        <h6 className="small text-uppercase text-muted mb-2">Sezioni ({processo.sezioni.length})</h6>
+                                                        <div style={{maxHeight: '300px', overflowY: 'auto', fontSize: '0.85rem'}}>
+                                                            {processo.sezioni.map(sez => (
+                                                                <div key={sez.id} className="mb-1 p-1 bg-light">
+                                                                    <strong style={{display: 'inline-block', minWidth: '65px'}}>Sez. {sez.numero}</strong>
+                                                                    <span className="text-primary">
+                                                                        <strong>Eff:</strong> {sez.effettivo_cognome} {sez.effettivo_nome}
+                                                                        {sez.effettivo_data_nascita && <>, {sez.effettivo_data_nascita}</>}
+                                                                        {sez.effettivo_luogo_nascita && <>, {sez.effettivo_luogo_nascita}</>}
+                                                                        {sez.effettivo_domicilio && <> - {sez.effettivo_domicilio}</>}
+                                                                    </span>
+                                                                    {sez.supplente_cognome && (
+                                                                        <span className="text-secondary ms-2">
+                                                                            | <strong>Sup:</strong> {sez.supplente_cognome} {sez.supplente_nome}
+                                                                            {sez.supplente_data_nascita && <>, {sez.supplente_data_nascita}</>}
+                                                                            {sez.supplente_luogo_nascita && <>, {sez.supplente_luogo_nascita}</>}
+                                                                            {sez.supplente_domicilio && <> - {sez.supplente_domicilio}</>}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
+
+                {/* Wizard multi-step */}
+                {console.log('[GestioneDesignazioni] Prima di WizardDesignazioni, showWizard:', showWizard)}
+                <WizardDesignazioni
+                    show={showWizard}
+                    onClose={() => setShowWizard(false)}
+                    client={client}
+                    consultazione={consultazione}
+                    sezioniSelezionate={selectedSezioni}
+                    onSuccess={handleWizardSuccess}
+                />
+
+                {/* Modal conferma annullamento processo */}
+                <ConfirmModal
+                    show={showAnnullaModal}
+                    onConfirm={confirmAnnullaProcesso}
+                    onCancel={() => setShowAnnullaModal(false)}
+                    title="⚠️ Annulla Processo"
+                    confirmText="Sì, annulla tutto"
+                    cancelText="No, mantieni"
+                    confirmVariant="danger"
+                >
+                    <div className="alert alert-warning mb-0">
+                        <p className="mb-2">
+                            <strong>Vuoi davvero annullare il processo?</strong>
+                        </p>
+                        <p className="mb-2">
+                            Questa azione eliminerà:
+                        </p>
+                        <ul className="mb-2">
+                            <li>Tutti i documenti PDF generati</li>
+                            <li>Tutte le designazioni associate</li>
+                        </ul>
+                        <p className="mb-0">
+                            Le sezioni torneranno disponibili per un nuovo processo.
+                        </p>
+                    </div>
+                </ConfirmModal>
+
+                {/* PDF Viewer Modal */}
+                {pdfViewer && (
+                    <PDFViewer
+                        url={pdfViewer.url}
+                        originalUrl={pdfViewer.originalUrl}
+                        titolo={pdfViewer.titolo}
+                        onClose={handleClosePdfViewer}
+                    />
+                )}
+            </div>
+        );
+    }
+
+    // Vista navigazione territoriale
+    return (
+        <div className="container-fluid mt-4">
+            <div className="row">
+                <div className="col-12">
+                    {/* Header */}
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h4>
+                                <i className={`fas ${getLevelIcon()} me-2`}></i>
+                                {getLevelTitle()}
+                            </h4>
+                            {data?.summary && (
+                                <small className="text-muted">
+                                    {data.summary.tipo}: {data.summary.nome}
+                                </small>
+                            )}
+                        </div>
+                        {canGoBack && (
+                            <button className="btn btn-outline-secondary" onClick={handleBack}>
+                                <i className="fas fa-arrow-left me-2"></i>
+                                Indietro
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Search */}
+                    {data?.items && data.items.length > 5 && (
+                        <div className="mb-3">
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Cerca..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                    )}
+
+                    {/* Items list */}
+                    {filteredItems.length === 0 ? (
+                        <div className="text-center p-4 text-muted">
+                            <i className="fas fa-search fa-3x mb-3 d-block"></i>
+                            <p>Nessun risultato</p>
+                        </div>
+                    ) : (
+                        filteredItems.map(item => (
+                            <div
+                                key={item.id}
+                                style={styles.card}
+                                onClick={() => handleDrillDown(item)}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+                                }}
+                            >
+                                <div className="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 className="mb-1">
+                                            {item.nome}
+                                            {item.sigla && <span className="text-muted small ms-2">({item.sigla})</span>}
+                                        </h6>
+                                        {item.totale_sezioni !== undefined && (
+                                            <div className="small text-muted">
+                                                {item.sezioni_assegnate} sezioni mappate
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="text-end">
+                                        {/* Badge per comuni */}
+                                        {item.tipo === 'comune' && item.mappature_nuove !== undefined && (
+                                            <div className="d-flex flex-column gap-1 align-items-end">
+                                                {item.mappature_nuove > 0 ? (
+                                                    <>
+                                                        <span className="badge bg-warning text-dark">
+                                                            <i className="fas fa-exclamation-circle me-1"></i>
+                                                            {item.mappature_nuove} da designare
+                                                        </span>
+                                                        {item.designazioni_confermate > 0 && (
+                                                            <span className="badge bg-success">
+                                                                {item.designazioni_confermate} confermate
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <span className="badge bg-success">
+                                                        <i className="fas fa-check me-1"></i>
+                                                        Tutto confermato
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Progress bar per altri livelli */}
+                                        {item.tipo !== 'comune' && item.totale_sezioni !== undefined && (
+                                            <div className="small">
+                                                <strong>{item.sezioni_assegnate}</strong>/{item.totale_sezioni} sezioni
+                                                <div className="progress mt-1" style={{width: '100px', height: '6px'}}>
+                                                    <div
+                                                        className="progress-bar bg-success"
+                                                        style={{width: `${item.percentuale_assegnazione || 0}%`}}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+
+            {/* Modal conferma annullamento processo */}
+            <ConfirmModal
+                show={showAnnullaModal}
+                onConfirm={confirmAnnullaProcesso}
+                onCancel={() => setShowAnnullaModal(false)}
+                title="⚠️ Annulla Processo"
+                confirmText="Sì, annulla tutto"
+                cancelText="No, mantieni"
+                confirmVariant="danger"
+            >
+                <div className="alert alert-warning mb-0">
+                    <p className="mb-2">
+                        <strong>Vuoi davvero annullare il processo?</strong>
+                    </p>
+                    <p className="mb-2">
+                        Questa azione eliminerà:
+                    </p>
+                    <ul className="mb-2">
+                        <li>Tutti i documenti PDF generati</li>
+                        <li>Tutte le designazioni associate</li>
+                    </ul>
+                    <p className="mb-0">
+                        Le sezioni torneranno disponibili per un nuovo processo.
+                    </p>
+                </div>
+            </ConfirmModal>
+
+            {/* PDF Viewer Modal */}
+            {pdfViewer && (
+                <PDFViewer
+                    url={pdfViewer.url}
+                    originalUrl={pdfViewer.originalUrl}
+                    titolo={pdfViewer.titolo}
+                    onClose={handleClosePdfViewer}
+                />
             )}
-        </>
+        </div>
     );
 }
 

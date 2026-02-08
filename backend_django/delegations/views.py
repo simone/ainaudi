@@ -212,24 +212,39 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         return DesignazioneRDLSerializer
 
     def get_queryset(self):
+        """
+        Returns designazioni based on user's territorial scope.
+        Uses the same territorial filtering logic as mappatura.
+
+        Un utente vede TUTTE le designazioni per le sezioni nel suo territorio,
+        indipendentemente da chi le ha create.
+        """
+        from .permissions import get_sezioni_filter_for_user
+        from territory.models import SezioneElettorale
+
         user = self.request.user
         consultazione_id = self.request.query_params.get('consultazione')
 
-        # Un utente vede:
-        # 1. Le designazioni che ha ricevuto (come RDL)
-        # 2. Le designazioni che ha fatto (come Sub-Delegato)
-        # 3. Le designazioni che ha fatto direttamente (come Delegato)
-        # 4. Le designazioni fatte dai suoi Sub-Delegati (come Delegato)
+        # Get territorial filter for user (Q object for SezioneElettorale)
+        sezioni_filter = get_sezioni_filter_for_user(user, consultazione_id)
+
+        if sezioni_filter is None:
+            # User has no access
+            return DesignazioneRDL.objects.none()
+
+        # Get sezioni IDs in user's territory
+        sezioni_ids = SezioneElettorale.objects.filter(sezioni_filter).values_list('id', flat=True)
+
+        # Base queryset: all designazioni for sections in user's territory
         qs = DesignazioneRDL.objects.filter(
-            Q(email=user.email) |
-            Q(sub_delega__email=user.email) |
-            Q(delegato__email=user.email) |
-            Q(sub_delega__delegato__email=user.email)  # Delegato vede bozze dei suoi sub
+            sezione_id__in=sezioni_ids
         ).select_related(
             'delegato', 'sub_delega', 'sub_delega__delegato',
-            'sezione', 'sezione__comune', 'sezione__municipio'
+            'sezione', 'sezione__comune', 'sezione__municipio',
+            'processo'
         )
 
+        # Additional filter by consultazione if specified
         if consultazione_id:
             qs = qs.filter(
                 Q(delegato__consultazione_id=consultazione_id) |
@@ -585,33 +600,44 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
                     errors.append(f'Sezione {sezione}: nessuna delega trovata')
                     continue
 
-                # Controlla se esiste già una designazione per questa sezione
+                # Prima controlla se esiste una designazione CONFERMATA (completata)
+                # Le designazioni confermate non possono essere modificate
+                confirmed = DesignazioneRDL.objects.filter(
+                    sezione=sezione,
+                    is_attiva=True,
+                    stato='CONFERMATA'
+                ).first()
+
+                if confirmed:
+                    # Verifica se identica (confronta per email)
+                    effettivo_match = (not effettivo and not confirmed.effettivo_email) or \
+                                     (effettivo and confirmed.effettivo_email == effettivo.email)
+                    supplente_match = (not supplente and not confirmed.supplente_email) or \
+                                     (supplente and confirmed.supplente_email == supplente.email)
+
+                    if effettivo_match and supplente_match:
+                        skipped += 1
+                        continue
+                    else:
+                        # Discrepanza con designazione confermata
+                        warnings.append(
+                            f'Sezione {sezione}: designazione confermata diversa dalla mappatura attuale. '
+                            f'Non è possibile creare una nuova designazione.'
+                        )
+                        skipped += 1
+                        continue
+
+                # Ora cerca designazioni BOZZA NON collegate a processi
+                # (designazioni in processi, anche in errore, vengono ignorate e ne creiamo di nuove)
                 existing = DesignazioneRDL.objects.filter(
                     sezione=sezione,
-                    is_attiva=True
+                    is_attiva=True,
+                    stato='BOZZA',
+                    processo__isnull=True  # Solo designazioni libere
                 ).first()
 
                 if existing:
-                    if existing.stato == 'CONFERMATA':
-                        # Verifica se identica (confronta per email)
-                        effettivo_match = (not effettivo and not existing.effettivo_email) or \
-                                         (effettivo and existing.effettivo_email == effettivo.email)
-                        supplente_match = (not supplente and not existing.supplente_email) or \
-                                         (supplente and existing.supplente_email == supplente.email)
-
-                        if effettivo_match and supplente_match:
-                            skipped += 1
-                            continue
-                        else:
-                            # Discrepanza
-                            warnings.append(
-                                f'Sezione {sezione}: designazione confermata diversa dalla mappatura attuale. '
-                                f'Cancella manualmente per re-importare.'
-                            )
-                            skipped += 1
-                            continue
-                    else:
-                        # BOZZA: sovrascrivi copiando i dati
+                    # BOZZA libera (non in processo): aggiorna con nuovi dati
                         if effettivo:
                             existing.effettivo_cognome = effettivo.cognome
                             existing.effettivo_nome = effettivo.nome
@@ -985,6 +1011,13 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         return Response(DesignazioneRDLSerializer(designazione).data)
 
 
+# Import nuovo ViewSet processo
+from .views_processo import ProcessoDesignazioneViewSet
+
+# Nuovo ViewSet per processo completo (template-driven)
+ProcessoDesignazioneViewSet = ProcessoDesignazioneViewSet
+
+# Vecchio ViewSet per retrocompatibilità endpoint /batch/
 class BatchGenerazioneDocumentiViewSet(viewsets.ModelViewSet):
     """
     ViewSet per la generazione batch di documenti.
@@ -1000,17 +1033,41 @@ class BatchGenerazioneDocumentiViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, CanGenerateDocuments]
 
     def get_queryset(self):
+        """
+        Returns batches based on user's territorial scope.
+        Shows all batches containing designazioni in user's territory.
+        """
+        from .permissions import get_sezioni_filter_for_user
+        from territory.models import SezioneElettorale
+
         user = self.request.user
         consultazione_id = self.request.query_params.get('consultazione')
 
+        # Get territorial filter for user (Q object for SezioneElettorale)
+        sezioni_filter = get_sezioni_filter_for_user(user, consultazione_id)
+
+        if sezioni_filter is None:
+            # User has no access
+            return BatchGenerazioneDocumenti.objects.none()
+
+        # Get sezioni IDs in user's territory
+        sezioni_ids = SezioneElettorale.objects.filter(sezioni_filter).values_list('id', flat=True)
+
+        # Get batches that contain designazioni for sections in user's territory
+        # We find this by looking at the designazioni linked to each batch
+        batch_ids = DesignazioneRDL.objects.filter(
+            sezione_id__in=sezioni_ids,
+            processo__isnull=False
+        ).values_list('processo_id', flat=True).distinct()
+
         qs = BatchGenerazioneDocumenti.objects.filter(
-            created_by_email=user.email
+            id__in=batch_ids
         ).select_related('consultazione')
 
         if consultazione_id:
             qs = qs.filter(consultazione_id=consultazione_id)
 
-        return qs
+        return qs.order_by('-created_at')
 
     def create(self, request, *args, **kwargs):
         """
@@ -1050,14 +1107,14 @@ class BatchGenerazioneDocumentiViewSet(viewsets.ModelViewSet):
         # Crea batch
         batch = BatchGenerazioneDocumenti.objects.create(
             consultazione=consultazione,
-            tipo=tipo,
+            tipo=tipo,  # INDIVIDUALE o RIEPILOGATIVO
             stato='BOZZA',
             created_by_email=request.user.email,
             n_designazioni=designazioni.count()
         )
 
         # Collega designazioni al batch
-        designazioni.update(batch_pdf=batch)
+        designazioni.update(processo=batch)
 
         return Response(
             BatchGenerazioneDocumentiSerializer(batch).data,
@@ -1111,7 +1168,7 @@ class BatchGenerazioneDocumentiViewSet(viewsets.ModelViewSet):
         # Aggiorna stato batch
         from django.utils import timezone
         batch.stato = 'GENERATO'
-        batch.data_generazione = timezone.now()
+        batch.data_generazione_individuale = timezone.now()
         batch.save()
 
         return Response({
@@ -1140,3 +1197,70 @@ class BatchGenerazioneDocumentiViewSet(viewsets.ModelViewSet):
             'batch_id': batch.id,
             'stato': batch.stato
         })
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        DELETE /api/deleghe/batch/{id}/
+
+        Elimina batch e tutte le designazioni collegate (solo se BOZZA o GENERATO).
+        """
+        batch = self.get_object()
+
+        # Permetti eliminazione solo di batch non ancora approvati
+        if batch.stato in ['APPROVATO', 'INVIATO']:
+            return Response(
+                {'error': 'Impossibile eliminare un batch già approvato o inviato'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Elimina le designazioni collegate
+        designazioni = batch.designazioni.all()
+        n_designazioni = designazioni.count()
+        designazioni.delete()
+
+        # Elimina il batch
+        batch.delete()
+
+        return Response({
+            'message': f'Batch #{batch.pk} eliminato con successo. {n_designazioni} designazioni rimosse.',
+            'deleted_batch_id': batch.pk,
+            'deleted_designazioni': n_designazioni
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'])
+    def download(self, request, pk=None):
+        """
+        GET /api/deleghe/batch/{id}/download/
+
+        Scarica il documento PDF generato.
+        """
+        from django.http import FileResponse, HttpResponse
+        import os
+
+        batch = self.get_object()
+
+        # Determina quale documento scaricare in base al tipo
+        if batch.tipo == 'INDIVIDUALE' and batch.documento_individuale:
+            file_path = batch.documento_individuale.path
+            filename = f'designazioni_individuale_{batch.id}.pdf'
+        elif batch.tipo == 'RIEPILOGATIVO' and batch.documento_cumulativo:
+            file_path = batch.documento_cumulativo.path
+            filename = f'designazioni_riepilogativo_{batch.id}.pdf'
+        else:
+            # File non ancora generato
+            return Response(
+                {'error': 'Documento non ancora generato'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verifica che il file esista
+        if not os.path.exists(file_path):
+            return Response(
+                {'error': 'File non trovato sul server'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Restituisci il file
+        response = FileResponse(open(file_path, 'rb'), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response

@@ -156,8 +156,8 @@ class Template(models.Model):
         return self.merge_mode or self.template_type.default_merge_mode
 
     def get_variables_schema(self):
-        """Get variables schema, falling back to template_type default."""
-        return self.variables_schema if self.variables_schema else self.template_type.default_schema
+        """Get variables schema from template_type."""
+        return self.template_type.default_schema
 
 
 class GeneratedDocument(models.Model):

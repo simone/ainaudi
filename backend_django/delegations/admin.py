@@ -247,12 +247,14 @@ class SubDelegaAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
-@admin.register(DesignazioneRDL)
+# DesignazioneRDL are shown only as inline of ProcessoDesignazione
+# Uncomment if you need standalone admin for designazioni without processo
+# @admin.register(DesignazioneRDL)
 class DesignazioneRDLAdmin(admin.ModelAdmin):
     """Admin per DesignazioneRDL (SNAPSHOT FIELDS: campi diretti immutabili)."""
     list_display = [
         'sezione', 'effettivo_display', 'supplente_display',
-        'stato_display', 'designante_display', 'batch_pdf', 'is_attiva'
+        'stato_display', 'designante_display', 'processo', 'is_attiva'
     ]
     list_filter = ['stato', 'is_attiva', 'sub_delega__delegato__consultazione']
     search_fields = [
@@ -262,7 +264,7 @@ class DesignazioneRDLAdmin(admin.ModelAdmin):
         'supplente_cognome', 'supplente_nome', 'supplente_email'
     ]
     ordering = ['stato', 'sezione']
-    autocomplete_fields = ['delegato', 'sub_delega', 'sezione', 'batch_pdf']
+    autocomplete_fields = ['delegato', 'sub_delega', 'sezione', 'processo']
     actions = ['approva_bozze', 'rifiuta_bozze']
 
     fieldsets = (
@@ -284,7 +286,7 @@ class DesignazioneRDLAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         (_('Stato designazione'), {
-            'fields': ('stato', 'batch_pdf'),
+            'fields': ('stato', 'processo'),
             'description': _('BOZZA = in attesa approvazione Delegato, CONFERMATA = designazione valida')
         }),
         (_('Approvazione'), {
@@ -349,14 +351,45 @@ class DesignazioneRDLAdmin(admin.ModelAdmin):
         self.message_user(request, f'{count} designazioni rifiutate.')
 
 
+class DesignazioniProcessoInline(admin.TabularInline):
+    """Inline per vedere le designazioni di un processo."""
+    model = DesignazioneRDL
+    extra = 0
+    fields = ['sezione', 'effettivo_display', 'supplente_display', 'stato']
+    readonly_fields = ['sezione', 'effettivo_display', 'supplente_display', 'stato']
+    show_change_link = False
+    can_delete = False
+
+    def effettivo_display(self, obj):
+        if obj.effettivo_cognome:
+            return f"{obj.effettivo_cognome} {obj.effettivo_nome}"
+        return "-"
+    effettivo_display.short_description = _('Effettivo')
+
+    def supplente_display(self, obj):
+        if obj.supplente_cognome:
+            return f"{obj.supplente_cognome} {obj.supplente_nome}"
+        return "-"
+    supplente_display.short_description = _('Supplente')
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(BatchGenerazioneDocumenti)
 class BatchGenerazioneDocumentiAdmin(admin.ModelAdmin):
-    list_display = ['consultazione', 'tipo', 'stato', 'n_designazioni', 'created_at']
-    list_filter = ['tipo', 'stato', 'consultazione']
-    search_fields = ['consultazione__nome', 'created_by_email']
+    list_display = ['id', 'consultazione', 'comune', 'delegato', 'stato', 'n_designazioni', 'created_at']
+    list_filter = ['stato', 'consultazione', 'comune']
+    search_fields = ['consultazione__nome', 'comune__nome', 'created_by_email', 'delegato__cognome', 'delegato__nome']
     ordering = ['-created_at']
-    autocomplete_fields = ['consultazione']
-    readonly_fields = ['n_designazioni', 'n_pagine', 'data_generazione', 'created_at', 'created_by_email']
+    autocomplete_fields = ['consultazione', 'comune', 'delegato', 'template_individuale', 'template_cumulativo']
+    readonly_fields = [
+        'n_designazioni', 'n_pagine',
+        'data_generazione_individuale', 'data_generazione_cumulativo',
+        'approvata_at', 'approvata_da_email',
+        'created_at', 'created_by_email'
+    ]
+    inlines = [DesignazioniProcessoInline]
 
     def save_model(self, request, obj, form, change):
         if not change:

@@ -5,7 +5,7 @@ Gerarchia: PARTITO -> DELEGATO -> SUB-DELEGATO -> RDL
 """
 from django.db import models
 from rest_framework import serializers
-from .models import Delegato, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti
+from .models import Delegato, SubDelega, DesignazioneRDL, ProcessoDesignazione, BatchGenerazioneDocumenti
 from campaign.models import CampagnaReclutamento, RdlRegistration
 
 
@@ -184,7 +184,7 @@ class DesignazioneRDLSerializer(serializers.ModelSerializer):
             'stato', 'stato_display', 'is_bozza',
             'data_designazione', 'is_attiva',
             'approvata_da_email', 'approvata_da_nome', 'data_approvazione',
-            'batch_pdf',
+            'processo',
             'catena_deleghe'
         ]
         read_only_fields = ['id', 'data_designazione', 'created_at', 'data_approvazione']
@@ -330,7 +330,7 @@ class DesignazioneRDLListSerializer(serializers.ModelSerializer):
             'id', 'sezione', 'sezione_numero', 'sezione_comune', 'sezione_indirizzo', 'sezione_municipio',
             'effettivo', 'supplente',
             'stato', 'stato_display', 'designante_nome',
-            'is_attiva', 'batch_pdf'
+            'is_attiva', 'processo'
         ]
 
     def get_sezione_municipio(self, obj):
@@ -345,6 +345,10 @@ class DesignazioneRDLListSerializer(serializers.ModelSerializer):
             'cognome': obj.effettivo_cognome,
             'nome': obj.effettivo_nome,
             'email': obj.effettivo_email,
+            'telefono': obj.effettivo_telefono or '',
+            'data_nascita': obj.effettivo_data_nascita.strftime('%d/%m/%Y') if obj.effettivo_data_nascita else '',
+            'luogo_nascita': obj.effettivo_luogo_nascita or '',
+            'domicilio': obj.effettivo_domicilio or ''
         }
 
     def get_supplente(self, obj):
@@ -354,24 +358,107 @@ class DesignazioneRDLListSerializer(serializers.ModelSerializer):
             'cognome': obj.supplente_cognome,
             'nome': obj.supplente_nome,
             'email': obj.supplente_email,
+            'telefono': obj.supplente_telefono or '',
+            'data_nascita': obj.supplente_data_nascita.strftime('%d/%m/%Y') if obj.supplente_data_nascita else '',
+            'luogo_nascita': obj.supplente_luogo_nascita or '',
+            'domicilio': obj.supplente_domicilio or ''
         }
 
 
-class BatchGenerazioneDocumentiSerializer(serializers.ModelSerializer):
-    """Serializer per Batch Generazione Documenti."""
-    tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
+class ProcessoDesignazioneSerializer(serializers.ModelSerializer):
+    """Serializer per Processo Designazione RDL."""
     stato_display = serializers.CharField(source='get_stato_display', read_only=True)
     consultazione_nome = serializers.CharField(source='consultazione.nome', read_only=True)
+    delegato_nome = serializers.SerializerMethodField()
+    template_individuale_nome = serializers.CharField(source='template_individuale.name', read_only=True)
+    template_cumulativo_nome = serializers.CharField(source='template_cumulativo.name', read_only=True)
 
     class Meta:
-        model = BatchGenerazioneDocumenti
+        model = ProcessoDesignazione
         fields = [
             'id', 'consultazione', 'consultazione_nome',
-            'tipo', 'tipo_display', 'stato', 'stato_display',
-            'solo_sezioni', 'documento', 'data_generazione',
-            'n_designazioni', 'n_pagine', 'created_at'
+            'delegato', 'delegato_nome',
+            'template_individuale', 'template_individuale_nome',
+            'template_cumulativo', 'template_cumulativo_nome',
+            'dati_delegato', 'stato', 'stato_display',
+            'documento_individuale', 'documento_cumulativo',
+            'data_generazione_individuale', 'data_generazione_cumulativo',
+            'n_designazioni', 'n_pagine',
+            'created_at', 'created_by_email',
+            'approvata_at', 'approvata_da_email'
         ]
-        read_only_fields = ['id', 'data_generazione', 'n_designazioni', 'n_pagine', 'created_at']
+        read_only_fields = [
+            'id', 'stato', 'documento_individuale', 'documento_cumulativo',
+            'data_generazione_individuale', 'data_generazione_cumulativo',
+            'n_designazioni', 'n_pagine', 'created_at', 'created_by_email',
+            'approvata_at', 'approvata_da_email'
+        ]
+
+    def get_delegato_nome(self, obj):
+        if obj.delegato:
+            return obj.delegato.nome_completo
+        return None
+
+
+# Serializer per vecchio endpoint /batch/ (retrocompatibilità)
+class BatchGenerazioneDocumentiSerializer(serializers.ModelSerializer):
+    """Serializer per vecchio endpoint batch (con campo tipo per retrocompatibilità)."""
+    stato_display = serializers.CharField(source='get_stato_display', read_only=True)
+    consultazione_nome = serializers.CharField(source='consultazione.nome', read_only=True)
+    tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
+
+    class Meta:
+        model = ProcessoDesignazione
+        fields = [
+            'id', 'consultazione', 'consultazione_nome',
+            'tipo', 'tipo_display',
+            'stato', 'stato_display',
+            'n_designazioni', 'n_pagine',
+            'created_at', 'created_by_email',
+            'approvata_at', 'approvata_da_email'
+        ]
+        read_only_fields = [
+            'id', 'tipo_display', 'stato',
+            'n_designazioni', 'n_pagine', 'created_at', 'created_by_email',
+            'approvata_at', 'approvata_da_email'
+        ]
+
+
+class AvviaProcessoSerializer(serializers.Serializer):
+    """Serializer per avviare un nuovo processo di designazione."""
+    consultazione_id = serializers.IntegerField()
+    sezione_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text="Lista ID sezioni da includere nel processo"
+    )
+
+
+class ConfiguraProcessoSerializer(serializers.Serializer):
+    """Serializer per configurare template e dati delegato."""
+    template_individuale_id = serializers.IntegerField()
+    template_cumulativo_id = serializers.IntegerField()
+    delegato_id = serializers.IntegerField(required=False, allow_null=True)
+    subdelegato_id = serializers.IntegerField(required=False, allow_null=True)
+    dati_delegato = serializers.JSONField(
+        help_text="Dati delegato compilati (snapshot per PDF)"
+    )
+
+
+class TemplateChoiceSerializer(serializers.Serializer):
+    """Serializer per scelte template disponibili."""
+    id = serializers.IntegerField()
+    nome = serializers.CharField()
+    tipo = serializers.CharField()
+    variabili = serializers.ListField(child=serializers.CharField())
+
+
+class CampiRichiestiSerializer(serializers.Serializer):
+    """Schema campi richiesti per compilare dati delegato."""
+    field_name = serializers.CharField()
+    field_type = serializers.CharField()
+    label = serializers.CharField()
+    required = serializers.BooleanField()
+    current_value = serializers.CharField(allow_null=True, allow_blank=True)
 
 
 # =============================================================================

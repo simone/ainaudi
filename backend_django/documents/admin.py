@@ -45,11 +45,6 @@ class TemplateAdmin(admin.ModelAdmin):
             'fields': ('field_mappings', 'loop_config', 'merge_mode'),
             'description': _('Configurato tramite Template Editor')
         }),
-        (_('Schema Variabili (Autocomplete)'), {
-            'fields': ('variables_schema',),
-            'description': _('Esempio JSON per autocomplete JSONPath nell\'editor. '
-                           'Inserisci un esempio di dati che rappresenta la struttura disponibile.')
-        }),
         (_('Metadata'), {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
