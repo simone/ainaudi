@@ -3346,12 +3346,28 @@ class MappaturaSezioniView(APIView):
             user_email = rdl_reg.email if rdl_reg else ''
             user_nome = f"{rdl_reg.nome} {rdl_reg.cognome}" if rdl_reg else user_email.split('@')[0] if user_email else ''
 
+            # Costruisci domicilio completo (priorità: domicilio > residenza)
+            domicilio = ''
+            if rdl_reg:
+                if rdl_reg.comune_domicilio and rdl_reg.indirizzo_domicilio:
+                    domicilio = f"{rdl_reg.indirizzo_domicilio}, {rdl_reg.comune_domicilio}"
+                elif rdl_reg.indirizzo_residenza and rdl_reg.comune_residenza:
+                    domicilio = f"{rdl_reg.indirizzo_residenza}, {rdl_reg.comune_residenza}"
+
             assignment_map[a.sezione_id][a.role] = {
                 'assignment_id': a.id,
                 'user_email': user_email,
                 'user_nome': user_nome,
                 'rdl_registration_id': a.rdl_registration_id,
                 'territorio_mismatch': territorio_mismatch,
+                # Campi completi RDL per designazioni
+                'cognome': rdl_reg.cognome if rdl_reg else '',
+                'nome': rdl_reg.nome if rdl_reg else '',
+                'email': user_email,
+                'telefono': rdl_reg.telefono if rdl_reg else '',
+                'data_nascita': rdl_reg.data_nascita.strftime('%d/%m/%Y') if (rdl_reg and rdl_reg.data_nascita) else '',
+                'luogo_nascita': rdl_reg.comune_nascita if rdl_reg else '',
+                'domicilio': domicilio
             }
 
         # Add multi_plesso flag to assignments

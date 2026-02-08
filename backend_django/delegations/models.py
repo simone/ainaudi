@@ -427,7 +427,7 @@ class DesignazioneRDL(models.Model):
     processo = models.ForeignKey(
         'ProcessoDesignazione',
         on_delete=models.CASCADE,
-        null=True, blank=True,
+        null=False, blank=False,
         related_name='designazioni',
         verbose_name=_('processo designazione'),
         help_text=_('Processo di designazione a cui appartiene questa designazione')

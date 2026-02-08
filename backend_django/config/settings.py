@@ -411,7 +411,7 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 # MAGIC LINK SETTINGS
 # =============================================================================
 
-MAGIC_LINK_TOKEN_EXPIRY = int(os.environ.get('MAGIC_LINK_TOKEN_EXPIRY', 3600))  # 1 hour
+MAGIC_LINK_TOKEN_EXPIRY = int(os.environ.get('MAGIC_LINK_TOKEN_EXPIRY', 24*3600))  # 24 hour
 
 
 # =============================================================================

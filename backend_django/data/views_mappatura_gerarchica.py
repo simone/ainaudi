@@ -291,8 +291,23 @@ class MappaturaGerarchicaView(APIView):
                 )
             ).count()
 
+            # SKIP comuni senza mappature
+            if sezioni_assegnate == 0:
+                continue
+
             sezioni_non_assegnate = totale_sezioni - sezioni_assegnate
             percentuale = (sezioni_assegnate / totale_sezioni * 100) if totale_sezioni > 0 else 0
+
+            # Count designazioni CONFERMATE per questo comune
+            from delegations.models import DesignazioneRDL
+            designazioni_confermate = DesignazioneRDL.objects.filter(
+                sezione__in=sezioni_comune,
+                stato='CONFERMATA',
+                is_attiva=True
+            ).values('sezione_id').distinct().count()
+
+            # Mappature nuove = sezioni mappate MA NON designate
+            mappature_nuove = sezioni_assegnate - designazioni_confermate
 
             # Check if comune has municipi
             has_municipi = Municipio.objects.filter(comune=comune).exists()
@@ -320,11 +335,13 @@ class MappaturaGerarchicaView(APIView):
                 'sezioni_assegnate': sezioni_assegnate,
                 'sezioni_non_assegnate': sezioni_non_assegnate,
                 'percentuale_assegnazione': round(percentuale, 1),
-                'rdl_disponibili': rdl_disponibili
+                'rdl_disponibili': rdl_disponibili,
+                'designazioni_confermate': designazioni_confermate,
+                'mappature_nuove': mappature_nuove
             })
 
-        # Ordina per numero di RDL disponibili (decrescente), poi per nome
-        result.sort(key=lambda x: (-x['rdl_disponibili'], x['nome']))
+        # Ordina per mappature nuove (priorità alta), poi per RDL disponibili, poi per nome
+        result.sort(key=lambda x: (-x['mappature_nuove'], -x['rdl_disponibili'], x['nome']))
 
         totale_sezioni_all = sum(r['totale_sezioni'] for r in result)
         sezioni_assegnate_all = sum(r['sezioni_assegnate'] for r in result)
@@ -503,12 +520,23 @@ class MappaturaGerarchicaView(APIView):
 
             if assignment and assignment.rdl_registration:
                 rdl = assignment.rdl_registration
+
+                # Costruisci domicilio completo (priorità: domicilio > residenza)
+                domicilio = ''
+                if rdl.comune_domicilio and rdl.indirizzo_domicilio:
+                    domicilio = f"{rdl.indirizzo_domicilio}, {rdl.comune_domicilio}"
+                elif rdl.indirizzo_residenza and rdl.comune_residenza:
+                    domicilio = f"{rdl.indirizzo_residenza}, {rdl.comune_residenza}"
+
                 rdl_info = {
                     'id': rdl.id,
                     'nome': rdl.nome,
                     'cognome': rdl.cognome,
                     'email': rdl.email,
-                    'telefono': rdl.telefono or ''
+                    'telefono': rdl.telefono or '',
+                    'data_nascita': rdl.data_nascita.strftime('%d/%m/%Y') if rdl.data_nascita else '',
+                    'luogo_nascita': rdl.comune_nascita or '',
+                    'domicilio': domicilio
                 }
 
                 if assignment.role == 'EFFETTIVO':

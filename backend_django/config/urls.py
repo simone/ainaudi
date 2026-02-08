@@ -66,6 +66,7 @@ urlpatterns = [
     path('api/resources/', include('resources.urls')),
     path('api/risorse/', include('resources.urls')),  # Italian alias
     path('api/delegations/', include('delegations.urls')),
+    path('api/deleghe/', include('delegations.urls')),  # Italian alias
     path('api/territory/', include('territory.urls')),
     path('api/documents/', include('documents.urls')),
 
