@@ -23,7 +23,11 @@ Guida rapida per configurare **s.federici@gmail.com** per inviare email da AInau
 
 ## ✅ Passo 2: Configura localmente (test)
 
-Modifica `backend_django/.env`:
+### A. Configura variabili ambiente
+
+**Con Docker** (raccomandato):
+
+Modifica `.env.docker`:
 
 ```bash
 # Decommentare e configurare
@@ -32,11 +36,45 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=s.federici@gmail.com
-EMAIL_HOST_PASSWORD=abcdefghijklmnop  # La tua App Password
+EMAIL_HOST_PASSWORD=abcdefghijklmnop  # La tua App Password (senza spazi)
 DEFAULT_FROM_EMAIL=s.federici@gmail.com
 ```
 
-**Testa l'invio**:
+Poi riavvia Docker:
+
+```bash
+docker-compose down
+docker-compose up -d
+```
+
+**Senza Docker**:
+
+Modifica `backend_django/.env`:
+
+```bash
+# Stesso contenuto sopra
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+...
+```
+
+### B. Testa l'invio
+
+**Metodo 1: Script automatico** (funziona con e senza Docker)
+
+```bash
+./scripts/test-email.sh tua@email.com
+```
+
+**Metodo 2: Comandi manuali**
+
+Con Docker:
+
+```bash
+docker-compose exec backend python test_email.py tua@email.com
+```
+
+Senza Docker:
 
 ```bash
 cd backend_django

@@ -40,7 +40,13 @@ services:
       - FRONTEND_URL=http://localhost:3000
       - GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID_PLACEHOLDER
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
-      - EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+      - EMAIL_BACKEND=${EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-True}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@m5s.it}
       - FEATURE_MAGIC_LINK=true
       - FEATURE_AI_ASSISTANT=false
       - REDIS_HOST=redis

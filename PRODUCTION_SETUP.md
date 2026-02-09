@@ -319,13 +319,31 @@ DEFAULT_FROM_EMAIL=s.federici@gmail.com
 
 **Prima di deployare**, testa che l'invio email funzioni in locale:
 
+#### Con Docker (Raccomandato)
+
 ```bash
+# 1. Configura .env.docker con i valori reali (vedi Step 8)
+nano .env.docker
+
+# 2. Riavvia Docker per applicare modifiche
+docker-compose down
+docker-compose up -d
+
+# 3. Test invio email (script automatico)
+./scripts/test-email.sh tua@email.com
+
+# Oppure manualmente:
+docker-compose exec backend python test_email.py tua@email.com
+```
+
+#### Senza Docker
+
+```bash
+# 1. Configura .env con i valori reali (vedi Step 8)
+nano backend_django/.env
+
+# 2. Test invio email
 cd backend_django
-
-# Configura .env con i valori reali (vedi Step 8)
-nano .env
-
-# Test invio email
 python test_email.py tua@email.com
 ```
 
@@ -337,9 +355,10 @@ python test_email.py tua@email.com
 ```
 
 **Se fallisce:**
-- Verifica che `EMAIL_HOST_PASSWORD` sia corretto (App Password Gmail a 16 caratteri)
+- Verifica che `EMAIL_HOST_PASSWORD` sia corretto (App Password Gmail a 16 caratteri, senza spazi)
 - Verifica che autenticazione 2FA sia attiva su Gmail
 - Controlla firewall (porta 587 deve essere aperta)
+- Con Docker: verifica che `.env.docker` sia configurato correttamente
 
 ---
 
