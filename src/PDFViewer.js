@@ -17,10 +17,28 @@ function PDFViewer({ url, originalUrl, titolo, onClose }) {
     const [scale, setScale] = useState(1.0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [pageWidth, setPageWidth] = useState(null);
+    const [isLandscape, setIsLandscape] = useState(false);
 
     const onDocumentLoadSuccess = ({ numPages }) => {
         setNumPages(numPages);
         setLoading(false);
+    };
+
+    const onPageLoadSuccess = (page) => {
+        const viewport = page.getViewport({ scale: 1 });
+        const isPageLandscape = viewport.width > viewport.height;
+        setIsLandscape(isPageLandscape);
+
+        // Calcola larghezza ottimale in base al container e all'orientamento
+        // Container max-width è 1000px per portrait, 1400px per landscape
+        const containerWidth = isPageLandscape ?
+            Math.min(window.innerWidth * 0.9, 1400) :
+            Math.min(window.innerWidth * 0.9, 1000);
+
+        // Sottrai padding (40px totale)
+        const availableWidth = containerWidth - 40;
+        setPageWidth(availableWidth);
     };
 
     const onDocumentLoadError = (error) => {
@@ -38,11 +56,19 @@ function PDFViewer({ url, originalUrl, titolo, onClose }) {
     };
 
     const zoomIn = () => {
-        setScale(prev => Math.min(prev + 0.25, 3));
+        if (pageWidth) {
+            setPageWidth(prev => Math.min(prev * 1.25, 3000));
+        } else {
+            setScale(prev => Math.min(prev + 0.25, 3));
+        }
     };
 
     const zoomOut = () => {
-        setScale(prev => Math.max(prev - 0.25, 0.5));
+        if (pageWidth) {
+            setPageWidth(prev => Math.max(prev * 0.8, 300));
+        } else {
+            setScale(prev => Math.max(prev - 0.25, 0.5));
+        }
     };
 
     const openInNewTab = () => {
@@ -103,18 +129,16 @@ function PDFViewer({ url, originalUrl, titolo, onClose }) {
                         <button
                             className="pdf-toolbar-btn"
                             onClick={zoomOut}
-                            disabled={scale <= 0.5}
                             title="Riduci"
                         >
                             <i className="fas fa-minus"></i>
                         </button>
                         <span className="pdf-toolbar-label">
-                            {Math.round(scale * 100)}%
+                            Zoom
                         </span>
                         <button
                             className="pdf-toolbar-btn"
                             onClick={zoomIn}
-                            disabled={scale >= 3}
                             title="Ingrandisci"
                         >
                             <i className="fas fa-plus"></i>
@@ -151,9 +175,11 @@ function PDFViewer({ url, originalUrl, titolo, onClose }) {
                         >
                             <Page
                                 pageNumber={pageNumber}
-                                scale={scale}
+                                width={pageWidth}
+                                scale={pageWidth ? undefined : scale}
+                                onLoadSuccess={onPageLoadSuccess}
                                 renderTextLayer={true}
-                                renderAnnotationLayer={true}
+                                renderAnnotationLayer={false}
                             />
                         </Document>
                     )}
@@ -176,7 +202,7 @@ function PDFViewer({ url, originalUrl, titolo, onClose }) {
 
                 .pdf-viewer-container {
                     width: 95%;
-                    max-width: 1000px;
+                    max-width: 1400px;
                     height: 95vh;
                     background: #1a1a1a;
                     border-radius: 8px;
