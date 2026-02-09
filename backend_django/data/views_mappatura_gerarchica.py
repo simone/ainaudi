@@ -291,10 +291,6 @@ class MappaturaGerarchicaView(APIView):
                 )
             ).count()
 
-            # SKIP comuni senza mappature
-            if sezioni_assegnate == 0:
-                continue
-
             sezioni_non_assegnate = totale_sezioni - sezioni_assegnate
             percentuale = (sezioni_assegnate / totale_sezioni * 100) if totale_sezioni > 0 else 0
 
