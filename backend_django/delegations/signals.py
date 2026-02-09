@@ -34,6 +34,9 @@ def ensure_user_exists(email, defaults=None):
     Idempotent: returns existing user or creates new one.
     Handles race conditions with retry logic.
 
+    IMPORTANT: This function NEVER modifies is_superuser or is_staff flags.
+    If a user already exists with admin privileges, they are preserved.
+
     Args:
         email: User's email (unique identifier)
         defaults: Dict of default values for new user
@@ -47,6 +50,10 @@ def ensure_user_exists(email, defaults=None):
 
     email = email.lower().strip()
     defaults = defaults or {}
+
+    # NEVER allow defaults to override admin flags (protection against accidental demotion)
+    defaults.pop('is_superuser', None)
+    defaults.pop('is_staff', None)
 
     try:
         with transaction.atomic():
@@ -284,7 +291,12 @@ def handle_email_change(instance, model_name, role, old_data, scope_type=None, s
 
 
 def update_user_data(user, instance):
-    """Update user data from instance if instance has newer/better data."""
+    """
+    Update user data from instance if instance has newer/better data.
+
+    IMPORTANT: This function NEVER modifies is_superuser or is_staff flags.
+    Admin privileges are preserved regardless of domain entity data.
+    """
     if not user:
         return
 
@@ -303,7 +315,8 @@ def update_user_data(user, instance):
         changed = True
 
     if changed:
-        user.save()
+        # Use update_fields to avoid touching is_superuser/is_staff
+        user.save(update_fields=['display_name', 'phone_number'])
 
 
 # =============================================================================
@@ -327,6 +340,10 @@ def provision_delegato_user(sender, instance, created, **kwargs):
         2. On update with email change: Unlink old user, create/link new user, assign role
         3. On update without email change: Update user data if needed
         4. Log action
+
+    IMPORTANT: Admin privileges (is_superuser, is_staff) are NEVER modified.
+    If a user with admin privileges already exists, they remain admin after provisioning.
+    This ensures superusers are never accidentally demoted to regular users.
     """
     old_data = get_cached_pre_save('Delegato', instance.pk) if not created else None
 
