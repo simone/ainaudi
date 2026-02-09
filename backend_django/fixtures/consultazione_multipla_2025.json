@@ -7,7 +7,8 @@
             "data_inizio": "2025-06-17",
             "data_fine": "2025-06-17",
             "is_attiva": false,
-            "descrizione": "Consultazione elettorale multipla: Referendum abrogativi, Elezioni Politiche (Camera suppletiva), Elezioni Europee, Elezioni Comunali in vari comuni."
+            "descrizione": "Consultazione elettorale multipla: Referendum abrogativi, Elezioni Politiche (Camera suppletiva), Elezioni Europee, Elezioni Comunali in vari comuni.",
+            "data_version": "2025-06-17T00:00:00Z"
         }
     },
     {
@@ -59,7 +60,9 @@
             "colore": "verde chiaro",
             "ordine": 1,
             "testo_quesito": "Volete voi che sia abrogata la legge 5 febbraio 1992, n. 91, recante \"Nuove norme sulla cittadinanza\", nel testo risultante dalle modificazioni e integrazioni successive, limitatamente all'articolo 9, comma 1, lettera b), limitatamente alle parole \"adottato da cittadino italiano\" e alle parole \", in entrambi i casi, \"?",
-            "schema_voti": {"tipo": "si_no"}
+            "schema_voti": {
+                "tipo": "si_no"
+            }
         }
     },
     {
@@ -71,7 +74,9 @@
             "colore": "arancione",
             "ordine": 2,
             "testo_quesito": "Volete voi che sia abrogato il decreto legislativo 15 giugno 2015, n. 81, recante \"Disciplina organica dei contratti di lavoro e revisione della normativa in tema di mansioni\"?",
-            "schema_voti": {"tipo": "si_no"}
+            "schema_voti": {
+                "tipo": "si_no"
+            }
         }
     },
     {
@@ -83,7 +88,9 @@
             "colore": "giallo",
             "ordine": 3,
             "testo_quesito": "Volete voi che sia abrogata la legge 24 marzo 1958, n. 195, recante \"Norme sulla costituzione e sul funzionamento del Consiglio superiore della Magistratura\"?",
-            "schema_voti": {"tipo": "si_no"}
+            "schema_voti": {
+                "tipo": "si_no"
+            }
         }
     },
     {
@@ -95,7 +102,9 @@
             "colore": "celeste",
             "ordine": 4,
             "testo_quesito": "Volete voi che sia abrogata la legge 26 giugno 2024, n. 86, recante \"Disposizioni per l'attuazione dell'autonomia differenziata delle Regioni a statuto ordinario\"?",
-            "schema_voti": {"tipo": "si_no"}
+            "schema_voti": {
+                "tipo": "si_no"
+            }
         }
     },
     {
@@ -107,7 +116,9 @@
             "colore": "viola",
             "ordine": 5,
             "testo_quesito": "Volete voi che sia abrogato il decreto-legge 31 maggio 2021, n. 77, convertito, con modificazioni, dalla legge 29 luglio 2021, n. 108?",
-            "schema_voti": {"tipo": "si_no"}
+            "schema_voti": {
+                "tipo": "si_no"
+            }
         }
     },
     {
@@ -119,7 +130,11 @@
             "colore": "rosa",
             "ordine": 1,
             "testo_quesito": null,
-            "schema_voti": {"tipo": "liste_candidati", "uninominale": true, "plurinominale": false}
+            "schema_voti": {
+                "tipo": "liste_candidati",
+                "uninominale": true,
+                "plurinominale": false
+            }
         }
     },
     {
@@ -131,7 +146,10 @@
             "colore": "grigio",
             "ordine": 1,
             "testo_quesito": null,
-            "schema_voti": {"tipo": "liste_preferenze", "max_preferenze": 3}
+            "schema_voti": {
+                "tipo": "liste_preferenze",
+                "max_preferenze": 3
+            }
         }
     },
     {
@@ -143,7 +161,11 @@
             "colore": "bianco",
             "ordine": 1,
             "testo_quesito": null,
-            "schema_voti": {"tipo": "sindaco_liste", "preferenze": 2, "ballottaggio": true}
+            "schema_voti": {
+                "tipo": "sindaco_liste",
+                "preferenze": 2,
+                "ballottaggio": true
+            }
         }
     },
     {
