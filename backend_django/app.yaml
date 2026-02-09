@@ -10,6 +10,35 @@ env_variables:
   DEBUG: "false"
   ALLOWED_HOSTS: ".appspot.com,.run.app"
 
+  # Database (Cloud SQL via Unix socket)
+  DB_HOST: "/cloudsql/ainaudi-prod:europe-west1:ainaudi-db"
+  DB_NAME: "ainaudi_db"
+  DB_USER: "postgres"
+  # DB_PASSWORD stored in Secret Manager
+
+  # Google Cloud Storage
+  GCS_BUCKET_NAME: "ainaudi-documents"
+
+  # Email (SendGrid)
+  EMAIL_BACKEND: "django.core.mail.backends.smtp.EmailBackend"
+  EMAIL_HOST: "smtp.sendgrid.net"
+  EMAIL_PORT: "587"
+  EMAIL_USE_TLS: "True"
+  EMAIL_HOST_USER: "apikey"
+  # EMAIL_HOST_PASSWORD stored in Secret Manager
+  DEFAULT_FROM_EMAIL: "noreply@m5s.it"
+
+  # Frontend URL (for Magic Link)
+  FRONTEND_URL: "https://ainaudi-prod.appspot.com"
+
+  # Feature Flags
+  FEATURE_MAGIC_LINK: "true"
+  FEATURE_M5S_SSO: "false"
+  FEATURE_INCIDENT_REPORTS: "true"
+  FEATURE_SECTION_IMPORT: "true"
+  FEATURE_TEMPLATES_ENGINE: "true"
+  FEATURE_AI_ASSISTANT: "false"
+
 handlers:
   # Static files
   - url: /static

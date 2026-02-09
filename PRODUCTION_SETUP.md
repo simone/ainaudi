@@ -129,7 +129,84 @@ gsutil cors set cors.json gs://ainaudi-documents
 gsutil ls -L -b gs://ainaudi-documents
 ```
 
-### 6. Configura Variabili d'Ambiente Locali
+### 6. Configura SendGrid per Email (Magic Link)
+
+**SendGrid** permette di inviare email (Magic Link, notifiche) in modo affidabile.
+
+#### Step 1: Crea Account SendGrid
+
+1. Vai su [https://signup.sendgrid.com/](https://signup.sendgrid.com/)
+2. Registrati (piano free: 100 email/giorno)
+3. Verifica email e completa onboarding
+
+#### Step 2: Crea API Key
+
+```bash
+# Dalla dashboard SendGrid:
+# 1. Settings → API Keys → Create API Key
+# 2. Nome: "ainaudi-prod-django"
+# 3. Permessi: Full Access (o "Mail Send" solo)
+# 4. Clicca Create & View
+# 5. COPIA la chiave (inizia con SG.xxx...)
+```
+
+**⚠️ IMPORTANTE**: La API key appare UNA SOLA VOLTA, salvala subito!
+
+#### Step 3: Verifica Sender (Opzionale ma Raccomandato)
+
+Per evitare che le email finiscano in spam:
+
+```bash
+# Opzione A: Single Sender Verification (veloce, per testing)
+# Settings → Sender Authentication → Verify a Single Sender
+# Inserisci email e verifica
+
+# Opzione B: Domain Authentication (produzione)
+# Settings → Sender Authentication → Authenticate Your Domain
+# Aggiungi i record DNS che ti fornisce SendGrid
+```
+
+### 7. Configura Secret Manager (Password Sicure)
+
+**Secret Manager** permette di salvare password/chiavi in modo sicuro su GCP invece che in file .env
+
+```bash
+# Abilita Secret Manager API
+gcloud services enable secretmanager.googleapis.com
+
+# Crea secret per DB password
+echo -n "LA_TUA_PASSWORD_DATABASE" | gcloud secrets create db-password \
+    --data-file=- \
+    --replication-policy="automatic"
+
+# Crea secret per SendGrid API Key
+echo -n "SG.xxxxxxxxxxxxxxxxxxxxxxxx" | gcloud secrets create sendgrid-api-key \
+    --data-file=- \
+    --replication-policy="automatic"
+
+# Dai accesso al Service Account
+gcloud secrets add-iam-policy-binding db-password \
+    --member="serviceAccount:ainaudi-prod@appspot.gserviceaccount.com" \
+    --role="roles/secretmanager.secretAccessor"
+
+gcloud secrets add-iam-policy-binding sendgrid-api-key \
+    --member="serviceAccount:ainaudi-prod@appspot.gserviceaccount.com" \
+    --role="roles/secretmanager.secretAccessor"
+
+# Verifica secrets
+gcloud secrets list
+```
+
+**Ora modifica `backend_django/app.yaml`** per usare i secrets:
+
+```yaml
+env_variables:
+  # ... altre variabili ...
+  DB_PASSWORD: "secret://projects/ainaudi-prod/secrets/db-password/versions/latest"
+  EMAIL_HOST_PASSWORD: "secret://projects/ainaudi-prod/secrets/sendgrid-api-key/versions/latest"
+```
+
+### 8. Configura Variabili d'Ambiente Locali
 
 ```bash
 # Copia template
@@ -154,15 +231,18 @@ CORS_ALLOWED_ORIGINS=https://ainaudi-prod.ew.r.appspot.com,https://yourdomain.co
 # Google Cloud
 GOOGLE_CLOUD_PROJECT=ainaudi-prod
 GCS_BUCKET_NAME=ainaudi-documents
-GOOGLE_CLIENT_ID=<your-oauth-client-id>
-GOOGLE_CLIENT_SECRET=<your-oauth-client-secret>
 
-# Email SMTP
-EMAIL_HOST_USER=noreply@yourdomain.com
-EMAIL_HOST_PASSWORD=<app-password>
+# Email SMTP (SendGrid)
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.sendgrid.net
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=apikey
+EMAIL_HOST_PASSWORD=SG.xxxxxxxxxxxxxxxxxxxxxxxx  # La tua API key SendGrid
+DEFAULT_FROM_EMAIL=noreply@m5s.it
 ```
 
-### 7. Inizializza App Engine
+### 9. Inizializza App Engine
 
 ```bash
 # Inizializza App Engine nella regione europe-west
@@ -172,7 +252,7 @@ gcloud app create --region=europe-west
 gcloud app describe
 ```
 
-### 8. Deploy Iniziale (Test)
+### 10. Deploy Iniziale (Test)
 
 #### Opzione A: Google App Engine
 
@@ -232,7 +312,7 @@ gcloud run services replace cloudrun/service.yaml --region=europe-west1
 gcloud run services describe ainaudi-backend --region=europe-west1
 ```
 
-### 9. Setup DNS e SSL (se dominio custom)
+### 11. Setup DNS e SSL (se dominio custom)
 
 ```bash
 # Map custom domain to App Engine
@@ -245,7 +325,7 @@ gcloud app domain-mappings describe yourdomain.com
 # Oppure usa Let's Encrypt se Docker Compose
 ```
 
-### 10. Monitoring e Logging
+### 12. Monitoring e Logging
 
 ```bash
 # Setup monitoring
