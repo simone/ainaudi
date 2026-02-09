@@ -1,0 +1,42 @@
+[
+    {
+        "model": "elections.consultazioneelettorale",
+        "pk": 1,
+        "fields": {
+            "nome": "Referendum Costituzionale Giustizia 2026",
+            "data_inizio": "2026-03-22",
+            "data_fine": "2026-03-23",
+            "is_attiva": true,
+            "descrizione": "Referendum popolare confermativo della legge costituzionale 'Norme in materia di ordinamento giurisdizionale e di istituzione della Corte disciplinare'. Pubblicato in Gazzetta Ufficiale n. 253 del 30 ottobre 2025. Il referendum riguarda la separazione delle carriere tra magistrati giudicanti e requirenti, con modifiche agli articoli 87, 102, 104, 105, 106, 107, 110 della Costituzione. Referendum confermativo ex art. 138 Cost.: NON richiede quorum. Orari: domenica 22/03 ore 7-23, lunedì 23/03 ore 7-15.",
+            "data_version": "2026-03-22T00:00:00Z"
+        }
+    },
+    {
+        "model": "elections.tipoelezione",
+        "pk": 1,
+        "fields": {
+            "consultazione": 1,
+            "tipo": "REFERENDUM",
+            "ambito_nazionale": true,
+            "regione": null
+        }
+    },
+    {
+        "model": "elections.schedaelettorale",
+        "pk": 1,
+        "fields": {
+            "tipo_elezione": 1,
+            "nome": "Referendum Costituzionale - Riforma Giustizia",
+            "colore": "verde",
+            "ordine": 1,
+            "testo_quesito": "Approvate il testo della legge costituzionale concernente 'Norme in materia di ordinamento giurisdizionale e di istituzione della Corte disciplinare', approvato dal Parlamento e pubblicato nella Gazzetta Ufficiale n. 253 del 30 ottobre 2025?",
+            "schema_voti": {
+                "tipo": "si_no",
+                "options": [
+                    "SI",
+                    "NO"
+                ]
+            }
+        }
+    }
+]

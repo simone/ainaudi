@@ -13,7 +13,7 @@ Se hai resettato il database o lo stai configurando per la prima volta, segui qu
 **Cosa fa lo script:**
 1. ✅ Esegue migrations Django
 2. ✅ Carica **Regioni** (20) e **Province** (107) italiane
-3. ✅ Carica **Consultazione Elettorale 2025** attiva
+3. ✅ Carica **Referendum Costituzionale Giustizia 2026** attivo
 4. ✅ Importa **~8.000 Comuni** da CSV ISTAT
 5. ✅ Importa **Sezioni** (opzionale, chiede conferma)
 6. ✅ Crea **Superuser** Django (opzionale, chiede conferma)
@@ -34,17 +34,20 @@ Se hai resettato il database o lo stai configurando per la prima volta, segui qu
 | **Municipi** | 15 (Roma) | `fixtures/roma_municipi.json` (optional) |
 | **Sezioni** | ~60.000 | CSV ISTAT (optional, richiede tempo) |
 
-### Consultazione Elettorale 2025
+### Consultazione Elettorale 2026
 
 | Tipo Elezione | Schede | Dettagli |
 |--------------|--------|----------|
-| **REFERENDUM** | 5 | Cittadinanza, Lavoro, Giustizia, Autonomia, Jobs Act |
-| **EUROPEE** | 1 | Elezioni Parlamento Europeo |
-| **POLITICHE_CAMERA** | 1 | Camera (suppletiva) |
-| **COMUNALI** | 1 | Vari comuni |
+| **REFERENDUM COSTITUZIONALE** | 1 | Riforma Giustizia (Separazione Carriere) |
 
-**Data:** 17 Giugno 2025
+**Data:** 22-23 Marzo 2026
+**Tipo:** Referendum Costituzionale Confermativo (art. 138 Cost.)
+**Quorum:** NON richiesto
 **Stato:** Attiva (`is_attiva=True`)
+
+**Orari:**
+- Domenica 22/03: ore 7:00 - 23:00
+- Lunedì 23/03: ore 7:00 - 15:00
 
 ---
 
@@ -78,13 +81,13 @@ cd backend_django && python manage.py loaddata fixtures/initial_data.json
 
 ```bash
 # Con Docker
-docker-compose exec backend python manage.py loaddata fixtures/consultazione_multipla_2025.json
+docker-compose exec backend python manage.py loaddata fixtures/referendum_giustizia_2026.json
 
 # Senza Docker
-cd backend_django && python manage.py loaddata fixtures/consultazione_multipla_2025.json
+cd backend_django && python manage.py loaddata fixtures/referendum_giustizia_2026.json
 ```
 
-**Risultato:** Consultazione 2025 + 4 TipiElezione + 8 Schede
+**Risultato:** Referendum Costituzionale Giustizia 2026 + 1 TipoElezione + 1 Scheda
 
 ### 4. Comuni (CSV ISTAT)
 
@@ -170,14 +173,14 @@ Se l'import dei comuni è lento:
 
 ### "Consultazione non attiva"
 
-La consultazione viene caricata con `is_attiva=False` di default. Attivala:
+La consultazione viene caricata con `is_attiva=True` di default. Se serve disattivarla:
 
 ```bash
 # Django shell
 docker-compose exec backend python manage.py shell
 >>> from elections.models import ConsultazioneElettorale
->>> c = ConsultazioneElettorale.objects.get(nome__contains="2025")
->>> c.is_attiva = True
+>>> c = ConsultazioneElettorale.objects.get(nome__contains="2026")
+>>> c.is_attiva = False  # o True per riattivarla
 >>> c.save()
 ```
 

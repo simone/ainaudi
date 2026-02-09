@@ -56,8 +56,8 @@ echo "  Step 3: Consultazione Elettorale"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-echo "🗳️  Carico Consultazione Multipla 2025..."
-run_manage loaddata fixtures/consultazione_multipla_2025.json
+echo "🗳️  Carico Referendum Costituzionale Giustizia 2026..."
+run_manage loaddata fixtures/referendum_giustizia_2026.json
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -144,8 +144,9 @@ echo "📊 Database popolato con:"
 echo "   ✅ 20 Regioni"
 echo "   ✅ 107 Province"
 echo "   ✅ ~8.000 Comuni (se CSV importato)"
-echo "   ✅ Consultazione Elettorale attiva"
-echo "   ✅ 5 Referendum + Europee + Politiche + Comunali"
+echo "   ✅ Referendum Costituzionale Giustizia 2026 (ATTIVO)"
+echo "   ✅ Date: 22-23 marzo 2026"
+echo "   ✅ Tipo: Confermativo (NO quorum richiesto)"
 echo ""
 echo "🚀 Prossimi passi:"
 echo "   1. Accedi: http://localhost:3000"
