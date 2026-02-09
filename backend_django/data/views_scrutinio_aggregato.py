@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 from django.db.models import Sum, Count, Q, F, Case, When, FloatField
 from django.db.models.functions import Coalesce
 
-from core.permissions import CanViewKPI
+from core.permissions import CanViewLiveResults
 from .models import DatiSezione, DatiScheda
 from elections.models import ConsultazioneElettorale, SchedaElettorale
 from territory.models import Regione, Provincia, Comune, Municipio, SezioneElettorale
@@ -39,9 +39,9 @@ class ScrutinioAggregatoView(APIView):
 
     Skip automatico: Se c'è solo una entità al livello, restituisce direttamente il livello successivo.
 
-    Permission: can_view_kpi (Delegati, SubDelegati che supervisionano)
+    Permission: can_view_live_results (Delegati, SubDelegati che supervisionano)
     """
-    permission_classes = [permissions.IsAuthenticated, CanViewKPI]
+    permission_classes = [permissions.IsAuthenticated, CanViewLiveResults]
 
     def get(self, request):
         consultazione_id = request.query_params.get('consultazione_id')

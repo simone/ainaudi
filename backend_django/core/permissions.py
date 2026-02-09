@@ -60,49 +60,98 @@ class IsSuperAdmin(BasePermission):
         return 'Solo gli amministratori possono accedere a questa risorsa'
 
 
+# ============================================================================
+# PERMESSI GRANULARI - Uno per ogni voce del menu
+# ============================================================================
+
+class CanViewDashboard(HasCustomPermission):
+    """
+    Permission: Visualizzazione dashboard principale.
+
+    Ruoli: Delegato, SubDelegato
+    """
+    permission_codename = 'can_view_dashboard'
+
+
 class CanManageTerritory(HasCustomPermission):
     """
     Permission: Gestione territorio (regioni, province, comuni, sezioni).
 
-    Solo superuser.
+    Ruoli: Solo superuser
     """
     permission_codename = 'can_manage_territory'
 
 
-class CanViewKPI(HasCustomPermission):
-    """
-    Permission: Visualizzazione dashboard KPI.
-
-    Ruoli: Delegato, SubDelegato, KPI_VIEWER
-    """
-    permission_codename = 'can_view_kpi'
-
-
 class CanManageElections(HasCustomPermission):
     """
-    Permission: Gestione consultazioni elettorali.
+    Permission: Gestione consultazioni elettorali (schede, liste, candidati).
 
     Ruoli: Superuser, Delegato
     """
     permission_codename = 'can_manage_elections'
 
 
-class CanManageDelegations(HasCustomPermission):
+class CanManageCampaign(HasCustomPermission):
     """
-    Permission: Gestione catena deleghe (sub-deleghe, designazioni).
+    Permission: Gestione campagne reclutamento RDL.
 
-    Ruoli: Delegato, SubDelegato (limitato)
+    Ruoli: Delegato, SubDelegato
     """
-    permission_codename = 'can_manage_delegations'
+    permission_codename = 'can_manage_campaign'
 
 
 class CanManageRDL(HasCustomPermission):
     """
-    Permission: Gestione RDL registrations (approvazione, import).
+    Permission: Gestione RDL registrations (approvazione, import CSV).
 
     Ruoli: Delegato, SubDelegato
     """
     permission_codename = 'can_manage_rdl'
+
+
+class CanManageSections(HasCustomPermission):
+    """
+    Permission: Gestione sezioni elettorali (CRUD sezioni).
+
+    Ruoli: Delegato, SubDelegato
+    """
+    permission_codename = 'can_manage_sections'
+
+
+class CanManageMappatura(HasCustomPermission):
+    """
+    Permission: Mappatura RDL → Sezioni (assegnamento RDL a seggi).
+
+    Ruoli: Delegato, SubDelegato
+    """
+    permission_codename = 'can_manage_mappatura'
+
+
+class CanManageDelegations(HasCustomPermission):
+    """
+    Permission: Gestione catena deleghe (delegati, sub-deleghe).
+
+    Ruoli: Delegato
+    """
+    permission_codename = 'can_manage_delegations'
+
+
+class CanManageDesignazioni(HasCustomPermission):
+    """
+    Permission: Gestione designazioni RDL formali (documenti ufficiali).
+
+    Ruoli: Delegato, SubDelegato
+    """
+    permission_codename = 'can_manage_designazioni'
+
+
+class CanManageTemplates(HasCustomPermission):
+    """
+    Permission: Gestione template PDF.
+
+    Ruoli: Delegato, SubDelegato
+    """
+    permission_codename = 'can_manage_templates'
 
 
 class HasScrutinioAccess(HasCustomPermission):
@@ -118,14 +167,36 @@ class CanViewResources(HasCustomPermission):
     """
     Permission: Accesso risorse/documenti.
 
-    Ruoli: Tutti autenticati (default)
+    Ruoli: Tutti gli utenti con ruolo
     """
     permission_codename = 'can_view_resources'
 
 
+class CanViewLiveResults(HasCustomPermission):
+    """
+    Permission: Visualizzazione risultati live (scrutinio aggregato).
+
+    Ruoli: Delegato, SubDelegato
+    """
+    permission_codename = 'can_view_live_results'
+
+
+class CanViewKPI(HasCustomPermission):
+    """
+    Permission: Visualizzazione dashboard KPI/Diretta.
+
+    Ruoli: Delegato, SubDelegato, KPI_VIEWER
+    """
+    permission_codename = 'can_view_kpi'
+
+
+# ============================================================================
+# PERMESSI EXTRA / FUTURE FEATURES
+# ============================================================================
+
 class CanAskToAIAssistant(HasCustomPermission):
     """
-    Permission: Accesso chatbot AI.
+    Permission: Accesso chatbot AI (futuro).
 
     Ruoli: Tutti autenticati (default)
     """

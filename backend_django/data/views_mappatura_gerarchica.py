@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, status
 from django.db.models import Count, Q, OuterRef, Subquery, Exists
-from core.permissions import CanManageRDL
+from core.permissions import CanManageMappatura
 from territory.models import Regione, Provincia, Comune, Municipio, SezioneElettorale
 from elections.models import ConsultazioneElettorale
 from data.models import SectionAssignment
@@ -30,7 +30,7 @@ class MappaturaGerarchicaView(APIView):
     - search: Search term per filtrare
     """
 
-    permission_classes = [permissions.IsAuthenticated, CanManageRDL]
+    permission_classes = [permissions.IsAuthenticated, CanManageMappatura]
 
     def get(self, request):
         consultazione_id = request.query_params.get('consultazione_id')
