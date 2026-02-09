@@ -403,7 +403,7 @@ function GestioneSezioni({ client, setError }) {
     return (
         <>
             {/* Page Header */}
-            <div className="page-header rdl">
+            <div className="page-header sezioni">
                 <div className="page-header-title">
                     <i className="fas fa-map-marker-alt"></i>
                     Gestione Sezioni

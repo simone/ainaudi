@@ -99,10 +99,10 @@ const GeneraModuli = ({client, setError}) => {
     return (
         <>
             {/* Page Header */}
-            <div className="page-header delegati">
+            <div className="page-header pdf">
                 <div className="page-header-title">
                     <i className="fas fa-file-signature"></i>
-                    Designazioni
+                    Genera Moduli
                 </div>
                 <div className="page-header-subtitle">
                     Generazione moduli PDF per nomine RDL

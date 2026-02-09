@@ -253,10 +253,10 @@ function Risorse({ client, consultazione, setError }) {
             <style>{docCardStyles}</style>
 
             {/* Page Header */}
-            <div className="page-header assistenza">
+            <div className="page-header risorse">
                 <div className="page-header-title">
-                    <i className="fas fa-life-ring"></i>
-                    Assistenza
+                    <i className="fas fa-folder-open"></i>
+                    Risorse
                 </div>
                 <div className="page-header-subtitle">
                     Documenti, guide, FAQ e supporto per i Rappresentanti di Lista

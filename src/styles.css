@@ -972,22 +972,61 @@ small.text-muted {
   background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
 }
 
-.page-header.delegati {
+.page-header.delegati,
+.page-header.deleghe {
   background: linear-gradient(135deg, #198754 0%, #146c43 100%);
 }
 
-.page-header.rdl {
+.page-header.campagne {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+}
+
+.page-header.rdl,
+.page-header.gestione-rdl {
   background: linear-gradient(135deg, #fd7e14 0%, #dc6a0c 100%);
 }
 
-.page-header.scrutinio {
+.page-header.sezioni,
+.page-header.gestione-sezioni {
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+}
+
+.page-header.mappatura,
+.page-header.mappatura-gerarchica {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+}
+
+.page-header.designazioni {
+  background: linear-gradient(135deg, #16a085 0%, #138d75 100%);
+}
+
+.page-header.templates,
+.page-header.template-list,
+.page-header.template-editor {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.page-header.pdf,
+.page-header.genera-moduli {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+}
+
+.page-header.scrutinio,
+.page-header.sections {
   background: linear-gradient(135deg, #20c997 0%, #1aa179 100%);
 }
 
+.page-header.risultati-live,
+.page-header.scrutinio-aggregato {
+  background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+}
+
+.page-header.kpi,
 .page-header.diretta {
   background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%);
 }
 
+.page-header.risorse,
 .page-header.assistenza {
   background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
 }

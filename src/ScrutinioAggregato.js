@@ -153,7 +153,7 @@ function ScrutinioAggregato({ client, consultazione, setError }) {
     return (
         <div>
             {/* Page Header */}
-            <div className="page-header scrutinio">
+            <div className="page-header risultati-live">
                 <div className="page-header-title">
                     <i className="fas fa-chart-line"></i>
                     Risultati Live

@@ -605,7 +605,7 @@ function GestioneCampagne({ client, consultazione, setError, onOpenCampagna }) {
     return (
         <>
             {/* Page Header */}
-            <div className="page-header rdl">
+            <div className="page-header campagne">
                 <div className="page-header-title">
                     <i className="fas fa-bullhorn"></i>
                     Campagne di Reclutamento
