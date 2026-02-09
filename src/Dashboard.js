@@ -73,27 +73,147 @@ function Dashboard({ user, permissions, consultazione, onNavigate }) {
             cta: 'Gestisci Deleghe'
         },
 
-        // 4. RDL
+        // 4. CAMPAGNE
         {
-            id: 'rdl',
-            title: 'RDL',
-            icon: 'fa-users',
-            color: '#fd7e14',
-            gradient: 'linear-gradient(135deg, #fd7e14 0%, #dc6a0c 100%)',
-            description: 'Recluta, approva e assegna i Rappresentanti di Lista alle sezioni elettorali del territorio.',
-            purpose: 'Gli RDL presidiano i seggi durante le votazioni e lo scrutinio, garantendo la regolarità delle operazioni.',
+            id: 'campagne',
+            title: 'Campagne',
+            icon: 'fa-bullhorn',
+            color: '#ff6b6b',
+            gradient: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%)',
+            description: 'Crea e gestisci campagne di reclutamento per trovare Rappresentanti di Lista disponibili.',
+            purpose: 'Le campagne permettono agli RDL di auto-registrarsi e fornire i propri dati per la designazione.',
             features: [
-                'Campagne di reclutamento',
-                'Approvazione candidature',
-                'Gestione sezioni',
-                'Mappatura RDL-Sezioni'
+                'Creazione campagne',
+                'Link di registrazione',
+                'Tracking iscrizioni',
+                'Export dati candidati'
             ],
-            permission: permissions.can_manage_campaign || permissions.can_manage_rdl,
-            action: () => onNavigate(permissions.can_manage_rdl ? 'gestione_rdl' : 'campagne'),
-            cta: 'Gestisci RDL'
+            permission: permissions.can_manage_campaign && consultazione,
+            action: () => onNavigate('campagne'),
+            cta: 'Gestisci Campagne'
         },
 
-        // 5. SCRUTINIO
+        // 5. GESTIONE RDL
+        {
+            id: 'rdl',
+            title: 'Gestione RDL',
+            icon: 'fa-user-check',
+            color: '#fd7e14',
+            gradient: 'linear-gradient(135deg, #fd7e14 0%, #dc6a0c 100%)',
+            description: 'Approva le registrazioni degli RDL e gestisci le loro candidature per le sezioni elettorali.',
+            purpose: 'Valida i candidati RDL che si sono auto-registrati tramite le campagne di reclutamento.',
+            features: [
+                'Approvazione candidature',
+                'Import CSV massivo',
+                'Gestione dati RDL',
+                'Filtri per territorio'
+            ],
+            permission: permissions.can_manage_rdl && consultazione,
+            action: () => onNavigate('gestione_rdl'),
+            cta: 'Approva RDL'
+        },
+
+        // 6. GESTIONE SEZIONI
+        {
+            id: 'sezioni',
+            title: 'Gestione Sezioni',
+            icon: 'fa-map-marker-alt',
+            color: '#9b59b6',
+            gradient: 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)',
+            description: 'Gestisci l\'anagrafica delle sezioni elettorali: indirizzi, plessi scolastici e informazioni.',
+            purpose: 'Ogni sezione deve essere configurata correttamente per permettere l\'assegnazione degli RDL.',
+            features: [
+                'CRUD sezioni',
+                'Indirizzi e plessi',
+                'Dati elettori iscritti',
+                'Import/Export CSV'
+            ],
+            permission: permissions.can_manage_sections && consultazione,
+            action: () => onNavigate('sezioni'),
+            cta: 'Gestisci Sezioni'
+        },
+
+        // 7. MAPPATURA
+        {
+            id: 'mappatura',
+            title: 'Mappatura',
+            icon: 'fa-sitemap',
+            color: '#3498db',
+            gradient: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+            description: 'Assegna gli RDL alle sezioni elettorali del tuo territorio tramite navigazione gerarchica.',
+            purpose: 'La mappatura collega ogni RDL (effettivo + supplente) alla propria sezione di competenza.',
+            features: [
+                'Navigazione gerarchica',
+                'Assegnazione RDL-Sezioni',
+                'Vista per territorio',
+                'Statistiche copertura'
+            ],
+            permission: permissions.can_manage_mappatura && consultazione,
+            action: () => onNavigate('mappatura-gerarchica'),
+            cta: 'Mappa RDL'
+        },
+
+        // 8. DESIGNAZIONI
+        {
+            id: 'designazioni',
+            title: 'Designazioni',
+            icon: 'fa-file-signature',
+            color: '#16a085',
+            gradient: 'linear-gradient(135deg, #16a085 0%, #138d75 100%)',
+            description: 'Gestisci le designazioni ufficiali degli RDL: fotografa la mappatura e genera documenti formali.',
+            purpose: 'Le designazioni sono gli atti ufficiali che nominano gli RDL, necessari per la Prefettura.',
+            features: [
+                'Fotografa mappatura',
+                'Congelamento designazioni',
+                'Documenti ufficiali',
+                'Cicli multipli'
+            ],
+            permission: permissions.can_manage_designazioni && consultazione,
+            action: () => onNavigate('designazioni'),
+            cta: 'Gestisci Designazioni'
+        },
+
+        // 9. TEMPLATE PDF
+        {
+            id: 'templates',
+            title: 'Template PDF',
+            icon: 'fa-file-pdf',
+            color: '#e74c3c',
+            gradient: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+            description: 'Configura e personalizza i template per la generazione dei documenti PDF di designazione.',
+            purpose: 'I template definiscono il layout e i contenuti dei documenti ufficiali generati dal sistema.',
+            features: [
+                'Editor visuale',
+                'Posizionamento campi',
+                'Anteprima real-time',
+                'Multiple consultazioni'
+            ],
+            permission: permissions.can_manage_templates && consultazione,
+            action: () => onNavigate('template_list'),
+            cta: 'Gestisci Template'
+        },
+
+        // 10. GENERA MODULI
+        {
+            id: 'genera_pdf',
+            title: 'Genera Moduli',
+            icon: 'fa-print',
+            color: '#f39c12',
+            gradient: 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)',
+            description: 'Genera i documenti PDF di designazione RDL da inviare alla Prefettura per l\'autorizzazione.',
+            purpose: 'Crea i moduli ufficiali necessari per la nomina formale dei Rappresentanti di Lista.',
+            features: [
+                'Generazione PDF',
+                'Documento individuale',
+                'Documento cumulativo',
+                'Download e stampa'
+            ],
+            permission: permissions.can_generate_documents && consultazione,
+            action: () => onNavigate('pdf'),
+            cta: 'Genera PDF'
+        },
+
+        // 11. SCRUTINIO
         {
             id: 'scrutinio',
             title: 'Scrutinio',
@@ -114,31 +234,53 @@ function Dashboard({ user, permissions, consultazione, onNavigate }) {
             highlight: true
         },
 
-        // 6. RISULTATI LIVE
+        // 12. RISULTATI LIVE
         {
-            id: 'diretta',
+            id: 'risultati_live',
             title: 'Risultati Live',
             icon: 'fa-chart-line',
-            color: '#dc3545',
-            gradient: 'linear-gradient(135deg, #dc3545 0%, #b02a37 100%)',
-            description: 'Segui in tempo reale i risultati dello scrutinio con grafici, percentuali e proiezioni.',
-            purpose: 'Visualizzazione aggregata dei dati inseriti dagli RDL per mostrare l\'andamento live.',
+            color: '#27ae60',
+            gradient: 'linear-gradient(135deg, #27ae60 0%, #229954 100%)',
+            description: 'Segui in tempo reale i risultati dello scrutinio con visualizzazione gerarchica aggregata.',
+            purpose: 'Visualizzazione navigabile dei dati inseriti dagli RDL: da regione fino a sezione.',
             features: [
-                'Aggiornamento real-time',
-                'Grafici interattivi',
-                'Affluenza e percentuali',
-                'Confronto territoriale'
+                'Navigazione gerarchica',
+                'Drill-down territoriale',
+                'Affluenza per livello',
+                'Export dati'
             ],
             permission: permissions.can_view_live_results && consultazione,
             action: () => onNavigate('scrutinio-aggregato'),
             cta: 'Segui Live',
             badge: 'LIVE',
+            badgeColor: '#27ae60'
+        },
+
+        // 13. DIRETTA (KPI)
+        {
+            id: 'kpi',
+            title: 'Diretta',
+            icon: 'fa-tachometer-alt',
+            color: '#dc3545',
+            gradient: 'linear-gradient(135deg, #dc3545 0%, #b02a37 100%)',
+            description: 'Dashboard KPI con grafici e metriche avanzate per il monitoraggio real-time della consultazione.',
+            purpose: 'Visualizzazione analitica completa: grafici, KPI, proiezioni e confronti storici.',
+            features: [
+                'Grafici interattivi',
+                'KPI real-time',
+                'Proiezioni',
+                'Analisi comparativa'
+            ],
+            permission: permissions.can_view_kpi && consultazione,
+            action: () => onNavigate('kpi'),
+            cta: 'Vedi Dashboard',
+            badge: 'LIVE',
             badgeColor: '#dc3545'
         },
 
-        // 7. RISORSE
+        // 14. RISORSE
         {
-            id: 'assistenza',
+            id: 'risorse',
             title: 'Risorse',
             icon: 'fa-folder-open',
             color: '#17a2b8',
