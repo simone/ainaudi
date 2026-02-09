@@ -46,12 +46,9 @@ services:
       - EMAIL_USE_TLS=${EMAIL_USE_TLS:-True}
       - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@m5s.it}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-"AINAUDI (M5S) - Simone Federici <s.federici@gmail.com>"}
       - FEATURE_MAGIC_LINK=true
       - FEATURE_AI_ASSISTANT=false
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_DB=0
     volumes:
       - ./backend_django:/app
       - backend_static:/app/staticfiles
@@ -77,6 +74,7 @@ services:
     restart: unless-stopped
     environment:
       - VITE_BACKEND_URL=http://backend:8000  # Backend URL for Vite proxy
+      - VITE_RDL_REGISTRATION_URL=${VITE_RDL_REGISTRATION_URL:-https://forms.gle/sLzS7fABZNXeUUnC9}
     volumes:
       - ./src:/app/src
       - ./public:/app/public
@@ -88,26 +86,10 @@ services:
     stdin_open: true
     tty: true
 
-  # Redis (for caching and PDF event bus)
-  redis:
-    image: redis:7-alpine
-    container_name: ainaudi_redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
 volumes:
   postgres_data:
   backend_static:
   backend_media:
-  redis_data:
 
 networks:
   default:

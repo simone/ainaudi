@@ -1038,7 +1038,10 @@ function AppContent() {
 
                                         <button
                                             className="btn btn-success btn-lg w-100"
-                                            onClick={() => setShowRdlRegistration(true)}
+                                            onClick={() => {
+                                                const registrationUrl = import.meta.env.VITE_RDL_REGISTRATION_URL || 'https://forms.gle/sLzS7fABZNXeUUnC9';
+                                                window.open(registrationUrl, '_blank');
+                                            }}
                                         >
                                             Candidati come Rappresentante di Lista
                                         </button>

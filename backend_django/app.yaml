@@ -26,7 +26,7 @@ env_variables:
   EMAIL_USE_TLS: "True"
   EMAIL_HOST_USER: "s.federici@gmail.com"
   # EMAIL_HOST_PASSWORD stored in Secret Manager (Gmail App Password)
-  DEFAULT_FROM_EMAIL: "s.federici@gmail.com"
+  DEFAULT_FROM_EMAIL: "AINAUDI (M5S) - Simone Federici <s.federici@gmail.com>"
 
   # Frontend URL (for Magic Link)
   FRONTEND_URL: "https://ainaudi-prod.appspot.com"
