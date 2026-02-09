@@ -1065,7 +1065,18 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
     // Vista navigazione territoriale
     return (
         <div className="gd-container">
-            {/* Header */}
+            {/* Page Header */}
+            <div className="page-header designazioni">
+                <div className="page-header-title">
+                    <i className="fas fa-file-signature"></i>
+                    Designazioni
+                </div>
+                <div className="page-header-subtitle">
+                    Gestione designazioni formali RDL: fotografa mappatura, genera documenti ufficiali e conferma atti
+                </div>
+            </div>
+
+            {/* Territorial Navigation Header */}
             <div className="gd-territory-header">
                 <div>
                     <h4 className="gd-territory-title">

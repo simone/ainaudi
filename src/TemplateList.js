@@ -165,24 +165,30 @@ function TemplateList({ client, onEditTemplate }) {
 
     return (
         <div className="template-editor">
-            <div className="template-editor-header">
-                <div>
-                    <h2>Template PDF</h2>
+            {/* Page Header */}
+            <div className="page-header templates">
+                <div className="page-header-title">
+                    <i className="fas fa-file-pdf"></i>
+                    Template PDF
+                </div>
+                <div className="page-header-subtitle">
+                    Gestisci i template per la generazione dei documenti di designazione
                     {consultazione && (
-                        <p className="text-muted">
-                            Consultazione: <strong>{consultazione.nome}</strong>
-                        </p>
+                        <span className="page-header-badge">{consultazione.nome}</span>
                     )}
                 </div>
-                <div>
-                    <button
-                        onClick={() => setShowNewTemplateForm(true)}
-                        className="btn btn-primary"
-                        disabled={loading}
-                    >
-                        + Nuovo Template
-                    </button>
-                </div>
+            </div>
+
+            {/* Actions */}
+            <div className="d-flex justify-content-end mb-3">
+                <button
+                    onClick={() => setShowNewTemplateForm(true)}
+                    className="btn btn-primary"
+                    disabled={loading}
+                >
+                    <i className="fas fa-plus me-2"></i>
+                    Nuovo Template
+                </button>
             </div>
 
             {error && (

@@ -1072,34 +1072,45 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
 
     return (
         <div className="template-editor">
-            <div className="template-editor-header">
-                <div>
-                    <h2>Editor Template PDF</h2>
-                    {templates.length > 0 && (
-                        <div className="template-selector">
-                            <label htmlFor="template-select">Seleziona Template: </label>
-                            <select
-                                id="template-select"
-                                value={selectedTemplateId || ''}
-                                onChange={(e) => setSelectedTemplateId(parseInt(e.target.value))}
-                                className="form-control"
-                                style={{ display: 'inline-block', width: 'auto', marginLeft: '10px' }}
-                            >
-                                {templates.map(t => (
-                                    <option key={t.id} value={t.id}>
-                                        {t.name} ({t.template_type_details?.name || 'N/A'})
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
+            {/* Page Header */}
+            <div className="page-header templates">
+                <div className="page-header-title">
+                    <i className="fas fa-file-pdf"></i>
+                    Editor Template PDF
                 </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <button
-                        onClick={() => setShowNewTemplateForm(true)}
-                        className="btn btn-primary"
+                <div className="page-header-subtitle">
+                    Editor visuale per configurare i campi dei template di designazione
+                </div>
+            </div>
+
+            {/* Template Selector */}
+            {templates.length > 0 && (
+                <div className="mb-3 d-flex align-items-center gap-2">
+                    <label htmlFor="template-select" className="mb-0">Template:</label>
+                    <select
+                        id="template-select"
+                        value={selectedTemplateId || ''}
+                        onChange={(e) => setSelectedTemplateId(parseInt(e.target.value))}
+                        className="form-control"
+                        style={{ width: 'auto' }}
                     >
-                        + Nuovo Template
+                        {templates.map(t => (
+                            <option key={t.id} value={t.id}>
+                                {t.name} ({t.template_type_details?.name || 'N/A'})
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
+            {/* Actions */}
+            <div className="d-flex justify-content-end gap-2 mb-3">
+                <button
+                    onClick={() => setShowNewTemplateForm(true)}
+                    className="btn btn-primary"
+                >
+                    <i className="fas fa-plus me-2"></i>
+                    Nuovo Template
                     </button>
                     {selectedTemplateId && (
                         <>
