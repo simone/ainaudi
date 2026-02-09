@@ -78,26 +78,171 @@ class MagicLinkRequestView(APIView):
         # Build magic link URL
         magic_link = f"{settings.FRONTEND_URL}/?token={token}"
 
-        # Send email
-        try:
-            send_mail(
-                subject='Accesso AInaudi',
-                message=f'''
-Ciao,
+        # Get active consultazione for context
+        from elections.models import ConsultazioneElettorale
+        consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
 
-Clicca sul seguente link per accedere a AInaudi:
+        consultazione_nome = consultazione.nome if consultazione else "Elezioni in corso"
+        consultazione_data = ""
+        if consultazione and consultazione.data_inizio:
+            from datetime import datetime
+            data_fmt = consultazione.data_inizio.strftime('%d/%m/%Y')
+            consultazione_data = f" - {data_fmt}"
+
+        # Send email with HTML template
+        user_name = user.display_name or user.email.split('@')[0].title()
+        validity_minutes = settings.MAGIC_LINK_TOKEN_EXPIRY // 60
+
+        # Plain text version (fallback)
+        text_message = f'''
+Ciao {user_name},
+
+Hai richiesto l'accesso alla piattaforma AInaudi per la gestione di:
+{consultazione_nome}{consultazione_data}
+
+Clicca sul seguente link per accedere in modo sicuro:
 
 {magic_link}
 
-Il link è valido per {settings.MAGIC_LINK_TOKEN_EXPIRY // 60} minuti.
+⏱️  Il link è valido per {validity_minutes} minuti.
 
-Se non hai richiesto questo link, ignora questa email.
+Se non hai richiesto questo accesso, ignora questa email.
+La tua sicurezza è importante per noi.
 
-AInaudi - Gestione Elettorale
-                '''.strip(),
+---
+AInaudi - Piattaforma Gestione Elettorale
+Movimento 5 Stelle
+        '''.strip()
+
+        # HTML version (modern and professional)
+        html_message = f'''
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accesso AInaudi</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; max-width: 100%;">
+
+                    <!-- Header con branding M5S -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 30px 40px; text-align: center;">
+                            <div style="background-color: #FFCC00; display: inline-block; padding: 12px 24px; border-radius: 6px; margin-bottom: 15px;">
+                                <h1 style="margin: 0; font-size: 28px; color: #000000; font-weight: 700; letter-spacing: -0.5px;">
+                                    AInaudi
+                                </h1>
+                            </div>
+                            <p style="margin: 10px 0 0 0; color: #FFCC00; font-size: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">
+                                Gestione Elettorale
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Consultazione badge -->
+                    <tr>
+                        <td style="padding: 25px 40px 0 40px; text-align: center;">
+                            <div style="background: linear-gradient(135deg, #FFCC00 0%, #FFD633 100%); border-radius: 8px; padding: 16px 24px; display: inline-block; box-shadow: 0 2px 4px rgba(255,204,0,0.3);">
+                                <p style="margin: 0; color: #000000; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                                    📋 Consultazione attiva
+                                </p>
+                                <p style="margin: 0; color: #000000; font-size: 16px; font-weight: 700;">
+                                    {consultazione_nome}
+                                </p>
+                                {f'<p style="margin: 4px 0 0 0; color: #333333; font-size: 13px; font-weight: 500;">{data_fmt}</p>' if consultazione and consultazione.data_inizio else ''}
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Saluto personalizzato -->
+                    <tr>
+                        <td style="padding: 30px 40px 20px 40px;">
+                            <h2 style="margin: 0 0 15px 0; font-size: 22px; color: #000000; font-weight: 600;">
+                                Ciao {user_name}! 👋
+                            </h2>
+                            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+                                Hai richiesto l'accesso sicuro alla piattaforma <strong>AInaudi</strong>.
+                                Clicca sul pulsante qui sotto per accedere immediatamente.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- CTA Button -->
+                    <tr>
+                        <td style="padding: 0 40px 30px 40px; text-align: center;">
+                            <a href="{magic_link}" style="display: inline-block; background: linear-gradient(135deg, #FFCC00 0%, #FFD633 100%); color: #000000; text-decoration: none; padding: 16px 40px; border-radius: 6px; font-size: 16px; font-weight: 700; letter-spacing: 0.3px; box-shadow: 0 4px 12px rgba(255,204,0,0.4); transition: all 0.3s ease;">
+                                🔐 Accedi alla Piattaforma
+                            </a>
+                            <p style="margin: 20px 0 0 0; font-size: 13px; color: #666666; line-height: 1.5;">
+                                Oppure copia e incolla questo link nel tuo browser:<br/>
+                                <span style="color: #999999; font-size: 12px; word-break: break-all;">{magic_link}</span>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Info box -->
+                    <tr>
+                        <td style="padding: 0 40px 30px 40px;">
+                            <div style="background-color: #fffbf0; border-left: 4px solid #FFCC00; padding: 15px 20px; border-radius: 4px;">
+                                <p style="margin: 0 0 8px 0; font-size: 14px; color: #000000; font-weight: 600;">
+                                    ⏱️  Validità del link
+                                </p>
+                                <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #555555;">
+                                    Questo link è valido per <strong>{validity_minutes} minuti</strong> per garantire la massima sicurezza del tuo accesso.
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Security notice -->
+                    <tr>
+                        <td style="padding: 0 40px 30px 40px;">
+                            <div style="background-color: #f8f9fa; border-radius: 6px; padding: 20px; text-align: center;">
+                                <p style="margin: 0 0 10px 0; font-size: 14px; color: #666666; line-height: 1.6;">
+                                    🔒 <strong>Sicurezza garantita</strong><br/>
+                                    Non hai richiesto questo accesso? Ignora questa email.<br/>
+                                    Il link scadrà automaticamente e nessuno potrà accedere al tuo account.
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 25px 40px; text-align: center; border-top: 1px solid #e9ecef;">
+                            <p style="margin: 0 0 8px 0; font-size: 13px; color: #666666; font-weight: 600;">
+                                AInaudi - Piattaforma Gestione Elettorale
+                            </p>
+                            <p style="margin: 0; font-size: 12px; color: #999999;">
+                                Movimento 5 Stelle
+                            </p>
+                            <p style="margin: 12px 0 0 0; font-size: 11px; color: #aaaaaa; line-height: 1.4;">
+                                Questa è una email automatica, si prega di non rispondere.<br/>
+                                Per assistenza contatta il tuo delegato o sub-delegato.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+        '''.strip()
+
+        try:
+            send_mail(
+                subject=f'🔐 Accesso AInaudi - {consultazione_nome}',
+                message=text_message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],
                 fail_silently=False,
+                html_message=html_message,
             )
         except Exception as e:
             return Response(
