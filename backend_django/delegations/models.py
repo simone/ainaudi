@@ -706,6 +706,14 @@ class ProcessoDesignazione(models.Model):
         help_text=_('Snapshot dati delegato/subdelegato usati per generare PDF')
     )
 
+    # Sezioni selezionate per questo processo (salvate all'avvio)
+    sezione_ids = models.JSONField(
+        _('sezioni selezionate'),
+        default=list,
+        blank=True,
+        help_text=_('Array di ID sezioni per cui generare designazioni')
+    )
+
     stato = models.CharField(
         _('stato'),
         max_length=30,

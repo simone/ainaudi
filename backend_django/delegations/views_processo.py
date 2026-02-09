@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from django.utils import timezone
 from django.db import transaction
 
-from .models import ProcessoDesignazione, DesignazioneRDL, Delegato
+from .models import ProcessoDesignazione, DesignazioneRDL, Delegato, SubDelega
 from .serializers import (
     ProcessoDesignazioneSerializer,
     AvviaProcessoSerializer,
@@ -103,7 +103,13 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             campi_richiesti: [{field_name, field_type, label, required, current_value}]
         }
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[ProcessoDesignazione.create] request.data: {request.data}")
+
         serializer = AvviaProcessoSerializer(data=request.data)
+        if not serializer.is_valid():
+            logger.error(f"[ProcessoDesignazione.create] Validation errors: {serializer.errors}")
         serializer.is_valid(raise_exception=True)
 
         consultazione_id = serializer.validated_data['consultazione_id']
@@ -114,7 +120,7 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         except ConsultazioneElettorale.DoesNotExist:
             return Response({'error': 'Consultazione non trovata'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Determina il comune dalle sezioni selezionate
+        # Valida sezioni e verifica permessi
         from territory.models import SezioneElettorale
         from data.models import SectionAssignment
 
@@ -122,185 +128,35 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         if not sezioni.exists():
             return Response({'error': 'Nessuna sezione trovata'}, status=status.HTTP_400_BAD_REQUEST)
 
-        sezione_sample = sezioni.first()
-        comune = sezione_sample.comune if sezione_sample else None
-
-        # Step 1: Crea processo PRIMA di creare designazioni
-        processo = ProcessoDesignazione.objects.create(
-            consultazione=consultazione,
-            comune=comune,
-            stato='SELEZIONE_TEMPLATE',
-            created_by_email=request.user.email,
-            n_designazioni=len(sezione_ids)
-        )
-
-        # Step 2: Per ogni sezione, crea/riusa designazione e collegala al processo
-        from .permissions import get_sezioni_filter_for_user, get_user_delegation_roles
-        from .models import SubDelega
-
-        roles = get_user_delegation_roles(request.user, consultazione_id)
-        sub_deleghe = roles['sub_deleghe'].prefetch_related('regioni', 'province', 'comuni')
-        delegati = roles['deleghe_lista'].prefetch_related('regioni', 'province', 'comuni')
-
-        designazioni_create = []
+        # Verifica che nessuna sezione sia già confermata
         errori = []
-
         for sezione in sezioni:
-            # Verifica se esiste designazione CONFERMATA (non può essere riusata)
             confirmed = DesignazioneRDL.objects.filter(
                 sezione=sezione,
                 is_attiva=True,
                 stato='CONFERMATA'
             ).first()
-
             if confirmed:
                 errori.append(f'Sezione {sezione.numero}: già confermata in altro processo')
-                continue
-
-            # Cerca SectionAssignment per questa sezione
-            assignments = SectionAssignment.objects.filter(
-                sezione=sezione,
-                consultazione=consultazione
-            ).select_related('rdl_registration')
-
-            effettivo = None
-            supplente = None
-            for assignment in assignments:
-                if not assignment.rdl_registration:
-                    continue
-                if assignment.role == 'RDL':
-                    effettivo = assignment.rdl_registration
-                elif assignment.role == 'SUPPLENTE':
-                    supplente = assignment.rdl_registration
-
-            if not effettivo and not supplente:
-                errori.append(f'Sezione {sezione.numero}: nessun RDL assegnato')
-                continue
-
-            # Trova sub-delega o delegato appropriato
-            from .views import DesignazioneRDLViewSet
-            sub_delega = None
-            delegato_diretto = None
-
-            # Usa le stesse funzioni helper di carica_mappatura
-            for sd in sub_deleghe:
-                if self._sezione_matches_subdelega(sezione, sd):
-                    sub_delega = sd
-                    break
-
-            if not sub_delega:
-                for delegato in delegati:
-                    if self._sezione_matches_delegato(sezione, delegato):
-                        delegato_diretto = delegato
-                        break
-
-            if not sub_delega and not delegato_diretto:
-                errori.append(f'Sezione {sezione.numero}: nessuna delega trovata')
-                continue
-
-            # Cerca designazione BOZZA esistente (in qualsiasi processo)
-            existing = DesignazioneRDL.objects.filter(
-                sezione=sezione,
-                is_attiva=True,
-                stato='BOZZA'
-            ).first()
-
-            if existing:
-                # Riusa la designazione esistente: scollega dal vecchio processo e collega al nuovo
-                existing.processo = processo
-
-                # Aggiorna dati snapshot
-                if effettivo:
-                    existing.effettivo_cognome = effettivo.cognome
-                    existing.effettivo_nome = effettivo.nome
-                    existing.effettivo_email = effettivo.email
-                    existing.effettivo_telefono = effettivo.telefono or ''
-                    existing.effettivo_luogo_nascita = effettivo.comune_nascita or ''
-                    existing.effettivo_data_nascita = effettivo.data_nascita
-                    existing.effettivo_domicilio = f"{effettivo.indirizzo_residenza}, {effettivo.comune_residenza}"
-                else:
-                    existing.effettivo_cognome = ''
-                    existing.effettivo_nome = ''
-                    existing.effettivo_email = ''
-                    existing.effettivo_telefono = ''
-                    existing.effettivo_luogo_nascita = ''
-                    existing.effettivo_data_nascita = None
-                    existing.effettivo_domicilio = ''
-
-                if supplente:
-                    existing.supplente_cognome = supplente.cognome
-                    existing.supplente_nome = supplente.nome
-                    existing.supplente_email = supplente.email
-                    existing.supplente_telefono = supplente.telefono or ''
-                    existing.supplente_luogo_nascita = supplente.comune_nascita or ''
-                    existing.supplente_data_nascita = supplente.data_nascita
-                    existing.supplente_domicilio = f"{supplente.indirizzo_residenza}, {supplente.comune_residenza}"
-                else:
-                    existing.supplente_cognome = ''
-                    existing.supplente_nome = ''
-                    existing.supplente_email = ''
-                    existing.supplente_telefono = ''
-                    existing.supplente_luogo_nascita = ''
-                    existing.supplente_data_nascita = None
-                    existing.supplente_domicilio = ''
-
-                existing.sub_delega = sub_delega
-                existing.delegato = delegato_diretto
-                existing.save()
-                designazioni_create.append(existing)
-            else:
-                # Crea nuova designazione già collegata al processo
-                designazione_data = {
-                    'processo': processo,
-                    'sezione': sezione,
-                    'sub_delega': sub_delega,
-                    'delegato': delegato_diretto,
-                    'stato': 'BOZZA',
-                    'is_attiva': True,
-                    'created_by_email': request.user.email
-                }
-
-                # Snapshot effettivo
-                if effettivo:
-                    designazione_data.update({
-                        'effettivo_cognome': effettivo.cognome,
-                        'effettivo_nome': effettivo.nome,
-                        'effettivo_email': effettivo.email,
-                        'effettivo_telefono': effettivo.telefono or '',
-                        'effettivo_luogo_nascita': effettivo.comune_nascita or '',
-                        'effettivo_data_nascita': effettivo.data_nascita,
-                        'effettivo_domicilio': f"{effettivo.indirizzo_residenza}, {effettivo.comune_residenza}"
-                    })
-
-                # Snapshot supplente
-                if supplente:
-                    designazione_data.update({
-                        'supplente_cognome': supplente.cognome,
-                        'supplente_nome': supplente.nome,
-                        'supplente_email': supplente.email,
-                        'supplente_telefono': supplente.telefono or '',
-                        'supplente_luogo_nascita': supplente.comune_nascita or '',
-                        'supplente_data_nascita': supplente.data_nascita,
-                        'supplente_domicilio': f"{supplente.indirizzo_residenza}, {supplente.comune_residenza}"
-                    })
-
-                designazione = DesignazioneRDL.objects.create(**designazione_data)
-                designazioni_create.append(designazione)
 
         if errori:
-            # Se ci sono errori, elimina il processo e ritorna errore
-            processo.delete()
-            return Response({'error': 'Errori nella creazione designazioni', 'dettagli': errori}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Sezioni non disponibili', 'dettagli': errori}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not designazioni_create:
-            processo.delete()
-            return Response({'error': 'Nessuna designazione creata'}, status=status.HTTP_400_BAD_REQUEST)
+        # Determina il comune dalle sezioni selezionate
+        sezione_sample = sezioni.first()
+        comune = sezione_sample.comune if sezione_sample else None
 
-        # Aggiorna conteggio designazioni
-        processo.n_designazioni = len(designazioni_create)
-        processo.save()
+        # Step 1: Crea processo SENZA designazioni (solo salva sezioni)
+        processo = ProcessoDesignazione.objects.create(
+            consultazione=consultazione,
+            comune=comune,
+            stato='SELEZIONE_TEMPLATE',
+            created_by_email=request.user.email,
+            sezione_ids=sezione_ids,  # Salva le sezioni per crearle dopo
+            n_designazioni=len(sezione_ids)
+        )
 
-        # Step 4: Analizza template disponibili
+        # Step 2: Analizza template disponibili
         template_choices = self._get_template_choices(consultazione)
 
         # Step 5: Determina chi è l'utente corrente (Delegato o SubDelegato)
@@ -465,23 +321,161 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         except Template.DoesNotExist:
             return Response({'error': 'Template non trovato'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Valida delegato (se fornito)
+        # Valida delegato e sub_delega (almeno uno deve essere fornito)
         delegato = None
+        sub_delega = None
+
         if delegato_id:
             try:
                 delegato = Delegato.objects.get(id=delegato_id, consultazione=processo.consultazione)
             except Delegato.DoesNotExist:
                 return Response({'error': 'Delegato non trovato'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Step 1: Salva configurazione processo
+        if subdelegato_id:
+            try:
+                sub_delega = SubDelega.objects.get(id=subdelegato_id, is_attiva=True)
+                if sub_delega.delegato.consultazione != processo.consultazione:
+                    return Response({'error': 'SubDelegato non appartiene alla consultazione'}, status=status.HTTP_400_BAD_REQUEST)
+            except SubDelega.DoesNotExist:
+                return Response({'error': 'SubDelegato non trovato'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not delegato and not sub_delega:
+            return Response({'error': 'Deve essere fornito almeno uno tra delegato e subdelegato'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Step 1: Crea designazioni dalle sezioni salvate
+        from territory.models import SezioneElettorale
+        from data.models import SectionAssignment
+
+        sezioni = SezioneElettorale.objects.filter(id__in=processo.sezione_ids)
+        errori = []
+        designazioni_create = []
+
+        for sezione in sezioni:
+            # Cerca SectionAssignment per questa sezione
+            assignments = SectionAssignment.objects.filter(
+                sezione=sezione,
+                consultazione=processo.consultazione
+            ).select_related('rdl_registration')
+
+            effettivo = None
+            supplente = None
+            for assignment in assignments:
+                if not assignment.rdl_registration:
+                    continue
+                if assignment.role == 'RDL':
+                    effettivo = assignment.rdl_registration
+                elif assignment.role == 'SUPPLENTE':
+                    supplente = assignment.rdl_registration
+
+            if not effettivo and not supplente:
+                errori.append(f'Sezione {sezione.numero}: nessun RDL assegnato')
+                continue
+
+            # Cerca designazione BOZZA esistente (riusa se esiste)
+            existing = DesignazioneRDL.objects.filter(
+                sezione=sezione,
+                is_attiva=True,
+                stato='BOZZA'
+            ).first()
+
+            if existing:
+                # Riusa la designazione esistente
+                existing.processo = processo
+                existing.sub_delega = sub_delega
+                existing.delegato = delegato
+
+                # Aggiorna snapshot dati RDL
+                if effettivo:
+                    existing.effettivo_cognome = effettivo.cognome
+                    existing.effettivo_nome = effettivo.nome
+                    existing.effettivo_email = effettivo.email
+                    existing.effettivo_telefono = effettivo.telefono or ''
+                    existing.effettivo_luogo_nascita = effettivo.comune_nascita or ''
+                    existing.effettivo_data_nascita = effettivo.data_nascita
+                    existing.effettivo_domicilio = f"{effettivo.indirizzo_residenza}, {effettivo.comune_residenza}"
+                else:
+                    existing.effettivo_cognome = ''
+                    existing.effettivo_nome = ''
+                    existing.effettivo_email = ''
+                    existing.effettivo_telefono = ''
+                    existing.effettivo_luogo_nascita = ''
+                    existing.effettivo_data_nascita = None
+                    existing.effettivo_domicilio = ''
+
+                if supplente:
+                    existing.supplente_cognome = supplente.cognome
+                    existing.supplente_nome = supplente.nome
+                    existing.supplente_email = supplente.email
+                    existing.supplente_telefono = supplente.telefono or ''
+                    existing.supplente_luogo_nascita = supplente.comune_nascita or ''
+                    existing.supplente_data_nascita = supplente.data_nascita
+                    existing.supplente_domicilio = f"{supplente.indirizzo_residenza}, {supplente.comune_residenza}"
+                else:
+                    existing.supplente_cognome = ''
+                    existing.supplente_nome = ''
+                    existing.supplente_email = ''
+                    existing.supplente_telefono = ''
+                    existing.supplente_luogo_nascita = ''
+                    existing.supplente_data_nascita = None
+                    existing.supplente_domicilio = ''
+
+                existing.save()
+                designazioni_create.append(existing)
+            else:
+                # Crea nuova designazione
+                designazione_data = {
+                    'processo': processo,
+                    'sezione': sezione,
+                    'sub_delega': sub_delega,
+                    'delegato': delegato,
+                    'stato': 'BOZZA',
+                    'is_attiva': True,
+                    'created_by_email': request.user.email
+                }
+
+                # Snapshot effettivo
+                if effettivo:
+                    designazione_data.update({
+                        'effettivo_cognome': effettivo.cognome,
+                        'effettivo_nome': effettivo.nome,
+                        'effettivo_email': effettivo.email,
+                        'effettivo_telefono': effettivo.telefono or '',
+                        'effettivo_luogo_nascita': effettivo.comune_nascita or '',
+                        'effettivo_data_nascita': effettivo.data_nascita,
+                        'effettivo_domicilio': f"{effettivo.indirizzo_residenza}, {effettivo.comune_residenza}"
+                    })
+
+                # Snapshot supplente
+                if supplente:
+                    designazione_data.update({
+                        'supplente_cognome': supplente.cognome,
+                        'supplente_nome': supplente.nome,
+                        'supplente_email': supplente.email,
+                        'supplente_telefono': supplente.telefono or '',
+                        'supplente_luogo_nascita': supplente.comune_nascita or '',
+                        'supplente_data_nascita': supplente.data_nascita,
+                        'supplente_domicilio': f"{supplente.indirizzo_residenza}, {supplente.comune_residenza}"
+                    })
+
+                designazione = DesignazioneRDL.objects.create(**designazione_data)
+                designazioni_create.append(designazione)
+
+        if errori:
+            return Response({'error': 'Errori nella creazione designazioni', 'dettagli': errori}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not designazioni_create:
+            return Response({'error': 'Nessuna designazione creata'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Step 2: Salva configurazione processo
         processo.template_individuale = template_ind
         processo.template_cumulativo = template_cum
         processo.delegato = delegato
         processo.dati_delegato = dati_delegato
-        processo.stato = 'BOZZA'  # Rimane BOZZA fino a quando entrambi i PDF sono generati
+        processo.n_designazioni = len(designazioni_create)
+        processo.stato = 'BOZZA'  # Ora che le designazioni sono create, processo è BOZZA
         processo.save()
 
-        # Step 2: Aggiorna dati delegato su DB (se presente)
+        # Step 3: Aggiorna dati delegato su DB (se presente)
         if delegato:
             for field, value in dati_delegato.items():
                 if hasattr(delegato, field) and value:
