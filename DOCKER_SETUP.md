@@ -28,19 +28,43 @@ docker-compose up -d
 - **Backend API**: http://localhost:3001 (Django)
 - **Database**: PostgreSQL su porta 5432
 
-### 3. Esegui migrations
+### 3. Inizializza database
+
+**Metodo automatico (raccomandato):**
 
 ```bash
-docker-compose exec backend python manage.py migrate
+./scripts/init-db.sh
 ```
 
-### 4. Crea superuser
+Lo script configura automaticamente:
+- ✅ Migrations
+- ✅ 20 Regioni italiane
+- ✅ 107 Province
+- ✅ ~8.000 Comuni (import da CSV ISTAT)
+- ✅ Consultazione elettorale 2025 attiva
+- ✅ Referendum + Europee + Politiche + Comunali
+- ✅ Superuser Django
+
+**Metodo manuale:**
 
 ```bash
+# Migrations
+docker-compose exec backend python manage.py migrate
+
+# Dati territoriali base
+docker-compose exec backend python manage.py loaddata fixtures/initial_data.json
+
+# Consultazione attiva
+docker-compose exec backend python manage.py loaddata fixtures/consultazione_multipla_2025.json
+
+# Comuni (da CSV)
+docker-compose exec backend python manage.py import_comuni_istat fixtures/SCUANAGRAFESTAT20252620250901.csv
+
+# Superuser
 docker-compose exec backend python manage.py createsuperuser
 ```
 
-### 5. Accedi
+### 4. Accedi
 
 Vai su http://localhost:3000 e usa Magic Link con la tua email.
 
