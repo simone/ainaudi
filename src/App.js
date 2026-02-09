@@ -6,7 +6,6 @@ import Kpi from "./Kpi";
 import Client, {clearCache} from "./Client";
 import SectionList from "./SectionList";
 import logo from './assets/ainaudi_logo.png';
-import GeneraModuli from "./GeneraModuli";
 import GestioneSezioni from "./GestioneSezioni";
 import EmailAutocomplete from "./EmailAutocomplete";
 import RdlSelfRegistration from "./RdlSelfRegistration";
@@ -505,9 +504,9 @@ function AppContent() {
                                         )}
 
                                         {/* 5. DELEGATI - Catena deleghe e designazioni */}
-                                        {(permissions.can_manage_delegations || permissions.can_manage_designazioni || permissions.can_manage_templates || permissions.can_generate_documents) && (
+                                        {(permissions.can_manage_delegations || permissions.can_manage_designazioni || permissions.can_manage_templates) && (
                                             <li className="nav-item dropdown">
-                                                <a className={`nav-link dropdown-toggle ${['deleghe', 'designazioni', 'pdf', 'template_list', 'template_editor'].includes(activeTab) ? 'active' : ''}`}
+                                                <a className={`nav-link dropdown-toggle ${['deleghe', 'designazioni', 'template_list', 'template_editor'].includes(activeTab) ? 'active' : ''}`}
                                                    href="#"
                                                    role="button"
                                                    onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsDelegheDropdownOpen(!isDelegheDropdownOpen); }}
@@ -540,15 +539,6 @@ function AppContent() {
                                                                onClick={() => { activate('template_list'); setTemplateIdToEdit(null); closeAllDropdowns(); }} href="#">
                                                                 <i className="fas fa-file-pdf me-2"></i>
                                                                 Template PDF
-                                                            </a>
-                                                        </li>
-                                                    )}
-                                                    {consultazione && permissions.can_generate_documents && (
-                                                        <li>
-                                                            <a className={`dropdown-item ${activeTab === 'pdf' ? 'active' : ''}`}
-                                                               onClick={() => { activate('pdf'); closeAllDropdowns(); }} href="#">
-                                                                <i className="fas fa-file-signature me-2"></i>
-                                                                Genera Moduli
                                                             </a>
                                                         </li>
                                                     )}
@@ -787,14 +777,6 @@ function AppContent() {
                                         client={client}
                                         setError={setError}
                                         consultazione={consultazione}
-                                    />
-                                </div>
-                            )}
-                            {activeTab === 'pdf' && pdf && (
-                                <div className="tab-pane active">
-                                    <GeneraModuli
-                                        client={client}
-                                        setError={setError}
                                     />
                                 </div>
                             )}

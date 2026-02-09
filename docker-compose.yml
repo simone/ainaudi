@@ -97,30 +97,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # PDF Worker (Event-driven)
-  pdf-worker:
-    build:
-      context: ./pdf
-      dockerfile: Dockerfile.worker
-    container_name: rdl_pdf_worker
-    restart: unless-stopped
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PDF_EVENT_CHANNEL=pdf_events
-      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
-      - EMAIL_PORT=${EMAIL_PORT:-587}
-      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
-      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
-      - EMAIL_USE_TLS=true
-      - MEDIA_ROOT=/app/media
-    volumes:
-      - backend_media:/app/media:ro  # Shared media volume (read-only for PDF worker)
-    depends_on:
-      redis:
-        condition: service_healthy
-    command: python worker.py
-
 volumes:
   postgres_data:
   backend_static:

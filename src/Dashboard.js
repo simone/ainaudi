@@ -193,27 +193,7 @@ function Dashboard({ user, permissions, consultazione, onNavigate }) {
             cta: 'Gestisci Template'
         },
 
-        // 10. GENERA MODULI
-        {
-            id: 'genera_pdf',
-            title: 'Genera Moduli',
-            icon: 'fa-print',
-            color: '#f39c12',
-            gradient: 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)',
-            description: 'Genera i documenti PDF di designazione RDL da inviare alla Prefettura per l\'autorizzazione.',
-            purpose: 'Crea i moduli ufficiali necessari per la nomina formale dei Rappresentanti di Lista.',
-            features: [
-                'Generazione PDF',
-                'Documento individuale',
-                'Documento cumulativo',
-                'Download e stampa'
-            ],
-            permission: permissions.can_generate_documents && consultazione,
-            action: () => onNavigate('pdf'),
-            cta: 'Genera PDF'
-        },
-
-        // 11. SCRUTINIO
+        // 10. SCRUTINIO
         {
             id: 'scrutinio',
             title: 'Scrutinio',
