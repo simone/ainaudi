@@ -13,7 +13,7 @@ from django.db.models import Q
 from django.db import transaction
 
 from core.permissions import (
-    CanManageRDL, HasScrutinioAccess, CanManageDelegations,
+    CanManageRDL, HasScrutinioAccess, CanManageDelegations, CanManageMappatura,
     CanManageTerritory
 )
 from .models import SectionAssignment, DatiSezione, DatiScheda
@@ -3252,9 +3252,9 @@ class MappaturaSezioniView(APIView):
     Returns sections grouped by plesso (denominazione) with assignment info.
     Also returns user's territory info for filtering UI.
 
-    Permission: can_manage_delegations (Delegato, SubDelegato)
+    Permission: can_manage_mappatura (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated, CanManageDelegations]
+    permission_classes = [permissions.IsAuthenticated, CanManageMappatura]
 
     def get(self, request):
         from delegations.permissions import get_sezioni_filter_for_user, has_referenti_permission, get_user_delegation_roles
@@ -3558,9 +3558,9 @@ class MappaturaRdlView(APIView):
 
     Returns RDL registrations (APPROVED) with their current assignments.
 
-    Permission: can_manage_delegations (Delegato, SubDelegato)
+    Permission: can_manage_mappatura (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated, CanManageDelegations]
+    permission_classes = [permissions.IsAuthenticated, CanManageMappatura]
 
     def get(self, request):
         from delegations.permissions import has_referenti_permission
@@ -3727,9 +3727,9 @@ class MappaturaAssegnaView(APIView):
 
     DELETE /api/mappatura/assegna/{assignment_id}/
 
-    Permission: can_manage_delegations (Delegato, SubDelegato)
+    Permission: can_manage_mappatura (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated, CanManageDelegations]
+    permission_classes = [permissions.IsAuthenticated, CanManageMappatura]
 
     def post(self, request):
         from delegations.permissions import has_referenti_permission
@@ -3866,9 +3866,9 @@ class MappaturaAssegnaBulkView(APIView):
         "ruolo": "RDL"
     }
 
-    Permission: can_manage_delegations (Delegato, SubDelegato)
+    Permission: can_manage_mappatura (Delegato, SubDelegato)
     """
-    permission_classes = [permissions.IsAuthenticated, CanManageDelegations]
+    permission_classes = [permissions.IsAuthenticated, CanManageMappatura]
 
     def post(self, request):
         from delegations.permissions import has_referenti_permission
