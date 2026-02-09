@@ -1,6 +1,6 @@
 [
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 1,
     "fields": {
       "codice_istat": "01",
@@ -9,7 +9,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 2,
     "fields": {
       "codice_istat": "02",
@@ -18,7 +18,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 3,
     "fields": {
       "codice_istat": "03",
@@ -27,7 +27,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 4,
     "fields": {
       "codice_istat": "04",
@@ -36,7 +36,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 5,
     "fields": {
       "codice_istat": "05",
@@ -45,7 +45,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 6,
     "fields": {
       "codice_istat": "06",
@@ -54,7 +54,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 7,
     "fields": {
       "codice_istat": "07",
@@ -63,7 +63,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 8,
     "fields": {
       "codice_istat": "08",
@@ -72,7 +72,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 9,
     "fields": {
       "codice_istat": "09",
@@ -81,7 +81,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 10,
     "fields": {
       "codice_istat": "10",
@@ -90,7 +90,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 11,
     "fields": {
       "codice_istat": "11",
@@ -99,7 +99,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 12,
     "fields": {
       "codice_istat": "12",
@@ -108,7 +108,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 13,
     "fields": {
       "codice_istat": "13",
@@ -117,7 +117,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 14,
     "fields": {
       "codice_istat": "14",
@@ -126,7 +126,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 15,
     "fields": {
       "codice_istat": "15",
@@ -135,7 +135,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 16,
     "fields": {
       "codice_istat": "16",
@@ -144,7 +144,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 17,
     "fields": {
       "codice_istat": "17",
@@ -153,7 +153,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 18,
     "fields": {
       "codice_istat": "18",
@@ -162,7 +162,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 19,
     "fields": {
       "codice_istat": "19",
@@ -171,7 +171,7 @@
     }
   },
   {
-    "model": "territorio.regione",
+    "model": "territory.regione",
     "pk": 20,
     "fields": {
       "codice_istat": "20",
@@ -180,7 +180,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 1,
     "fields": {
       "regione": 1,
@@ -191,7 +191,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 2,
     "fields": {
       "regione": 1,
@@ -202,7 +202,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 3,
     "fields": {
       "regione": 1,
@@ -213,7 +213,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 4,
     "fields": {
       "regione": 1,
@@ -224,7 +224,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 5,
     "fields": {
       "regione": 1,
@@ -235,7 +235,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 6,
     "fields": {
       "regione": 1,
@@ -246,7 +246,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 7,
     "fields": {
       "regione": 1,
@@ -257,7 +257,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 8,
     "fields": {
       "regione": 1,
@@ -268,7 +268,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 9,
     "fields": {
       "regione": 2,
@@ -279,7 +279,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 10,
     "fields": {
       "regione": 3,
@@ -290,7 +290,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 11,
     "fields": {
       "regione": 3,
@@ -301,7 +301,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 12,
     "fields": {
       "regione": 3,
@@ -312,7 +312,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 13,
     "fields": {
       "regione": 3,
@@ -323,7 +323,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 14,
     "fields": {
       "regione": 3,
@@ -334,7 +334,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 15,
     "fields": {
       "regione": 3,
@@ -345,7 +345,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 16,
     "fields": {
       "regione": 3,
@@ -356,7 +356,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 17,
     "fields": {
       "regione": 3,
@@ -367,7 +367,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 18,
     "fields": {
       "regione": 3,
@@ -378,7 +378,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 19,
     "fields": {
       "regione": 3,
@@ -389,7 +389,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 20,
     "fields": {
       "regione": 3,
@@ -400,7 +400,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 21,
     "fields": {
       "regione": 3,
@@ -411,7 +411,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 22,
     "fields": {
       "regione": 4,
@@ -422,7 +422,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 23,
     "fields": {
       "regione": 4,
@@ -433,7 +433,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 24,
     "fields": {
       "regione": 5,
@@ -444,7 +444,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 25,
     "fields": {
       "regione": 5,
@@ -455,7 +455,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 26,
     "fields": {
       "regione": 5,
@@ -466,7 +466,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 27,
     "fields": {
       "regione": 5,
@@ -477,7 +477,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 28,
     "fields": {
       "regione": 5,
@@ -488,7 +488,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 29,
     "fields": {
       "regione": 5,
@@ -499,7 +499,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 30,
     "fields": {
       "regione": 5,
@@ -510,7 +510,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 31,
     "fields": {
       "regione": 6,
@@ -521,7 +521,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 32,
     "fields": {
       "regione": 6,
@@ -532,7 +532,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 33,
     "fields": {
       "regione": 6,
@@ -543,7 +543,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 34,
     "fields": {
       "regione": 6,
@@ -554,7 +554,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 35,
     "fields": {
       "regione": 7,
@@ -565,7 +565,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 36,
     "fields": {
       "regione": 7,
@@ -576,7 +576,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 37,
     "fields": {
       "regione": 7,
@@ -587,7 +587,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 38,
     "fields": {
       "regione": 7,
@@ -598,7 +598,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 39,
     "fields": {
       "regione": 8,
@@ -609,7 +609,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 40,
     "fields": {
       "regione": 8,
@@ -620,7 +620,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 41,
     "fields": {
       "regione": 8,
@@ -631,7 +631,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 42,
     "fields": {
       "regione": 8,
@@ -642,7 +642,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 43,
     "fields": {
       "regione": 8,
@@ -653,7 +653,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 44,
     "fields": {
       "regione": 8,
@@ -664,7 +664,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 45,
     "fields": {
       "regione": 8,
@@ -675,7 +675,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 46,
     "fields": {
       "regione": 8,
@@ -686,7 +686,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 47,
     "fields": {
       "regione": 8,
@@ -697,7 +697,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 48,
     "fields": {
       "regione": 9,
@@ -708,7 +708,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 49,
     "fields": {
       "regione": 9,
@@ -719,7 +719,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 50,
     "fields": {
       "regione": 9,
@@ -730,7 +730,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 51,
     "fields": {
       "regione": 9,
@@ -741,7 +741,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 52,
     "fields": {
       "regione": 9,
@@ -752,7 +752,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 53,
     "fields": {
       "regione": 9,
@@ -763,7 +763,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 54,
     "fields": {
       "regione": 9,
@@ -774,7 +774,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 55,
     "fields": {
       "regione": 9,
@@ -785,7 +785,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 56,
     "fields": {
       "regione": 9,
@@ -796,7 +796,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 57,
     "fields": {
       "regione": 9,
@@ -807,7 +807,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 58,
     "fields": {
       "regione": 10,
@@ -818,7 +818,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 59,
     "fields": {
       "regione": 10,
@@ -829,7 +829,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 60,
     "fields": {
       "regione": 11,
@@ -840,7 +840,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 61,
     "fields": {
       "regione": 11,
@@ -851,7 +851,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 62,
     "fields": {
       "regione": 11,
@@ -862,7 +862,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 63,
     "fields": {
       "regione": 11,
@@ -873,7 +873,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 64,
     "fields": {
       "regione": 11,
@@ -884,7 +884,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 65,
     "fields": {
       "regione": 12,
@@ -895,7 +895,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 66,
     "fields": {
       "regione": 12,
@@ -906,7 +906,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 67,
     "fields": {
       "regione": 12,
@@ -917,7 +917,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 68,
     "fields": {
       "regione": 12,
@@ -928,7 +928,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 69,
     "fields": {
       "regione": 12,
@@ -939,7 +939,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 70,
     "fields": {
       "regione": 13,
@@ -950,7 +950,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 71,
     "fields": {
       "regione": 13,
@@ -961,7 +961,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 72,
     "fields": {
       "regione": 13,
@@ -972,7 +972,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 73,
     "fields": {
       "regione": 13,
@@ -983,7 +983,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 74,
     "fields": {
       "regione": 14,
@@ -994,7 +994,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 75,
     "fields": {
       "regione": 14,
@@ -1005,7 +1005,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 76,
     "fields": {
       "regione": 15,
@@ -1016,7 +1016,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 77,
     "fields": {
       "regione": 15,
@@ -1027,7 +1027,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 78,
     "fields": {
       "regione": 15,
@@ -1038,7 +1038,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 79,
     "fields": {
       "regione": 15,
@@ -1049,7 +1049,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 80,
     "fields": {
       "regione": 15,
@@ -1060,7 +1060,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 81,
     "fields": {
       "regione": 16,
@@ -1071,7 +1071,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 82,
     "fields": {
       "regione": 16,
@@ -1082,7 +1082,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 83,
     "fields": {
       "regione": 16,
@@ -1093,7 +1093,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 84,
     "fields": {
       "regione": 16,
@@ -1104,7 +1104,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 85,
     "fields": {
       "regione": 16,
@@ -1115,7 +1115,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 86,
     "fields": {
       "regione": 16,
@@ -1126,7 +1126,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 87,
     "fields": {
       "regione": 17,
@@ -1137,7 +1137,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 88,
     "fields": {
       "regione": 17,
@@ -1148,7 +1148,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 89,
     "fields": {
       "regione": 18,
@@ -1159,7 +1159,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 90,
     "fields": {
       "regione": 18,
@@ -1170,7 +1170,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 91,
     "fields": {
       "regione": 18,
@@ -1181,7 +1181,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 92,
     "fields": {
       "regione": 18,
@@ -1192,7 +1192,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 93,
     "fields": {
       "regione": 18,
@@ -1203,7 +1203,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 94,
     "fields": {
       "regione": 19,
@@ -1214,7 +1214,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 95,
     "fields": {
       "regione": 19,
@@ -1225,7 +1225,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 96,
     "fields": {
       "regione": 19,
@@ -1236,7 +1236,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 97,
     "fields": {
       "regione": 19,
@@ -1247,7 +1247,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 98,
     "fields": {
       "regione": 19,
@@ -1258,7 +1258,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 99,
     "fields": {
       "regione": 19,
@@ -1269,7 +1269,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 100,
     "fields": {
       "regione": 19,
@@ -1280,7 +1280,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 101,
     "fields": {
       "regione": 19,
@@ -1291,7 +1291,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 102,
     "fields": {
       "regione": 19,
@@ -1302,7 +1302,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 103,
     "fields": {
       "regione": 20,
@@ -1313,7 +1313,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 104,
     "fields": {
       "regione": 20,
@@ -1324,7 +1324,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 105,
     "fields": {
       "regione": 20,
@@ -1335,7 +1335,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 106,
     "fields": {
       "regione": 20,
@@ -1346,7 +1346,7 @@
     }
   },
   {
-    "model": "territorio.provincia",
+    "model": "territory.provincia",
     "pk": 107,
     "fields": {
       "regione": 20,
