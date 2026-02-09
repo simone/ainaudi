@@ -93,10 +93,10 @@ cd backend_django && python manage.py loaddata fixtures/referendum_giustizia_202
 
 ```bash
 # Con Docker
-docker-compose exec backend python manage.py import_comuni_istat fixtures/SCUANAGRAFESTAT20252620250901.csv
+docker-compose exec backend python manage.py import_comuni_istat --file fixtures/SCUANAGRAFESTAT20252620250901.csv
 
 # Senza Docker
-cd backend_django && python manage.py import_comuni_istat fixtures/SCUANAGRAFESTAT20252620250901.csv
+cd backend_django && python manage.py import_comuni_istat --file fixtures/SCUANAGRAFESTAT20252620250901.csv
 ```
 
 **Tempo:** ~1-2 minuti
@@ -108,17 +108,17 @@ cd backend_django && python manage.py import_comuni_istat fixtures/SCUANAGRAFEST
 
 ```bash
 # Con Docker
-docker-compose exec backend python manage.py import_sezioni_italia fixtures/SCUANAGRAFESTAT20252620250901.csv
+docker-compose exec backend python manage.py import_sezioni_italia --file fixtures/SCUANAGRAFESTAT20252620250901.csv
 
 # Senza Docker
-cd backend_django && python manage.py import_sezioni_italia fixtures/SCUANAGRAFESTAT20252620250901.csv
+cd backend_django && python manage.py import_sezioni_italia --file fixtures/SCUANAGRAFESTAT20252620250901.csv
 ```
 
 **Alternativa veloce:** Importa solo sezioni specifiche di un comune:
 
 ```bash
 # Esempio: solo Roma
-docker-compose exec backend python manage.py import_sezioni_italia fixtures/SCUANAGRAFESTAT20252620250901.csv --comune-codice 058091
+docker-compose exec backend python manage.py import_sezioni_italia --file fixtures/SCUANAGRAFESTAT20252620250901.csv --comune-codice 058091
 ```
 
 ### 6. Superuser

@@ -69,10 +69,21 @@ echo "🏘️  Import comuni italiani da dati ISTAT..."
 echo "   (Questo può richiedere 1-2 minuti...)"
 
 # Controlla se il file CSV esiste
+# Con Docker il working dir è /app (= backend_django/)
+# Senza Docker siamo nella root del progetto
+if [ -z "$DOCKER_CMD" ]; then
+    # Locale: usa percorso relativo da root progetto
+    CSV_PATH="backend_django/fixtures/SCUANAGRAFESTAT20252620250901.csv"
+else
+    # Docker: usa percorso relativo da /app
+    CSV_PATH="fixtures/SCUANAGRAFESTAT20252620250901.csv"
+fi
+
 if [ -f "backend_django/fixtures/SCUANAGRAFESTAT20252620250901.csv" ]; then
-    run_manage import_comuni_istat backend_django/fixtures/SCUANAGRAFESTAT20252620250901.csv
+    run_manage import_comuni_istat --file "$CSV_PATH"
 else
     echo "⚠️  File CSV comuni non trovato, salto questo step"
+    echo "   Path cercato: backend_django/fixtures/SCUANAGRAFESTAT20252620250901.csv"
     echo "   Puoi scaricarlo da: https://dati.istat.it/"
 fi
 
@@ -104,14 +115,26 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     if [ -f "backend_django/fixtures/SCUANAGRAFESTAT20252620250901.csv" ]; then
         echo "🗳️  Import sezioni italiane..."
         echo "   (Questo può richiedere 5-10 minuti per tutta Italia...)"
-        run_manage import_sezioni_italia backend_django/fixtures/SCUANAGRAFESTAT20252620250901.csv
+
+        # Stesso CSV dei comuni (contiene sia comuni che sezioni)
+        if [ -z "$DOCKER_CMD" ]; then
+            CSV_SEZIONI="backend_django/fixtures/SCUANAGRAFESTAT20252620250901.csv"
+        else
+            CSV_SEZIONI="fixtures/SCUANAGRAFESTAT20252620250901.csv"
+        fi
+
+        run_manage import_sezioni_italia --file "$CSV_SEZIONI"
     else
         echo "⚠️  File CSV sezioni non trovato"
     fi
 else
     echo "⏭️  Salto import sezioni"
     echo "   Puoi importarle dopo con:"
-    echo "   python manage.py import_sezioni_italia fixtures/SCUANAGRAFESTAT20252620250901.csv"
+    if [ -z "$DOCKER_CMD" ]; then
+        echo "   python manage.py import_sezioni_italia fixtures/SCUANAGRAFESTAT20252620250901.csv"
+    else
+        echo "   docker-compose exec backend python manage.py import_sezioni_italia fixtures/SCUANAGRAFESTAT20252620250901.csv"
+    fi
 fi
 
 echo ""
