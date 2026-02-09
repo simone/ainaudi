@@ -1130,7 +1130,6 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                             </button>
                         </>
                     )}
-                </div>
             </div>
 
             {/* Form Nuovo Template */}
