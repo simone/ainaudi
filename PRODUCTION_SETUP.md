@@ -129,46 +129,99 @@ gsutil cors set cors.json gs://ainaudi-documents
 gsutil ls -L -b gs://ainaudi-documents
 ```
 
-### 6. Configura SendGrid per Email (Magic Link)
+### 6. Configura SMTP per Email (Magic Link)
 
-**SendGrid** permette di inviare email (Magic Link, notifiche) in modo affidabile.
+Hai **2 opzioni** per inviare email (Magic Link, notifiche). Scegli quella più adatta:
 
-#### Step 1: Crea Account SendGrid
+---
+
+#### ✅ Opzione A: Gmail SMTP (Raccomandato per iniziare)
+
+**Pro:** Semplice, gratuito, affidabile
+**Contro:** Limite 500 email/giorno
+**Usa quando:** Hai un account Gmail e vuoi partire subito
+
+##### Step 1: Abilita Autenticazione a 2 Fattori
+
+1. Vai su [https://myaccount.google.com/security](https://myaccount.google.com/security)
+2. **Sicurezza** → **Verifica in due passaggi** → Attiva
+
+##### Step 2: Genera App Password
+
+1. Vai su [https://myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+2. Seleziona:
+   - **App:** Mail
+   - **Dispositivo:** Altro (nome personalizzato) → scrivi "AInaudi Django"
+3. Clicca **Genera**
+4. Google ti darà una **password di 16 caratteri** (es: `abcd efgh ijkl mnop`)
+5. **Copia subito** (appare una sola volta!)
+
+**⚠️ IMPORTANTE**: Salva la password App in un posto sicuro!
+
+---
+
+#### Opzione B: SendGrid SMTP (Per volumi alti)
+
+**Pro:** Scalabile, deliverability ottima, 100 email/giorno gratis
+**Contro:** Richiede account separato e configurazione dominio
+**Usa quando:** Hai bisogno di >500 email/giorno o analytics avanzate
+
+<details>
+<summary><b>📖 Click per vedere istruzioni SendGrid</b></summary>
+
+##### Step 1: Crea Account SendGrid
 
 1. Vai su [https://signup.sendgrid.com/](https://signup.sendgrid.com/)
 2. Registrati (piano free: 100 email/giorno)
 3. Verifica email e completa onboarding
 
-#### Step 2: Crea API Key
+##### Step 2: Crea API Key
 
-```bash
-# Dalla dashboard SendGrid:
-# 1. Settings → API Keys → Create API Key
-# 2. Nome: "ainaudi-prod-django"
-# 3. Permessi: Full Access (o "Mail Send" solo)
-# 4. Clicca Create & View
-# 5. COPIA la chiave (inizia con SG.xxx...)
-```
+1. Dashboard SendGrid → **Settings** → **API Keys**
+2. **Create API Key**
+   - Nome: "ainaudi-prod-django"
+   - Permessi: **Full Access** (o "Mail Send" solo)
+3. Clicca **Create & View**
+4. COPIA la chiave (inizia con `SG.xxx...`)
 
-**⚠️ IMPORTANTE**: La API key appare UNA SOLA VOLTA, salvala subito!
+**⚠️ IMPORTANTE**: La API key appare UNA SOLA VOLTA!
 
-#### Step 3: Verifica Sender (Opzionale ma Raccomandato)
+##### Step 3: Verifica Sender
 
-Per evitare che le email finiscano in spam:
+- **Settings** → **Sender Authentication** → **Verify a Single Sender**
+- Inserisci `noreply@m5s.it` (o la tua email) e verifica
 
-```bash
-# Opzione A: Single Sender Verification (veloce, per testing)
-# Settings → Sender Authentication → Verify a Single Sender
-# Inserisci email e verifica
+</details>
 
-# Opzione B: Domain Authentication (produzione)
-# Settings → Sender Authentication → Authenticate Your Domain
-# Aggiungi i record DNS che ti fornisce SendGrid
-```
+---
 
 ### 7. Configura Secret Manager (Password Sicure)
 
 **Secret Manager** permette di salvare password/chiavi in modo sicuro su GCP invece che in file .env
+
+#### 🚀 Metodo AUTOMATICO (Raccomandato)
+
+**Usa lo script** per configurare tutto interattivamente:
+
+```bash
+# Per Gmail SMTP (Opzione A)
+./scripts/setup-gmail-secrets.sh
+
+# Oppure per SendGrid SMTP (Opzione B)
+./scripts/setup-sendgrid-secrets.sh
+```
+
+Lo script ti chiederà:
+1. ✅ Password database PostgreSQL
+2. ✅ Gmail App Password (o SendGrid API Key)
+3. ✅ Configurerà automaticamente Secret Manager e permessi
+
+---
+
+#### 📖 Metodo MANUALE (Alternativo)
+
+<details>
+<summary><b>Click per vedere comandi manuali</b></summary>
 
 ```bash
 # Abilita Secret Manager API
@@ -179,7 +232,12 @@ echo -n "LA_TUA_PASSWORD_DATABASE" | gcloud secrets create db-password \
     --data-file=- \
     --replication-policy="automatic"
 
-# Crea secret per SendGrid API Key
+# Per Gmail: Crea secret per App Password
+echo -n "abcdefghijklmnop" | gcloud secrets create gmail-app-password \
+    --data-file=- \
+    --replication-policy="automatic"
+
+# OPPURE per SendGrid: Crea secret per API Key
 echo -n "SG.xxxxxxxxxxxxxxxxxxxxxxxx" | gcloud secrets create sendgrid-api-key \
     --data-file=- \
     --replication-policy="automatic"
@@ -189,7 +247,7 @@ gcloud secrets add-iam-policy-binding db-password \
     --member="serviceAccount:ainaudi-prod@appspot.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
 
-gcloud secrets add-iam-policy-binding sendgrid-api-key \
+gcloud secrets add-iam-policy-binding gmail-app-password \
     --member="serviceAccount:ainaudi-prod@appspot.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
 
@@ -197,13 +255,22 @@ gcloud secrets add-iam-policy-binding sendgrid-api-key \
 gcloud secrets list
 ```
 
-**Ora modifica `backend_django/app.yaml`** per usare i secrets:
+</details>
+
+---
+
+**⚠️ IMPORTANTE**: Verifica che `backend_django/app.yaml` usi i secrets:
 
 ```yaml
 env_variables:
-  # ... altre variabili ...
+  # Database
   DB_PASSWORD: "secret://projects/ainaudi-prod/secrets/db-password/versions/latest"
-  EMAIL_HOST_PASSWORD: "secret://projects/ainaudi-prod/secrets/sendgrid-api-key/versions/latest"
+
+  # Email (Gmail)
+  EMAIL_HOST_PASSWORD: "secret://projects/ainaudi-prod/secrets/gmail-app-password/versions/latest"
+
+  # Oppure Email (SendGrid)
+  # EMAIL_HOST_PASSWORD: "secret://projects/ainaudi-prod/secrets/sendgrid-api-key/versions/latest"
 ```
 
 ### 8. Configura Variabili d'Ambiente Locali
@@ -232,17 +299,51 @@ CORS_ALLOWED_ORIGINS=https://ainaudi-prod.ew.r.appspot.com,https://yourdomain.co
 GOOGLE_CLOUD_PROJECT=ainaudi-prod
 GCS_BUCKET_NAME=ainaudi-documents
 
-# Email SMTP (SendGrid)
+# Email SMTP (Gmail - Opzione A)
 EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-EMAIL_HOST=smtp.sendgrid.net
+EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
-EMAIL_HOST_USER=apikey
-EMAIL_HOST_PASSWORD=SG.xxxxxxxxxxxxxxxxxxxxxxxx  # La tua API key SendGrid
-DEFAULT_FROM_EMAIL=noreply@m5s.it
+EMAIL_HOST_USER=s.federici@gmail.com
+EMAIL_HOST_PASSWORD=abcdefghijklmnop  # Gmail App Password (16 caratteri)
+DEFAULT_FROM_EMAIL=s.federici@gmail.com
+
+# Oppure Email SMTP (SendGrid - Opzione B)
+# EMAIL_HOST=smtp.sendgrid.net
+# EMAIL_HOST_USER=apikey
+# EMAIL_HOST_PASSWORD=SG.xxxxxxxxxxxxxxxxxxxxxxxx
+# DEFAULT_FROM_EMAIL=noreply@m5s.it
 ```
 
-### 9. Inizializza App Engine
+### 9. Testa Configurazione Email (Locale)
+
+**Prima di deployare**, testa che l'invio email funzioni in locale:
+
+```bash
+cd backend_django
+
+# Configura .env con i valori reali (vedi Step 8)
+nano .env
+
+# Test invio email
+python test_email.py tua@email.com
+```
+
+**Output atteso:**
+```
+✅ Email inviata con successo!
+📬 Controlla la casella di posta di: tua@email.com
+   (Controlla anche spam/promozioni)
+```
+
+**Se fallisce:**
+- Verifica che `EMAIL_HOST_PASSWORD` sia corretto (App Password Gmail a 16 caratteri)
+- Verifica che autenticazione 2FA sia attiva su Gmail
+- Controlla firewall (porta 587 deve essere aperta)
+
+---
+
+### 10. Inizializza App Engine
 
 ```bash
 # Inizializza App Engine nella regione europe-west
