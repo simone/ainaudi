@@ -881,7 +881,7 @@ function AppContent() {
                     <RdlSelfRegistration onClose={() => setShowRdlRegistration(false)} />
                 ) : (
                     <div className="card">
-                        <div className="card-header bg-primary text-white">
+                        <div className="card-header bg-referendum text-white">
                             <h5 className="mb-0">Accedi all'app RDL</h5>
                         </div>
                         <div className="card-body">
@@ -959,7 +959,7 @@ function AppContent() {
                                         </div>
                                         <button
                                             type="submit"
-                                            className="btn btn-primary btn-lg w-100"
+                                            className="btn btn-referendum btn-lg w-100"
                                             disabled={isLoading || !magicLinkEmail}
                                         >
                                             {isLoading ? (

@@ -267,6 +267,12 @@ h6 {
 .card-header.bg-info { background-color: var(--color-info) !important; color: var(--color-gray-800); }
 .card-header.bg-secondary { background-color: var(--color-gray-600) !important; color: white; }
 
+/* Referendum 2026 styling - matches Magic Link email template */
+.card-header.bg-referendum {
+  background: linear-gradient(135deg, #1F4E5F 0%, #2C5F6F 100%) !important;
+  color: white;
+}
+
 .card-body {
   background-color: white;
   padding: var(--spacing-lg);
@@ -347,6 +353,20 @@ h6 {
 .btn-danger {
   background-color: var(--color-danger);
   border-color: var(--color-danger);
+}
+
+/* Referendum 2026 button - red gradient matching email CTA */
+.btn-referendum {
+  background: linear-gradient(135deg, #DC143C 0%, #C8102E 100%);
+  border-color: #DC143C;
+  color: white;
+}
+
+.btn-referendum:hover,
+.btn-referendum:focus {
+  background: linear-gradient(135deg, #C8102E 0%, #B00020 100%);
+  border-color: #B00020;
+  color: white;
 }
 
 /* --------------------------------------------------------------------------
