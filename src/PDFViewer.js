@@ -178,7 +178,7 @@ function PDFViewer({ url, originalUrl, titolo, onClose }) {
                                 width={pageWidth}
                                 scale={pageWidth ? undefined : scale}
                                 onLoadSuccess={onPageLoadSuccess}
-                                renderTextLayer={true}
+                                renderTextLayer={false}
                                 renderAnnotationLayer={false}
                             />
                         </Document>
