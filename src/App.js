@@ -347,6 +347,9 @@ function AppContent() {
         }
         setActiveTab(tab);
         setIsMenuOpen(false);
+
+        // Scroll to top quando si cambia pagina (importante per mobile)
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleMagicLinkSubmit = async (e) => {
