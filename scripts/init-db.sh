@@ -93,14 +93,21 @@ echo "  Step 5: Municipi Roma (opzionale)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# I municipi richiedono che il comune di Roma esista già
-# Verifichiamo se i comuni sono stati caricati
+# I municipi richiedono che il comune di Roma esista già (import step 4)
 if [ -f "backend_django/fixtures/roma_municipi.json" ]; then
-    echo "🏛️  Carico municipi di Roma..."
-    run_manage loaddata fixtures/roma_municipi.json 2>&1 | grep -v "Warning" || true
-    echo "   (OK se vedi errori - i municipi richiedono che Roma esista già)"
+    read -p "Vuoi caricare i 15 municipi di Roma? (richiede comuni import) (y/N) " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "🏛️  Carico municipi di Roma..."
+        run_manage loaddata fixtures/roma_municipi.json || {
+            echo "❌ Errore: probabilmente Roma non esiste ancora nel database"
+            echo "   Esegui prima: python manage.py import_comuni_istat --file fixtures/SCUANAGRAFESTAT20252620250901.csv"
+        }
+    else
+        echo "⏭️  Salto municipi Roma"
+    fi
 else
-    echo "⏭️  Fixture municipi Roma non trovato, salto"
+    echo "ℹ️  Fixture municipi Roma non trovato, salto"
 fi
 
 echo ""
@@ -135,6 +142,39 @@ else
     else
         echo "   docker-compose exec backend python manage.py import_sezioni_italia fixtures/SCUANAGRAFESTAT20252620250901.csv"
     fi
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  Step 6bis: Update Dettagli Sezioni (es. Roma)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+echo "📍 I dati ISTAT contengono plessi scolastici (edifici nazionali)."
+echo "   Per collegare le sezioni agli indirizzi specifici del comune,"
+echo "   serve importare i dati rilasciati dal comune stesso."
+echo ""
+
+if [ -f "backend_django/fixtures/ROMA - Sezioni.csv" ]; then
+    read -p "Vuoi aggiornare le sezioni di Roma con indirizzi specifici? (y/N) " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "🏛️  Aggiorno sezioni di Roma con indirizzi..."
+
+        if [ -z "$DOCKER_CMD" ]; then
+            CSV_ROMA="backend_django/fixtures/ROMA - Sezioni.csv"
+        else
+            CSV_ROMA="fixtures/ROMA - Sezioni.csv"
+        fi
+
+        run_manage update_sezioni_dettagli "$CSV_ROMA"
+    else
+        echo "⏭️  Salto update sezioni Roma"
+    fi
+else
+    echo "ℹ️  File 'ROMA - Sezioni.csv' non trovato, salto questo step"
+    echo "   Puoi aggiungerlo dopo in fixtures/ e eseguire:"
+    echo "   python manage.py update_sezioni_dettagli 'fixtures/ROMA - Sezioni.csv'"
 fi
 
 echo ""
