@@ -12,6 +12,11 @@ Guida rapida per avviare AInaudi in locale con Docker.
 cp .env.docker.example .env.docker
 ```
 
+**Variabili importanti da configurare (opzionale):**
+- `VITE_RDL_REGISTRATION_URL`: URL form registrazione RDL (default: Google Form)
+- `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`: SMTP per invio email (vedi sezione Email)
+- `DEFAULT_FROM_EMAIL`: Mittente email con display name
+
 ### 2. Avvia tutto
 
 ```bash
