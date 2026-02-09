@@ -34,18 +34,14 @@ class DocumentoSerializer(serializers.ModelSerializer):
         ]
 
     def get_file_url(self, obj):
-        request = self.context.get('request')
-        if obj.file and request:
-            return request.build_absolute_uri(obj.file.url)
+        """Restituisce URL relativo (il frontend costruirà l'URL completo)."""
         return obj.file.url if obj.file else None
 
     def get_download_url(self, obj):
         """Restituisce l'URL per scaricare/visualizzare il documento."""
         if obj.url_esterno:
             return obj.url_esterno
-        request = self.context.get('request')
-        if obj.file and request:
-            return request.build_absolute_uri(obj.file.url)
+        # Restituisce URL relativo per file caricati (il frontend costruirà l'URL completo)
         return obj.file.url if obj.file else None
 
 

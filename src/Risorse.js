@@ -187,10 +187,16 @@ function Risorse({ client, consultazione, setError }) {
     };
 
     /**
-     * Trasforma URL esterni in URL proxy per evitare CORS
+     * Trasforma URL in URL completi gestendo URL relativi e proxy per domini esterni
      */
     const getProxiedUrl = (url) => {
         if (!url) return url;
+
+        // Se è un URL relativo (inizia con /), aggiungilo al server backend
+        if (url.startsWith('/')) {
+            const apiUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
+            return `${apiUrl}${url}`;
+        }
 
         // Lista domini che richiedono proxy (governo, prefetture, etc.)
         const externalDomains = [
