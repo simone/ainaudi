@@ -7,7 +7,7 @@ import React from 'react';
 function Dashboard({ user, permissions, consultazione, onNavigate }) {
 
     const sections = [
-        // 1. TERRITORIO (solo superuser)
+        // 1. TERRITORIO
         {
             id: 'territorio',
             title: 'Territorio',
@@ -22,7 +22,7 @@ function Dashboard({ user, permissions, consultazione, onNavigate }) {
                 'Sezioni elettorali',
                 'Import massivo CSV'
             ],
-            permission: user?.is_superuser,
+            permission: permissions.can_manage_territory,
             action: () => onNavigate('territorio_admin'),
             cta: 'Gestisci Territorio'
         },
@@ -114,46 +114,46 @@ function Dashboard({ user, permissions, consultazione, onNavigate }) {
             highlight: true
         },
 
-        // 6. DIRETTA (solo per elezioni con liste/candidati, non referendum)
+        // 6. RISULTATI LIVE
         {
             id: 'diretta',
-            title: 'Diretta',
+            title: 'Risultati Live',
             icon: 'fa-chart-line',
             color: '#dc3545',
             gradient: 'linear-gradient(135deg, #dc3545 0%, #b02a37 100%)',
             description: 'Segui in tempo reale i risultati dello scrutinio con grafici, percentuali e proiezioni.',
-            purpose: 'Dashboard KPI che aggrega i dati inseriti dagli RDL per mostrare l\'andamento live.',
+            purpose: 'Visualizzazione aggregata dei dati inseriti dagli RDL per mostrare l\'andamento live.',
             features: [
                 'Aggiornamento real-time',
                 'Grafici interattivi',
                 'Affluenza e percentuali',
                 'Confronto territoriale'
             ],
-            permission: permissions.can_view_kpi && consultazione,
+            permission: permissions.can_view_live_results && consultazione,
             action: () => onNavigate('scrutinio-aggregato'),
             cta: 'Segui Live',
             badge: 'LIVE',
             badgeColor: '#dc3545'
         },
 
-        // 7. ASSISTENZA
+        // 7. RISORSE
         {
             id: 'assistenza',
-            title: 'Assistenza',
-            icon: 'fa-life-ring',
+            title: 'Risorse',
+            icon: 'fa-folder-open',
             color: '#17a2b8',
             gradient: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)',
-            description: 'Trova risposte, guide e supporto per ogni domanda. L\'assistente IA è pronto ad aiutarti.',
-            purpose: 'Centro di supporto unificato: risorse, FAQ, guide operative e assistenza intelligente.',
+            description: 'Trova risposte, guide e supporto per ogni domanda. Documenti e materiali sempre disponibili.',
+            purpose: 'Centro di supporto unificato: risorse, FAQ, guide operative e materiali formativi.',
             features: [
-                'Assistente IA',
+                'Documenti formativi',
                 'FAQ interattive',
                 'Guide e tutorial',
-                'Segnala problemi'
+                'Materiali scaricabili'
             ],
-            permission: true, // Sempre visibile per tutti
+            permission: permissions.can_view_resources,
             action: () => onNavigate('risorse'),
-            cta: 'Ottieni Aiuto'
+            cta: 'Vedi Risorse'
         },
     ];
 
