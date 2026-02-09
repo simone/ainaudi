@@ -7,18 +7,18 @@ services:
   # PostgreSQL Database (Alpine-based for minimal size)
   db:
     image: postgres:15-alpine
-    container_name: ainaudi_postgres_prod
+    container_name: rdl_postgres_prod
     restart: always
     user: postgres
     environment:
-      POSTGRES_DB: ${DB_NAME:-ainaudi_db}
+      POSTGRES_DB: ${DB_NAME:-rdl_referendum}
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password required}
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ainaudi_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rdl_referendum"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -35,7 +35,7 @@ services:
     build:
       context: ./backend_django
       dockerfile: Dockerfile
-    container_name: ainaudi_backend_prod
+    container_name: rdl_backend_prod
     restart: always
     # Run as non-root (distroless default)
     user: "65532:65532"
@@ -44,7 +44,7 @@ services:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:?Secret key required}
       - DB_HOST=db
       - DB_PORT=5432
-      - DB_NAME=${DB_NAME:-ainaudi_db}
+      - DB_NAME=${DB_NAME:-rdl_referendum}
       - DB_USER=${DB_USER:-postgres}
       - DB_PASSWORD=${DB_PASSWORD:?Database password required}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost}
@@ -87,7 +87,7 @@ services:
       dockerfile: docker/frontend.prod.Dockerfile
       args:
         VITE_API_URL: /api
-    container_name: ainaudi_frontend_prod
+    container_name: rdl_frontend_prod
     restart: always
     depends_on:
       - backend
@@ -107,7 +107,7 @@ services:
   # Nginx reverse proxy (distroless nginx)
   nginx:
     image: nginxinc/nginx-unprivileged:alpine
-    container_name: ainaudi_nginx_prod
+    container_name: rdl_nginx_prod
     restart: always
     ports:
       - "80:8080"

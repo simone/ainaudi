@@ -56,7 +56,7 @@ spec:
         - name: DB_PORT
           value: "5432"
         - name: DB_NAME
-          value: "rdl_referendum"
+          value: "ainaudi_db"
         - name: DB_USER
           value: "postgres"
         - name: DB_PASSWORD

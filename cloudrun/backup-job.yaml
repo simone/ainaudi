@@ -51,7 +51,7 @@ spec:
               gosu postgres pg_dump \
                   -h localhost \
                   -U postgres \
-                  -d rdl_referendum \
+                  -d ainaudi_db \
                   --no-owner \
                   --no-acl \
                   --format=plain \
@@ -78,7 +78,7 @@ spec:
             env:
             # Database settings
             - name: DB_NAME
-              value: "rdl_referendum"
+              value: "ainaudi_db"
             - name: DB_USER
               value: "postgres"
             - name: DB_PASSWORD

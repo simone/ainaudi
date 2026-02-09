@@ -72,7 +72,7 @@ docker-compose -f docker-compose.prod.yml ps
 
 ```bash
 # Database
-DB_NAME=rdl_referendum
+DB_NAME=ainaudi_db
 DB_USER=postgres
 DB_PASSWORD=<strong-password>
 
@@ -112,10 +112,10 @@ mkdir -p docker/ssl
 docker-compose -f docker-compose.prod.yml logs -f [service]
 
 # Backup database
-docker-compose -f docker-compose.prod.yml exec db pg_dump -U postgres rdl_referendum > backup.sql
+docker-compose -f docker-compose.prod.yml exec db pg_dump -U postgres ainaudi_db > backup.sql
 
 # Restore database
-docker-compose -f docker-compose.prod.yml exec -T db psql -U postgres rdl_referendum < backup.sql
+docker-compose -f docker-compose.prod.yml exec -T db psql -U postgres ainaudi_db < backup.sql
 
 # Update e restart
 docker-compose -f docker-compose.prod.yml pull
@@ -146,12 +146,12 @@ Se preferisci GAE invece di Docker:
 ```bash
 # Frontend
 npm run build
-gcloud app deploy app.yaml --project=rdl-europee-2024
+gcloud app deploy app.yaml --project=ainaudi-prod
 
 # Backend
 cd backend_django
 python manage.py collectstatic --noinput
-gcloud app deploy app.yaml --project=rdl-europee-2024
+gcloud app deploy app.yaml --project=ainaudi-prod
 ```
 
 ### Servizi Deprecati
@@ -184,11 +184,11 @@ gcloud run services replace cloudrun/service.yaml --region=europe-west1
 
 ```bash
 # Docker stats
-docker stats rdl_postgres_prod rdl_backend_prod rdl_frontend_prod rdl_nginx_prod
+docker stats ainaudi_postgres_prod ainaudi_backend_prod ainaudi_frontend_prod ainaudi_nginx_prod
 
 # Database size
 docker-compose -f docker-compose.prod.yml exec db \
-  psql -U postgres -c "SELECT pg_size_pretty(pg_database_size('rdl_referendum'));"
+  psql -U postgres -c "SELECT pg_size_pretty(pg_database_size('ainaudi_db'));"
 ```
 
 ## Troubleshooting

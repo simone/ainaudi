@@ -6,7 +6,7 @@ entrypoint: gunicorn -b :$PORT config.wsgi:application --workers 2 --threads 4
 
 env_variables:
   DJANGO_SETTINGS_MODULE: config.settings
-  GOOGLE_CLOUD_PROJECT: ainaudi-prod
+  GOOGLE_CLOUD_PROJECT: rdl-europee-2024
   DEBUG: "false"
   ALLOWED_HOSTS: ".appspot.com,.run.app"
 
@@ -23,7 +23,7 @@ handlers:
 
 # Cloud SQL connection
 beta_settings:
-  cloud_sql_instances: ainaudi-prod:europe-west1:ainaudi-db
+  cloud_sql_instances: rdl-europee-2024:europe-west1:rdl-db
 
 # Automatic scaling
 automatic_scaling:
