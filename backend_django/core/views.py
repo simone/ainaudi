@@ -114,7 +114,7 @@ AInaudi - Piattaforma Gestione Elettorale
 Movimento 5 Stelle
         '''.strip()
 
-        # HTML version (modern and professional)
+        # HTML version (modern and professional - Referendum M5S colors)
         html_message = f'''
 <!DOCTYPE html>
 <html lang="it">
@@ -129,15 +129,15 @@ Movimento 5 Stelle
             <td align="center">
                 <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; max-width: 100%;">
 
-                    <!-- Header con branding M5S -->
+                    <!-- Header con branding M5S Referendum -->
                     <tr>
-                        <td style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 30px 40px; text-align: center;">
-                            <div style="background-color: #FFCC00; display: inline-block; padding: 12px 24px; border-radius: 6px; margin-bottom: 15px;">
-                                <h1 style="margin: 0; font-size: 28px; color: #000000; font-weight: 700; letter-spacing: -0.5px;">
+                        <td style="background: linear-gradient(135deg, #1F4E5F 0%, #2C5F6F 100%); padding: 30px 40px; text-align: center;">
+                            <div style="background-color: #DC143C; display: inline-block; padding: 12px 24px; border-radius: 6px; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(220,20,60,0.3);">
+                                <h1 style="margin: 0; font-size: 28px; color: #FFFFFF; font-weight: 700; letter-spacing: -0.5px;">
                                     AInaudi
                                 </h1>
                             </div>
-                            <p style="margin: 10px 0 0 0; color: #FFCC00; font-size: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">
+                            <p style="margin: 10px 0 0 0; color: #FFFFFF; font-size: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">
                                 Gestione Elettorale
                             </p>
                         </td>
@@ -146,14 +146,14 @@ Movimento 5 Stelle
                     <!-- Consultazione badge -->
                     <tr>
                         <td style="padding: 25px 40px 0 40px; text-align: center;">
-                            <div style="background: linear-gradient(135deg, #FFCC00 0%, #FFD633 100%); border-radius: 8px; padding: 16px 24px; display: inline-block; box-shadow: 0 2px 4px rgba(255,204,0,0.3);">
-                                <p style="margin: 0; color: #000000; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                            <div style="background: linear-gradient(135deg, #2C5F6F 0%, #1F4E5F 100%); border-radius: 8px; padding: 16px 24px; display: inline-block; box-shadow: 0 2px 4px rgba(44,95,111,0.3);">
+                                <p style="margin: 0; color: #FFC800; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
                                     📋 Consultazione attiva
                                 </p>
-                                <p style="margin: 0; color: #000000; font-size: 16px; font-weight: 700;">
+                                <p style="margin: 0; color: #FFFFFF; font-size: 16px; font-weight: 700;">
                                     {consultazione_nome}
                                 </p>
-                                {f'<p style="margin: 4px 0 0 0; color: #333333; font-size: 13px; font-weight: 500;">{data_fmt}</p>' if consultazione and consultazione.data_inizio else ''}
+                                {f'<p style="margin: 4px 0 0 0; color: #E0E0E0; font-size: 13px; font-weight: 500;">{data_fmt}</p>' if consultazione and consultazione.data_inizio else ''}
                             </div>
                         </td>
                     </tr>
@@ -161,11 +161,11 @@ Movimento 5 Stelle
                     <!-- Saluto personalizzato -->
                     <tr>
                         <td style="padding: 30px 40px 20px 40px;">
-                            <h2 style="margin: 0 0 15px 0; font-size: 22px; color: #000000; font-weight: 600;">
+                            <h2 style="margin: 0 0 15px 0; font-size: 22px; color: #1F4E5F; font-weight: 600;">
                                 Ciao {user_name}! 👋
                             </h2>
                             <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
-                                Hai richiesto l'accesso sicuro alla piattaforma <strong>AInaudi</strong>.
+                                Hai richiesto l'accesso sicuro alla piattaforma <strong style="color: #DC143C;">AInaudi</strong>.
                                 Clicca sul pulsante qui sotto per accedere immediatamente.
                             </p>
                         </td>
@@ -174,7 +174,7 @@ Movimento 5 Stelle
                     <!-- CTA Button -->
                     <tr>
                         <td style="padding: 0 40px 30px 40px; text-align: center;">
-                            <a href="{magic_link}" style="display: inline-block; background: linear-gradient(135deg, #FFCC00 0%, #FFD633 100%); color: #000000; text-decoration: none; padding: 16px 40px; border-radius: 6px; font-size: 16px; font-weight: 700; letter-spacing: 0.3px; box-shadow: 0 4px 12px rgba(255,204,0,0.4); transition: all 0.3s ease;">
+                            <a href="{magic_link}" style="display: inline-block; background: linear-gradient(135deg, #DC143C 0%, #C8102E 100%); color: #FFFFFF; text-decoration: none; padding: 16px 40px; border-radius: 6px; font-size: 16px; font-weight: 700; letter-spacing: 0.3px; box-shadow: 0 4px 12px rgba(220,20,60,0.4); transition: all 0.3s ease;">
                                 🔐 Accedi alla Piattaforma
                             </a>
                             <p style="margin: 20px 0 0 0; font-size: 13px; color: #666666; line-height: 1.5;">
@@ -187,12 +187,12 @@ Movimento 5 Stelle
                     <!-- Info box -->
                     <tr>
                         <td style="padding: 0 40px 30px 40px;">
-                            <div style="background-color: #fffbf0; border-left: 4px solid #FFCC00; padding: 15px 20px; border-radius: 4px;">
-                                <p style="margin: 0 0 8px 0; font-size: 14px; color: #000000; font-weight: 600;">
+                            <div style="background-color: #E8F4F8; border-left: 4px solid #2C5F6F; padding: 15px 20px; border-radius: 4px;">
+                                <p style="margin: 0 0 8px 0; font-size: 14px; color: #1F4E5F; font-weight: 600;">
                                     ⏱️  Validità del link
                                 </p>
                                 <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #555555;">
-                                    Questo link è valido per <strong>{validity_minutes} minuti</strong> per garantire la massima sicurezza del tuo accesso.
+                                    Questo link è valido per <strong style="color: #DC143C;">{validity_minutes} minuti</strong> per garantire la massima sicurezza del tuo accesso.
                                 </p>
                             </div>
                         </td>
@@ -211,16 +211,16 @@ Movimento 5 Stelle
                         </td>
                     </tr>
 
-                    <!-- Footer -->
+                    <!-- Footer con barra gialla M5S -->
                     <tr>
-                        <td style="background-color: #f8f9fa; padding: 25px 40px; text-align: center; border-top: 1px solid #e9ecef;">
+                        <td style="background: linear-gradient(to bottom, #f8f9fa 0%, #f8f9fa 70%, #FFC800 70%, #FFC800 100%); padding: 25px 40px; text-align: center; border-top: 1px solid #e9ecef;">
                             <p style="margin: 0 0 8px 0; font-size: 13px; color: #666666; font-weight: 600;">
                                 AInaudi - Piattaforma Gestione Elettorale
                             </p>
-                            <p style="margin: 0; font-size: 12px; color: #999999;">
+                            <p style="margin: 0 0 15px 0; font-size: 12px; color: #999999;">
                                 Movimento 5 Stelle
                             </p>
-                            <p style="margin: 12px 0 0 0; font-size: 11px; color: #aaaaaa; line-height: 1.4;">
+                            <p style="margin: 0; font-size: 11px; color: #aaaaaa; line-height: 1.4;">
                                 Questa è una email automatica, si prega di non rispondere.<br/>
                                 Per assistenza contatta il tuo delegato o sub-delegato.
                             </p>
