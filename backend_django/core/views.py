@@ -213,7 +213,7 @@ Movimento 5 Stelle
 
                     <!-- Footer con barra gialla M5S -->
                     <tr>
-                        <td style="background: linear-gradient(to bottom, #f8f9fa 0%, #f8f9fa 70%, #FFC800 70%, #FFC800 100%); padding: 25px 40px; text-align: center; border-top: 1px solid #e9ecef;">
+                        <td style="background: linear-gradient(to bottom, #f8f9fa 0%, #f8f9fa 10%, #FFC800 10%, #FFC800 100%); padding: 25px 40px; text-align: center; border-top: 1px solid #e9ecef;">
                             <p style="margin: 0 0 8px 0; font-size: 13px; color: #666666; font-weight: 600;">
                                 AInaudi - Piattaforma Gestione Elettorale
                             </p>
