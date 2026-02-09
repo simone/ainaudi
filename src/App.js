@@ -38,17 +38,26 @@ function AppContent() {
     const [activeTab, setActiveTab] = useState(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [permissions, setPermissions] = useState({
-        // Nuovi permessi granulari Django
+        // Permessi granulari (uno per voce menu)
         is_superuser: false,
-        can_manage_territory: false,
-        can_view_kpi: false,
-        can_manage_elections: false,
-        can_manage_delegations: false,
-        can_manage_rdl: false,
-        has_scrutinio_access: false,
-        can_view_resources: false,
+        can_view_dashboard: false,           // Dashboard
+        can_manage_territory: false,         // Territorio
+        can_manage_elections: false,         // Consultazione
+        can_manage_campaign: false,          // Campagne
+        can_manage_rdl: false,               // Gestione RDL
+        can_manage_sections: false,          // Gestione Sezioni
+        can_manage_mappatura: false,         // Mappatura
+        can_manage_delegations: false,       // Catena Deleghe
+        can_manage_designazioni: false,      // Designazioni
+        can_manage_templates: false,         // Template PDF
+        can_generate_documents: false,       // Genera Moduli
+        has_scrutinio_access: false,         // Scrutinio
+        can_view_resources: false,           // Risorse
+        can_view_live_results: false,        // Risultati Live
+        can_view_kpi: false,                 // Diretta (KPI)
+
+        // Future features
         can_ask_to_ai_assistant: false,
-        can_generate_documents: false,
         can_manage_incidents: false,
 
         // Info catena deleghe
@@ -144,14 +153,21 @@ function AppContent() {
                 // Verifica se l'utente ha almeno un permesso significativo
                 const hasAnyPermission = (
                     perms.is_superuser ||
+                    perms.can_view_dashboard ||
                     perms.can_manage_territory ||
                     perms.can_view_kpi ||
                     perms.can_manage_elections ||
+                    perms.can_manage_campaign ||
                     perms.can_manage_delegations ||
                     perms.can_manage_rdl ||
+                    perms.can_manage_sections ||
+                    perms.can_manage_mappatura ||
+                    perms.can_manage_designazioni ||
+                    perms.can_manage_templates ||
                     perms.has_scrutinio_access ||
                     perms.can_generate_documents ||
-                    perms.can_manage_incidents
+                    perms.can_view_live_results ||
+                    perms.can_view_resources
                 );
 
                 if (!hasAnyPermission) {
@@ -159,7 +175,7 @@ function AppContent() {
                     setTimeout(() => {
                         handleSignoutClick();
                     }, 2000);
-                } else if (perms.can_manage_delegations || perms.can_view_kpi || perms.is_superuser) {
+                } else if (perms.can_view_dashboard || perms.is_superuser) {
                     // Delegati/Sub-delegati/Admin vedono la dashboard
                     setActiveTab('dashboard');
                 } else if (perms.has_scrutinio_access) {
@@ -384,8 +400,8 @@ function AppContent() {
                                 </button>
                                 <div className={`collapse navbar-collapse ${isMenuOpen ? 'show' : ''}`} id="navbarNav">
                                     <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-                                        {/* 1. HOME - solo per delegati/sub-delegati/admin, non per RDL semplici */}
-                                        {(permissions.can_manage_delegations || permissions.can_view_kpi || permissions.is_superuser) && (
+                                        {/* 1. DASHBOARD - solo per chi può vederla */}
+                                        {permissions.can_view_dashboard && (
                                             <li className="nav-item">
                                                 <a className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
                                                    onClick={() => activate('dashboard')} href="#">
@@ -395,8 +411,8 @@ function AppContent() {
                                             </li>
                                         )}
 
-                                        {/* 2. TERRITORIO - solo superuser o can_manage_territory */}
-                                        {(permissions.is_superuser) && (
+                                        {/* 2. TERRITORIO - gestione territorio (admin) */}
+                                        {permissions.can_manage_territory && (
                                             <li className="nav-item">
                                                 <a className={`nav-link ${activeTab === 'territorio_admin' ? 'active' : ''}`}
                                                    onClick={() => activate('territorio_admin')} href="#">
@@ -433,10 +449,10 @@ function AppContent() {
                                             </li>
                                         )}
 
-                                        {/* 4. RDL - Gestione RDL */}
-                                        {(permissions.can_manage_rdl || permissions.can_manage_territory || permissions.can_manage_delegations) && (
+                                        {/* 4. RDL - Menu gestione RDL */}
+                                        {(permissions.can_manage_campaign || permissions.can_manage_rdl || permissions.can_manage_sections || permissions.can_manage_mappatura) && (
                                             <li className="nav-item dropdown">
-                                                <a className={`nav-link dropdown-toggle ${['campagne', 'gestione_rdl', 'designazione', 'sezioni'].includes(activeTab) ? 'active' : ''}`}
+                                                <a className={`nav-link dropdown-toggle ${['campagne', 'gestione_rdl', 'designazione', 'sezioni', 'mappatura-gerarchica'].includes(activeTab) ? 'active' : ''}`}
                                                    href="#"
                                                    role="button"
                                                    onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsRdlDropdownOpen(!isRdlDropdownOpen); }}
@@ -463,7 +479,7 @@ function AppContent() {
                                                             </a>
                                                         </li>
                                                     )}
-                                                    {permissions.can_manage_territory && (
+                                                    {permissions.can_manage_sections && (
                                                         <li>
                                                             <a className={`dropdown-item ${activeTab === 'sezioni' ? 'active' : ''}`}
                                                                onClick={() => { activate('sezioni'); closeAllDropdowns(); }} href="#">
@@ -472,7 +488,7 @@ function AppContent() {
                                                             </a>
                                                         </li>
                                                     )}
-                                                    {consultazione && permissions.can_manage_delegations && (
+                                                    {consultazione && permissions.can_manage_mappatura && (
                                                         <li>
                                                             <a className={`dropdown-item ${activeTab === 'mappatura-gerarchica' ? 'active' : ''}`}
                                                                onClick={() => { activate('mappatura-gerarchica'); closeAllDropdowns(); }} href="#">
@@ -486,7 +502,7 @@ function AppContent() {
                                         )}
 
                                         {/* 5. DELEGATI - Catena deleghe e designazioni */}
-                                        {(permissions.can_manage_delegations || permissions.can_generate_documents) && (
+                                        {(permissions.can_manage_delegations || permissions.can_manage_designazioni || permissions.can_manage_templates || permissions.can_generate_documents) && (
                                             <li className="nav-item dropdown">
                                                 <a className={`nav-link dropdown-toggle ${['deleghe', 'designazioni', 'pdf', 'template_list', 'template_editor'].includes(activeTab) ? 'active' : ''}`}
                                                    href="#"
@@ -506,7 +522,7 @@ function AppContent() {
                                                             </a>
                                                         </li>
                                                     )}
-                                                    {permissions.can_manage_delegations && (
+                                                    {permissions.can_manage_designazioni && (
                                                         <li>
                                                             <a className={`dropdown-item ${activeTab === 'designazioni' ? 'active' : ''}`}
                                                                onClick={() => { activate('designazioni'); closeAllDropdowns(); }} href="#">
@@ -515,7 +531,7 @@ function AppContent() {
                                                             </a>
                                                         </li>
                                                     )}
-                                                    {consultazione && permissions.can_generate_documents && (
+                                                    {consultazione && permissions.can_manage_templates && (
                                                         <li>
                                                             <a className={`dropdown-item ${activeTab === 'template_list' ? 'active' : ''}`}
                                                                onClick={() => { activate('template_list'); setTemplateIdToEdit(null); closeAllDropdowns(); }} href="#">
@@ -548,17 +564,19 @@ function AppContent() {
                                             </li>
                                         )}
 
-                                        {/* 8. RISORSE - visibile a tutti gli utenti autenticati */}
-                                        <li className="nav-item">
-                                            <a className={`nav-link ${activeTab === 'risorse' ? 'active' : ''}`}
-                                               onClick={() => activate('risorse')} href="#">
-                                                <i className="fas fa-folder-open me-1"></i>
-                                                Risorse
-                                            </a>
-                                        </li>
+                                        {/* 8. RISORSE - documenti e materiali */}
+                                        {permissions.can_view_resources && (
+                                            <li className="nav-item">
+                                                <a className={`nav-link ${activeTab === 'risorse' ? 'active' : ''}`}
+                                                   onClick={() => activate('risorse')} href="#">
+                                                    <i className="fas fa-folder-open me-1"></i>
+                                                    Risorse
+                                                </a>
+                                            </li>
+                                        )}
 
-                                        {/* 6b. SCRUTINIO AGGREGATO - solo delegati/subdelegati */}
-                                        {consultazione && (permissions.is_delegato || permissions.is_sub_delegato) && (
+                                        {/* 9. RISULTATI LIVE - scrutinio aggregato */}
+                                        {consultazione && permissions.can_view_live_results && (
                                             <li className="nav-item">
                                                 <a className={`nav-link ${activeTab === 'scrutinio-aggregato' ? 'active' : ''}`}
                                                    onClick={() => activate('scrutinio-aggregato')} href="#">
@@ -742,7 +760,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'scrutinio-aggregato' && (permissions.is_delegato || permissions.is_sub_delegato) && (
+                            {activeTab === 'scrutinio-aggregato' && permissions.can_view_live_results && (
                                 <div className="tab-pane active">
                                     <ScrutinioAggregato
                                         client={client}
@@ -751,7 +769,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'mappatura-gerarchica' && permissions.can_manage_delegations && (
+                            {activeTab === 'mappatura-gerarchica' && permissions.can_manage_mappatura && (
                                 <div className="tab-pane active">
                                     <MappaturaGerarchica
                                         client={client}
@@ -777,7 +795,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'sezioni' && permissions.can_manage_territory && (
+                            {activeTab === 'sezioni' && permissions.can_manage_sections && (
                                 <div className="tab-pane active">
                                     <GestioneSezioni
                                         client={client}
@@ -803,7 +821,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'designazioni' && permissions.can_manage_delegations && (
+                            {activeTab === 'designazioni' && permissions.can_manage_designazioni && (
                                 <div className="tab-pane active">
                                     <GestioneDesignazioni
                                         client={client}
@@ -825,7 +843,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'risorse' && (
+                            {activeTab === 'risorse' && permissions.can_view_resources && (
                                 <div className="tab-pane active">
                                     <Risorse
                                         client={client}
@@ -834,7 +852,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'territorio_admin' && user?.is_superuser && (
+                            {activeTab === 'territorio_admin' && permissions.can_manage_territory && (
                                 <div className="tab-pane active">
                                     <GestioneTerritorio
                                         client={client}
@@ -842,7 +860,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'template_list' && consultazione && permissions.can_generate_documents && (
+                            {activeTab === 'template_list' && consultazione && permissions.can_manage_templates && (
                                 <div className="tab-pane active">
                                     <TemplateList
                                         client={client}
@@ -853,7 +871,7 @@ function AppContent() {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'template_editor' && consultazione && permissions.can_generate_documents && templateIdToEdit && (
+                            {activeTab === 'template_editor' && consultazione && permissions.can_manage_templates && templateIdToEdit && (
                                 <div className="tab-pane active">
                                     <div style={{ marginBottom: '15px' }}>
                                         <button
