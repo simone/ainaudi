@@ -1355,40 +1355,5 @@
       "nome": "Sud Sardegna",
       "is_citta_metropolitana": false
     }
-  },
-  {
-    "model": "elections.circoscrizioneeuropee",
-    "pk": 1,
-    "fields": {
-      "codice": "NORD_OVEST"
-    }
-  },
-  {
-    "model": "elections.circoscrizioneeuropee",
-    "pk": 2,
-    "fields": {
-      "codice": "NORD_EST"
-    }
-  },
-  {
-    "model": "elections.circoscrizioneeuropee",
-    "pk": 3,
-    "fields": {
-      "codice": "CENTRO"
-    }
-  },
-  {
-    "model": "elections.circoscrizioneeuropee",
-    "pk": 4,
-    "fields": {
-      "codice": "SUD"
-    }
-  },
-  {
-    "model": "elections.circoscrizioneeuropee",
-    "pk": 5,
-    "fields": {
-      "codice": "ISOLE"
-    }
   }
 ]
