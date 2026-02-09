@@ -1,6 +1,7 @@
 dispatch:
-  - url: "*/api/generate/*"
-    service: pdf
+  # PDF service deprecated - now handled by backend Django synchronously
+  # - url: "*/api/generate/*"
+  #   service: pdf
   - url: "*/*"
     service: default
 

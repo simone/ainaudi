@@ -134,31 +134,10 @@ services:
     cap_drop:
       - ALL
 
-  # Redis (Alpine for minimal size)
-  redis:
-    image: redis:7-alpine
-    container_name: rdl_redis_prod
-    restart: always
-    user: redis
-    volumes:
-      - redis_data_prod:/data
-    command: redis-server --appendonly yes --protected-mode yes
-    networks:
-      - backend_network
-    # Security settings
-    read_only: true
-    tmpfs:
-      - /tmp
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-
 volumes:
   postgres_data_prod:
   backend_static_prod:
   backend_media_prod:
-  redis_data_prod:
 
 networks:
   backend_network:
