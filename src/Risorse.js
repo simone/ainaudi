@@ -1,13 +1,67 @@
 import React, { useState, useEffect } from 'react';
 import PDFViewer from './PDFViewer';
+import ReactMarkdown from 'react-markdown';
 
 /**
  * Pagina Risorse: Documenti e FAQ
  * I contenuti sono filtrati in base alla consultazione attiva e al suo tipo (referendum, comunali, etc.)
  */
 
-// CSS per le card documenti
+// CSS per le card documenti e FAQ markdown
 const docCardStyles = `
+    /* Markdown FAQ styling */
+    .faq-risposta {
+        color: #333;
+        line-height: 1.6;
+    }
+    .faq-risposta p {
+        margin-bottom: 0.75rem;
+    }
+    .faq-risposta strong {
+        color: #1a1a1a;
+        font-weight: 600;
+    }
+    .faq-risposta ul,
+    .faq-risposta ol {
+        margin: 0.5rem 0;
+        padding-left: 1.5rem;
+    }
+    .faq-risposta li {
+        margin-bottom: 0.5rem;
+    }
+    .faq-risposta h1,
+    .faq-risposta h2,
+    .faq-risposta h3,
+    .faq-risposta h4 {
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+        color: #1a1a1a;
+        font-weight: 600;
+    }
+    .faq-risposta h1 { font-size: 1.5rem; }
+    .faq-risposta h2 { font-size: 1.3rem; }
+    .faq-risposta h3 { font-size: 1.15rem; }
+    .faq-risposta h4 { font-size: 1rem; }
+    .faq-risposta code {
+        background: #f5f5f5;
+        padding: 0.2rem 0.4rem;
+        border-radius: 3px;
+        font-size: 0.9em;
+    }
+    .faq-risposta pre {
+        background: #f5f5f5;
+        padding: 1rem;
+        border-radius: 4px;
+        overflow-x: auto;
+    }
+    .faq-risposta blockquote {
+        border-left: 4px solid #ddd;
+        padding-left: 1rem;
+        margin: 1rem 0;
+        color: #666;
+    }
+
+    /* Document cards */
     .doc-card {
         display: flex;
         align-items: center;
@@ -385,7 +439,9 @@ function Risorse({ client, consultazione, setError }) {
                                             </h2>
                                             <div className={`accordion-collapse collapse ${expandedFaq === faq.id ? 'show' : ''}`}>
                                                 <div className="accordion-body">
-                                                    <p style={{ whiteSpace: 'pre-line' }}>{faq.risposta}</p>
+                                                    <div className="faq-risposta">
+                                                        <ReactMarkdown>{faq.risposta}</ReactMarkdown>
+                                                    </div>
 
                                                     <hr />
 
