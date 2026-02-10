@@ -98,7 +98,22 @@ class Command(BaseCommand):
                         codice_istat = self.clean_istat_code(codice_istat_raw)
                         numero_str = row.get('N. SEZIONE', '').strip()
                         indirizzo = row.get('INDIRIZZO', '').strip()
-                        denominazione = row.get('DESCRIZIONE PLESSO', '').strip()
+                        denominazione_raw = row.get('DESCRIZIONE PLESSO', '').strip()
+
+                        # Skip generic/useless denominazioni
+                        generic_terms = [
+                            'edificio scolastico',
+                            'ex edificio scolastico',
+                            'scuola elementare',
+                            'ex scuola elementare',
+                            'scuola media',
+                            'edifici scolastici',
+                            'altri fabbricati',
+                            'centro abitato',
+                        ]
+                        denominazione = denominazione_raw
+                        if denominazione.lower() in generic_terms:
+                            denominazione = None  # Skip, will be matched later
                     else:
                         # Generic format
                         codice_istat = row.get('codice_istat', '').strip()
