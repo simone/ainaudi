@@ -1,11 +1,13 @@
 """
 Management command to match electoral sections with school buildings (plessi)
-from SCUANA CSV files (Anagrafe Edilizia Scolastica).
+based on address similarity.
 
-This enriches section data with more precise addresses and additional info.
+Uses CSV from MIUR with school data (SCUANAGRAFESTAT*.csv).
 
 Usage:
-    python manage.py match_sezioni_plessi --stat fixtures/SCUANAGRAFESTAT*.csv --par fixtures/SCUANAGRAFEPAR*.csv
+    python manage.py match_sezioni_plessi
+    python manage.py match_sezioni_plessi --comune-codice=058091
+    python manage.py match_sezioni_plessi --dry-run
 """
 import csv
 import re
@@ -16,218 +18,173 @@ from territory.models import Comune, SezioneElettorale
 
 
 class Command(BaseCommand):
-    help = 'Match electoral sections with school buildings from SCUANA CSV files'
+    help = 'Match electoral sections with school buildings based on address'
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--stat',
-            required=True,
-            help='Path to SCUANAGRAFESTAT CSV file'
+            '--file',
+            default='fixtures/SCUANAGRAFESTAT20252620250901.csv',
+            help='Path to school CSV file'
         )
         parser.add_argument(
-            '--par',
-            required=False,
-            help='Path to SCUANAGRAFEPAR CSV file'
-        )
-        parser.add_argument(
-            '--aut-stat',
-            required=False,
-            help='Path to SCUANAAUTSTAT CSV file'
-        )
-        parser.add_argument(
-            '--aut-par',
-            required=False,
-            help='Path to SCUANAAUTPAR CSV file'
-        )
-        parser.add_argument(
-            '--dry-run',
-            action='store_true',
-            help='Show matches without updating database'
+            '--comune-codice',
+            type=str,
+            default='058091',
+            help='Codice ISTAT del comune (default: 058091 = Roma)'
         )
         parser.add_argument(
             '--threshold',
             type=float,
-            default=0.6,
-            help='Similarity threshold (0.0-1.0, default: 0.6)'
+            default=0.75,
+            help='Similarity threshold (0.0-1.0, default: 0.75)'
         )
         parser.add_argument(
-            '--comune',
-            type=str,
-            help='Process only sections from specific comune (codice_istat)'
+            '--dry-run',
+            action='store_true',
+            help='Show matches without updating'
+        )
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            help='Force update even if denominazione exists'
         )
 
-    def clean_text(self, text):
-        """Normalize text for comparison."""
-        if not text:
+    def normalize_address(self, address):
+        """Normalize address for comparison."""
+        if not address:
             return ''
-        # Convert to uppercase, remove extra spaces
-        text = text.upper().strip()
-        # Remove common prefixes
-        text = re.sub(r'^(SCUOLA|SC\.|PLESSO|EDIFICIO|SEDE)\s+', '', text)
-        # Normalize street types
-        text = text.replace('VIA ', 'V.').replace('VIALE ', 'VLE ').replace('PIAZZA ', 'P.')
-        return text
 
-    def similarity(self, a, b):
-        """Calculate similarity between two strings (0.0-1.0)."""
-        return SequenceMatcher(None, self.clean_text(a), self.clean_text(b)).ratio()
+        addr = address.lower().strip()
+        addr = re.sub(r'\broma\b', '', addr, flags=re.IGNORECASE)
 
-    def load_plessi(self, file_path, file_type):
-        """Load plessi from CSV file."""
-        plessi = []
+        replacements = {
+            r'\bv\.': 'via',
+            r'\bv\.le': 'viale',
+            r'\bp\.za': 'piazza',
+            r'\bl\.go': 'largo',
+        }
+        for pattern, repl in replacements.items():
+            addr = re.sub(pattern, repl, addr, flags=re.IGNORECASE)
 
-        if not file_path:
-            return plessi
+        addr = re.sub(r'[,.\'\"]', ' ', addr)
+        addr = re.sub(r'\b\d+[a-z]?\b', '', addr)
+        addr = re.sub(r'\s+', ' ', addr).strip()
 
-        self.stdout.write(f'Loading {file_type} from {file_path}...')
+        return addr
 
+    def similarity(self, str1, str2):
+        """Calculate similarity ratio (0.0-1.0)."""
+        return SequenceMatcher(None, str1, str2).ratio()
+
+    def handle(self, *args, **options):
+        file_path = options['file']
+        comune_codice = options['comune_codice']
+        threshold = options['threshold']
+        dry_run = options['dry_run']
+        force = options['force']
+
+        try:
+            comune = Comune.objects.get(codice_istat=comune_codice)
+            self.stdout.write(f'Comune: {comune.nome}')
+        except Comune.DoesNotExist:
+            self.stderr.write(f'Comune {comune_codice} not found!')
+            return
+
+        self.stdout.write(f'Loading schools from {file_path}...')
+
+        schools = []
         with open(file_path, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
 
             for row in reader:
-                # Get codice belfiore (comune)
-                codice_belfiore = row.get('CODICECOMUNESCUOLA', '').strip()
-
-                # Get plesso info
-                denominazione = row.get('DENOMINAZIONESCUOLA', '').strip()
-                indirizzo = row.get('INDIRIZZOSCUOLA', '').strip()
-                cap = row.get('CAPSCUOLA', '').strip()
-
-                if not codice_belfiore or not denominazione:
+                if row.get('CODICECOMUNESCUOLA', '').strip() != comune_codice:
                     continue
 
-                plessi.append({
-                    'codice_belfiore': codice_belfiore,
-                    'denominazione': denominazione,
-                    'indirizzo': indirizzo,
-                    'cap': cap,
-                    'tipo': file_type
-                })
+                denom = row.get('DENOMINAZIONESCUOLA', '').strip()
+                indirizzo = row.get('INDIRIZZOSCUOLA', '').strip()
 
-        self.stdout.write(f'  Loaded {len(plessi)} plessi')
-        return plessi
+                if denom and indirizzo:
+                    schools.append({
+                        'denominazione': denom,
+                        'indirizzo': indirizzo,
+                        'indirizzo_normalized': self.normalize_address(indirizzo)
+                    })
 
-    def build_index(self, plessi_list):
-        """Build index: codice_belfiore -> [plessi]."""
-        index = {}
-        for plesso in plessi_list:
-            codice = plesso['codice_belfiore']
-            if codice not in index:
-                index[codice] = []
-            index[codice].append(plesso)
-        return index
+        self.stdout.write(f'Loaded {len(schools)} schools')
 
-    def find_best_match(self, sezione, plessi, threshold):
-        """Find best matching plesso for a section."""
-        best_match = None
-        best_score = 0.0
+        if not schools:
+            self.stderr.write('No schools found!')
+            return
 
-        # Try matching by denomination
-        if sezione.denominazione:
-            for plesso in plessi:
-                score = self.similarity(sezione.denominazione, plesso['denominazione'])
-                if score > best_score and score >= threshold:
-                    best_score = score
-                    best_match = plesso
+        if force:
+            sezioni = SezioneElettorale.objects.filter(
+                comune=comune, is_attiva=True
+            ).exclude(indirizzo__isnull=True).exclude(indirizzo='')
+        else:
+            sezioni = SezioneElettorale.objects.filter(
+                comune=comune, is_attiva=True
+            ).filter(
+                denominazione__isnull=True
+            ).exclude(indirizzo__isnull=True).exclude(indirizzo='') | \
+            SezioneElettorale.objects.filter(
+                comune=comune, is_attiva=True, denominazione=''
+            ).exclude(indirizzo__isnull=True).exclude(indirizzo='')
 
-        # If no good match on denomination, try address
-        if not best_match and sezione.indirizzo:
-            for plesso in plessi:
-                if plesso['indirizzo']:
-                    score = self.similarity(sezione.indirizzo, plesso['indirizzo'])
-                    if score > best_score and score >= threshold:
-                        best_score = score
-                        best_match = plesso
+        self.stdout.write(f'Processing {sezioni.count()} sezioni...')
 
-        return best_match, best_score
-
-    def handle(self, *args, **options):
-        dry_run = options['dry_run']
-        threshold = options['threshold']
-        comune_filter = options.get('comune')
-
-        # Load all plessi from CSV files
-        all_plessi = []
-        all_plessi.extend(self.load_plessi(options['stat'], 'STAT'))
-
-        if options.get('par'):
-            all_plessi.extend(self.load_plessi(options['par'], 'PAR'))
-        if options.get('aut_stat'):
-            all_plessi.extend(self.load_plessi(options['aut_stat'], 'AUT_STAT'))
-        if options.get('aut_par'):
-            all_plessi.extend(self.load_plessi(options['aut_par'], 'AUT_PAR'))
-
-        self.stdout.write(f'Total plessi loaded: {len(all_plessi)}')
-
-        # Build codice_catastale -> codice_belfiore mapping
-        comuni_belfiore_map = {}
-        for comune in Comune.objects.all():
-            comuni_belfiore_map[comune.codice_catastale] = comune
-
-        # Build index: codice_belfiore -> [plessi]
-        plessi_index = self.build_index(all_plessi)
-        self.stdout.write(f'Indexed plessi for {len(plessi_index)} comuni')
-
-        # Process sections
-        sezioni_query = SezioneElettorale.objects.select_related('comune')
-
-        if comune_filter:
-            sezioni_query = sezioni_query.filter(comune__codice_istat=comune_filter)
-
-        sezioni = sezioni_query.all()
-        self.stdout.write(f'Processing {sezioni.count()} sections...')
-
-        matched = 0
-        updated = 0
-        skipped = 0
+        matched_count = 0
+        unmatched_count = 0
+        matches = []
 
         for sezione in sezioni:
-            # Get codice belfiore for this comune
-            codice_belfiore = sezione.comune.codice_catastale
+            sezione_addr_norm = self.normalize_address(sezione.indirizzo)
 
-            # Get plessi for this comune
-            plessi_comune = plessi_index.get(codice_belfiore, [])
-
-            if not plessi_comune:
-                skipped += 1
+            if not sezione_addr_norm:
+                unmatched_count += 1
                 continue
 
-            # Find best match
-            best_match, score = self.find_best_match(sezione, plessi_comune, threshold)
+            best_match = None
+            best_score = 0.0
 
-            if best_match:
-                matched += 1
+            for school in schools:
+                score = self.similarity(sezione_addr_norm, school['indirizzo_normalized'])
+
+                if score > best_score:
+                    best_score = score
+                    best_match = school
+
+            if best_match and best_score >= threshold:
+                matches.append({
+                    'sezione': sezione,
+                    'school': best_match,
+                    'score': best_score
+                })
+                matched_count += 1
 
                 if dry_run:
                     self.stdout.write(
-                        f'[{score:.2f}] Sez {sezione.comune.nome} #{sezione.numero}: '
-                        f'{sezione.denominazione or sezione.indirizzo} → '
-                        f'{best_match["denominazione"]} ({best_match["indirizzo"]})'
+                        f'  Match ({best_score:.2f}): Sezione {sezione.numero} → '
+                        f'"{best_match["denominazione"]}"'
                     )
-                else:
-                    # Update section with plesso data
-                    changed = False
-
-                    # Update denomination if better
-                    if not sezione.denominazione or score > 0.8:
-                        sezione.denominazione = best_match['denominazione']
-                        changed = True
-
-                    # Update address if better
-                    if best_match['indirizzo'] and (not sezione.indirizzo or score > 0.8):
-                        sezione.indirizzo = best_match['indirizzo']
-                        changed = True
-
-                    if changed:
-                        sezione.save()
-                        updated += 1
             else:
-                skipped += 1
+                unmatched_count += 1
 
-        # Summary
-        self.stdout.write('')
-        self.stdout.write(self.style.SUCCESS('Matching complete:'))
-        self.stdout.write(f'  Matched: {matched}')
-        if not dry_run:
-            self.stdout.write(f'  Updated: {updated}')
-        self.stdout.write(f'  Skipped: {skipped}')
+        self.stdout.write(f'\nMatched:   {matched_count}')
+        self.stdout.write(f'Unmatched: {unmatched_count}')
+
+        if dry_run:
+            self.stdout.write('\n[DRY RUN] No changes made')
+            return
+
+        self.stdout.write('\nUpdating database...')
+
+        updated_count = 0
+        with transaction.atomic():
+            for match in matches:
+                sezione = match['sezione']
+                school = match['school']
+                sezione.denominazione = school['denominazione']
+                sezione.save(update_fields=['denominazione'])
+                updated_count += 1
+
+        self.stdout.write(f'\n✓ Updated {updated_count} sezioni')
