@@ -1,9 +1,13 @@
 dispatch:
-  # Django Admin
+  # Django Admin (exact match senza trailing slash)
+  - url: "*/admin"
+    service: api
+
+  # Django Admin (con trailing slash e subpaths)
   - url: "*/admin/*"
     service: api
 
-  # Campagna Open Graph (HTML con meta tags per social sharing)
+  # Campagna Open Graph (exact match senza trailing slash)
   - url: "*/campagna/*"
     service: api
 
