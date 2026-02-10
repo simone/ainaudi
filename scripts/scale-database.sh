@@ -19,6 +19,7 @@ NC='\033[0m'
 
 # Function to get tier specs (Bash 3.x compatible)
 # Returns: "tier|RAM|vCPU|Cost/month|Description"
+# NOTE: PostgreSQL uses custom machine types (db-custom-CPUS-RAM)
 get_tier_specs() {
     local preset=$1
     case $preset in
@@ -26,13 +27,15 @@ get_tier_specs() {
             echo "db-f1-micro|0.6GB|Shared|~7€|Minimo costo, solo idle/sviluppo"
             ;;
         setup)
-            echo "db-g1-small|1.7GB|1 vCPU|~25€|Setup iniziale, import dati"
+            echo "db-g1-small|1.7GB|1 Shared|~25€|Setup iniziale, import dati"
             ;;
         scrutinio)
-            echo "db-n1-standard-1|3.75GB|1 vCPU|~50€|Scrutinio attivo, alta concorrenza"
+            # db-custom-1-3840 = 1 vCPU, 3840 MB RAM (~3.75 GB)
+            echo "db-custom-1-3840|3.75GB|1 vCPU|~50€|Scrutinio attivo, alta concorrenza"
             ;;
         high)
-            echo "db-n1-standard-2|7.5GB|2 vCPU|~100€|Picco massimo (scrutinio + dashboard)"
+            # db-custom-2-7680 = 2 vCPU, 7680 MB RAM (~7.5 GB)
+            echo "db-custom-2-7680|7.5GB|2 vCPU|~100€|Picco massimo (scrutinio + dashboard)"
             ;;
         *)
             echo ""
@@ -88,15 +91,16 @@ show_tier_comparison() {
     echo -e "${BLUE}║              CLOUD SQL TIER COMPARISON (PostgreSQL)                   ║${NC}"
     echo -e "${BLUE}╚════════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    printf "%-20s %-10s %-12s %-15s %s\n" "TIER" "RAM" "vCPU" "COSTO/MESE" "USO RACCOMANDATO"
+    printf "%-23s %-10s %-12s %-15s %s\n" "TIER" "RAM" "vCPU" "COSTO/MESE" "USO RACCOMANDATO"
     echo "────────────────────────────────────────────────────────────────────────────"
-    printf "%-20s %-10s %-12s %-15s %s\n" "db-f1-micro" "0.6 GB" "Shared" "~7 EUR" "Idle/Sviluppo"
-    printf "%-20s %-10s %-12s %-15s %s\n" "db-g1-small" "1.7 GB" "1 vCPU" "~25 EUR" "Setup/Import dati"
-    printf "%-20s %-10s %-12s %-15s %s\n" "db-n1-standard-1" "3.75 GB" "1 vCPU" "~50 EUR" "Scrutinio attivo"
-    printf "%-20s %-10s %-12s %-15s %s\n" "db-n1-standard-2" "7.5 GB" "2 vCPU" "~100 EUR" "Picco massimo"
-    printf "%-20s %-10s %-12s %-15s %s\n" "db-n1-standard-4" "15 GB" "4 vCPU" "~200 EUR" "Stress test"
+    printf "%-23s %-10s %-12s %-15s %s\n" "db-f1-micro" "0.6 GB" "Shared" "~7 EUR" "Idle/Sviluppo"
+    printf "%-23s %-10s %-12s %-15s %s\n" "db-g1-small" "1.7 GB" "1 Shared" "~25 EUR" "Setup/Import dati"
+    printf "%-23s %-10s %-12s %-15s %s\n" "db-custom-1-3840" "3.75 GB" "1 vCPU" "~50 EUR" "Scrutinio attivo"
+    printf "%-23s %-10s %-12s %-15s %s\n" "db-custom-2-7680" "7.5 GB" "2 vCPU" "~100 EUR" "Picco massimo"
+    printf "%-23s %-10s %-12s %-15s %s\n" "db-custom-4-15360" "15 GB" "4 vCPU" "~200 EUR" "Stress test"
     echo ""
     echo -e "${YELLOW}💡 Tip: Scala su prima di operazioni pesanti, poi torna a idle${NC}"
+    echo -e "${YELLOW}💡 PostgreSQL usa custom machine types: db-custom-CPUS-RAM_MB${NC}"
     echo ""
 }
 
@@ -176,7 +180,7 @@ scale_database() {
         show_status
 
         echo -e "${BLUE}💡 Prossimi passi:${NC}"
-        if [[ "$TARGET_TIER" == "db-g1-small" ]] || [[ "$TARGET_TIER" == "db-n1-standard"* ]]; then
+        if [[ "$TARGET_TIER" == "db-g1-small" ]] || [[ "$TARGET_TIER" == "db-custom"* ]]; then
             echo -e "   1. Esegui operazioni pesanti (import, migrations, etc.)"
             echo -e "   2. Quando finito, scala giù: ${CYAN}./scripts/scale-database.sh idle${NC}"
         else
