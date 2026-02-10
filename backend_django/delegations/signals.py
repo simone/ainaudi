@@ -428,18 +428,19 @@ def provision_delegato_user(sender, instance, created, **kwargs):
                 update_user_data(user, instance)
 
 
-@receiver(m2m_changed, sender=Delegato.comuni.through)
-def delegato_comuni_changed(sender, instance, action, **kwargs):
+def sync_delegato_territory_assignments(instance):
     """
-    When comuni are added/removed from a Delegato, update RoleAssignments.
+    Synchronize RoleAssignments for a Delegato based on configured territories.
 
-    Actions:
-    - post_add: Create RoleAssignment for each comune, remove GLOBAL assignment
-    - post_clear/post_remove: Fallback to GLOBAL if no comuni left
+    Logica gerarchica (più specifico vince):
+    1. Se ha comuni → crea assignment per ogni comune
+    2. Altrimenti se ha province → crea assignment per ogni provincia
+    3. Altrimenti se ha regioni → crea assignment per ogni regione
+    4. Altrimenti → GLOBAL
+
+    Args:
+        instance: Delegato instance
     """
-    if action not in ['post_add', 'post_clear', 'post_remove']:
-        return
-
     if not instance.email:
         return
 
@@ -447,56 +448,100 @@ def delegato_comuni_changed(sender, instance, action, **kwargs):
     if not user:
         return
 
-    # Get current comuni after the M2M operation
-    comuni_ids = list(instance.comuni.values_list('id', flat=True))
+    # Remove all existing territorial assignments for this consultazione
+    RoleAssignment.objects.filter(
+        user=user,
+        role=RoleAssignment.Role.DELEGATE,
+        consultazione=instance.consultazione
+    ).delete()
 
-    if action == 'post_add' and comuni_ids:
-        # Remove GLOBAL assignment if exists
-        RoleAssignment.objects.filter(
+    # Get territories (più specifico = più priorità)
+    comuni = list(instance.comuni.all())
+    province = list(instance.province.all()) if not comuni else []
+    regioni = list(instance.regioni.all()) if not comuni and not province else []
+
+    created_count = 0
+
+    # Comuni (massima priorità)
+    if comuni:
+        for comune in comuni:
+            RoleAssignment.objects.create(
+                user=user,
+                role=RoleAssignment.Role.DELEGATE,
+                consultazione=instance.consultazione,
+                scope_type=RoleAssignment.ScopeType.COMUNE,
+                scope_value=comune.nome,
+                scope_comune=comune,
+                is_active=True,
+                assigned_by_email='system@auto-provisioning'
+            )
+            created_count += 1
+        logger.info(f"Delegato {instance.id}: created {created_count} COMUNE assignments for {user.email}")
+
+    # Province (priorità media)
+    elif province:
+        for provincia in province:
+            RoleAssignment.objects.create(
+                user=user,
+                role=RoleAssignment.Role.DELEGATE,
+                consultazione=instance.consultazione,
+                scope_type=RoleAssignment.ScopeType.PROVINCIA,
+                scope_value=provincia.nome,
+                scope_provincia=provincia,
+                is_active=True,
+                assigned_by_email='system@auto-provisioning'
+            )
+            created_count += 1
+        logger.info(f"Delegato {instance.id}: created {created_count} PROVINCIA assignments for {user.email}")
+
+    # Regioni (priorità bassa)
+    elif regioni:
+        for regione in regioni:
+            RoleAssignment.objects.create(
+                user=user,
+                role=RoleAssignment.Role.DELEGATE,
+                consultazione=instance.consultazione,
+                scope_type=RoleAssignment.ScopeType.REGIONE,
+                scope_value=regione.nome,
+                scope_regione=regione,
+                is_active=True,
+                assigned_by_email='system@auto-provisioning'
+            )
+            created_count += 1
+        logger.info(f"Delegato {instance.id}: created {created_count} REGIONE assignments for {user.email}")
+
+    # Nessun territorio → GLOBAL
+    else:
+        RoleAssignment.objects.create(
             user=user,
             role=RoleAssignment.Role.DELEGATE,
+            consultazione=instance.consultazione,
             scope_type=RoleAssignment.ScopeType.GLOBAL,
-            consultazione=instance.consultazione
-        ).delete()
+            is_active=True,
+            assigned_by_email='system@auto-provisioning'
+        )
+        logger.info(f"Delegato {instance.id}: created GLOBAL assignment for {user.email}")
 
-        # Create/update assignment for each comune
-        for comune_id in comuni_ids:
-            from territory.models import Comune
-            comune = Comune.objects.get(id=comune_id)
 
-            RoleAssignment.objects.update_or_create(
-                user=user,
-                role=RoleAssignment.Role.DELEGATE,
-                scope_comune=comune,
-                consultazione=instance.consultazione,
-                defaults={
-                    'scope_type': RoleAssignment.ScopeType.COMUNE,
-                    'scope_value': comune.nome,
-                    'is_active': True,
-                    'assigned_by_email': 'system@auto-provisioning',
-                }
-            )
+@receiver(m2m_changed, sender=Delegato.comuni.through)
+def delegato_comuni_changed(sender, instance, action, **kwargs):
+    """When comuni M2M changes, re-sync all territory assignments."""
+    if action in ['post_add', 'post_remove', 'post_clear']:
+        sync_delegato_territory_assignments(instance)
 
-        logger.info(f"Delegato {instance.id}: assigned {len(comuni_ids)} comuni to user {user.email}")
 
-    elif action in ['post_clear', 'post_remove']:
-        # Check if all comuni were removed
-        if not comuni_ids:
-            # Fallback to GLOBAL
-            RoleAssignment.objects.filter(
-                user=user,
-                role=RoleAssignment.Role.DELEGATE,
-                scope_type=RoleAssignment.ScopeType.COMUNE,
-                consultazione=instance.consultazione
-            ).delete()
+@receiver(m2m_changed, sender=Delegato.province.through)
+def delegato_province_changed(sender, instance, action, **kwargs):
+    """When province M2M changes, re-sync all territory assignments."""
+    if action in ['post_add', 'post_remove', 'post_clear']:
+        sync_delegato_territory_assignments(instance)
 
-            ensure_role_assigned(
-                user=user,
-                role=RoleAssignment.Role.DELEGATE,
-                scope_type=RoleAssignment.ScopeType.GLOBAL
-            )
 
-            logger.info(f"Delegato {instance.id}: no comuni, fallback to GLOBAL for user {user.email}")
+@receiver(m2m_changed, sender=Delegato.regioni.through)
+def delegato_regioni_changed(sender, instance, action, **kwargs):
+    """When regioni M2M changes, re-sync all territory assignments."""
+    if action in ['post_add', 'post_remove', 'post_clear']:
+        sync_delegato_territory_assignments(instance)
 
 
 # =============================================================================
