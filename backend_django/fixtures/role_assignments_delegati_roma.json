@@ -1,0 +1,72 @@
+[
+  {
+    "model": "core.roleassignment",
+    "fields": {
+      "user": 1,
+      "role": "DELEGATE",
+      "scope_type": "comune",
+      "scope_value": "Roma",
+      "scope_comune": ["058091"],
+      "consultazione": 1,
+      "is_active": true,
+      "assigned_by_email": "admin@sistema.it",
+      "notes": "Delegato per Referendum Giustizia 2026 - Comune di Roma"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "fields": {
+      "user": 2,
+      "role": "DELEGATE",
+      "scope_type": "comune",
+      "scope_value": "Roma",
+      "scope_comune": ["058091"],
+      "consultazione": 1,
+      "is_active": true,
+      "assigned_by_email": "admin@sistema.it",
+      "notes": "Delegato per Referendum Giustizia 2026 - Comune di Roma"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "fields": {
+      "user": 3,
+      "role": "DELEGATE",
+      "scope_type": "comune",
+      "scope_value": "Roma",
+      "scope_comune": ["058091"],
+      "consultazione": 1,
+      "is_active": true,
+      "assigned_by_email": "admin@sistema.it",
+      "notes": "Delegato per Referendum Giustizia 2026 - Comune di Roma"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "fields": {
+      "user": 4,
+      "role": "DELEGATE",
+      "scope_type": "comune",
+      "scope_value": "Roma",
+      "scope_comune": ["058091"],
+      "consultazione": 1,
+      "is_active": true,
+      "assigned_by_email": "admin@sistema.it",
+      "notes": "Delegato per Referendum Giustizia 2026 - Comune di Roma"
+    }
+  },
+  {
+    "model": "core.roleassignment",
+    "fields": {
+      "user": 5,
+      "role": "DELEGATE",
+      "scope_type": "comune",
+      "scope_value": "Roma",
+      "scope_comune": ["058091"],
+      "consultazione": 1,
+      "is_active": true,
+      "assigned_by_email": "admin@sistema.it",
+      "notes": "Delegato per Referendum Giustizia 2026 - Comune di Roma"
+    }
+  }
+]

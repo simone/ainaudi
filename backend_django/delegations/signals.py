@@ -341,6 +341,9 @@ def provision_delegato_user(sender, instance, created, **kwargs):
         3. On update without email change: Update user data if needed
         4. Log action
 
+    NOTE: Territori (comuni) sono gestiti dal signal m2m_changed separato
+    perché M2M relations sono salvate DOPO post_save.
+
     IMPORTANT: Admin privileges (is_superuser, is_staff) are NEVER modified.
     If a user with admin privileges already exists, they remain admin after provisioning.
     This ensures superusers are never accidentally demoted to regular users.
@@ -366,11 +369,12 @@ def provision_delegato_user(sender, instance, created, **kwargs):
             logger.error(f"Failed to provision user for Delegato {instance.id}")
             return
 
-        # Assign DELEGATE role
+        # Assign DELEGATE role (territorio sarà assegnato da m2m_changed)
+        # Usa GLOBAL solo se non ha comuni specifici
         ensure_role_assigned(
             user=user,
             role=RoleAssignment.Role.DELEGATE,
-            scope_type=RoleAssignment.ScopeType.GLOBAL,
+            scope_type=RoleAssignment.ScopeType.GLOBAL
         )
 
         # Assign group basato sul ruolo
@@ -422,6 +426,77 @@ def provision_delegato_user(sender, instance, created, **kwargs):
             user = User.objects.filter(email=instance.email).first()
             if user:
                 update_user_data(user, instance)
+
+
+@receiver(m2m_changed, sender=Delegato.comuni.through)
+def delegato_comuni_changed(sender, instance, action, **kwargs):
+    """
+    When comuni are added/removed from a Delegato, update RoleAssignments.
+
+    Actions:
+    - post_add: Create RoleAssignment for each comune, remove GLOBAL assignment
+    - post_clear/post_remove: Fallback to GLOBAL if no comuni left
+    """
+    if action not in ['post_add', 'post_clear', 'post_remove']:
+        return
+
+    if not instance.email:
+        return
+
+    user = User.objects.filter(email=instance.email).first()
+    if not user:
+        return
+
+    # Get current comuni after the M2M operation
+    comuni_ids = list(instance.comuni.values_list('id', flat=True))
+
+    if action == 'post_add' and comuni_ids:
+        # Remove GLOBAL assignment if exists
+        RoleAssignment.objects.filter(
+            user=user,
+            role=RoleAssignment.Role.DELEGATE,
+            scope_type=RoleAssignment.ScopeType.GLOBAL,
+            consultazione=instance.consultazione
+        ).delete()
+
+        # Create/update assignment for each comune
+        for comune_id in comuni_ids:
+            from territory.models import Comune
+            comune = Comune.objects.get(id=comune_id)
+
+            RoleAssignment.objects.update_or_create(
+                user=user,
+                role=RoleAssignment.Role.DELEGATE,
+                scope_comune=comune,
+                consultazione=instance.consultazione,
+                defaults={
+                    'scope_type': RoleAssignment.ScopeType.COMUNE,
+                    'scope_value': comune.nome,
+                    'is_active': True,
+                    'assigned_by_email': 'system@auto-provisioning',
+                }
+            )
+
+        logger.info(f"Delegato {instance.id}: assigned {len(comuni_ids)} comuni to user {user.email}")
+
+    elif action in ['post_clear', 'post_remove']:
+        # Check if all comuni were removed
+        if not comuni_ids:
+            # Fallback to GLOBAL
+            RoleAssignment.objects.filter(
+                user=user,
+                role=RoleAssignment.Role.DELEGATE,
+                scope_type=RoleAssignment.ScopeType.COMUNE,
+                consultazione=instance.consultazione
+            ).delete()
+
+            ensure_role_assigned(
+                user=user,
+                role=RoleAssignment.Role.DELEGATE,
+                scope_type=RoleAssignment.ScopeType.GLOBAL
+            )
+
+            logger.info(f"Delegato {instance.id}: no comuni, fallback to GLOBAL for user {user.email}")
 
 
 # =============================================================================
