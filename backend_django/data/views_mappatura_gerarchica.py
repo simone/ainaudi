@@ -484,7 +484,10 @@ class MappaturaGerarchicaView(APIView):
         )
 
         if municipio_id:
-            accessible_sezioni = accessible_sezioni.filter(municipio_id=municipio_id)
+            # Show sections with this municipio OR sections without municipio (to be assigned)
+            accessible_sezioni = accessible_sezioni.filter(
+                Q(municipio_id=municipio_id) | Q(municipio__isnull=True)
+            )
 
         accessible_sezioni = accessible_sezioni.select_related(
             'comune',
