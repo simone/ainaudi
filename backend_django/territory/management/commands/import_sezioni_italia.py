@@ -7,9 +7,16 @@ Supports two CSV formats:
 
 2. Generic format (comma-separated):
    codice_istat,numero_sezione
+
+Logic for denominazioni:
+- Import denominazione from UBICAZIONE column (Eligendo) or denominazione column (generic)
+- Exclude denominazione ONLY IF it's duplicated within the same comune with different addresses
+- Example: If Comune A has 3 sections all called "Scuola Elementare" at different addresses,
+  then all 3 get denominazione='', otherwise keep it even if generic term
 """
 import csv
 import re
+from collections import defaultdict
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from territory.models import Comune, SezioneElettorale
@@ -68,8 +75,9 @@ class Command(BaseCommand):
 
         self.stdout.write(f'Loaded {len(comuni_map)} comuni from database')
 
-        # Read CSV and auto-detect format
-        sections_to_create = []
+        # First pass: read all sections and group by comune
+        self.stdout.write('First pass: analyzing denominazioni...')
+        sections_by_comune = defaultdict(list)  # codice_istat -> list of section dicts
         errors = []
         missing_comuni = set()
 
@@ -99,98 +107,88 @@ class Command(BaseCommand):
                         numero_str = row.get('N. SEZIONE', '').strip()
                         indirizzo = row.get('INDIRIZZO', '').strip()
                         # UBICAZIONE contains specific school name (if any)
-                        denominazione_raw = row.get('UBICAZIONE', '').strip()
-
-                        # Skip generic/useless denominazioni (case-insensitive)
-                        generic_terms = [
-                            # Generic school terms
-                            'scuola',
-                            'scuola elementare',
-                            'scuola media',
-                            'scuola primaria',
-                            'scuola materna',
-                            'scuola dell\'infanzia',
-                            'scuola secondaria',
-                            'scuola secondaria di primo grado',
-                            'scuola secondaria di secondo grado',
-                            'ex scuola elementare',
-                            'ex scuola media',
-                            'ex scuola materna',
-                            'ex scuola primaria',
-                            'ex scuole elementari',
-                            'ex scuole medie',
-                            'scuola media statale',
-                            'scuola elementare statale',
-                            'scuola materna statale',
-                            'scuola primaria statale',
-                            'scuola media inferiore',
-                            'scuola elementare capoluogo',
-                            'scuola elementare e materna',
-                            'scuola elementare e media',
-                            'edificio scuola elementare',
-                            'edificio scolastico',
-                            'edifici scolastici',
-                            'plesso scolastico',
-                            # Other buildings
-                            'ex edificio scolastico',
-                            'centro sociale',
-                            'centro civico',
-                            'edificio comunale',
-                            'centro per la terza eta',
-                            'centro per la terza età',
-                            'centro anziani',
-                            'sala civica',
-                            'locali comunali',
-                            'altri fabbricati',
-                            'centro polifunzionale',
-                            'centro polivalente',
-                            'sala polivalente',
-                            'biblioteca comunale',
-                            'casa sociale',
-                            'edificio privato',
-                            'centro abitato',
-                            # Municipal buildings
-                            'municipio',
-                            'palazzo comunale',
-                            'palazzo municipale',
-                            'uffici comunali',
-                            'sede comunale',
-                            'sede municipale',
-                            'casa comunale',
-                            'comune',
-                            'sala consiliare',
-                        ]
-                        denominazione = denominazione_raw
-                        if denominazione.lower() in generic_terms:
-                            denominazione = ''  # Empty, will be matched later
+                        denominazione = row.get('UBICAZIONE', '').strip()
                     else:
                         # Generic format
                         codice_istat = row.get('codice_istat', '').strip()
                         numero_str = row.get('numero_sezione', '').strip()
-                        indirizzo = row.get('indirizzo', '').strip() if 'indirizzo' in row else None
-                        denominazione = row.get('denominazione', '').strip() if 'denominazione' in row else None
+                        indirizzo = row.get('indirizzo', '').strip() if 'indirizzo' in row else ''
+                        denominazione = row.get('denominazione', '').strip() if 'denominazione' in row else ''
 
                     if not codice_istat or not numero_str:
                         errors.append(f'Row {row_num}: missing codice_istat or numero_sezione')
                         continue
 
-                    comune = comuni_map.get(codice_istat)
-                    if not comune:
+                    if codice_istat not in comuni_map:
                         missing_comuni.add(codice_istat)
                         continue
 
-                    sections_to_create.append(SezioneElettorale(
-                        comune=comune,
-                        numero=int(numero_str),
-                        indirizzo=indirizzo if indirizzo else None,
-                        denominazione=denominazione if denominazione else None,
-                        is_attiva=True
-                    ))
+                    # Store all sections grouped by comune
+                    sections_by_comune[codice_istat].append({
+                        'numero': int(numero_str),
+                        'indirizzo': indirizzo if indirizzo else '',
+                        'denominazione': denominazione if denominazione else '',
+                        'row_num': row_num,
+                    })
+
                 except Exception as e:
                     errors.append(f'Row {row_num}: {e}')
 
-        self.stdout.write(f'Parsed {len(sections_to_create)} sections')
-        
+        self.stdout.write(f'Read {sum(len(sections) for sections in sections_by_comune.values())} sections from {len(sections_by_comune)} comuni')
+
+        # Second pass: identify duplicate denominazioni within each comune
+        self.stdout.write('Second pass: identifying duplicate denominazioni...')
+
+        duplicates_count = 0
+        for codice_istat, sections in sections_by_comune.items():
+            # Group sections by denominazione (case-insensitive)
+            denom_groups = defaultdict(list)
+            for section in sections:
+                denom = section['denominazione'].lower() if section['denominazione'] else ''
+                if denom:  # Only check non-empty denominazioni
+                    denom_groups[denom].append(section)
+
+            # Mark denominazioni as duplicates if they appear multiple times
+            # with different addresses
+            for denom, group in denom_groups.items():
+                if len(group) > 1:
+                    # Check if they have different addresses
+                    addresses = set()
+                    for s in group:
+                        addr = s['indirizzo'].strip().lower()
+                        if addr:
+                            addresses.add(addr)
+
+                    # If multiple sections with same denom but different addresses -> duplicate
+                    if len(addresses) > 1:
+                        # Mark all sections in this group as having duplicate denominazione
+                        for section in group:
+                            section['is_duplicate'] = True
+                            duplicates_count += 1
+
+        self.stdout.write(f'Found {duplicates_count} sections with duplicate denominazioni (will be cleared)')
+
+        # Third pass: create SezioneElettorale objects
+        sections_to_create = []
+        for codice_istat, sections in sections_by_comune.items():
+            comune = comuni_map[codice_istat]
+
+            for section in sections:
+                # Clear denominazione if it's a duplicate in this comune
+                denominazione = section['denominazione']
+                if section.get('is_duplicate', False):
+                    denominazione = ''
+
+                sections_to_create.append(SezioneElettorale(
+                    comune=comune,
+                    numero=section['numero'],
+                    indirizzo=section['indirizzo'] if section['indirizzo'] else None,
+                    denominazione=denominazione if denominazione else None,
+                    is_attiva=True
+                ))
+
+        self.stdout.write(f'Prepared {len(sections_to_create)} sections for import')
+
         if missing_comuni:
             self.stdout.write(
                 self.style.WARNING(f'Missing {len(missing_comuni)} comuni in database')
@@ -206,6 +204,20 @@ class Command(BaseCommand):
 
         if dry_run:
             self.stdout.write(self.style.SUCCESS('DRY RUN - no changes made'))
+            # Show some examples of duplicate denominazioni
+            self.stdout.write('\nExamples of duplicate denominazioni that would be cleared:')
+            examples_shown = 0
+            for codice_istat, sections in sections_by_comune.items():
+                comune = comuni_map.get(codice_istat)
+                if not comune:
+                    continue
+                for section in sections:
+                    if section.get('is_duplicate', False) and examples_shown < 10:
+                        self.stdout.write(
+                            f'  {comune.nome} - Sez {section["numero"]}: '
+                            f'"{section["denominazione"]}" @ {section["indirizzo"]}'
+                        )
+                        examples_shown += 1
             return
 
         # Import
@@ -220,10 +232,10 @@ class Command(BaseCommand):
                 ignore_conflicts=True,
                 batch_size=5000
             )
-            
+
             # Count actual records (bulk_create with ignore_conflicts doesn't return count)
             final_count = SezioneElettorale.objects.count()
-            
+
         self.stdout.write(self.style.SUCCESS(
             f'Import complete. Total sections in database: {final_count}'
         ))
