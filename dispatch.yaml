@@ -1,4 +1,8 @@
 dispatch:
+  # Django Admin static files (CSS/JS dell'admin)
+  - url: "*/static/admin/*"
+    service: api
+
   # Django Admin (exact match senza trailing slash)
   - url: "*/admin"
     service: api
@@ -15,7 +19,7 @@ dispatch:
   - url: "*/api/*"
     service: api
 
-  # Tutto il resto → React frontend
+  # Tutto il resto → React frontend (incluso /static/* del frontend)
   - url: "*/*"
     service: default
 
