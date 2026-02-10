@@ -87,7 +87,7 @@ gcloud iam service-accounts list
 ### 4. Crea Cloud SQL Instance (PostgreSQL)
 
 ```bash
-# Crea istanza PostgreSQL
+# Crea istanza PostgreSQL (inizia con db-f1-micro per risparmiare)
 gcloud sql instances create ainaudi-db \
     --database-version=POSTGRES_15 \
     --tier=db-f1-micro \
@@ -419,12 +419,14 @@ Usa lo script automatizzato `deploy.sh`:
 ```
 
 **Lo script automaticamente:**
-1. ✅ Builda frontend React (`npm run build`)
-2. ✅ Collecta static files Django
-3. ✅ Deploya frontend su service `default`
-4. ✅ Deploya backend su service `api`
-5. ✅ Aggiorna dispatch routing rules
-6. ✅ Mostra URL e comandi utili
+1. ✅ Chiede se scalare database (raccomandato per setup veloce)
+2. ✅ Builda frontend React (`npm run build`)
+3. ✅ Collecta static files Django
+4. ✅ Deploya frontend su service `default`
+5. ✅ Deploya backend su service `api`
+6. ✅ Aggiorna dispatch routing rules
+7. ✅ Mostra URL e comandi utili
+8. ✅ Ricorda di scalare giù il database dopo
 
 ---
 
@@ -512,7 +514,44 @@ gcloud run services replace cloudrun/service.yaml --region=europe-west1
 gcloud run services describe ainaudi-backend --region=europe-west1
 ```
 
-### 11. Esegui Migrations su Cloud SQL
+### 11. Scaling Database (Opzionale ma Raccomandato)
+
+Il database Cloud SQL può essere scalato dinamicamente in base alle necessità:
+
+```bash
+# Mostra tier corrente
+./scripts/scale-database.sh --status
+
+# Scala su per setup iniziale/import dati (1.7GB RAM, ~1-2 min per import)
+./scripts/scale-database.sh setup
+
+# Scala su per scrutinio attivo (3.75GB RAM, alta concorrenza)
+./scripts/scale-database.sh scrutinio
+
+# Scala giù a idle dopo attività (0.6GB RAM, minimo costo ~7€/mese)
+./scripts/scale-database.sh idle
+```
+
+**Confronto tier:**
+
+| Tier | RAM | vCPU | Costo/mese | Quando usare |
+|------|-----|------|------------|--------------|
+| `db-f1-micro` | 0.6 GB | Shared | ~7€ | Idle, nessuna attività |
+| `db-g1-small` | 1.7 GB | 1 vCPU | ~25€ | Setup, import dati |
+| `db-n1-standard-1` | 3.75 GB | 1 vCPU | ~50€ | Scrutinio attivo |
+| `db-n1-standard-2` | 7.5 GB | 2 vCPU | ~100€ | Picco massimo |
+
+**💡 Best Practice:**
+1. Mantieni **db-f1-micro** quando non c'è attività
+2. Scala a **db-g1-small** prima di import pesanti (comuni, sezioni)
+3. Scala a **db-n1-standard-1** durante lo scrutinio
+4. Scala giù a **idle** dopo ogni operazione pesante
+
+**⚠️ Nota:** Il resize richiede 1-3 minuti di downtime.
+
+---
+
+### 12. Esegui Migrations su Cloud SQL
 
 **IMPORTANTE:** Dopo il primo deploy, devi eseguire le migrations Django sul database Cloud SQL di produzione.
 
@@ -569,7 +608,7 @@ python3 manage.py createsuperuser --settings=config.settings
 
 ---
 
-### 12. Setup DNS e SSL (se dominio custom)
+### 13. Setup DNS e SSL (se dominio custom)
 
 ```bash
 # Map custom domain to App Engine

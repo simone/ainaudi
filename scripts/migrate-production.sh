@@ -56,6 +56,35 @@ echo -e "   Database: ${GREEN}${DB_NAME}${NC}"
 echo -e "   Proxy Port: ${GREEN}${PROXY_PORT}${NC}"
 echo ""
 
+# Ask if user wants to scale database for faster import
+echo -e "${YELLOW}⚡ Database Scaling (Raccomandato):${NC}"
+echo -e "${YELLOW}   L'import di ~7.900 comuni + ~60.000 sezioni può richiedere 10+ minuti su db-f1-micro${NC}"
+echo -e "${YELLOW}   Scalando a db-g1-small (1.7GB RAM) si riducono a ~1-2 minuti${NC}"
+echo ""
+echo -e "${CYAN}   Vuoi scalare temporaneamente il database? (y/n)${NC}"
+echo -e "${YELLOW}   (Costo: ~25€/mese se attivo 24/7, ma puoi scalare giù dopo)${NC}"
+read -r SCALE_DB
+
+if [[ "$SCALE_DB" =~ ^[Yy]$ ]]; then
+    echo ""
+    echo -e "${YELLOW}🚀 Scaling database a db-g1-small...${NC}"
+
+    if [ -f "../scripts/scale-database.sh" ]; then
+        ../scripts/scale-database.sh setup --project=${PROJECT}
+    elif [ -f "scripts/scale-database.sh" ]; then
+        scripts/scale-database.sh setup --project=${PROJECT}
+    else
+        echo -e "${YELLOW}⚠️  Script scale-database.sh non trovato, continuo senza scaling${NC}"
+    fi
+
+    echo ""
+    echo -e "${GREEN}✅ Database scalato (ricorda di scalare giù dopo: ./scripts/scale-database.sh idle)${NC}"
+    echo ""
+else
+    echo -e "${YELLOW}⏩ Continuo con tier corrente (potrebbe essere lento)${NC}"
+    echo ""
+fi
+
 # Verify gcloud is installed
 if ! command -v gcloud &> /dev/null; then
     echo -e "${RED}❌ gcloud CLI non trovato. Installalo da: https://cloud.google.com/sdk/docs/install${NC}"
