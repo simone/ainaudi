@@ -1,0 +1,262 @@
+[
+    {
+        "model": "resources.categoriafaq",
+        "pk": 1,
+        "fields": {
+            "nome": "Ruolo e Poteri RDL",
+            "descrizione": "Cosa sono i Rappresentanti di Lista e quali sono i loro poteri",
+            "icona": "fa-user-shield",
+            "ordine": 1,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.categoriafaq",
+        "pk": 2,
+        "fields": {
+            "nome": "Nomina e Procedure",
+            "descrizione": "Come e quando depositare l'atto di nomina",
+            "icona": "fa-file-signature",
+            "ordine": 2,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.categoriafaq",
+        "pk": 3,
+        "fields": {
+            "nome": "Operazioni di Voto",
+            "descrizione": "Cosa succede durante le giornate di voto",
+            "icona": "fa-vote-yea",
+            "ordine": 3,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.categoriafaq",
+        "pk": 4,
+        "fields": {
+            "nome": "Scrutinio",
+            "descrizione": "Le operazioni di scrutinio del 23 marzo",
+            "icona": "fa-calculator",
+            "ordine": 4,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1,
+        "fields": {
+            "domanda": "Cos'è un Rappresentante di Lista (RDL)?",
+            "risposta": "I Rappresentanti di Lista sono **pubblici ufficiali** (art. 357 C.P) nominati dalle liste per assistere alle operazioni elettorali in ogni sezione. Hanno il compito di garantire la regolarità delle votazioni e dello scrutinio, con poteri di controllo e verbalizzazione.\n\nNel seggio elettorale, insieme al Presidente, Segretario e 3 Scrutatori (anch'essi pubblici ufficiali ex art. 24 d.P.R. n. 570/1960), gli RDL vigilano su tutte le operazioni.",
+            "categoria": 1,
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": true,
+            "is_attivo": true,
+            "ordine": 1,
+            "created_by_email": "admin@m5s.it",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 2,
+        "fields": {
+            "domanda": "Quali sono i poteri principali degli RDL?",
+            "risposta": "Gli RDL hanno i seguenti poteri fondamentali:\n\n**Durante le operazioni:**\n- Assistono a tutte le operazioni della sezione (art. 26 d.P.R. n. 361/1957)\n- Possono far inserire a verbale eventuali dichiarazioni\n- Appongono la propria firma (o sigla) sulle strisce di chiusura delle urne, sui verbali e sui plichi (artt. n. 67,72,73,74,75 d.P.R. n. 361/1957)\n\n**Per garantire la regolarità:**\n- Far rispettare il silenzio elettorale all'interno del seggio e nel raggio di 200 metri dal suo ingresso\n- Segnalare al Presidente la presenza di estranei nella sezione\n- Verificare presenza di elementi \"di disturbo\" che possano inficiare le operazioni\n\n**Badge e voto:**\n- Nel seggio vestono un badge o altro segno distintivo di riconoscimento\n- I rappresentanti di lista **possono votare nella sezione dove sono stati nominati**",
+            "categoria": 1,
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": true,
+            "is_attivo": true,
+            "ordine": 2,
+            "created_by_email": "admin@m5s.it",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 3,
+        "fields": {
+            "domanda": "Cosa NON possono fare gli RDL?",
+            "risposta": "⚠️ **ATTENZIONE - Limiti importanti:**\n\n**NON possono toccare:**\n- Gli RDL **non possono toccare le schede** ed il materiale presente nel seggio\n\n**Rischio allontanamento:**\n- Il Presidente del seggio può far allontanare gli RDL che esercitino violenza o che, richiamati **due volte**, continuino a turbare gravemente il regolare procedimento (art. 26, comma 2, d.P.R. n. 361/1957)\n\n**Sanzioni penali:**\n- I RDL che impediscano il regolare procedimento delle operazioni **sono puniti ai sensi dell'art. 104, d.P.R. n. 361/1957**\n\n⚠️ È fondamentale mantenere un atteggiamento collaborativo e rispettoso delle procedure, segnalando eventuali anomalie al Presidente senza interferire direttamente con le operazioni.",
+            "categoria": 1,
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": true,
+            "is_attivo": true,
+            "ordine": 3,
+            "created_by_email": "admin@m5s.it",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 4,
+        "fields": {
+            "domanda": "Quando e come si deposita l'atto di nomina?",
+            "risposta": "**Termine ordinario:**\nI Rappresentanti di Lista depositano il proprio **atto di nomina** all'atto della costituzione del seggio (**ore 15:00 di sabato 21 marzo**)\n\n**Termine ultimo:**\nÈ possibile depositare l'atto di nomina fino al **primo voto occorso nella sezione alle 07:00 di domenica 22 marzo**\n\n**⚠️ IMPORTANTE - Natura giuridica:**\nLa sottoscrizione viene apposta su un **atto pubblico (il verbale)** da parte di un soggetto (l'RDL) che in quella veste è un **Pubblico Ufficiale**.\n\nQuesto significa che la firma dell'RDL sul verbale ha valore legale e certifica quanto riportato nelle operazioni elettorali.",
+            "categoria": 2,
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": true,
+            "is_attivo": true,
+            "ordine": 1,
+            "created_by_email": "admin@m5s.it",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 5,
+        "fields": {
+            "domanda": "Cosa succede il 21 marzo alle ore 15:00?",
+            "risposta": "**Costituzione del seggio per la prima volta**\n\nAlle ore 15:00 del **sabato 21 marzo** iniziano le operazioni preliminari:\n\n1. **Sostituzione scrutatori assenti**: Il Presidente procede a sostituire gli scrutatori assenti, chiamando in sostituzione, alternativamente, l'anziano e il più giovane tra gli elettori presenti iscritti nelle liste del comune (art. 47 d.P.R. n. 570/1960)\n\n2. **Autenticazione delle schede**: Si procede all'autenticazione delle schede per la votazione (firma di uno scrutatore + bollo della sezione)\n   - Esempio: circa 500 schede firmate su 700 consegnate\n\n3. **Ammissione RDL come tali**: Gli RDL vengono ammessi come rappresentanti, previo deposito dell'atto di nomina\n\n4. **Compilazione del verbale**: Il Segretario compila il verbale e **gli RDL appongono la propria firma o sigla**\n\n📝 **L'RDL dovrà prendere nota di questo dato** (numero di schede consegnate e vidimate) - esempio: 500 firmate/700 consegnate",
+            "categoria": 3,
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": true,
+            "is_attivo": true,
+            "ordine": 1,
+            "created_by_email": "admin@m5s.it",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 6,
+        "fields": {
+            "domanda": "Cosa succede il 22 marzo (domenica)?",
+            "risposta": "**Prima giornata di voto**\n\n🕖 **Ore 7:00** - Ricostituzione del seggio\n\n**Votazioni**: Si vota fino alle **ore 23:00**\n- Coloro che sono presenti nei locali del seggio alle ore 23 sono ammessi al voto\n\n📋 **Sommario attività RDL per il 22 marzo:**\n- Controllo nomine RDL (verificare che siano tutti presenti)\n- Verificare che non siano distribuiti volantini o santini per un raggio di 200m dal seggio\n- Verificare presenza di elementi \"di disturbo\" (es. persone, gruppi, etc.) che possano inficiare le operazioni di voto\n- Verificare il corretto funzionamento del seggio e mettere a verbale le eventuali anomalie\n\n⚠️ **Casistiche eccezionali durante il voto:**\n- Elettore disabile accompagnato in cabina elettorale\n- Richiesta di nuova scheda di voto (es. deteriorata, già scritta, etc.)\n- Ammissione al voto delle Forze dell'Ordine e dei componenti di Sezione\n- Ammissione al voto per \"decreto Sindaco\"",
+            "categoria": 3,
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": true,
+            "is_attivo": true,
+            "ordine": 2,
+            "created_by_email": "admin@m5s.it",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 7,
+        "fields": {
+            "domanda": "Cosa succede il 23 marzo (lunedì)?",
+            "risposta": "**Seconda giornata di voto + Scrutinio**\n\n🕖 **Ore 7:00** - Ricostituzione del seggio\n\n**Votazioni**: Si vota fino alle **ore 15:00**\n- Coloro che sono presenti nei locali del seggio alle ore 15:00 sono ammessi al voto\n\n🕒 **Ore 15:00** - **CHIUSURA VOTAZIONI E INIZIO SCRUTINIO**\n\nIl Presidente provvederà al:\n1. **Riscontro** delle schede avanzate\n2. Conteggio del **numero degli elettori delle 2 giornate**\n3. Compilazione apposito verbale con il segretario della sezione\n\nSuccessivamente:\n- Saranno **impacchettate e restituite** al messo comunale le schede avanzate\n- Solo dopo si provvederà con le **operazioni di scrutinio**\n\n📝 **L'RDL dovrà prendere nota di questo dato** (numero di schede consegnate e vidimate)\n- Esempio: 500 firmate/700 consegnate",
+            "categoria": 3,
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": true,
+            "is_attivo": true,
+            "ordine": 3,
+            "created_by_email": "admin@m5s.it",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 8,
+        "fields": {
+            "domanda": "Quali sono le tre attività principali durante lo scrutinio?",
+            "risposta": "Le tre attività principali durante lo scrutinio si possono riassumere:\n\n**1. RISCONTRO** del numero di elettori e votanti\n- Il Presidente conteggerà il numero di elettori che hanno effettuato il voto\n\n📝 **L'RDL dovrà prendere nota:**\n- Esempio: 500 firmate/700 consegnate\n- Di cui: **80 votate + 420 avanzate** (37 donne e 43 uomini = tot 80)\n\n**2. ACCERTAMENTO** del numero di elettori che hanno votato nella sezione\n- Il Presidente riscontrerà che le schede autenticate e votate corrispondano al numero degli elettori registrati\n\n📝 **L'RDL dovrà prendere nota:**\n- **Numero schede votate = Elettori Registrati**\n\n**3. CONTROLLO** schede residue e formazioni plichi\n- Verifica delle schede non utilizzate\n- Preparazione dei plichi sigillati",
+            "categoria": 4,
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": true,
+            "is_attivo": true,
+            "ordine": 1,
+            "created_by_email": "admin@m5s.it",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 9,
+        "fields": {
+            "domanda": "Gli RDL devono assistere all'intera operazione di autenticazione schede?",
+            "risposta": "**SÌ, è fondamentale!**\n\n⚠️ Gli RDL devono assistere all'**intera operazione di autenticazione** e dare atto del numero di schede vidimate.\n\n📝 **L'RDL dovrà prendere nota di questo dato** (numero di schede consegnate e vidimate)\n\nEsempio pratico:\n- Schede consegnate: 700\n- Schede autenticate (firmate + bollo): circa 500\n\n**Perché è importante?**\nQuesto numero sarà fondamentale durante lo scrutinio per verificare che:\n1. Le schede votate + le schede avanzate = totale schede autenticate\n2. Il numero di schede votate corrisponda al numero di elettori che hanno votato\n\nQualsiasi discrepanza va segnalata immediatamente e verbalizzata.",
+            "categoria": 3,
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "is_attivo": true,
+            "ordine": 4,
+            "created_by_email": "admin@m5s.it",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 10,
+        "fields": {
+            "domanda": "Chi è il Presidente di seggio e quali sono i suoi poteri?",
+            "risposta": "Il Presidente di seggio è il responsabile di tutte le operazioni elettorali e ha poteri molto ampi:\n\n**Poteri principali:**\n- Sovraintende e dirige tutte le operazioni di voto\n- Ha **potestà di decisione** su tutte le questioni che emergono\n- Dispone di **poteri di Polizia** per garantire l'ordine\n\n**Decisioni del Presidente:**\nTutte le decisioni del Presidente sono insindacabili durante le operazioni, anche se RDL e scrutatori possono:\n- Chiedere che le loro osservazioni vengano messe a verbale\n- Contestare successivamente le decisioni attraverso i canali competenti\n\n**Relazione con gli RDL:**\nIl Presidente è tenuto a collaborare con gli RDL, ma può anche allontanarli se:\n- Esercitano violenza\n- Dopo essere stati richiamati **due volte**, continuano a turbare gravemente il procedimento\n\nÈ quindi fondamentale mantenere sempre un atteggiamento rispettoso e collaborativo.",
+            "categoria": 1,
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "is_attivo": true,
+            "ordine": 4,
+            "created_by_email": "admin@m5s.it",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 11,
+        "fields": {
+            "domanda": "Qual è il ruolo del Segretario di seggio?",
+            "risposta": "Il Segretario di seggio ha funzioni fondamentali di supporto e documentazione:\n\n**Compiti principali:**\n- Assiste il Presidente in tutte le operazioni\n- **Redige i verbali** di tutte le operazioni\n- Redige una **copia delle tabelle di scrutinio** durante lo scrutinio stesso\n\n**Importanza per gli RDL:**\nIl Segretario è il responsabile della compilazione del verbale, su cui poi gli RDL apporanno la propria firma o sigla.\n\nÈ importante verificare che il verbale riporti correttamente:\n- Tutte le operazioni svolte\n- Eventuali dichiarazioni fatte dagli RDL\n- Anomalie o contestazioni segnalate\n\nGli RDL devono leggere attentamente il verbale prima di firmarlo, poiché la loro firma certifica quanto riportato (essendo pubblici ufficiali).",
+            "categoria": 1,
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "is_attivo": true,
+            "ordine": 5,
+            "created_by_email": "admin@m5s.it",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 12,
+        "fields": {
+            "domanda": "Qual è il ruolo degli Scrutatori?",
+            "risposta": "Gli Scrutatori sono i componenti operativi del seggio elettorale:\n\n**Composizione:**\n- Ogni seggio ha **3 Scrutatori**\n- Uno di loro viene nominato \"Vice Presidente\" del Seggio\n\n**Compiti degli Scrutatori:**\n- Supportano il Presidente nella preparazione della Sezione\n- Sono sempre presenti nella sezione in assenza del Presidente (il Vice Presidente lo sostituisce)\n- **Contano & Firmano** le schede per il voto durante l'autenticazione\n- Registrano, all'ingresso, gli elettori nelle liste\n- Verificano il posizionamento della scheda votata nell'urna\n- **Partecipano allo scrutinio** (conteggio voti)\n- Uno Scrutatore prende nota della **II° Copia delle tabelle di scrutinio**\n\n**Importanza:**\nGli Scrutatori sono pubblici ufficiali come gli RDL e il loro lavoro è fondamentale per la regolarità delle operazioni. Gli RDL collaborano con loro verificando che tutte le procedure siano rispettate.",
+            "categoria": 1,
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "is_attivo": true,
+            "ordine": 6,
+            "created_by_email": "admin@m5s.it",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    }
+]

@@ -179,6 +179,50 @@ cd backend_django && python manage.py loaddata fixtures/risorse_referendum_2026.
 - Analisi CGIL, Pagella Politica, Geopop
 - Informazioni ufficiali Ministero dell'Interno
 
+### 3quater. FAQ Referendum 2026
+
+```bash
+# Con Docker
+docker-compose exec backend python manage.py loaddata fixtures/faq_referendum_2026.json
+
+# Senza Docker
+cd backend_django && python manage.py loaddata fixtures/faq_referendum_2026.json
+```
+
+**Tempo:** ~1 secondo
+**Risultato:** 12 FAQ + 4 categorie per formazione RDL
+
+**Contenuto FAQ (estratte dal PDF "Corso Formazione RDL"):**
+
+**1. Ruolo e Poteri RDL** (6 FAQ):
+- Cos'è un Rappresentante di Lista?
+- Quali sono i poteri principali degli RDL?
+- Cosa NON possono fare gli RDL?
+- Chi è il Presidente di seggio?
+- Qual è il ruolo del Segretario?
+- Qual è il ruolo degli Scrutatori?
+
+**2. Nomina e Procedure** (1 FAQ):
+- Quando e come si deposita l'atto di nomina?
+
+**3. Operazioni di Voto** (4 FAQ):
+- Cosa succede il 21 marzo alle ore 15:00? (costituzione seggio)
+- Cosa succede il 22 marzo? (prima giornata)
+- Cosa succede il 23 marzo? (seconda giornata + scrutinio)
+- Gli RDL devono assistere all'autenticazione schede?
+
+**4. Scrutinio** (1 FAQ):
+- Quali sono le tre attività principali durante lo scrutinio?
+
+**Fonte:** Estratte dal PDF "Corso Formazione RDL-REFERENDUM2026.pdf" (pagine 1-20)
+
+**Note importanti nelle FAQ:**
+- RDL sono pubblici ufficiali (art. 357 C.P)
+- Possono votare nella sezione dove sono nominati
+- NON possono toccare schede e materiale
+- Devono prendere nota dei numeri di schede (500 firmate/700 consegnate)
+- Possono essere allontanati dopo 2 richiami se turbano il procedimento
+
 ### 4. Comuni (CSV ISTAT)
 
 ```bash

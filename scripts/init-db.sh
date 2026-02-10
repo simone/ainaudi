@@ -144,6 +144,16 @@ echo ""
 run_manage loaddata fixtures/risorse_referendum_2026.json
 
 echo ""
+echo "📋 Carico FAQ per RDL (Domande Frequenti)..."
+echo "   • Ruolo e Poteri RDL (6 FAQ)"
+echo "   • Nomina e Procedure (1 FAQ)"
+echo "   • Operazioni di Voto (4 FAQ)"
+echo "   • Scrutinio (1 FAQ)"
+echo ""
+
+run_manage loaddata fixtures/faq_referendum_2026.json
+
+echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  Step 4: Comuni (da CSV ISTAT)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
