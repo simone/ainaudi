@@ -375,10 +375,10 @@ class MappaturaGerarchicaView(APIView):
             comune_id=comune_id
         )
 
+        # Get ALL municipi for this comune (not just those with sezioni already assigned)
         municipi = Municipio.objects.filter(
-            comune_id=comune_id,
-            sezioni__in=accessible_sezioni
-        ).distinct()
+            comune_id=comune_id
+        )
 
         if search:
             municipi = municipi.filter(nome__icontains=search)
