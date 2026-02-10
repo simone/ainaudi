@@ -130,6 +130,21 @@ fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  Step 3ter: Risorse Referendum 2026"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+echo "📚 Carico risorse educative e campagna referendum..."
+echo "   • Link campagna M5S 'Vota NO al Referendum Salva-Casta'"
+echo "   • Dichiarazioni di Giuseppe Conte"
+echo "   • Informazioni istituzionali"
+echo "   • PDF Corso Formazione RDL (1.3 MB)"
+echo ""
+
+run_manage loaddata fixtures/risorse_referendum_2026.json
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  Step 4: Comuni (da CSV ISTAT)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""

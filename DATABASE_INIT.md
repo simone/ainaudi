@@ -147,6 +147,38 @@ cd backend_django && python manage.py load_delegati_roma
 - Aggiunta al gruppo Django "Delegato"
 - Territorio limitato al solo comune (i delegati vedono solo sezioni di Roma)
 
+### 3ter. Risorse Referendum 2026
+
+```bash
+# Con Docker
+docker-compose exec backend python manage.py loaddata fixtures/risorse_referendum_2026.json
+
+# Senza Docker
+cd backend_django && python manage.py loaddata fixtures/risorse_referendum_2026.json
+```
+
+**Tempo:** ~1 secondo
+**Risultato:** 11 documenti + 3 categorie per risorse educative
+
+**Contenuto:**
+- **Campagna M5S**: Link ufficiali alla campagna "Vota NO al Referendum Salva-Casta"
+- **Dichiarazioni Conte**: Post e interviste di Giuseppe Conte sul referendum
+- **Info istituzionali**: Link Ministero Interno, spiegazioni tecniche, timeline
+- **Formazione RDL**: PDF "Corso Formazione RDL-REFERENDUM2026.pdf" (1.3 MB)
+
+**Categorie create:**
+1. Campagna Referendum 2026 (6 link in evidenza)
+2. Informazioni Istituzionali (4 link di approfondimento)
+3. Formazione RDL (1 PDF corso completo)
+
+**Link inclusi:**
+- https://www.movimento5stelle.eu/nosalvacasta/ ⭐
+- https://www.movimento5stelle.eu/referendum-salva-casta-ti-dico-perche-no/ ⭐
+- https://www.movimento5stelle.eu/una-firma-contro-la-casta/
+- Dichiarazioni Conte (Il Fatto Quotidiano)
+- Analisi CGIL, Pagella Politica, Geopop
+- Informazioni ufficiali Ministero dell'Interno
+
 ### 4. Comuni (CSV ISTAT)
 
 ```bash

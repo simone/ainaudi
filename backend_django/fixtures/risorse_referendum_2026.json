@@ -1,0 +1,234 @@
+[
+    {
+        "model": "resources.categoriadocumento",
+        "pk": 1,
+        "fields": {
+            "nome": "Campagna Referendum 2026",
+            "descrizione": "Materiali ufficiali della campagna M5S per il NO al referendum sulla separazione delle carriere",
+            "icona": "fa-vote-yea",
+            "ordine": 1,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.categoriadocumento",
+        "pk": 2,
+        "fields": {
+            "nome": "Informazioni Istituzionali",
+            "descrizione": "Link ufficiali e informazioni sul referendum costituzionale",
+            "icona": "fa-landmark",
+            "ordine": 2,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.categoriadocumento",
+        "pk": 3,
+        "fields": {
+            "nome": "Formazione RDL",
+            "descrizione": "Materiale formativo per Rappresentanti di Lista",
+            "icona": "fa-graduation-cap",
+            "ordine": 3,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.documento",
+        "pk": 1,
+        "fields": {
+            "titolo": "Vota NO al Referendum Salva-Casta",
+            "descrizione": "Pagina ufficiale della campagna M5S per il NO al referendum sulla separazione delle carriere. Spiega le ragioni del voto contrario e i rischi della riforma.",
+            "categoria": 1,
+            "url_esterno": "https://www.movimento5stelle.eu/nosalvacasta/",
+            "tipo_file": "LINK",
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": true,
+            "is_attivo": true,
+            "ordine": 1,
+            "created_by_email": "admin@m5s.it"
+        }
+    },
+    {
+        "model": "resources.documento",
+        "pk": 2,
+        "fields": {
+            "titolo": "Referendum salva-casta: ti dico perché NO",
+            "descrizione": "Articolo di approfondimento del M5S che spiega dettagliatamente le motivazioni del voto NO al referendum costituzionale sulla giustizia.",
+            "categoria": 1,
+            "url_esterno": "https://www.movimento5stelle.eu/referendum-salva-casta-ti-dico-perche-no/",
+            "tipo_file": "LINK",
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": true,
+            "is_attivo": true,
+            "ordine": 2,
+            "created_by_email": "admin@m5s.it"
+        }
+    },
+    {
+        "model": "resources.documento",
+        "pk": 3,
+        "fields": {
+            "titolo": "Una firma contro la Casta",
+            "descrizione": "Appello del Movimento 5 Stelle per firmare contro il referendum sulla separazione delle carriere, definito come strumento per proteggere la casta politica.",
+            "categoria": 1,
+            "url_esterno": "https://www.movimento5stelle.eu/una-firma-contro-la-casta/",
+            "tipo_file": "LINK",
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "is_attivo": true,
+            "ordine": 3,
+            "created_by_email": "admin@m5s.it"
+        }
+    },
+    {
+        "model": "resources.documento",
+        "pk": 4,
+        "fields": {
+            "titolo": "Conte: È il ritorno della casta",
+            "descrizione": "Dichiarazioni di Giuseppe Conte sul referendum giustizia: 'È la fine del principio che la legge è uguale per tutti'. Articolo de Il Fatto Quotidiano.",
+            "categoria": 1,
+            "url_esterno": "https://www.ilfattoquotidiano.it/2026/01/11/conte-m5s-no-referendum-giustizia-separazione-carriere/8252334/",
+            "tipo_file": "LINK",
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "is_attivo": true,
+            "ordine": 4,
+            "created_by_email": "admin@m5s.it"
+        }
+    },
+    {
+        "model": "resources.documento",
+        "pk": 5,
+        "fields": {
+            "titolo": "Conte attacca governo Meloni su riforma giustizia",
+            "descrizione": "Intervento di Giuseppe Conte contro il governo Meloni sulla riforma della giustizia e il referendum del 22-23 marzo 2026. Il Fatto Quotidiano.",
+            "categoria": 1,
+            "url_esterno": "https://www.ilfattoquotidiano.it/2026/02/04/conte-governo-riforma-giustizia-referendum-oggi/8280126/",
+            "tipo_file": "LINK",
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "is_attivo": true,
+            "ordine": 5,
+            "created_by_email": "admin@m5s.it"
+        }
+    },
+    {
+        "model": "resources.documento",
+        "pk": 6,
+        "fields": {
+            "titolo": "Le ragioni del NO al referendum - CGIL",
+            "descrizione": "Analisi approfondita della CGIL sulle ragioni per votare NO al referendum sulla riforma della magistratura del 22-23 marzo 2026.",
+            "categoria": 1,
+            "url_esterno": "https://www.cgil.it/ci-occupiamo-di/riforme-istituzionali/riforma-della-magistratura-le-ragioni-del-no-al-referendum-del-22-23-marzo-2026-hgqldds2",
+            "tipo_file": "LINK",
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "is_attivo": true,
+            "ordine": 6,
+            "created_by_email": "admin@m5s.it"
+        }
+    },
+    {
+        "model": "resources.documento",
+        "pk": 7,
+        "fields": {
+            "titolo": "Referendum giustizia 2026: spiegazione semplice",
+            "descrizione": "Guida completa e neutrale sul referendum costituzionale: cosa si vota, come funziona, le posizioni dei partiti. Utile per capire il quesito.",
+            "categoria": 2,
+            "url_esterno": "https://www.avvocatoticozzi.it/it/blog/414/referendum-giustizia-2026-separazione-carriere",
+            "tipo_file": "LINK",
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "is_attivo": true,
+            "ordine": 1,
+            "created_by_email": "admin@m5s.it"
+        }
+    },
+    {
+        "model": "resources.documento",
+        "pk": 8,
+        "fields": {
+            "titolo": "Referendum Giustizia - Ministero dell'Interno",
+            "descrizione": "Informazioni ufficiali del Ministero dell'Interno sul referendum costituzionale del 22-23 marzo 2026. Orari di voto e modalità.",
+            "categoria": 2,
+            "url_esterno": "https://prefettura.interno.gov.it/it/prefetture/venezia/notizie/referendum-giustizia-vota-22-e-23-marzo",
+            "tipo_file": "LINK",
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "is_attivo": true,
+            "ordine": 2,
+            "created_by_email": "admin@m5s.it"
+        }
+    },
+    {
+        "model": "resources.documento",
+        "pk": 9,
+        "fields": {
+            "titolo": "Come funziona il referendum - Geopop",
+            "descrizione": "Spiegazione didattica su come funziona il referendum costituzionale, perché non ha quorum e cosa significa votare SÌ o NO. Ottimo per divulgazione.",
+            "categoria": 2,
+            "url_esterno": "https://www.geopop.it/il-referendum-sulla-giustizia-del-22-e-23-marzo-non-avra-il-quorum-cosa-significa-e-come-funzionera-il-voto/",
+            "tipo_file": "LINK",
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "is_attivo": true,
+            "ordine": 3,
+            "created_by_email": "admin@m5s.it"
+        }
+    },
+    {
+        "model": "resources.documento",
+        "pk": 10,
+        "fields": {
+            "titolo": "Le tappe verso il referendum - Pagella Politica",
+            "descrizione": "Timeline completa del percorso che ha portato al referendum costituzionale sulla giustizia. Analisi fact-checking di Pagella Politica.",
+            "categoria": 2,
+            "url_esterno": "https://pagellapolitica.it/articoli/tappe-referendum-costituzionale-riforma-giustizia-separazione-carriere",
+            "tipo_file": "LINK",
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "is_attivo": true,
+            "ordine": 4,
+            "created_by_email": "admin@m5s.it"
+        }
+    },
+    {
+        "model": "resources.documento",
+        "pk": 11,
+        "fields": {
+            "titolo": "Corso Formazione RDL - Referendum 2026",
+            "descrizione": "Manuale completo per Rappresentanti di Lista del M5S per il referendum costituzionale marzo 2026. Include procedure, normativa, istruzioni operative e FAQ.",
+            "categoria": 3,
+            "url_esterno": "/static/fixtures/Corso Formazione RDL-REFERENDUM2026.pdf",
+            "tipo_file": "PDF",
+            "dimensione": 1327092,
+            "scope": "SPECIFICO",
+            "consultazione_specifica": 1,
+            "is_pubblico": false,
+            "in_evidenza": true,
+            "is_attivo": true,
+            "ordine": 1,
+            "created_by_email": "admin@m5s.it"
+        }
+    }
+]
