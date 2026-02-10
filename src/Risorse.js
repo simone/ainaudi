@@ -246,8 +246,15 @@ function Risorse({ client, consultazione, setError }) {
     const getProxiedUrl = (url) => {
         if (!url) return url;
 
-        // Se è un URL relativo (inizia con /), aggiungilo al server backend
+        // Se è un URL relativo (inizia con /)
         if (url.startsWith('/')) {
+            // URL che puntano a file del frontend (public/) → lascia relativo
+            const frontendPaths = ['/documenti/', '/assets/', '/images/', '/static/'];
+            if (frontendPaths.some(path => url.startsWith(path))) {
+                return url; // Servito da Nginx/frontend direttamente
+            }
+
+            // Altri URL relativi (API backend) → aggiungi backend URL
             const apiUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
             return `${apiUrl}${url}`;
         }
