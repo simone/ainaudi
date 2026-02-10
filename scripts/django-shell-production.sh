@@ -59,20 +59,25 @@ fi
 
 # Get DB password from Secret Manager
 echo -e "${YELLOW}🔐 Recupero password database...${NC}"
-DB_PASSWORD=$(gcloud secrets versions access latest --secret=db-password --project=${PROJECT} 2>/dev/null || echo "")
+
+# Try Secret Manager with timeout
+DB_PASSWORD=$(timeout 5 gcloud secrets versions access latest --secret=db-password --project=${PROJECT} 2>/dev/null || echo "")
 
 if [ -z "$DB_PASSWORD" ]; then
     echo -e "${YELLOW}⚠️  Password non trovata in Secret Manager${NC}"
+    echo -e "${YELLOW}Inserisci la password del database (o premi ENTER per skip):${NC}"
     read -sp "DB Password: " DB_PASSWORD
     echo ""
 
     if [ -z "$DB_PASSWORD" ]; then
-        echo -e "${RED}❌ Password non fornita${NC}"
-        exit 1
+        echo -e "${YELLOW}⚠️  Procedendo senza password (potrebbe fallire)${NC}"
+        DB_PASSWORD=""
     fi
 fi
 
-echo -e "${GREEN}✅ Password recuperata${NC}"
+if [ -n "$DB_PASSWORD" ]; then
+    echo -e "${GREEN}✅ Password recuperata${NC}"
+fi
 
 # Start Cloud SQL Proxy in background
 echo ""
