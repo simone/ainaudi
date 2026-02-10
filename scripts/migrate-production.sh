@@ -296,6 +296,19 @@ fi
 echo ""
 echo -e "${GREEN}✅ Dati iniziali caricati${NC}"
 
+# Collect static files
+echo ""
+echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║              COLLECT STATIC FILES                         ║${NC}"
+echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+echo -e "${YELLOW}📦 Raccolta file statici Django (Admin CSS/JS)...${NC}"
+python3 manage.py collectstatic --noinput --clear --settings=config.settings
+
+STATIC_COUNT=$(find staticfiles -type f 2>/dev/null | wc -l | xargs)
+echo -e "${GREEN}✅ ${STATIC_COUNT} file statici raccolti in staticfiles/${NC}"
+
 # Ask if user wants to create superuser
 echo ""
 echo -e "${YELLOW}👤 Vuoi creare un superuser admin? (y/n)${NC}"
