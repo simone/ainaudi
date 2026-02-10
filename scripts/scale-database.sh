@@ -17,14 +17,28 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-# Tier presets
-declare -A TIER_SPECS=(
-    # Format: "tier|RAM|vCPU|Cost/month (approx EUR)|Description"
-    ["idle"]="db-f1-micro|0.6GB|Shared|~7€|Minimo costo, solo idle/sviluppo"
-    ["setup"]="db-g1-small|1.7GB|1 vCPU|~25€|Setup iniziale, import dati"
-    ["scrutinio"]="db-n1-standard-1|3.75GB|1 vCPU|~50€|Scrutinio attivo, alta concorrenza"
-    ["high"]="db-n1-standard-2|7.5GB|2 vCPU|~100€|Picco massimo (scrutinio + dashboard)"
-)
+# Function to get tier specs (Bash 3.x compatible)
+# Returns: "tier|RAM|vCPU|Cost/month|Description"
+get_tier_specs() {
+    local preset=$1
+    case $preset in
+        idle)
+            echo "db-f1-micro|0.6GB|Shared|~7€|Minimo costo, solo idle/sviluppo"
+            ;;
+        setup)
+            echo "db-g1-small|1.7GB|1 vCPU|~25€|Setup iniziale, import dati"
+            ;;
+        scrutinio)
+            echo "db-n1-standard-1|3.75GB|1 vCPU|~50€|Scrutinio attivo, alta concorrenza"
+            ;;
+        high)
+            echo "db-n1-standard-2|7.5GB|2 vCPU|~100€|Picco massimo (scrutinio + dashboard)"
+            ;;
+        *)
+            echo ""
+            ;;
+    esac
+}
 
 show_usage() {
     echo "Usage: $0 [PRESET] [OPTIONS]"
@@ -114,15 +128,18 @@ scale_database() {
     echo ""
 
     # Show tier specs if available
-    for preset in "${!TIER_SPECS[@]}"; do
-        IFS='|' read -r tier ram vcpu cost desc <<< "${TIER_SPECS[$preset]}"
-        if [ "$tier" == "$TARGET_TIER" ]; then
-            echo -e "${CYAN}Specifiche ${TARGET_TIER}:${NC}"
-            echo -e "   RAM:      ${ram}"
-            echo -e "   vCPU:     ${vcpu}"
-            echo -e "   Costo:    ${cost}"
-            echo -e "   Uso:      ${desc}"
-            echo ""
+    for preset in idle setup scrutinio high; do
+        specs=$(get_tier_specs "$preset")
+        if [ -n "$specs" ]; then
+            IFS='|' read -r tier ram vcpu cost desc <<< "$specs"
+            if [ "$tier" == "$TARGET_TIER" ]; then
+                echo -e "${CYAN}Specifiche ${TARGET_TIER}:${NC}"
+                echo -e "   RAM:      ${ram}"
+                echo -e "   vCPU:     ${vcpu}"
+                echo -e "   Costo:    ${cost}"
+                echo -e "   Uso:      ${desc}"
+                echo ""
+            fi
         fi
     done
 
@@ -191,7 +208,8 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         idle|setup|scrutinio|high)
             PRESET=$1
-            IFS='|' read -r tier ram vcpu cost desc <<< "${TIER_SPECS[$PRESET]}"
+            specs=$(get_tier_specs "$PRESET")
+            IFS='|' read -r tier ram vcpu cost desc <<< "$specs"
             TARGET_TIER=$tier
             shift
             ;;
