@@ -2,6 +2,7 @@
 
 ## ✅ Completato Automaticamente
 
+### Fase 1: Rinomina RDL → AInaudi
 Tutti i riferimenti "rdl" sono stati sostituiti con "ainaudi" in:
 - ✅ docker-compose.yml (16 sostituzioni)
 - ✅ docker-compose.prod.yml (14 sostituzioni)
@@ -15,6 +16,19 @@ Tutti i riferimenti "rdl" sono stati sostituiti con "ainaudi" in:
 - ✅ DEPLOYMENT.md (14 sostituzioni)
 
 **Totale: 70 sostituzioni in 10 file**
+
+### Fase 2: Correzioni Routing e Configurazione
+- ✅ **dispatch.yaml**: Aggiunto routing per `/admin/*` e `/campagna/*` al backend Django
+- ✅ **backend_django/app.yaml**: Configurato Google Cloud Storage (USE_GCS, GS_BUCKET_NAME, GS_DEFAULT_ACL)
+- ✅ **backend_django/app.yaml**: Configurato CORS e CSRF per produzione
+- ✅ **backend_django/config/settings.py**: Fallback per nomi variabili GCS (GS_BUCKET_NAME ↔ GCS_BUCKET_NAME)
+- ✅ **requirements.txt**: django-storages[google] già presente
+
+**Problemi risolti:**
+1. 🔧 Django Admin ora raggiungibile su `/admin/` (prima inaccessibile)
+2. 🔧 Media files (PDF, upload) ora salvati su Google Cloud Storage
+3. 🔧 CORS configurato per chiamate frontend → backend
+4. 🔧 Campagna Open Graph (`/campagna/<slug>`) ora servita da Django
 
 ---
 
@@ -372,24 +386,90 @@ gcloud app create --region=europe-west
 gcloud app describe
 ```
 
-### 10. Deploy Iniziale (Test)
+### 10. Deploy su Google App Engine
 
-#### Opzione A: Google App Engine
+#### 🚀 Metodo AUTOMATICO (Raccomandato)
+
+Usa lo script automatizzato `deploy.sh`:
 
 ```bash
-# Frontend
-npm run build
-gcloud app deploy app.yaml --project=ainaudi-prod --no-promote
+# Deploy completo (frontend + backend + dispatch) con promozione
+./deploy.sh
 
-# Backend
-cd backend_django
-python manage.py collectstatic --noinput
-gcloud app deploy app.yaml --project=ainaudi-prod --no-promote
+# Deploy di test senza promozione
+./deploy.sh --no-promote
 
-# Se tutto OK, promuovi a produzione
-gcloud app versions list
-gcloud app services set-traffic default --splits=<version>=1
+# Deploy solo frontend
+./deploy.sh --frontend-only
+
+# Deploy solo backend
+./deploy.sh --backend-only
+
+# Deploy dispatch rules
+./deploy.sh --dispatch-only
+
+# Specifica project ID custom
+./deploy.sh --project my-custom-project
+
+# Skip build React (usa build esistente)
+./deploy.sh --skip-build
+
+# Aiuto
+./deploy.sh --help
 ```
+
+**Lo script automaticamente:**
+1. ✅ Builda frontend React (`npm run build`)
+2. ✅ Collecta static files Django
+3. ✅ Deploya frontend su service `default`
+4. ✅ Deploya backend su service `api`
+5. ✅ Aggiorna dispatch routing rules
+6. ✅ Mostra URL e comandi utili
+
+---
+
+#### 📖 Metodo MANUALE (Alternativo)
+
+<details>
+<summary><b>Click per comandi manuali</b></summary>
+
+```bash
+# 1. Build frontend
+npm run build
+
+# 2. Deploy frontend
+gcloud app deploy app.yaml --project=ainaudi-prod --promote
+
+# 3. Collect static Django
+cd backend_django
+python manage.py collectstatic --noinput --clear
+
+# 4. Deploy backend
+gcloud app deploy app.yaml --project=ainaudi-prod --promote
+
+# 5. Deploy dispatch rules
+cd ..
+gcloud app deploy dispatch.yaml --project=ainaudi-prod
+
+# 6. Verifica deploy
+gcloud app versions list
+gcloud app browse
+```
+
+**Test senza promozione (staging):**
+```bash
+# Deploy senza promuovere (per test)
+gcloud app deploy app.yaml --project=ainaudi-prod --no-promote
+
+# Se tutto OK, promuovi manualmente
+gcloud app versions list
+gcloud app services set-traffic default --splits=<VERSION_ID>=1
+gcloud app services set-traffic api --splits=<VERSION_ID>=1
+```
+
+</details>
+
+---
 
 #### Opzione B: Docker Compose (VPS/VM)
 
@@ -411,7 +491,7 @@ docker-compose -f docker-compose.prod.yml up -d
 # 4. Run migrations
 docker-compose -f docker-compose.prod.yml exec backend python manage.py migrate
 
-# 5. Crea superuser
+# 5. Crea superuser               
 docker-compose -f docker-compose.prod.yml exec backend python manage.py createsuperuser
 
 # 6. Verifica

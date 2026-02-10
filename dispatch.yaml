@@ -1,7 +1,17 @@
 dispatch:
-  # PDF service deprecated - now handled by backend Django synchronously
-  # - url: "*/api/generate/*"
-  #   service: pdf
+  # Django Admin
+  - url: "*/admin/*"
+    service: api
+
+  # Campagna Open Graph (HTML con meta tags per social sharing)
+  - url: "*/campagna/*"
+    service: api
+
+  # API backend
+  - url: "*/api/*"
+    service: api
+
+  # Tutto il resto → React frontend
   - url: "*/*"
     service: default
 

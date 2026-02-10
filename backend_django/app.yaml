@@ -1,3 +1,4 @@
+service: api
 runtime: python311
 env: standard
 instance_class: F2
@@ -16,8 +17,15 @@ env_variables:
   DB_USER: "postgres"
   # DB_PASSWORD stored in Secret Manager
 
-  # Google Cloud Storage
+  # Google Cloud Storage (Media Files)
+  USE_GCS: "true"
   GCS_BUCKET_NAME: "ainaudi-documents"
+  GS_BUCKET_NAME: "ainaudi-documents"
+  GS_DEFAULT_ACL: "publicRead"
+
+  # CORS & CSRF Security
+  CORS_ALLOWED_ORIGINS: "https://ainaudi-prod.appspot.com"
+  CSRF_TRUSTED_ORIGINS: "https://ainaudi-prod.appspot.com"
 
   # Email (Gmail SMTP)
   EMAIL_BACKEND: "django.core.mail.backends.smtp.EmailBackend"
