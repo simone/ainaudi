@@ -110,8 +110,7 @@ fi
 
 # Get DB password from Secret Manager
 echo ""
-echo -e "${YELLOW}🔐 Recupero password database da Secret Manager...${NC}"
-DB_PASSWORD=$(gcloud secrets versions access latest --secret=db-password --project=${PROJECT} 2>/dev/null || echo "")
+DB_PASSWORD=""
 
 if [ -z "$DB_PASSWORD" ]; then
     echo -e "${YELLOW}⚠️  Password non trovata in Secret Manager (secret: db-password)${NC}"
@@ -199,6 +198,89 @@ python3 manage.py migrate --settings=config.settings
 
 echo ""
 echo -e "${GREEN}✅ Migrations completate${NC}"
+
+# Load initial data fixtures
+echo ""
+echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║              CARICAMENTO DATI INIZIALI                    ║${NC}"
+echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+echo -e "${YELLOW}📦 Caricamento fixtures base...${NC}"
+
+# 1. Initial data (regioni, province)
+if [ -f "fixtures/initial_data.json" ]; then
+    echo -e "${YELLOW}  → Regioni e Province italiane...${NC}"
+    python3 manage.py loaddata fixtures/initial_data.json --settings=config.settings
+    echo -e "${GREEN}    ✅ 20 regioni + 107 province caricate${NC}"
+fi
+
+# 2. Roma municipi
+if [ -f "fixtures/roma_municipi.json" ]; then
+    echo -e "${YELLOW}  → Municipi di Roma...${NC}"
+    python3 manage.py loaddata fixtures/roma_municipi.json --settings=config.settings
+    echo -e "${GREEN}    ✅ Municipi di Roma caricati${NC}"
+fi
+
+# 3. Referendum 2026
+if [ -f "fixtures/referendum_giustizia_2026.json" ]; then
+    echo -e "${YELLOW}  → Referendum Giustizia 2026...${NC}"
+    python3 manage.py loaddata fixtures/referendum_giustizia_2026.json --settings=config.settings
+    echo -e "${GREEN}    ✅ Referendum 2026 configurato${NC}"
+fi
+
+# 4. FAQ Referendum
+if [ -f "fixtures/faq_referendum_2026.json" ]; then
+    echo -e "${YELLOW}  → FAQ Referendum 2026...${NC}"
+    python3 manage.py loaddata fixtures/faq_referendum_2026.json --settings=config.settings
+    echo -e "${GREEN}    ✅ FAQ caricate${NC}"
+fi
+
+# 5. Risorse Referendum
+if [ -f "fixtures/risorse_referendum_2026.json" ]; then
+    echo -e "${YELLOW}  → Risorse formative RDL...${NC}"
+    python3 manage.py loaddata fixtures/risorse_referendum_2026.json --settings=config.settings
+    echo -e "${GREEN}    ✅ Risorse caricate${NC}"
+fi
+
+# 6. Delegati Roma (esempio)
+if [ -f "fixtures/delegati_roma_referendum_2026.json" ]; then
+    echo -e "${YELLOW}  → Delegati Roma (esempio)...${NC}"
+    python3 manage.py loaddata fixtures/delegati_roma_referendum_2026.json --settings=config.settings
+    echo -e "${GREEN}    ✅ Delegati esempio caricati${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}✅ Fixtures base caricati${NC}"
+
+# Optional: Import comuni and sezioni (large datasets)
+echo ""
+echo -e "${YELLOW}📊 Vuoi importare anche Comuni e Sezioni elettorali? (y/n)${NC}"
+echo -e "${YELLOW}   (Attenzione: ~7.900 comuni + ~60.000 sezioni, richiede 2-5 minuti)${NC}"
+read -r IMPORT_LARGE_DATA
+
+if [[ "$IMPORT_LARGE_DATA" =~ ^[Yy]$ ]]; then
+    echo ""
+    echo -e "${YELLOW}📥 Import Comuni italiani (ISTAT)...${NC}"
+    if python3 manage.py import_comuni_istat --settings=config.settings 2>&1; then
+        echo -e "${GREEN}✅ Comuni importati${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Import comuni fallito o già esistenti${NC}"
+    fi
+
+    echo ""
+    echo -e "${YELLOW}📥 Import Sezioni elettorali Italia...${NC}"
+    if python3 manage.py import_sezioni_italia --settings=config.settings 2>&1; then
+        echo -e "${GREEN}✅ Sezioni elettorali importate${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Import sezioni fallito o già esistenti${NC}"
+    fi
+else
+    echo -e "${YELLOW}⏩ Skip import comuni/sezioni (potrai farlo dopo manualmente)${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}✅ Dati iniziali caricati${NC}"
 
 # Ask if user wants to create superuser
 echo ""
