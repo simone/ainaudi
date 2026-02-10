@@ -432,6 +432,9 @@ class MappaturaGerarchicaView(APIView):
                 'rdl_disponibili': rdl_disponibili
             })
 
+        # Sort by RDL disponibili (descending), then by numero
+        result.sort(key=lambda x: (-x['rdl_disponibili'], x['numero']))
+
         totale_sezioni_all = sum(r['totale_sezioni'] for r in result)
         sezioni_assegnate_all = sum(r['sezioni_assegnate'] for r in result)
         sezioni_non_assegnate_all = sum(r['sezioni_non_assegnate'] for r in result)
