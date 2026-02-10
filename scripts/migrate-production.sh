@@ -215,8 +215,25 @@ if [ -f "fixtures/initial_data.json" ]; then
     echo -e "${GREEN}    ✅ 20 regioni + 107 province caricate${NC}"
 fi
 
-# 2. Roma municipi
+# 2. Import comuni italiani (NECESSARIO per municipi e sezioni)
+echo ""
+echo -e "${YELLOW}📥 Import Comuni italiani...${NC}"
+echo -e "${YELLOW}   (Necessario per municipi e sezioni, ~7.900 comuni, 1-2 minuti)${NC}"
+
+if [ -f "fixtures/comuni_istat.csv" ]; then
+    echo -e "${YELLOW}  → Usando file locale comuni_istat.csv...${NC}"
+    python3 manage.py import_comuni_istat --file=fixtures/comuni_istat.csv --settings=config.settings 2>&1 | grep -E "(Created|Updated|Skipped|Error)" || true
+else
+    echo -e "${YELLOW}  → Download da ISTAT...${NC}"
+    python3 manage.py import_comuni_istat --settings=config.settings 2>&1 | grep -E "(Created|Updated|Skipped|Error)" || true
+fi
+
+COMUNI_COUNT=$(python3 -c "from django.conf import settings; import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings'); import django; django.setup(); from territory.models import Comune; print(Comune.objects.count())" 2>/dev/null || echo "0")
+echo -e "${GREEN}    ✅ ${COMUNI_COUNT} comuni in database${NC}"
+
+# 3. Roma municipi (DOPO i comuni)
 if [ -f "fixtures/roma_municipi.json" ]; then
+    echo ""
     echo -e "${YELLOW}  → Municipi di Roma...${NC}"
     python3 manage.py loaddata fixtures/roma_municipi.json --settings=config.settings
     echo -e "${GREEN}    ✅ Municipi di Roma caricati${NC}"
@@ -253,30 +270,27 @@ fi
 echo ""
 echo -e "${GREEN}✅ Fixtures base caricati${NC}"
 
-# Optional: Import comuni and sezioni (large datasets)
+# Optional: Import sezioni elettorali (large dataset)
 echo ""
-echo -e "${YELLOW}📊 Vuoi importare anche Comuni e Sezioni elettorali? (y/n)${NC}"
-echo -e "${YELLOW}   (Attenzione: ~7.900 comuni + ~60.000 sezioni, richiede 2-5 minuti)${NC}"
-read -r IMPORT_LARGE_DATA
+echo -e "${YELLOW}📊 Vuoi importare le Sezioni elettorali? (y/n)${NC}"
+echo -e "${YELLOW}   (~60.000 sezioni, richiede 2-3 minuti)${NC}"
+read -r IMPORT_SEZIONI
 
-if [[ "$IMPORT_LARGE_DATA" =~ ^[Yy]$ ]]; then
-    echo ""
-    echo -e "${YELLOW}📥 Import Comuni italiani (ISTAT)...${NC}"
-    if python3 manage.py import_comuni_istat --settings=config.settings 2>&1; then
-        echo -e "${GREEN}✅ Comuni importati${NC}"
-    else
-        echo -e "${YELLOW}⚠️  Import comuni fallito o già esistenti${NC}"
-    fi
-
+if [[ "$IMPORT_SEZIONI" =~ ^[Yy]$ ]]; then
     echo ""
     echo -e "${YELLOW}📥 Import Sezioni elettorali Italia...${NC}"
-    if python3 manage.py import_sezioni_italia --settings=config.settings 2>&1; then
-        echo -e "${GREEN}✅ Sezioni elettorali importate${NC}"
+
+    if [ -f "fixtures/sezioni_eligendo.csv" ]; then
+        echo -e "${YELLOW}  → Usando file locale sezioni_eligendo.csv...${NC}"
+        python3 manage.py import_sezioni_italia --file=fixtures/sezioni_eligendo.csv --settings=config.settings 2>&1 | grep -E "(Created|Skipped|sections)" || true
     else
-        echo -e "${YELLOW}⚠️  Import sezioni fallito o già esistenti${NC}"
+        echo -e "${RED}  ❌ File sezioni_eligendo.csv non trovato${NC}"
     fi
+
+    SEZIONI_COUNT=$(python3 -c "from django.conf import settings; import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings'); import django; django.setup(); from territory.models import SezioneElettorale; print(SezioneElettorale.objects.count())" 2>/dev/null || echo "0")
+    echo -e "${GREEN}    ✅ ${SEZIONI_COUNT} sezioni in database${NC}"
 else
-    echo -e "${YELLOW}⏩ Skip import comuni/sezioni (potrai farlo dopo manualmente)${NC}"
+    echo -e "${YELLOW}⏩ Skip import sezioni (potrai farlo dopo manualmente)${NC}"
 fi
 
 echo ""
