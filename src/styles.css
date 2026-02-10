@@ -355,18 +355,22 @@ h6 {
   border-color: var(--color-danger);
 }
 
-/* Referendum 2026 button - red gradient matching email CTA */
+/* Referendum 2026 button - yellow M5S official colors */
 .btn-referendum {
-  background: linear-gradient(135deg, #DC143C 0%, #C8102E 100%);
-  border-color: #DC143C;
-  color: white;
+  background-color: #F2CB13;
+  border-color: #F2CB13;
+  border-radius: 12px;
+  color: #2E2D2C;
+  font-weight: 500;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .btn-referendum:hover,
 .btn-referendum:focus {
-  background: linear-gradient(135deg, #C8102E 0%, #B00020 100%);
-  border-color: #B00020;
+  background-color: #CA0E0D;
+  border-color: #CA0E0D;
   color: white;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
 }
 
 /* --------------------------------------------------------------------------

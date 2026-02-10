@@ -174,7 +174,7 @@ Movimento 5 Stelle
                     <!-- CTA Button -->
                     <tr>
                         <td style="padding: 0 40px 30px 40px; text-align: center;">
-                            <a href="{magic_link}" style="display: inline-block; background: linear-gradient(135deg, #DC143C 0%, #C8102E 100%); color: #FFFFFF; text-decoration: none; padding: 16px 40px; border-radius: 6px; font-size: 16px; font-weight: 700; letter-spacing: 0.3px; box-shadow: 0 4px 12px rgba(220,20,60,0.4); transition: all 0.3s ease;">
+                            <a href="{magic_link}" style="display: inline-block; background-color: #F2CB13; color: #2E2D2C; text-decoration: none; padding: 16px 40px; border-radius: 12px; font-size: 16px; font-weight: 600; letter-spacing: 0.3px; box-shadow: 0 4px 12px rgba(242,203,19,0.4); transition: all 0.3s ease;">
                                 🔐 Accedi alla Piattaforma
                             </a>
                             <p style="margin: 20px 0 0 0; font-size: 13px; color: #666666; line-height: 1.5;">
