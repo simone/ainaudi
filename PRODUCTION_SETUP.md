@@ -512,7 +512,64 @@ gcloud run services replace cloudrun/service.yaml --region=europe-west1
 gcloud run services describe ainaudi-backend --region=europe-west1
 ```
 
-### 11. Setup DNS e SSL (se dominio custom)
+### 11. Esegui Migrations su Cloud SQL
+
+**IMPORTANTE:** Dopo il primo deploy, devi eseguire le migrations Django sul database Cloud SQL di produzione.
+
+#### 🚀 Metodo AUTOMATICO (Raccomandato)
+
+```bash
+# Esegue migrations e chiede se creare superuser
+./scripts/migrate-production.sh
+
+# Con project ID custom
+./scripts/migrate-production.sh --project my-custom-project
+```
+
+**Lo script automaticamente:**
+1. ✅ Scarica Cloud SQL Proxy (se necessario)
+2. ✅ Recupera password DB da Secret Manager (o chiede input)
+3. ✅ Avvia Cloud SQL Proxy temporaneamente
+4. ✅ Testa connessione al database
+5. ✅ Esegue tutte le migrations Django
+6. ✅ Opzionale: crea superuser admin
+7. ✅ Mostra stato finale migrations
+
+---
+
+#### 📖 Metodo MANUALE (Alternativo)
+
+<details>
+<summary><b>Click per comandi manuali</b></summary>
+
+```bash
+# 1. Scarica Cloud SQL Proxy
+curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.2/cloud-sql-proxy.darwin.amd64
+chmod +x cloud-sql-proxy
+
+# 2. Avvia proxy (terminale separato)
+./cloud-sql-proxy ainaudi-prod:europe-west1:ainaudi-db --port 5433
+
+# 3. Configura variabili ambiente
+export DB_HOST=127.0.0.1
+export DB_PORT=5433
+export DB_NAME=ainaudi_db
+export DB_USER=postgres
+export DB_PASSWORD=<LA_TUA_PASSWORD>
+
+# 4. Esegui migrations
+cd backend_django
+python3 manage.py migrate --settings=config.settings
+
+# 5. Crea superuser
+python3 manage.py createsuperuser --settings=config.settings
+```
+
+</details>
+
+---
+
+### 12. Setup DNS e SSL (se dominio custom)
 
 ```bash
 # Map custom domain to App Engine
@@ -525,7 +582,7 @@ gcloud app domain-mappings describe yourdomain.com
 # Oppure usa Let's Encrypt se Docker Compose
 ```
 
-### 12. Monitoring e Logging
+### 13. Monitoring e Logging
 
 ```bash
 # Setup monitoring
