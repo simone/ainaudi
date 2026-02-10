@@ -302,6 +302,11 @@ if [ -f "fixtures/delegati_roma_referendum_2026.json" ]; then
     echo -e "${YELLOW}  → Delegati Roma (esempio)...${NC}"
     python3 manage.py loaddata fixtures/delegati_roma_referendum_2026.json --settings=config.settings
     echo -e "${GREEN}    ✅ Delegati esempio caricati${NC}"
+
+    # Assegna territorio (Comune di Roma) ai delegati
+    echo -e "${YELLOW}  → Assegna territorio Roma ai delegati...${NC}"
+    python3 manage.py assign_territory_to_delegati --settings=config.settings
+    echo -e "${GREEN}    ✅ Territorio assegnato${NC}"
 fi
 
 echo ""
