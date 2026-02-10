@@ -42,8 +42,8 @@ class MappaturaGerarchicaView(APIView):
         except ConsultazioneElettorale.DoesNotExist:
             return Response({'error': 'Consultazione not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Get user's accessible sections
-        sezioni_filter = get_sezioni_filter_for_user(request.user, consultazione_id)
+        # Get user's accessible sections (use empty Q() if None = no restrictions)
+        sezioni_filter = get_sezioni_filter_for_user(request.user, consultazione_id) or Q()
 
         search = request.query_params.get('search', '').strip()
 
