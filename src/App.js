@@ -23,6 +23,7 @@ import TemplateEditor from "./TemplateEditor";
 import TemplateList from "./TemplateList";
 import ScrutinioAggregato from "./ScrutinioAggregato";
 import {AuthProvider, useAuth} from "./AuthContext";
+import ThemeSwitcher from "./components/ThemeSwitcher";
 
 // In development, use empty string to leverage Vite proxy (vite.config.js)
 // In production, use empty string for same-origin requests
@@ -1068,6 +1069,9 @@ function AppContent() {
                     </p>
                 </div>
             </footer>
+
+            {/* Theme Switcher - VOTA NO Campaign Theme */}
+            {isAuthenticated && <ThemeSwitcher />}
         </>
     );
 }
