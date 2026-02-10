@@ -136,46 +136,88 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('[DRY RUN] No changes made'))
             return
 
-        # Import/Update sections
-        created_count = 0
+        # Prefetch all Roma sections for efficient lookup
+        self.stdout.write('Loading existing Roma sections...')
+        sezioni_map = {}
+        for sezione in SezioneElettorale.objects.filter(comune=roma).select_related('municipio'):
+            sezioni_map[sezione.numero] = sezione
+
+        self.stdout.write(f'Loaded {len(sezioni_map)} existing sections')
+
+        # Update municipio ONLY for existing sections with denominazione/indirizzo
         updated_count = 0
         skipped_count = 0
+        not_found_count = 0
+        sezioni_to_update = []
 
-        with transaction.atomic():
-            for data in sections_data:
-                sezione, created = SezioneElettorale.objects.update_or_create(
-                    comune=roma,
-                    numero=data['numero'],
-                    defaults={
-                        'indirizzo': data['indirizzo'],
-                        'municipio': data['municipio'],
-                        'is_attiva': True,
-                        # Keep existing denominazione, don't override
-                    }
+        for data in sections_data:
+            sezione = sezioni_map.get(data['numero'])
+
+            if not sezione:
+                not_found_count += 1
+                if dry_run:
+                    self.stdout.write(f'  ✗ Sezione {data["numero"]}: not found in DB')
+                continue
+
+            # Check if sezione has denominazione OR indirizzo (at least one)
+            has_data = bool(sezione.denominazione or sezione.indirizzo)
+
+            if not has_data:
+                skipped_count += 1
+                if dry_run:
+                    self.stdout.write(
+                        f'  ⊘ Sezione {data["numero"]}: skipped (no denominazione/indirizzo)'
+                    )
+                continue
+
+            # Only update municipio if different
+            old_municipio = sezione.municipio
+            if old_municipio != data['municipio']:
+                sezione.municipio = data['municipio']
+                sezioni_to_update.append(sezione)
+                old_mun_str = f"Mun {old_municipio.numero}" if old_municipio else "NULL"
+                new_mun_str = f"Mun {data['municipio'].numero}" if data['municipio'] else "NULL"
+                if dry_run or len(sezioni_to_update) <= 20:
+                    self.stdout.write(
+                        f'  ↻ Sezione {data["numero"]}: {old_mun_str} → {new_mun_str}'
+                    )
+            else:
+                skipped_count += 1
+
+        updated_count = len(sezioni_to_update)
+
+        if dry_run:
+            self.stdout.write(self.style.SUCCESS(f'\n[DRY RUN] Would update {updated_count} sezioni'))
+            self.stdout.write('')
+            self.stdout.write(self.style.SUCCESS('=== SUMMARY ==='))
+            self.stdout.write(f'Would update:      {updated_count}')
+            self.stdout.write(f'Skipped:           {skipped_count}')
+            self.stdout.write(f'Not found in DB:   {not_found_count}')
+            self.stdout.write(f'Total in CSV:      {len(sections_data)}')
+            return
+
+        # Bulk update
+        if sezioni_to_update:
+            self.stdout.write(f'\nBulk updating {len(sezioni_to_update)} sezioni...')
+            with transaction.atomic():
+                SezioneElettorale.objects.bulk_update(
+                    sezioni_to_update,
+                    ['municipio'],
+                    batch_size=500
                 )
-
-                if created:
-                    created_count += 1
-                    self.stdout.write(f'  ✓ Created: Sezione {data["numero"]}')
-                else:
-                    # Check if updated
-                    if sezione.indirizzo != data['indirizzo'] or sezione.municipio != data['municipio']:
-                        updated_count += 1
-                        self.stdout.write(
-                            f'  ↻ Updated: Sezione {data["numero"]} '
-                            f'(indirizzo, municipio)'
-                        )
-                    else:
-                        skipped_count += 1
+            self.stdout.write(self.style.SUCCESS(f'✓ Updated {len(sezioni_to_update)} sezioni'))
 
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS('=== SUMMARY ==='))
-        self.stdout.write(f'Created:  {created_count}')
-        self.stdout.write(f'Updated:  {updated_count}')
-        self.stdout.write(f'Skipped:  {skipped_count}')
-        self.stdout.write(f'Total:    {len(sections_data)}')
+        self.stdout.write(f'Municipio updated: {updated_count}')
+        self.stdout.write(f'Skipped:           {skipped_count}')
+        self.stdout.write(f'Not found in DB:   {not_found_count}')
+        self.stdout.write(f'Total in CSV:      {len(sections_data)}')
         self.stdout.write('')
-        self.stdout.write(self.style.SUCCESS('✓ Import completed'))
-        self.stdout.write('')
-        self.stdout.write('Next steps:')
-        self.stdout.write('  1. python manage.py match_sezioni_plessi  # Match with school names')
+        if not_found_count > 0:
+            self.stdout.write(self.style.WARNING(
+                f'⚠️  {not_found_count} sezioni from CSV not found in database'
+            ))
+            self.stdout.write('    Run import_sezioni_italia first to import all sections')
+            self.stdout.write('')
+        self.stdout.write(self.style.SUCCESS('✓ Municipio assignment completed'))
