@@ -15,7 +15,7 @@ Design principles:
 """
 import logging
 from django.db import IntegrityError, transaction
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save, pre_save, m2m_changed
 from django.dispatch import receiver
 
 from core.models import User, RoleAssignment, AuditLog
