@@ -55,7 +55,8 @@ class Command(BaseCommand):
         # Download or read ISTAT CSV
         if local_file:
             self.stdout.write(f"Reading from local file: {local_file}")
-            with open(local_file, 'r', encoding='utf-8') as f:
+            # ISTAT CSV uses ISO-8859-1 (Latin-1) encoding for Italian accented characters
+            with open(local_file, 'r', encoding='latin-1') as f:
                 content = f.read()
         else:
             self.stdout.write(f"Downloading from ISTAT: {ISTAT_CSV_URL}")

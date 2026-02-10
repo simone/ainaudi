@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://ainaudi-prod.ew.r.appspot.com", "https://yourdomain.com"],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type"],
+    "maxAgeSeconds": 3600
+  }
+]

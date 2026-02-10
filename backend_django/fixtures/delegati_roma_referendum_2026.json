@@ -1,0 +1,72 @@
+[
+    {
+        "model": "delegations.delegato",
+        "pk": 1,
+        "fields": {
+            "consultazione": 1,
+            "cognome": "Pietracci",
+            "nome": "Daniela",
+            "email": "danielapietracci@gmail.com",
+            "carica": "RAPPRESENTANTE_PARTITO",
+            "data_nomina": "2026-01-15",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "delegations.delegato",
+        "pk": 2,
+        "fields": {
+            "consultazione": 1,
+            "cognome": "Federici",
+            "nome": "Simone",
+            "email": "s.federici@gmail.com",
+            "carica": "RAPPRESENTANTE_PARTITO",
+            "data_nomina": "2026-01-15",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "delegations.delegato",
+        "pk": 3,
+        "fields": {
+            "consultazione": 1,
+            "cognome": "Meleo",
+            "nome": "Linda",
+            "email": "linda.meleo@movimento5stelle.eu",
+            "carica": "RAPPRESENTANTE_PARTITO",
+            "data_nomina": "2026-01-15",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "delegations.delegato",
+        "pk": 4,
+        "fields": {
+            "consultazione": 1,
+            "cognome": "Contardi",
+            "nome": "Federica",
+            "email": "efsi2365@gmail.com",
+            "carica": "RAPPRESENTANTE_PARTITO",
+            "data_nomina": "2026-01-15",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "delegations.delegato",
+        "pk": 5,
+        "fields": {
+            "consultazione": 1,
+            "cognome": "Riccardi",
+            "nome": "Marina",
+            "email": "marinariccardi961@gmail.com",
+            "carica": "RAPPRESENTANTE_PARTITO",
+            "data_nomina": "2026-01-15",
+            "created_at": "2026-01-15T10:00:00Z",
+            "updated_at": "2026-01-15T10:00:00Z"
+        }
+    }
+]

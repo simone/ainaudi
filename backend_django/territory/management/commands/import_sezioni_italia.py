@@ -1,21 +1,28 @@
 """
 Management command to import all Italian electoral sections from CSV.
-The CSV is generated from Eligendo data (Europee 2024).
+
+Supports two CSV formats:
+1. Eligendo format (semicolon-separated):
+   REGIONE;PROVINCIA;COMUNE;COD. ISTAT;N. SEZIONE;INDIRIZZO;DESCRIZIONE PLESSO;UBICAZIONE;OSPEDALIERA
+
+2. Generic format (comma-separated):
+   codice_istat,numero_sezione
 """
 import csv
+import re
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from territory.models import Comune, SezioneElettorale
 
 
 class Command(BaseCommand):
-    help = 'Import electoral sections from sezioni_italia_2024.csv'
+    help = 'Import electoral sections from CSV (auto-detects Eligendo or generic format)'
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--file',
-            default='data/sezioni_italia_2024.csv',
-            help='Path to CSV file (default: data/sezioni_italia_2024.csv)'
+            default='fixtures/sezioni_eligendo.csv',
+            help='Path to CSV file (default: fixtures/sezioni_eligendo.csv)'
         )
         parser.add_argument(
             '--dry-run',
@@ -27,45 +34,92 @@ class Command(BaseCommand):
             action='store_true',
             help='Clear all existing sections before importing'
         )
+        parser.add_argument(
+            '--encoding',
+            type=str,
+            default='utf-8',
+            help='CSV file encoding (default: utf-8)'
+        )
+
+    def clean_istat_code(self, raw_code):
+        """
+        Clean ISTAT code from Excel formula format.
+        Example: ="069001" -> 069001
+        """
+        if not raw_code:
+            return ''
+        # Remove Excel formula: ="..." -> ...
+        cleaned = re.sub(r'^=?"?([0-9]+)"?$', r'\1', raw_code.strip())
+        # Ensure 6 digits
+        return cleaned.zfill(6)
 
     def handle(self, *args, **options):
         file_path = options['file']
         dry_run = options['dry_run']
         clear = options['clear']
+        encoding = options['encoding']
 
-        self.stdout.write(f'Reading {file_path}...')
+        self.stdout.write(f'Reading {file_path} (encoding: {encoding})...')
 
         # Build comune lookup by codice_istat
         comuni_map = {}
         for comune in Comune.objects.all():
             comuni_map[comune.codice_istat] = comune
-        
+
         self.stdout.write(f'Loaded {len(comuni_map)} comuni from database')
 
-        # Read CSV
+        # Read CSV and auto-detect format
         sections_to_create = []
         errors = []
         missing_comuni = set()
 
-        with open(file_path, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
+        with open(file_path, 'r', encoding=encoding) as f:
+            # Detect delimiter (semicolon or comma)
+            first_line = f.readline()
+            delimiter = ';' if ';' in first_line else ','
+            f.seek(0)
+
+            reader = csv.DictReader(f, delimiter=delimiter)
+            columns = reader.fieldnames
+
+            # Auto-detect format
+            is_eligendo = 'COD. ISTAT' in columns and 'N. SEZIONE' in columns
+
+            if is_eligendo:
+                self.stdout.write('Detected ELIGENDO format (semicolon-separated)')
+            else:
+                self.stdout.write('Detected GENERIC format (comma-separated)')
+
             for row_num, row in enumerate(reader, start=2):
-                codice_istat = row.get('codice_istat', '').strip()
-                numero = row.get('numero_sezione', '').strip()
-
-                if not codice_istat or not numero:
-                    errors.append(f'Row {row_num}: missing codice_istat or numero_sezione')
-                    continue
-
-                comune = comuni_map.get(codice_istat)
-                if not comune:
-                    missing_comuni.add(codice_istat)
-                    continue
-
                 try:
+                    if is_eligendo:
+                        # Eligendo format
+                        codice_istat_raw = row.get('COD. ISTAT', '').strip()
+                        codice_istat = self.clean_istat_code(codice_istat_raw)
+                        numero_str = row.get('N. SEZIONE', '').strip()
+                        indirizzo = row.get('INDIRIZZO', '').strip()
+                        denominazione = row.get('DESCRIZIONE PLESSO', '').strip()
+                    else:
+                        # Generic format
+                        codice_istat = row.get('codice_istat', '').strip()
+                        numero_str = row.get('numero_sezione', '').strip()
+                        indirizzo = row.get('indirizzo', '').strip() if 'indirizzo' in row else None
+                        denominazione = row.get('denominazione', '').strip() if 'denominazione' in row else None
+
+                    if not codice_istat or not numero_str:
+                        errors.append(f'Row {row_num}: missing codice_istat or numero_sezione')
+                        continue
+
+                    comune = comuni_map.get(codice_istat)
+                    if not comune:
+                        missing_comuni.add(codice_istat)
+                        continue
+
                     sections_to_create.append(SezioneElettorale(
                         comune=comune,
-                        numero=int(numero),
+                        numero=int(numero_str),
+                        indirizzo=indirizzo if indirizzo else None,
+                        denominazione=denominazione if denominazione else None,
                         is_attiva=True
                     ))
                 except Exception as e:
