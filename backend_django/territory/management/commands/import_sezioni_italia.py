@@ -98,22 +98,71 @@ class Command(BaseCommand):
                         codice_istat = self.clean_istat_code(codice_istat_raw)
                         numero_str = row.get('N. SEZIONE', '').strip()
                         indirizzo = row.get('INDIRIZZO', '').strip()
-                        denominazione_raw = row.get('DESCRIZIONE PLESSO', '').strip()
+                        # UBICAZIONE contains specific school name (if any)
+                        denominazione_raw = row.get('UBICAZIONE', '').strip()
 
-                        # Skip generic/useless denominazioni
+                        # Skip generic/useless denominazioni (case-insensitive)
                         generic_terms = [
-                            'edificio scolastico',
-                            'ex edificio scolastico',
+                            # Generic school terms
+                            'scuola',
                             'scuola elementare',
-                            'ex scuola elementare',
                             'scuola media',
+                            'scuola primaria',
+                            'scuola materna',
+                            'scuola dell\'infanzia',
+                            'scuola secondaria',
+                            'scuola secondaria di primo grado',
+                            'scuola secondaria di secondo grado',
+                            'ex scuola elementare',
+                            'ex scuola media',
+                            'ex scuola materna',
+                            'ex scuola primaria',
+                            'ex scuole elementari',
+                            'ex scuole medie',
+                            'scuola media statale',
+                            'scuola elementare statale',
+                            'scuola materna statale',
+                            'scuola primaria statale',
+                            'scuola media inferiore',
+                            'scuola elementare capoluogo',
+                            'scuola elementare e materna',
+                            'scuola elementare e media',
+                            'edificio scuola elementare',
+                            'edificio scolastico',
                             'edifici scolastici',
+                            'plesso scolastico',
+                            # Other buildings
+                            'ex edificio scolastico',
+                            'centro sociale',
+                            'centro civico',
+                            'edificio comunale',
+                            'centro per la terza eta',
+                            'centro per la terza età',
+                            'centro anziani',
+                            'sala civica',
+                            'locali comunali',
                             'altri fabbricati',
+                            'centro polifunzionale',
+                            'centro polivalente',
+                            'sala polivalente',
+                            'biblioteca comunale',
+                            'casa sociale',
+                            'edificio privato',
                             'centro abitato',
+                            # Municipal buildings
+                            'municipio',
+                            'palazzo comunale',
+                            'palazzo municipale',
+                            'uffici comunali',
+                            'sede comunale',
+                            'sede municipale',
+                            'casa comunale',
+                            'comune',
+                            'sala consiliare',
                         ]
                         denominazione = denominazione_raw
                         if denominazione.lower() in generic_terms:
-                            denominazione = None  # Skip, will be matched later
+                            denominazione = ''  # Empty, will be matched later
                     else:
                         # Generic format
                         codice_istat = row.get('codice_istat', '').strip()
