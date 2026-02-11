@@ -6,6 +6,34 @@
 
 ---
 
+## 🚀 Quick Start - How to Test
+
+1. **Start the app:**
+   ```bash
+   # Make sure frontend is running
+   npm run frontend
+   # Navigate to http://localhost:3000
+   ```
+
+2. **Activate Night Mode:**
+   - Look for 🌙 button (bottom-right corner)
+   - Click to toggle Night theme
+   - Verify `[data-theme="night"]` is set on `<html>` element (DevTools)
+
+3. **Systematic Testing:**
+   - Go through each page in checklist below
+   - For EACH page, check backgrounds, text, buttons, contrast
+   - Document issues in "Issues Found" section
+   - Take screenshots if helpful
+
+4. **After Testing:**
+   - Prioritize issues (Critical → High → Medium → Low)
+   - Fix one issue at a time
+   - Re-test after each fix
+   - Commit incrementally
+
+---
+
 ## Testing Plan
 
 ### Pre-Testing Cleanup
@@ -46,19 +74,43 @@
 
 ---
 
+## Known Problem Areas (Check These First!)
+
+Based on v3 radical changes, these are most likely to have issues:
+
+1. **Dashboard Cards** - Check if colored headers (violet, blue, green) are visible
+2. **White Cards** - Any cards with white backgrounds should now be dark
+3. **Text Colors** - Black text on dark backgrounds will be invisible
+4. **Red Buttons** - Primary buttons should use bright red (#ff6b6b) not dark red
+5. **Tables** - Row backgrounds and borders
+6. **Forms** - Input fields should have dark backgrounds
+7. **Modals** - Modal backgrounds should be dark
+8. **Dropdowns** - Already fixed, but verify navbar dropdowns are visible
+9. **Badges** - Check visibility of colored badges
+10. **Alerts** - Check visibility of info/warning/success/danger alerts
+
+---
+
 ## Issues Found
 
+### How to Report Issues
+For each issue, document:
+- **Page/Component:** Where the issue occurs
+- **Problem:** What doesn't work (be specific: "text invisible", "button too dark", etc.)
+- **Expected:** What it should look like
+- **Screenshot:** (optional but helpful)
+
 ### Critical (Bloccanti)
-<!-- Log issues as found -->
+<!-- Issues that make the app unusable -->
 
 ### High Priority
-<!-- Log issues as found -->
+<!-- Major visual problems that affect usability -->
 
 ### Medium Priority
-<!-- Log issues as found -->
+<!-- Minor visual issues that should be fixed -->
 
 ### Low Priority
-<!-- Log issues as found -->
+<!-- Polish and nice-to-haves -->
 
 ---
 
