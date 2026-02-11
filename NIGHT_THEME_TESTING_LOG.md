@@ -419,6 +419,77 @@ All interaction states now dark with proper visual feedback.
 
 **Test Result:** Ricarica Risorse page, verifica doc cards scure e hover/active states
 
+#### Issue #14: GestioneDesignazioni component - white backgrounds
+**Page:** GestioneDesignazioni (delegation designations management)
+**File:** `src/GestioneDesignazioni.css`
+**Problem:**
+- `.gd-card` with `background: white`
+- `.gd-territory-card` with `background: white`
+- Multiple .gd-* classes with light gray backgrounds (#f8f9fa, #e9ecef, #dee2e6)
+- Found 4 instances of hardcoded white backgrounds
+- Found 10+ instances of light gray backgrounds
+
+**Element Examples:**
+```css
+.gd-card {
+    background: white;
+    border: 1px solid #dee2e6;
+}
+
+.gd-territory-card {
+    background: white;
+    border: 1px solid #dee2e6;
+}
+
+.gd-archivio-item:hover {
+    background: #f8f9fa;
+}
+```
+
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+Comprehensive GestioneDesignazioni component overrides (~20 rules):
+
+```css
+/* Main containers */
+.gd-card → --bg-dark-secondary
+.gd-card-header, .gd-card-body → dark backgrounds
+
+/* PDF document cards */
+.gd-pdf-document → --bg-dark-secondary with hover state
+
+/* Process alerts */
+.gd-processo-alert → --bg-dark-tertiary with semantic colors
+
+/* Selection bars */
+.gd-select-all-bar → --bg-dark-elevated
+
+/* Section items */
+.gd-sezione-item → --bg-dark-secondary with hover
+
+/* Archive items */
+.gd-archivio-item → --bg-dark-secondary
+.gd-archivio-item:hover → --bg-dark-tertiary
+.gd-archivio-item:active → --bg-dark-elevated
+.gd-archivio-header, .gd-archivio-body → dark backgrounds
+
+/* Territory cards */
+.gd-territory-card → --bg-dark-secondary
+.gd-territory-card:hover → --bg-dark-tertiary
+.gd-territory-card:active → --bg-dark-elevated
+
+/* Progress bars */
+.gd-territory-progress-bar → dark with red fill
+
+/* Form elements */
+.gd-checkbox-wrapper → dark backgrounds with borders
+```
+
+All .gd-* classes now use dark theme colors with proper interaction states.
+
+**Test Result:** Ricarica GestioneDesignazioni page e verifica tutti elementi scuri
+
 ---
 
 ### Critical (Bloccanti) - FIXED

@@ -780,6 +780,95 @@
   background: var(--bg-dark-elevated) !important;
 }
 
+/* GestioneDesignazioni component overrides */
+[data-theme="night"] .gd-card {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-dark) !important;
+}
+
+[data-theme="night"] .gd-card-header {
+  background: var(--bg-dark-tertiary) !important;
+  border-bottom-color: var(--border-dark) !important;
+}
+
+[data-theme="night"] .gd-card-body {
+  background: var(--bg-dark-secondary) !important;
+}
+
+[data-theme="night"] .gd-pdf-document {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-dark) !important;
+}
+
+[data-theme="night"] .gd-processo-alert {
+  background: var(--color-info-bg) !important;
+  border-color: var(--color-info-border) !important;
+  color: var(--color-info) !important;
+}
+
+[data-theme="night"] .gd-select-all-bar {
+  background: var(--bg-dark-tertiary) !important;
+}
+
+[data-theme="night"] .gd-sezione-item {
+  background: var(--bg-dark-secondary) !important;
+}
+
+[data-theme="night"] .gd-sezione-item:hover {
+  background: var(--bg-dark-tertiary) !important;
+}
+
+[data-theme="night"] .gd-archivio-item {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-dark) !important;
+}
+
+[data-theme="night"] .gd-archivio-header {
+  background: var(--bg-dark-tertiary) !important;
+}
+
+[data-theme="night"] .gd-archivio-header:hover {
+  background: var(--bg-dark-elevated) !important;
+}
+
+[data-theme="night"] .gd-archivio-header:active {
+  background: var(--bg-dark-elevated) !important;
+}
+
+[data-theme="night"] .gd-archivio-body {
+  background: var(--bg-dark-secondary) !important;
+  border-top-color: var(--border-dark) !important;
+}
+
+[data-theme="night"] .gd-sezioni-archive-list .gd-sezione-item {
+  background: var(--bg-dark-tertiary) !important;
+}
+
+[data-theme="night"] .gd-sezioni-archive-list .gd-sezione-item:hover {
+  background: var(--bg-dark-elevated) !important;
+}
+
+[data-theme="night"] .gd-territory-card {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-dark) !important;
+}
+
+[data-theme="night"] .gd-territory-card:hover {
+  background: var(--bg-dark-tertiary) !important;
+}
+
+[data-theme="night"] .gd-territory-card:active {
+  background: var(--bg-dark-elevated) !important;
+}
+
+[data-theme="night"] .gd-territory-progress-bar {
+  background: var(--bg-dark-tertiary) !important;
+}
+
+[data-theme="night"] .gd-checkbox-wrapper {
+  background: var(--bg-dark-tertiary) !important;
+}
+
 /* Section lists */
 [data-theme="night"] .sezioni-section-header {
   background: var(--bg-dark-tertiary) !important;
