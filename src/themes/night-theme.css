@@ -761,8 +761,14 @@
 [data-theme="night"] div[style*="background:#f8f9fa"],
 [data-theme="night"] div[style*="background: rgb(248, 249, 250)"],
 [data-theme="night"] div[style*="background:rgb(248, 249, 250)"],
-[data-theme="night"] div[style*="background: rgb(248,249,250)"] {
-  background: var(--bg-dark-tertiary) !important;
+[data-theme="night"] div[style*="background: rgb(248,249,250)"],
+[data-theme="night"] div[style*="background: white"],
+[data-theme="night"] div[style*="background:white"],
+[data-theme="night"] div[style*="background: #fff"],
+[data-theme="night"] div[style*="background:#fff"],
+[data-theme="night"] div[style*="background: #ffffff"],
+[data-theme="night"] div[style*="background:#ffffff"] {
+  background: var(--bg-dark-secondary) !important;
 }
 
 /* Text color overrides - catch all dark text on inline styles */
@@ -773,17 +779,25 @@
 [data-theme="night"] div[style*="color: rgb(51, 51, 51)"],
 [data-theme="night"] div[style*="color:rgb(51, 51, 51)"],
 [data-theme="night"] div[style*="color: rgb(51,51,51)"],
+[data-theme="night"] div[style*="color: rgb(73, 80, 87)"],
+[data-theme="night"] div[style*="color:rgb(73, 80, 87)"],
+[data-theme="night"] div[style*="color: rgb(73,80,87)"],
 [data-theme="night"] span[style*="color: rgb(51, 51, 51)"],
+[data-theme="night"] span[style*="color: rgb(73, 80, 87)"],
 [data-theme="night"] span[style*="color: #333"],
 [data-theme="night"] p[style*="color: rgb(51, 51, 51)"],
+[data-theme="night"] p[style*="color: rgb(73, 80, 87)"],
 [data-theme="night"] p[style*="color: #333"] {
   color: var(--text-primary) !important;
 }
 
 /* Border overrides */
 [data-theme="night"] div[style*="border: 1px solid #dee2e6"],
-[data-theme="night"] div[style*="borderColor: #dee2e6"] {
-  border-color: var(--border-medium) !important;
+[data-theme="night"] div[style*="borderColor: #dee2e6"],
+[data-theme="night"] div[style*="border-bottom: 1px solid rgb(233, 236, 239)"],
+[data-theme="night"] div[style*="border-bottom:1px solid rgb(233, 236, 239)"],
+[data-theme="night"] div[style*="border-bottom: 1px solid rgb(233,236,239)"] {
+  border-color: var(--border-dark) !important;
 }
 
 /* --------------------------------------------------------------------------

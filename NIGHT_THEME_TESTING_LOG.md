@@ -272,6 +272,32 @@ Comprehensive GestioneRdl component overrides (15+ rules):
 
 **Test Result:** Ricarica GestioneRdl page e verifica tutti elementi scuri
 
+#### Issue #9: Inline styles - background: white (keyword + hex)
+**Element:** Registration lists, various containers
+**Problem:**
+- Inline `style="background: white"` not caught (keyword, not rgb)
+- Inline `style="background: #fff"` and `#ffffff` not caught
+- Inline `color: rgb(73, 80, 87)` gray text invisible
+- Inline `border-bottom: 1px solid rgb(233, 236, 239)` light borders
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+Extended inline style selectors to catch ALL variations:
+```css
+/* Backgrounds - now catches white keyword + hex */
+div[style*="background: white"],
+div[style*="background: #fff"],
+div[style*="background: #ffffff"] → --bg-dark-secondary
+
+/* Text - now catches rgb(73, 80, 87) gray */
+div[style*="color: rgb(73, 80, 87)"] → --text-primary
+
+/* Borders - now catches rgb(233, 236, 239) */
+div[style*="border-bottom: 1px solid rgb(233, 236, 239)"] → --border-dark
+```
+
+**Test Result:** Ricarica liste registrazioni e verifica backgrounds scuri
+
 ---
 
 ### Critical (Bloccanti) - FIXED
