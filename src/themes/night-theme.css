@@ -1,16 +1,17 @@
 /* ==========================================================================
-   TEMA REFERENDUM 2026 - VOTA NO (v2 - UX Refined)
-   Approccio conservativo: mantiene gerarchia visiva, aggiunge accenti rossi
+   NIGHT THEME - Dark Mode for AInaudi
+   Tema scuro che si contrappone al tema Daily (light) standard.
+   Usa navy profondo e accenti rossi per una modalità notturna elegante.
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   CSS Variables Override - Solo essenziali
+   CSS Variables Override - Night Mode Palette
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] {
-  /* Palette campagna (uso selettivo) */
-  --color-campaign-navy: #1e3a5f;
-  --color-campaign-red: #dc143c;
-  --color-campaign-red-dark: #b01030;
+[data-theme="night"] {
+  /* Palette dark mode */
+  --color-night-navy: #1e3a5f;
+  --color-night-accent: #dc143c;
+  --color-night-accent-dark: #b01030;
 
   /* Override SOLO primary color per bottoni */
   --color-primary: #dc143c;
@@ -26,7 +27,7 @@
 /* --------------------------------------------------------------------------
    Body Background - Navy con pattern puntini
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] body {
+[data-theme="night"] body {
   background: #1e3a5f;
   background-image: radial-gradient(
     circle,
@@ -38,43 +39,43 @@
 }
 
 /* Main content area */
-[data-theme="referendum-no"] .main-content {
+[data-theme="night"] .main-content {
   background: transparent;
 }
 
 /* --------------------------------------------------------------------------
    Navbar - Navy con accento rosso (OK, manteniamo)
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] .navbar {
+[data-theme="night"] .navbar {
   background: linear-gradient(135deg, #1e3a5f 0%, #264a6e 100%) !important;
   border-bottom: 3px solid #dc143c;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-[data-theme="referendum-no"] .navbar-brand {
+[data-theme="night"] .navbar-brand {
   color: #ffffff !important;
   font-weight: 700;
 }
 
-[data-theme="referendum-no"] .navbar .nav-link {
+[data-theme="night"] .navbar .nav-link {
   color: rgba(255, 255, 255, 0.9) !important;
   font-weight: 500;
 }
 
-[data-theme="referendum-no"] .navbar .nav-link:hover,
-[data-theme="referendum-no"] .navbar .nav-link.active {
+[data-theme="night"] .navbar .nav-link:hover,
+[data-theme="night"] .navbar .nav-link.active {
   color: #ffffff !important;
   background: rgba(220, 20, 60, 0.15);
   border-radius: 8px;
 }
 
 /* Navbar dropdown backgrounds */
-[data-theme="referendum-no"] .navbar .dropdown-menu {
+[data-theme="night"] .navbar .dropdown-menu {
   background: #ffffff;
   border: 1px solid rgba(220, 20, 60, 0.2);
 }
 
-[data-theme="referendum-no"] .navbar .dropdown-item:hover {
+[data-theme="night"] .navbar .dropdown-item:hover {
   background: rgba(220, 20, 60, 0.1);
 }
 
@@ -82,7 +83,7 @@
    Cards - PRESERVE background bianco e header colorati originali
    NO OVERRIDES - cards funzionano bene con sfondo navy
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] .card {
+[data-theme="night"] .card {
   /* Aumenta solo l'ombra per risaltare su navy */
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   border-radius: 12px;
@@ -94,7 +95,7 @@
 /* --------------------------------------------------------------------------
    Buttons - Rosso per primary, altri invariati
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] .btn-primary {
+[data-theme="night"] .btn-primary {
   background: linear-gradient(135deg, #dc143c 0%, #b01030 100%);
   border: none;
   color: #ffffff;
@@ -103,15 +104,15 @@
   transition: all 0.3s ease;
 }
 
-[data-theme="referendum-no"] .btn-primary:hover,
-[data-theme="referendum-no"] .btn-primary:focus {
+[data-theme="night"] .btn-primary:hover,
+[data-theme="night"] .btn-primary:focus {
   background: linear-gradient(135deg, #b01030 0%, #8a0c26 100%);
   box-shadow: 0 6px 16px rgba(220, 20, 60, 0.6);
   transform: translateY(-2px);
 }
 
 /* Referendum button override */
-[data-theme="referendum-no"] .btn-referendum {
+[data-theme="night"] .btn-referendum {
   background: #dc143c !important;
   border: none;
   color: #ffffff;
@@ -119,19 +120,19 @@
   box-shadow: 0 6px 16px rgba(220, 20, 60, 0.5);
 }
 
-[data-theme="referendum-no"] .btn-referendum:hover {
+[data-theme="night"] .btn-referendum:hover {
   background: #b01030 !important;
   box-shadow: 0 8px 20px rgba(220, 20, 60, 0.7);
 }
 
 /* Secondary buttons - subtle su navy */
-[data-theme="referendum-no"] .btn-secondary {
+[data-theme="night"] .btn-secondary {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: #ffffff;
 }
 
-[data-theme="referendum-no"] .btn-secondary:hover {
+[data-theme="night"] .btn-secondary:hover {
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.5);
 }
@@ -139,27 +140,27 @@
 /* --------------------------------------------------------------------------
    Forms - PRESERVE bianco, solo focus rosso
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] .form-control:focus,
-[data-theme="referendum-no"] .form-select:focus {
+[data-theme="night"] .form-control:focus,
+[data-theme="night"] .form-select:focus {
   border-color: #dc143c;
   box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.25);
 }
 
 /* Form labels - SOLO se direttamente su body navy (rare) */
-[data-theme="referendum-no"] body > .form-label,
-[data-theme="referendum-no"] .main-content > .form-label {
+[data-theme="night"] body > .form-label,
+[data-theme="night"] .main-content > .form-label {
   color: #ffffff;
 }
 
 /* Mantieni labels nere dentro cards */
-[data-theme="referendum-no"] .card .form-label {
+[data-theme="night"] .card .form-label {
   color: #212529;
 }
 
 /* --------------------------------------------------------------------------
    Alerts - Leggeri upgrade
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] .alert {
+[data-theme="night"] .alert {
   border-radius: 12px;
   border: none;
   font-weight: 500;
@@ -168,21 +169,21 @@
 /* --------------------------------------------------------------------------
    Badges - Primary rosso, altri invariati
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] .badge.bg-primary {
+[data-theme="night"] .badge.bg-primary {
   background: #dc143c !important;
 }
 
 /* --------------------------------------------------------------------------
    List Items - PRESERVE bianco, aumenta ombra
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] .list-group-item {
+[data-theme="night"] .list-group-item {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   border-radius: 8px;
   margin-bottom: 8px;
   transition: all 0.2s ease;
 }
 
-[data-theme="referendum-no"] .list-group-item:hover {
+[data-theme="night"] .list-group-item:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   transform: translateY(-1px);
 }
@@ -190,7 +191,7 @@
 /* --------------------------------------------------------------------------
    Footer - Navy con accento rosso
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] .custom-footer {
+[data-theme="night"] .custom-footer {
   background: linear-gradient(135deg, #152d47 0%, #1e3a5f 100%);
   border-top: 3px solid #dc143c;
   color: #ffffff;
@@ -199,33 +200,33 @@
 /* --------------------------------------------------------------------------
    Modals - Bianche con header navy
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] .modal-backdrop-custom {
+[data-theme="night"] .modal-backdrop-custom {
   background: rgba(30, 58, 95, 0.85);
   backdrop-filter: blur(4px);
 }
 
-[data-theme="referendum-no"] .modal-custom {
+[data-theme="night"] .modal-custom {
   background: #ffffff;
   border: 2px solid #dc143c;
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
-[data-theme="referendum-no"] .modal-custom-header {
+[data-theme="night"] .modal-custom-header {
   background: linear-gradient(135deg, #1e3a5f 0%, #264a6e 100%);
   color: #ffffff;
   border-bottom: 2px solid #dc143c;
   font-weight: 600;
 }
 
-[data-theme="referendum-no"] .modal-custom-body {
+[data-theme="night"] .modal-custom-body {
   color: #212529;
 }
 
 /* --------------------------------------------------------------------------
    Page Headers - PRESERVE colori originali, aggiungi accento rosso
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] .page-header {
+[data-theme="night"] .page-header {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
   border-left-width: 5px;
   border-left-color: #dc143c;
@@ -241,12 +242,12 @@
 /* NO OVERRIDES per dashboard-card-gradient-* */
 
 /* Solo piccoli accenti interattivi */
-[data-theme="referendum-no"] .dashboard-card-button {
+[data-theme="night"] .dashboard-card-button {
   border: 2px solid rgba(255, 255, 255, 0.2);
   transition: all 0.3s ease;
 }
 
-[data-theme="referendum-no"] .dashboard-card-button:hover {
+[data-theme="night"] .dashboard-card-button:hover {
   border-color: rgba(255, 255, 255, 0.4);
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
@@ -255,44 +256,44 @@
 /* --------------------------------------------------------------------------
    Tables - Preserve bianco
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] .table {
+[data-theme="night"] .table {
   background: #ffffff;
 }
 
-[data-theme="referendum-no"] .table thead {
+[data-theme="night"] .table thead {
   background: #f8f9fa;
 }
 
-[data-theme="referendum-no"] .table-hover tbody tr:hover {
+[data-theme="night"] .table-hover tbody tr:hover {
   background: rgba(220, 20, 60, 0.05);
 }
 
 /* --------------------------------------------------------------------------
    Scrollbar - Navy con thumb rosso
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] ::-webkit-scrollbar {
+[data-theme="night"] ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
 }
 
-[data-theme="referendum-no"] ::-webkit-scrollbar-track {
+[data-theme="night"] ::-webkit-scrollbar-track {
   background: #1e3a5f;
 }
 
-[data-theme="referendum-no"] ::-webkit-scrollbar-thumb {
+[data-theme="night"] ::-webkit-scrollbar-thumb {
   background: #dc143c;
   border-radius: 6px;
   border: 2px solid #1e3a5f;
 }
 
-[data-theme="referendum-no"] ::-webkit-scrollbar-thumb:hover {
+[data-theme="night"] ::-webkit-scrollbar-thumb:hover {
   background: #b01030;
 }
 
 /* --------------------------------------------------------------------------
    Focus States - Rosso invece di blu
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] *:focus-visible {
+[data-theme="night"] *:focus-visible {
   outline: 2px solid #dc143c;
   outline-offset: 2px;
 }
@@ -300,16 +301,16 @@
 /* --------------------------------------------------------------------------
    Links - Rosso nel testo
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] a {
+[data-theme="night"] a {
   color: #dc143c;
 }
 
-[data-theme="referendum-no"] a:hover {
+[data-theme="night"] a:hover {
   color: #b01030;
 }
 
 /* Links in navbar restano bianchi */
-[data-theme="referendum-no"] .navbar a {
+[data-theme="night"] .navbar a {
   color: inherit;
 }
 
@@ -318,7 +319,7 @@
    -------------------------------------------------------------------------- */
 
 /* GestioneRdl filters */
-[data-theme="referendum-no"] .gestione-rdl-filters {
+[data-theme="night"] .gestione-rdl-filters {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 12px;
   padding: 16px;
@@ -331,15 +332,15 @@
    Mobile Responsive - Maintain readability
    -------------------------------------------------------------------------- */
 @media (max-width: 576px) {
-  [data-theme="referendum-no"] .card {
+  [data-theme="night"] .card {
     border-radius: 8px;
   }
 
-  [data-theme="referendum-no"] .navbar {
+  [data-theme="night"] .navbar {
     border-bottom-width: 2px;
   }
 
-  [data-theme="referendum-no"] body {
+  [data-theme="night"] body {
     background-size: 18px 18px;
   }
 }
@@ -348,17 +349,17 @@
    Print - Override everything to white
    -------------------------------------------------------------------------- */
 @media print {
-  [data-theme="referendum-no"] body {
+  [data-theme="night"] body {
     background: white !important;
     color: black !important;
   }
 
-  [data-theme="referendum-no"] .navbar,
-  [data-theme="referendum-no"] .custom-footer {
+  [data-theme="night"] .navbar,
+  [data-theme="night"] .custom-footer {
     display: none !important;
   }
 
-  [data-theme="referendum-no"] .card {
+  [data-theme="night"] .card {
     border: 1px solid #dee2e6 !important;
     box-shadow: none !important;
   }
@@ -368,15 +369,15 @@
    Accessibility - High Contrast Mode Support
    -------------------------------------------------------------------------- */
 @media (prefers-contrast: high) {
-  [data-theme="referendum-no"] body {
+  [data-theme="night"] body {
     background: #000000;
   }
 
-  [data-theme="referendum-no"] .card {
+  [data-theme="night"] .card {
     border: 2px solid #ffffff;
   }
 
-  [data-theme="referendum-no"] .btn-primary {
+  [data-theme="night"] .btn-primary {
     border: 2px solid #ffffff;
   }
 }
@@ -385,7 +386,7 @@
    Reduced Motion - Respect user preferences
    -------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  [data-theme="referendum-no"] * {
+  [data-theme="night"] * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

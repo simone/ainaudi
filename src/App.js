@@ -1070,7 +1070,7 @@ function AppContent() {
                 </div>
             </footer>
 
-            {/* Theme Switcher - VOTA NO Campaign Theme */}
+            {/* Theme Switcher - Day/Night Mode */}
             {isAuthenticated && <ThemeSwitcher />}
         </>
     );

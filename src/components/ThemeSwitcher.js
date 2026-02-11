@@ -2,18 +2,18 @@ import React, { useState, useEffect } from 'react';
 
 /**
  * ThemeSwitcher Component
- * Permette di switchare tra il tema standard e il tema "VOTA NO" della campagna referendum
+ * Permette di switchare tra il tema Daily (light) e Night (dark)
  */
 const ThemeSwitcher = () => {
   const [theme, setTheme] = useState(() => {
-    // Recupera il tema salvato o usa 'standard' come default
-    return localStorage.getItem('app-theme') || 'standard';
+    // Recupera il tema salvato o usa 'daily' come default
+    return localStorage.getItem('app-theme') || 'daily';
   });
 
   useEffect(() => {
     // Applica il tema al DOM
-    if (theme === 'referendum-no') {
-      document.documentElement.setAttribute('data-theme', 'referendum-no');
+    if (theme === 'night') {
+      document.documentElement.setAttribute('data-theme', 'night');
     } else {
       document.documentElement.removeAttribute('data-theme');
     }
@@ -23,7 +23,7 @@ const ThemeSwitcher = () => {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'standard' ? 'referendum-no' : 'standard');
+    setTheme(prevTheme => prevTheme === 'daily' ? 'night' : 'daily');
   };
 
   return (
@@ -37,9 +37,9 @@ const ThemeSwitcher = () => {
         onClick={toggleTheme}
         className="btn btn-sm"
         style={{
-          background: theme === 'referendum-no' ? '#dc143c' : '#007bff',
+          background: theme === 'night' ? '#1e3a5f' : '#007bff',
           color: 'white',
-          border: 'none',
+          border: theme === 'night' ? '2px solid #dc143c' : 'none',
           borderRadius: '24px',
           padding: '10px 20px',
           fontWeight: '600',
@@ -50,17 +50,17 @@ const ThemeSwitcher = () => {
           gap: '8px',
           transition: 'all 0.3s ease'
         }}
-        title={theme === 'referendum-no' ? 'Passa al tema standard' : 'Passa al tema VOTA NO'}
+        title={theme === 'night' ? 'Passa al tema Daily (chiaro)' : 'Passa al tema Night (scuro)'}
       >
-        {theme === 'referendum-no' ? (
+        {theme === 'night' ? (
           <>
-            <span style={{ fontSize: '16px' }}>💼</span>
-            <span style={{ fontSize: '12px' }}>Tema Standard</span>
+            <span style={{ fontSize: '16px' }}>☀️</span>
+            <span style={{ fontSize: '12px' }}>Daily</span>
           </>
         ) : (
           <>
-            <span style={{ fontSize: '16px' }}>🗳️</span>
-            <span style={{ fontSize: '12px' }}>Tema VOTA NO</span>
+            <span style={{ fontSize: '16px' }}>🌙</span>
+            <span style={{ fontSize: '12px' }}>Night</span>
           </>
         )}
       </button>
