@@ -101,7 +101,40 @@ For each issue, document:
 - **Screenshot:** (optional but helpful)
 
 ### Critical (Bloccanti)
-<!-- Issues that make the app unusable -->
+
+#### Issue #1: Dashboard info boxes - white background + black text
+**Page:** Dashboard (home)
+**Problem:**
+- `<div style="background: rgb(248, 249, 250);">` → Light gray background (not overridden)
+- `<div style="color: rgb(51, 51, 51);">` → Dark gray/black text
+- Result: Light box with dark text in dark mode = breaks theme
+
+**Element:**
+```html
+<div class="mb-3 p-3" style="background: rgb(248, 249, 250); border-radius: 10px; border-left: 4px solid rgb(111, 66, 193);">
+  <div class="small text-muted mb-1"><i class="fas fa-lightbulb me-1"></i> A cosa serve</div>
+  <div style="font-size: 0.85rem; color: rgb(51, 51, 51);">Configurazione della base territoriale...</div>
+</div>
+```
+
+**Root Cause:** Inline styles use `rgb()` notation, but CSS selectors only match `#hex` notation
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+Added RGB notation selectors to catch inline styles:
+```css
+/* Background: rgb(248, 249, 250) → dark gray */
+[data-theme="night"] div[style*="background: rgb(248, 249, 250)"] {
+  background: var(--bg-dark-tertiary) !important;
+}
+
+/* Color: rgb(51, 51, 51) → light text */
+[data-theme="night"] div[style*="color: rgb(51, 51, 51)"] {
+  color: var(--text-primary) !important;
+}
+```
+
+**Test Result:** Ricarica pagina (Cmd+Shift+R) e verifica box "A cosa serve"
 
 ### High Priority
 <!-- Major visual problems that affect usability -->
