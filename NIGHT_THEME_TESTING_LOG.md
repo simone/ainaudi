@@ -71239,3 +71239,75 @@ Now all three mappatura headers use consistent blue color in BOTH light and dark
 
 **Test Result:** Ricarica Mappatura in LIGHT e DARK mode - header blu in entrambi
 
+
+## Feature: System Theme Preference Detection
+
+### Auto-detect OS Light/Dark Mode (prefers-color-scheme)
+**Feature Request:** "vorrei che il tema di default dipendesse dalle scelte dell'utente di systema light/night che ha in os"
+
+**Implementation:** Modified `ThemeSwitcher.js` to automatically detect and follow system theme preferences.
+
+**How it works:**
+1. **First load:**
+   - If user has manually selected a theme → use saved preference
+   - If no manual selection → detect system preference with `prefers-color-scheme`
+   
+2. **Dynamic updates:**
+   - When user changes OS theme (dark ↔ light) → app updates automatically
+   - Listener: `window.matchMedia('(prefers-color-scheme: dark)')`
+   
+3. **Manual override:**
+   - User clicks 🌙/☀️ button → saves preference to localStorage
+   - Manual preference takes priority over system preference
+   - User can always override automatic detection
+
+**Code changes:**
+```javascript
+// NEW: Detect system preference
+const getSystemTheme = () => {
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return 'night';
+  }
+  return 'daily';
+};
+
+// Initialize: Check localStorage first, then system
+const [theme, setTheme] = useState(() => {
+  const savedTheme = localStorage.getItem('app-theme');
+  if (savedTheme) {
+    return savedTheme;  // Manual preference
+  }
+  return getSystemTheme();  // System preference
+});
+
+// Listen for system theme changes
+useEffect(() => {
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const handleChange = (e) => {
+    const savedTheme = localStorage.getItem('app-theme');
+    if (!savedTheme) {  // Only if no manual override
+      setTheme(e.matches ? 'night' : 'daily');
+    }
+  };
+  mediaQuery.addEventListener('change', handleChange);
+  return () => mediaQuery.removeEventListener('change', handleChange);
+}, []);
+```
+
+**User benefits:**
+- ✅ No configuration needed - works out of the box
+- ✅ Respects user's OS preferences automatically
+- ✅ Syncs when user changes system theme
+- ✅ Manual override still available (button)
+- ✅ Cross-browser compatible (includes fallbacks)
+
+**Test scenarios:**
+1. New user with dark OS → App opens in night mode ✓
+2. New user with light OS → App opens in daily mode ✓
+3. User changes OS theme while app open → App switches automatically ✓
+4. User clicks button → Manual preference saved, system changes ignored ✓
+
+**Browser support:**
+- Modern browsers: `prefers-color-scheme` media query (Chrome 76+, Firefox 67+, Safari 12.1+)
+- Fallback: Default to 'daily' if not supported
+
