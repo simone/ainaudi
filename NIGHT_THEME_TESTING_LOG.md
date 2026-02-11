@@ -102,6 +102,49 @@ For each issue, document:
 
 ### Critical (Bloccanti)
 
+#### Issue #2: Tables - white background
+**Page:** All pages with tables
+**Problem:**
+- Bootstrap table variables use `--bs-body-bg: #fff`
+- Tables render with white background in night mode
+- Previous selectors lacked !important to override Bootstrap variables
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+- Forced table backgrounds with `!important`
+- Override Bootstrap CSS variables: `--bs-table-bg`, `--bs-body-bg`, `--bs-table-color`
+- Added striped rows support (subtle transparency)
+- Added hover state override
+- Added bordered table support
+
+**Test Result:** Ricarica e verifica tabelle ora scure
+
+#### Issue #3: Consultazione switcher - blue/white alert
+**Page:** All pages with consultazione switcher header
+**Element:**
+```html
+<div class="alert alert-primary d-flex align-items-center...">
+  <h5 class="mb-0">Referendum Costituzionale Giustizia 2026</h5>
+</div>
+```
+**Problem:** `alert-primary` has light blue background, not dark - missing from CSS!
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+[data-theme="night"] .alert-primary {
+  background: var(--bg-dark-tertiary) !important;
+  border-color: var(--color-accent-red) !important;
+  color: var(--text-primary) !important;
+}
+```
+
+**Test Result:** Ricarica e verifica header consultazione ora scuro
+
+---
+
+### Critical (Bloccanti) - FIXED
+
 #### Issue #1: Dashboard info boxes - white background + black text
 **Page:** Dashboard (home)
 **Problem:**
