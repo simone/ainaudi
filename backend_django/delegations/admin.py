@@ -7,7 +7,10 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import Delegato, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti
+from .models import (
+    Delegato, SubDelega, DesignazioneRDL,
+    BatchGenerazioneDocumenti, EmailDesignazioneLog
+)
 
 
 class SubDelegaInline(admin.TabularInline):
@@ -395,5 +398,55 @@ class BatchGenerazioneDocumentiAdmin(admin.ModelAdmin):
         if not change:
             obj.created_by_email = request.user.email
         super().save_model(request, obj, form, change)
+
+
+@admin.register(EmailDesignazioneLog)
+class EmailDesignazioneLogAdmin(admin.ModelAdmin):
+    """Admin per log invio email designazioni."""
+
+    list_display = [
+        'id',
+        'processo',
+        'destinatario_email',
+        'destinatario_nome',
+        'tipo_rdl',
+        'stato',
+        'sent_at',
+        'sent_by_email',
+    ]
+
+    list_filter = [
+        'stato',
+        'tipo_rdl',
+        'sent_at',
+    ]
+
+    search_fields = [
+        'destinatario_email',
+        'destinatario_nome',
+        'sent_by_email',
+        'subject',
+    ]
+
+    readonly_fields = [
+        'processo',
+        'designazione',
+        'destinatario_email',
+        'destinatario_nome',
+        'tipo_rdl',
+        'stato',
+        'errore',
+        'subject',
+        'sent_at',
+        'sent_by_email',
+    ]
+
+    date_hierarchy = 'sent_at'
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
 
 

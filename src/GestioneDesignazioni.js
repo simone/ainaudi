@@ -50,6 +50,10 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
     const [pdfViewer, setPdfViewer] = useState(null); // { url, titolo, blobUrl } quando aperto
     const [loadingPdf, setLoadingPdf] = useState(false);
 
+    // Email sending state
+    const [inviandoEmail, setInviandoEmail] = useState({}); // { processoId: boolean }
+    const [emailProgress, setEmailProgress] = useState({}); // { processoId: { percentage, status, current, total, sent, failed } }
+
     useEffect(() => {
         if (client && consultazione) {
             loadData();
@@ -530,6 +534,110 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
         setPdfViewer(null);
     };
 
+    // Handler invio email agli RDL
+    const handleInviaEmail = async (processoId) => {
+        const confirmMessage = 'Sei sicuro di voler inviare le email a tutti gli RDL di questo processo?\n\n' +
+            'Questa operazione può richiedere alcuni minuti per comuni grandi.\n' +
+            'Riceverai una notifica al completamento.';
+
+        if (!window.confirm(confirmMessage)) {
+            return;
+        }
+
+        setInviandoEmail(prev => ({ ...prev, [processoId]: true }));
+        setEmailProgress(prev => ({ ...prev, [processoId]: { percentage: 0, status: 'STARTED' } }));
+
+        try {
+            // Avvia invio asincrono
+            const serverUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
+            const response = await fetch(`${serverUrl}/api/deleghe/processi/${processoId}/invia-email/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                const taskId = data.task_id;
+                // Avvia polling per progress
+                pollEmailProgress(processoId, taskId);
+            } else {
+                throw new Error(data.error || 'Errore sconosciuto');
+            }
+        } catch (error) {
+            console.error('Errore invio email:', error);
+            setError?.(`Errore durante l'avvio dell'invio email: ${error.message || error}`);
+            setInviandoEmail(prev => ({ ...prev, [processoId]: false }));
+            setEmailProgress(prev => ({ ...prev, [processoId]: null }));
+        }
+    };
+
+    // Polling progress invio email
+    const pollEmailProgress = async (processoId, taskId) => {
+        try {
+            const serverUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
+            const response = await fetch(`${serverUrl}/api/deleghe/processi/${processoId}/email-progress/`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'PROGRESS' || data.status === 'STARTED') {
+                // Aggiorna progress bar
+                setEmailProgress(prev => ({
+                    ...prev,
+                    [processoId]: {
+                        percentage: data.percentage || 0,
+                        status: data.status,
+                        current: data.current,
+                        total: data.total,
+                        sent: data.sent,
+                        failed: data.failed
+                    }
+                }));
+
+                // Poll ogni 2 secondi
+                setTimeout(() => pollEmailProgress(processoId, taskId), 2000);
+
+            } else if (data.status === 'SUCCESS') {
+                // Completato
+                setInviandoEmail(prev => ({ ...prev, [processoId]: false }));
+                setEmailProgress(prev => ({ ...prev, [processoId]: null }));
+
+                const successMsg = `✅ Email inviate con successo!\n\n` +
+                    `📧 Inviate: ${data.sent}` +
+                    (data.failed > 0 ? `\n❌ Fallite: ${data.failed}` : '');
+
+                setSuccessMessage(successMsg);
+
+                // Ricarica lista processi
+                if (path.comune_id) {
+                    await loadComuneData(path.comune_id, path.municipio_id);
+                }
+
+                // Auto-clear success message dopo 5 secondi
+                setTimeout(() => setSuccessMessage(null), 5000);
+
+            } else if (data.status === 'FAILURE') {
+                // Errore
+                setInviandoEmail(prev => ({ ...prev, [processoId]: false }));
+                setEmailProgress(prev => ({ ...prev, [processoId]: null }));
+
+                setError?.(`Errore durante l'invio: ${data.error || 'Errore sconosciuto'}`);
+            }
+
+        } catch (error) {
+            console.error('Errore polling progress:', error);
+            // Riprova dopo 5 secondi in caso di errore di rete
+            setTimeout(() => pollEmailProgress(processoId, taskId), 5000);
+        }
+    };
+
     // Rendering helpers
     const canGoBack = path.regione_id || path.provincia_id || path.comune_id || path.municipio_id;
 
@@ -891,6 +999,63 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                                                             <i className="fas fa-eye me-1"></i>
                                                             <span>PDF Cumulativo</span>
                                                         </button>
+                                                    )}
+                                                </div>
+
+                                                {/* Invio Email RDL */}
+                                                <div className="gd-archivio-email mt-3">
+                                                    {!processo.email_gia_inviate ? (
+                                                        <>
+                                                            <button
+                                                                className="btn btn-success btn-sm"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    e.preventDefault();
+                                                                    handleInviaEmail(processo.id);
+                                                                }}
+                                                                disabled={inviandoEmail[processo.id]}
+                                                                title="Invia email agli RDL designati"
+                                                            >
+                                                                {inviandoEmail[processo.id] ? (
+                                                                    <>
+                                                                        <span className="spinner-border spinner-border-sm me-1"></span>
+                                                                        {emailProgress[processo.id] ? (
+                                                                            `Invio ${emailProgress[processo.id].current || 0}/${emailProgress[processo.id].total || 0}...`
+                                                                        ) : (
+                                                                            'Avvio invio...'
+                                                                        )}
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <i className="fas fa-envelope me-1"></i>
+                                                                        Invia Email agli RDL
+                                                                    </>
+                                                                )}
+                                                            </button>
+
+                                                            {/* Progress bar sotto il bottone */}
+                                                            {emailProgress[processo.id] && (
+                                                                <div className="progress mt-2" style={{height: '20px'}}>
+                                                                    <div
+                                                                        className="progress-bar progress-bar-striped progress-bar-animated"
+                                                                        role="progressbar"
+                                                                        style={{width: `${emailProgress[processo.id].percentage}%`}}
+                                                                    >
+                                                                        {emailProgress[processo.id].percentage}%
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <div className="alert alert-info mb-0" style={{fontSize: '0.875rem', padding: '0.5rem'}}>
+                                                            <i className="fas fa-check-circle me-1"></i>
+                                                            Email inviate il {new Date(processo.email_inviate_at).toLocaleDateString('it-IT')} alle {new Date(processo.email_inviate_at).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'})}
+                                                            <br />
+                                                            <small>
+                                                                {processo.n_email_inviate} inviate
+                                                                {processo.n_email_fallite > 0 && `, ${processo.n_email_fallite} fallite`}
+                                                            </small>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>

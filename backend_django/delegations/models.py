@@ -757,6 +757,29 @@ class ProcessoDesignazione(models.Model):
     approvata_at = models.DateTimeField(_('data approvazione'), null=True, blank=True)
     approvata_da_email = models.EmailField(_('approvata da (email)'), blank=True)
 
+    # Email tracking
+    email_inviate_at = models.DateTimeField(
+        _('data invio email'),
+        null=True,
+        blank=True,
+        help_text=_('Quando sono state inviate le email agli RDL')
+    )
+    email_inviate_da = models.EmailField(
+        _('email inviate da'),
+        blank=True,
+        help_text=_('Chi ha avviato l\'invio delle email')
+    )
+    n_email_inviate = models.IntegerField(
+        _('numero email inviate'),
+        default=0,
+        help_text=_('Totale email inviate con successo')
+    )
+    n_email_fallite = models.IntegerField(
+        _('numero email fallite'),
+        default=0,
+        help_text=_('Totale email fallite')
+    )
+
     class Meta:
         verbose_name = _('Processo Designazione RDL')
         verbose_name_plural = _('Processi Designazione RDL')
@@ -802,3 +825,73 @@ class ProcessoDesignazione(models.Model):
 
 # Alias per retrocompatibilità con codice esistente
 BatchGenerazioneDocumenti = ProcessoDesignazione
+
+
+# =============================================================================
+# EmailDesignazioneLog - Log invii email notifiche RDL
+# =============================================================================
+
+class EmailDesignazioneLog(models.Model):
+    """
+    Log degli invii email per designazioni RDL.
+    Traccia quale email è stata inviata, quando, a chi, e con che risultato.
+    """
+    processo = models.ForeignKey(
+        ProcessoDesignazione,
+        on_delete=models.CASCADE,
+        related_name='email_logs',
+        verbose_name=_('processo')
+    )
+    designazione = models.ForeignKey(
+        DesignazioneRDL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='email_logs',
+        verbose_name=_('designazione')
+    )
+
+    # Destinatario
+    destinatario_email = models.EmailField(_('email destinatario'))
+    destinatario_nome = models.CharField(_('nome destinatario'), max_length=200)
+    tipo_rdl = models.CharField(
+        _('tipo RDL'),
+        max_length=30,
+        choices=[
+            ('EFFETTIVO', _('Effettivo')),
+            ('SUPPLENTE', _('Supplente')),
+            ('EFFETTIVO+SUPPLENTE', _('Effettivo + Supplente'))
+        ],
+        help_text=_('Ruolo RDL - può avere entrambi i ruoli')
+    )
+
+    # Risultato invio
+    stato = models.CharField(
+        _('stato'),
+        max_length=20,
+        choices=[
+            ('SUCCESS', _('Inviata')),
+            ('FAILED', _('Fallita')),
+            ('BOUNCED', _('Rimbalzata'))
+        ],
+        default='SUCCESS'
+    )
+    errore = models.TextField(_('messaggio errore'), blank=True)
+
+    # Metadata
+    subject = models.CharField(_('oggetto'), max_length=500)
+    sent_at = models.DateTimeField(_('data invio'), auto_now_add=True)
+    sent_by_email = models.EmailField(_('inviata da'))
+
+    class Meta:
+        verbose_name = _('log email designazione')
+        verbose_name_plural = _('log email designazioni')
+        ordering = ['-sent_at']
+        indexes = [
+            models.Index(fields=['processo', 'destinatario_email']),
+            models.Index(fields=['stato']),
+        ]
+        db_table = 'delegations_emaildesignazionelog'
+
+    def __str__(self):
+        return f"Email a {self.destinatario_email} ({self.tipo_rdl}) - {self.stato}"

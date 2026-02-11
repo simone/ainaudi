@@ -427,3 +427,5 @@ REDIS_PDF_EVENT_CHANNEL = 'pdf_events'
 
 # PDF Preview Expiry (24 hours default)
 PDF_PREVIEW_EXPIRY_SECONDS = int(os.environ.get('PDF_PREVIEW_EXPIRY_SECONDS', 86400))
+
+# Redis client: Vedere core/redis_client.py per lazy initialization

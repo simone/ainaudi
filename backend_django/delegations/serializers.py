@@ -372,6 +372,7 @@ class ProcessoDesignazioneSerializer(serializers.ModelSerializer):
     delegato_nome = serializers.SerializerMethodField()
     template_individuale_nome = serializers.CharField(source='template_individuale.name', read_only=True)
     template_cumulativo_nome = serializers.CharField(source='template_cumulativo.name', read_only=True)
+    email_gia_inviate = serializers.SerializerMethodField()
 
     class Meta:
         model = ProcessoDesignazione
@@ -385,19 +386,26 @@ class ProcessoDesignazioneSerializer(serializers.ModelSerializer):
             'data_generazione_individuale', 'data_generazione_cumulativo',
             'n_designazioni', 'n_pagine',
             'created_at', 'created_by_email',
-            'approvata_at', 'approvata_da_email'
+            'approvata_at', 'approvata_da_email',
+            'email_inviate_at', 'email_inviate_da',
+            'n_email_inviate', 'n_email_fallite', 'email_gia_inviate'
         ]
         read_only_fields = [
             'id', 'stato', 'documento_individuale', 'documento_cumulativo',
             'data_generazione_individuale', 'data_generazione_cumulativo',
             'n_designazioni', 'n_pagine', 'created_at', 'created_by_email',
-            'approvata_at', 'approvata_da_email'
+            'approvata_at', 'approvata_da_email',
+            'email_inviate_at', 'email_inviate_da', 'n_email_inviate', 'n_email_fallite'
         ]
 
     def get_delegato_nome(self, obj):
         if obj.delegato:
             return obj.delegato.nome_completo
         return None
+
+    def get_email_gia_inviate(self, obj):
+        """Flag per disabilitare bottone invio email se già inviate."""
+        return obj.email_inviate_at is not None
 
 
 # Serializer per vecchio endpoint /batch/ (retrocompatibilità)

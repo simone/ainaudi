@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conferma Designazione RDL</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f4;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f4f4; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+
+                    <!-- Header M5S -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #1F4E5F 0%, #2C5F6F 100%); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">
+                                AInaudi
+                            </h1>
+                            <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">
+                                Sistema di Gestione Rappresentanti di Lista
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Consultazione Badge -->
+                    <tr>
+                        <td style="padding: 20px 30px 0 30px;">
+                            <div style="background: linear-gradient(135deg, #2C5F6F 0%, #1F4E5F 100%); padding: 12px 20px; border-radius: 6px; text-align: center;">
+                                <p style="margin: 0; color: #ffffff; font-size: 16px; font-weight: 600;">
+                                    📊 {{ consultazione }}
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Saluto -->
+                    <tr>
+                        <td style="padding: 30px 30px 20px 30px;">
+                            <h2 style="margin: 0 0 20px 0; color: #1F4E5F; font-size: 24px; font-weight: 600;">
+                                Ciao {{ nome }}! 👋
+                            </h2>
+                            <p style="margin: 0 0 15px 0; color: #333333; font-size: 16px; line-height: 1.6;">
+                                {% if ha_entrambi %}
+                                    Ti confermiamo che sei stato <strong>ufficialmente assegnato come Rappresentante di Lista</strong> per un totale di <strong>{{ n_sezioni_totali }} {% if n_sezioni_totali == 1 %}sezione{% else %}sezioni{% endif %}</strong>, con i seguenti ruoli:
+                                {% elif ha_effettivo %}
+                                    Ti confermiamo che sei stato <strong>ufficialmente assegnato come Rappresentante di Lista (RDL Effettivo)</strong> per {% if n_sezioni_effettivo == 1 %}la seguente sezione{% else %}le seguenti {{ n_sezioni_effettivo }} sezioni{% endif %}:
+                                {% else %}
+                                    Ti confermiamo che sei stato <strong>ufficialmente assegnato come Rappresentante di Lista (RDL Supplente)</strong> per {% if n_sezioni_supplente == 1 %}la seguente sezione{% else %}le seguenti {{ n_sezioni_supplente }} sezioni{% endif %}:
+                                {% endif %}
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Elenco Sezioni EFFETTIVO (se presente) -->
+                    {% if ha_effettivo %}
+                    <tr>
+                        <td style="padding: 0 30px {% if not ha_supplente %}20px{% else %}10px{% endif %} 30px;">
+                            {% if ha_entrambi %}
+                            <h3 style="margin: 0 0 10px 0; color: #1F4E5F; font-size: 16px; font-weight: 600;">
+                                🟢 RDL Effettivo ({{ n_sezioni_effettivo }} {% if n_sezioni_effettivo == 1 %}sezione{% else %}sezioni{% endif %})
+                            </h3>
+                            {% endif %}
+                            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; border-left: 4px solid #28a745;">
+                                {% for sezione in sezioni_effettivo %}
+                                <div style="margin-bottom: {% if not forloop.last %}12px{% else %}0{% endif %};">
+                                    <strong style="color: #1F4E5F; font-size: 16px;">
+                                        📍 Sezione {{ sezione.numero }}
+                                    </strong><br>
+                                    <span style="color: #666666; font-size: 14px;">
+                                        {{ sezione.indirizzo }}, {{ sezione.comune.nome }}
+                                    </span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- Elenco Sezioni SUPPLENTE (se presente) -->
+                    {% if ha_supplente %}
+                    <tr>
+                        <td style="padding: {% if ha_effettivo %}10px{% else %}0{% endif %} 30px 20px 30px;">
+                            {% if ha_entrambi %}
+                            <h3 style="margin: 0 0 10px 0; color: #1F4E5F; font-size: 16px; font-weight: 600;">
+                                🟡 RDL Supplente ({{ n_sezioni_supplente }} {% if n_sezioni_supplente == 1 %}sezione{% else %}sezioni{% endif %})
+                            </h3>
+                            {% endif %}
+                            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; border-left: 4px solid #FFC800;">
+                                {% for sezione in sezioni_supplente %}
+                                <div style="margin-bottom: {% if not forloop.last %}12px{% else %}0{% endif %};">
+                                    <strong style="color: #1F4E5F; font-size: 16px;">
+                                        📍 Sezione {{ sezione.numero }}
+                                    </strong><br>
+                                    <span style="color: #666666; font-size: 14px;">
+                                        {{ sezione.indirizzo }}, {{ sezione.comune.nome }}
+                                    </span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- Accesso App -->
+                    <tr>
+                        <td style="padding: 20px 30px;">
+                            <p style="margin: 0 0 15px 0; color: #333333; font-size: 16px; line-height: 1.6;">
+                                Per supportarti nello svolgimento del tuo incarico, è ora disponibile l'applicazione dedicata al seguente indirizzo:
+                            </p>
+                            <div style="text-align: center; margin: 20px 0;">
+                                <a href="{{ app_url }}"
+                                   style="display: inline-block; background-color: #FFC800; color: #1F4E5F; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                    👉 Accedi ad AInaudi
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Istruzioni -->
+                    <tr>
+                        <td style="padding: 20px 30px;">
+                            <h3 style="margin: 0 0 15px 0; color: #1F4E5F; font-size: 18px; font-weight: 600;">
+                                Cosa devi fare ora
+                            </h3>
+                            <p style="margin: 0 0 10px 0; color: #333333; font-size: 15px; line-height: 1.6;">
+                                Accedendo all'applicazione:
+                            </p>
+                            <ul style="margin: 0 0 15px 0; padding-left: 20px; color: #333333; font-size: 15px; line-height: 1.8;">
+                                <li>apri lo <strong>scrutinio</strong> di riferimento;</li>
+                                <li>troverai <strong>tutte le sezioni che ti sono state assegnate</strong>;</li>
+                                <li>potrai consultare <strong>documenti, guide operative e FAQ</strong> con il dettaglio di:
+                                    <ul style="margin: 8px 0; padding-left: 20px;">
+                                        <li>ruolo e poteri del RDL;</li>
+                                        <li>cosa fare (e cosa non fare) durante voto e scrutinio;</li>
+                                        <li>tempistiche ufficiali e casi particolari;</li>
+                                        <li>procedure di verbalizzazione.</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                            <p style="margin: 0; color: #333333; font-size: 15px; line-height: 1.6;">
+                                Le istruzioni sono strutturate per accompagnarti passo passo durante tutte le fasi delle operazioni elettorali.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Note finali -->
+                    <tr>
+                        <td style="padding: 20px 30px 30px 30px;">
+                            <p style="margin: 0 0 10px 0; color: #333333; font-size: 15px; line-height: 1.6;">
+                                Per qualsiasi dubbio operativo, ti invitiamo a fare riferimento alle FAQ presenti nell'app.
+                            </p>
+                            <p style="margin: 0; color: #333333; font-size: 15px; line-height: 1.6;">
+                                <strong>Grazie per la disponibilità e per il contributo.</strong>
+                            </p>
+                            <p style="margin: 10px 0 0 0; color: #666666; font-size: 15px; line-height: 1.6;">
+                                Un saluto,<br>
+                                <strong>Il coordinamento</strong>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer giallo M5S -->
+                    <tr>
+                        <td style="background-color: #FFC800; padding: 20px 30px; text-align: center; border-radius: 0 0 8px 8px;">
+                            <p style="margin: 0; color: #1F4E5F; font-size: 12px; font-weight: 600;">
+                                Movimento 5 Stelle - Sistema AInaudi
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

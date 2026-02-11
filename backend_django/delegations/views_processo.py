@@ -12,8 +12,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
 from django.db import transaction
+from django.http import HttpResponse
+from django.db.models import Q
+import logging
 
-from .models import ProcessoDesignazione, DesignazioneRDL, Delegato, SubDelega
+from .models import ProcessoDesignazione, DesignazioneRDL, Delegato, SubDelega, EmailDesignazioneLog
+from .services import RDLEmailService, PDFExtractionService
+from core.redis_client import get_redis_client
 from .serializers import (
     ProcessoDesignazioneSerializer,
     AvviaProcessoSerializer,
@@ -1152,6 +1157,212 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         )
         processo.data_generazione_cumulativo = timezone.now()
         processo.n_pagine = designazioni.count()
+
+    @action(detail=True, methods=['post'], url_path='invia-email')
+    def invia_email(self, request, pk=None):
+        """
+        Invia email di notifica a tutti gli RDL del processo.
+
+        POST /api/processi/{id}/invia-email/
+
+        Precondizioni:
+        - Processo in stato APPROVATO
+        - Email non già inviate (email_inviate_at = null)
+
+        Response:
+        {
+            "success": true,
+            "message": "Invio email avviato in background",
+            "task_id": "email_task_123_abc123",
+            "n_designazioni": 12
+        }
+        """
+        logger = logging.getLogger(__name__)
+        processo = self.get_object()
+
+        # Validazioni
+        if processo.stato != ProcessoDesignazione.Stato.APPROVATO:
+            return Response(
+                {
+                    'success': False,
+                    'error': 'Il processo deve essere in stato APPROVATO per inviare le email'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if processo.email_inviate_at:
+            return Response(
+                {
+                    'success': False,
+                    'error': 'Le email sono già state inviate per questo processo',
+                    'data_invio': processo.email_inviate_at.isoformat()
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Controlla che ci siano designazioni
+        n_designazioni = processo.designazioni.filter(
+            stato='CONFERMATA',
+            is_attiva=True
+        ).count()
+
+        if n_designazioni == 0:
+            return Response(
+                {
+                    'success': False,
+                    'error': 'Nessuna designazione confermata da notificare'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Avvia invio asincrono
+        try:
+            task_id = RDLEmailService.invia_notifiche_processo_async(processo, request.user.email)
+
+            # Ritorna task_id per progress tracking
+            return Response({
+                'success': True,
+                'message': 'Invio email avviato in background',
+                'task_id': task_id,
+                'n_designazioni': n_designazioni
+            }, status=status.HTTP_202_ACCEPTED)  # 202 = Accepted (async)
+
+        except Exception as e:
+            logger.error(f"Errore avvio task email processo {processo.id}: {e}", exc_info=True)
+            return Response(
+                {
+                    'success': False,
+                    'error': f'Errore durante l\'avvio dell\'invio email: {str(e)}'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['get'], url_path='email-progress')
+    def email_progress(self, request, pk=None):
+        """
+        Recupera progress dell'invio email.
+
+        GET /api/processi/{id}/email-progress/
+
+        Response:
+        {
+            "status": "PROGRESS",
+            "current": 50,
+            "total": 100,
+            "sent": 48,
+            "failed": 2,
+            "percentage": 50
+        }
+        """
+        processo = self.get_object()
+
+        # Trova task_id più recente per questo processo
+        redis = get_redis_client()
+        if not redis:
+            return Response({
+                'status': 'NOT_FOUND',
+                'message': 'Redis non disponibile'
+            }, status=404)
+
+        task_key = f"email_task_current_{processo.id}"
+        task_id = redis.get(task_key)
+
+        if not task_id:
+            return Response({
+                'status': 'NOT_FOUND',
+                'message': 'Nessun invio email in corso'
+            }, status=404)
+
+        # Recupera progress
+        progress = RDLEmailService.get_task_progress(task_id)
+
+        # Calcola percentuale
+        if progress.get('total', 0) > 0:
+            progress['percentage'] = int((progress['current'] / progress['total']) * 100)
+        else:
+            progress['percentage'] = 0
+
+        return Response(progress)
+
+    @action(detail=False, methods=['get'], url_path='download-mia-nomina')
+    def download_mia_nomina(self, request):
+        """
+        RDL scarica copia della propria designazione (PDF personalizzato).
+
+        GET /api/processi/download-mia-nomina/?consultazione_id=1
+
+        Workflow:
+        1. Trova processi APPROVATO o INVIATO per la consultazione
+        2. Trova designazioni dell'RDL (effettivo o supplente con email utente)
+        3. Estrae pagine del PDF individuale corrispondenti alle sezioni RDL
+        4. Ritorna PDF come file response (visualizzabile in PDFViewer)
+        """
+        logger = logging.getLogger(__name__)
+        user_email = request.user.email
+        consultazione_id = request.GET.get('consultazione_id')
+
+        if not consultazione_id:
+            return Response({'error': 'consultazione_id richiesto'}, status=400)
+
+        # Trova designazioni RDL (tutte le sezioni in cui compare come effettivo o supplente)
+        designazioni = DesignazioneRDL.objects.filter(
+            Q(effettivo_email=user_email) | Q(supplente_email=user_email),
+            processo__consultazione_id=consultazione_id,
+            processo__stato__in=['APPROVATO', 'INVIATO'],
+            stato='CONFERMATA',
+            is_attiva=True
+        ).select_related('processo', 'sezione').order_by('sezione__numero_sezione')
+
+        if not designazioni.exists():
+            return Response({
+                'error': 'Nessuna designazione trovata per questa consultazione'
+            }, status=404)
+
+        # Determina ruoli: può essere effettivo per alcune sezioni E supplente per altre
+        sezioni_effettivo = []
+        sezioni_supplente = []
+
+        for des in designazioni:
+            if des.effettivo_email == user_email:
+                sezioni_effettivo.append(des.sezione_id)
+            if des.supplente_email == user_email:
+                sezioni_supplente.append(des.sezione_id)
+
+        # Tipo RDL per filename e cache
+        if sezioni_effettivo and sezioni_supplente:
+            tipo_rdl = 'EFFETTIVO+SUPPLENTE'
+        elif sezioni_effettivo:
+            tipo_rdl = 'EFFETTIVO'
+        else:
+            tipo_rdl = 'SUPPLENTE'
+
+        # Estrai PDF personalizzato con tutte le sezioni (indipendentemente dal ruolo)
+        try:
+            pdf_bytes = PDFExtractionService.estrai_pagine_rdl(
+                designazioni=designazioni,
+                user_email=user_email  # Per cache key
+            )
+
+            # Ritorna PDF come file response
+            consultazione_nome = designazioni[0].processo.consultazione.nome
+            filename = f"Designazione_RDL_{tipo_rdl}_{consultazione_nome[:30]}.pdf"
+
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'inline; filename="{filename}"'
+            response['Content-Length'] = len(pdf_bytes)
+
+            logger.info(
+                f"PDF nomina scaricato da {user_email}: "
+                f"{designazioni.count()} sezioni, tipo {tipo_rdl}"
+            )
+
+            return response
+
+        except Exception as e:
+            logger.error(f"Errore download nomina: {e}", exc_info=True)
+            return Response({
+                'error': f'Errore durante la generazione del PDF: {str(e)}'
+            }, status=500)
 
 
 # Alias per retrocompatibilità con URL esistenti

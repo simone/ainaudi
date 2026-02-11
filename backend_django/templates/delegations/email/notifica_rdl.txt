@@ -1,0 +1,61 @@
+AInaudi - Conferma Designazione RDL
+
+{{ consultazione }}
+
+Ciao {{ nome }},
+
+{% if ha_entrambi %}
+Ti confermiamo che sei stato ufficialmente assegnato come Rappresentante di Lista per un totale di {{ n_sezioni_totali }} {% if n_sezioni_totali == 1 %}sezione{% else %}sezioni{% endif %}, con i seguenti ruoli:
+
+## RDL Effettivo ({{ n_sezioni_effettivo }} {% if n_sezioni_effettivo == 1 %}sezione{% else %}sezioni{% endif %})
+{% for sezione in sezioni_effettivo %}
+- Sezione {{ sezione.numero }}: {{ sezione.indirizzo }}, {{ sezione.comune.nome }}
+{% endfor %}
+
+## RDL Supplente ({{ n_sezioni_supplente }} {% if n_sezioni_supplente == 1 %}sezione{% else %}sezioni{% endif %})
+{% for sezione in sezioni_supplente %}
+- Sezione {{ sezione.numero }}: {{ sezione.indirizzo }}, {{ sezione.comune.nome }}
+{% endfor %}
+
+{% elif ha_effettivo %}
+Ti confermiamo che sei stato ufficialmente assegnato come Rappresentante di Lista (RDL Effettivo) per {% if n_sezioni_effettivo == 1 %}la seguente sezione{% else %}le seguenti {{ n_sezioni_effettivo }} sezioni{% endif %}:
+
+{% for sezione in sezioni_effettivo %}
+- Sezione {{ sezione.numero }}: {{ sezione.indirizzo }}, {{ sezione.comune.nome }}
+{% endfor %}
+
+{% else %}
+Ti confermiamo che sei stato ufficialmente assegnato come Rappresentante di Lista (RDL Supplente) per {% if n_sezioni_supplente == 1 %}la seguente sezione{% else %}le seguenti {{ n_sezioni_supplente }} sezioni{% endif %}:
+
+{% for sezione in sezioni_supplente %}
+- Sezione {{ sezione.numero }}: {{ sezione.indirizzo }}, {{ sezione.comune.nome }}
+{% endfor %}
+
+{% endif %}
+
+Per supportarti nello svolgimento del tuo incarico, è ora disponibile l'applicazione dedicata al seguente indirizzo:
+
+👉 {{ app_url }}
+
+### Cosa devi fare ora
+
+Accedendo all'applicazione:
+- apri lo scrutinio di riferimento;
+- troverai tutte le sezioni che ti sono state assegnate;
+- potrai consultare documenti, guide operative e FAQ con il dettaglio di:
+  * ruolo e poteri del RDL;
+  * cosa fare (e cosa non fare) durante voto e scrutinio;
+  * tempistiche ufficiali e casi particolari;
+  * procedure di verbalizzazione.
+
+Le istruzioni sono strutturate per accompagnarti passo passo durante tutte le fasi delle operazioni elettorali.
+
+Per qualsiasi dubbio operativo, ti invitiamo a fare riferimento alle FAQ presenti nell'app.
+
+Grazie per la disponibilità e per il contributo.
+
+Un saluto,
+Il coordinamento
+
+---
+Movimento 5 Stelle - Sistema AInaudi
