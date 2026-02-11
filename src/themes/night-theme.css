@@ -1,392 +1,458 @@
 /* ==========================================================================
-   NIGHT THEME - Dark Mode for AInaudi
-   Tema scuro che si contrappone al tema Daily (light) standard.
-   Usa navy profondo e accenti rossi per una modalità notturna elegante.
+   NIGHT THEME v3 - TRUE DARK MODE
+   Approccio dark mode reale: tutto scuro, testo chiaro, colori brillanti
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   CSS Variables Override - Night Mode Palette
+   CSS Variables - True Dark Mode Palette
    -------------------------------------------------------------------------- */
 [data-theme="night"] {
-  /* Palette dark mode */
-  --color-night-navy: #1e3a5f;
-  --color-night-accent: #dc143c;
-  --color-night-accent-dark: #b01030;
+  /* Dark mode backgrounds */
+  --bg-dark-primary: #1a1d29;      /* Quasi nero */
+  --bg-dark-secondary: #252936;    /* Grigio scuro */
+  --bg-dark-tertiary: #2f3541;     /* Grigio medio scuro */
+  --bg-dark-elevated: #363c4a;     /* Elevato (modals, dropdowns) */
 
-  /* Override SOLO primary color per bottoni */
-  --color-primary: #dc143c;
-  --color-primary-dark: #b01030;
+  /* Navy accents */
+  --bg-navy-dark: #1e3a5f;         /* Navy originale */
+  --bg-navy-medium: #2c4a6e;       /* Navy più chiaro */
+  --bg-navy-light: #3a5a7d;        /* Navy chiaro */
 
-  /* Background generale (non cards) */
-  --bg-app: #1e3a5f;
+  /* Text colors */
+  --text-primary: #e4e6eb;         /* Bianco caldo */
+  --text-secondary: #b8bcc8;       /* Grigio chiaro */
+  --text-muted: #8b92a3;           /* Grigio medio */
+  --text-inverse: #1a1d29;         /* Nero (per badges) */
 
-  /* Border focus rosso invece di blu */
-  --border-focus: #dc143c;
+  /* Accent colors - BRILLANTI per visibilità */
+  --color-accent-red: #ff6b6b;     /* Rosso brillante */
+  --color-accent-red-light: #ff8787;
+  --color-accent-red-dark: #ff5252;
 
-  /* Semantic backgrounds for night mode */
-  --color-info-bg: rgba(13, 202, 240, 0.15);
-  --color-info-border: rgba(13, 202, 240, 0.3);
-  --color-info-text: #3dd5f3;
+  /* Semantic colors - BRILLANTI */
+  --color-info: #4fc3f7;           /* Ciano brillante */
+  --color-info-bg: rgba(79, 195, 247, 0.15);
+  --color-info-border: rgba(79, 195, 247, 0.3);
 
-  --color-warning-bg: rgba(255, 193, 7, 0.15);
-  --color-warning-border: rgba(255, 193, 7, 0.3);
-  --color-warning-text: #ffda6a;
+  --color-success: #66bb6a;        /* Verde brillante */
+  --color-success-bg: rgba(102, 187, 106, 0.15);
+  --color-success-border: rgba(102, 187, 106, 0.3);
 
-  --color-success-bg: rgba(25, 135, 84, 0.15);
-  --color-success-border: rgba(25, 135, 84, 0.3);
-  --color-success-text: #75b798;
+  --color-warning: #ffa726;        /* Arancione brillante */
+  --color-warning-bg: rgba(255, 167, 38, 0.15);
+  --color-warning-border: rgba(255, 167, 38, 0.3);
 
-  --color-danger-bg: rgba(220, 53, 69, 0.15);
-  --color-danger-border: rgba(220, 53, 69, 0.3);
-  --color-danger-text: #ea868f;
+  --color-danger: #ef5350;         /* Rosso brillante */
+  --color-danger-bg: rgba(239, 83, 80, 0.15);
+  --color-danger-border: rgba(239, 83, 80, 0.3);
 
-  /* Surface colors */
-  --color-surface-subtle: rgba(255, 255, 255, 0.05);
-  --color-surface-hover: rgba(255, 255, 255, 0.08);
-  --color-surface-active: rgba(255, 255, 255, 0.12);
+  /* Borders */
+  --border-dark: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.2);
 
-  /* Border colors */
-  --color-border-subtle: rgba(255, 255, 255, 0.1);
-  --color-border-medium: rgba(255, 255, 255, 0.2);
-  --color-border-strong: rgba(255, 255, 255, 0.3);
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.7);
 }
 
 /* --------------------------------------------------------------------------
-   Body Background - Navy con pattern puntini
+   Body & Layout - Dark everywhere
    -------------------------------------------------------------------------- */
 [data-theme="night"] body {
-  background: #1e3a5f;
-  background-image: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.06) 1px,
-    transparent 1px
-  );
-  background-size: 24px 24px;
-  background-attachment: fixed;
-  color: #ffffff;  /* Default text color white */
+  background: var(--bg-dark-primary);
+  color: var(--text-primary);
 }
 
-/* Main content area */
 [data-theme="night"] .main-content {
-  background: transparent;
-  color: #ffffff;
-}
-
-/* Ensure text in non-card areas is visible */
-[data-theme="night"] .container,
-[data-theme="night"] .row {
-  color: #ffffff;
-}
-
-/* Text utilities for night mode */
-[data-theme="night"] .text-light {
-  color: #f8f9fa !important;
-}
-
-[data-theme="night"] .text-muted {
-  color: #adb5bd !important;
-}
-
-[data-theme="night"] .text-secondary {
-  color: #dee2e6 !important;
-}
-
-/* Small text */
-[data-theme="night"] .text-sm,
-[data-theme="night"] small {
-  color: #dee2e6;
+  background: var(--bg-dark-primary);
+  color: var(--text-primary);
 }
 
 /* --------------------------------------------------------------------------
-   Navbar - Navy con accento rosso (OK, manteniamo)
+   Navbar - Dark navy
    -------------------------------------------------------------------------- */
 [data-theme="night"] .navbar {
-  background: linear-gradient(135deg, #1e3a5f 0%, #264a6e 100%) !important;
-  border-bottom: 3px solid #dc143c;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(135deg, var(--bg-navy-dark) 0%, var(--bg-navy-medium) 100%) !important;
+  border-bottom: 2px solid var(--color-accent-red);
+  box-shadow: var(--shadow-md);
 }
 
 [data-theme="night"] .navbar-brand {
-  color: #ffffff !important;
+  color: var(--text-primary) !important;
   font-weight: 700;
 }
 
 [data-theme="night"] .navbar .nav-link {
-  color: rgba(255, 255, 255, 0.9) !important;
-  font-weight: 500;
+  color: var(--text-secondary) !important;
 }
 
 [data-theme="night"] .navbar .nav-link:hover,
 [data-theme="night"] .navbar .nav-link.active {
-  color: #ffffff !important;
-  background: rgba(220, 20, 60, 0.15);
+  color: var(--text-primary) !important;
+  background: rgba(255, 107, 107, 0.15);
   border-radius: 8px;
 }
 
-/* Navbar dropdown backgrounds */
+/* Dropdown menus - dark elevated */
 [data-theme="night"] .navbar .dropdown-menu {
-  background: #2c4a6e !important;  /* Navy più chiaro per dropdown */
-  border: 1px solid rgba(220, 20, 60, 0.4);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  background: var(--bg-dark-elevated) !important;
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-lg);
 }
 
 [data-theme="night"] .navbar .dropdown-item {
-  color: #ffffff !important;
+  color: var(--text-primary) !important;
 }
 
 [data-theme="night"] .navbar .dropdown-item:hover,
 [data-theme="night"] .navbar .dropdown-item:focus {
-  background: rgba(220, 20, 60, 0.25) !important;
-  color: #ffffff !important;
+  background: var(--bg-dark-tertiary) !important;
+  color: var(--text-primary) !important;
 }
 
 [data-theme="night"] .navbar .dropdown-item.active {
-  background: rgba(220, 20, 60, 0.4) !important;
-  color: #ffffff !important;
-}
-
-/* Navbar toggler for mobile */
-[data-theme="night"] .navbar-toggler {
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-[data-theme="night"] .navbar-toggler-icon {
-  filter: brightness(2);  /* Make hamburger icon visible */
-}
-
-/* Scheda color indicators in dropdowns */
-[data-theme="night"] .scheda-color-indicator {
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-/* Dropdown dividers */
-[data-theme="night"] .dropdown-divider {
-  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 107, 107, 0.2) !important;
+  color: var(--text-primary) !important;
 }
 
 /* --------------------------------------------------------------------------
-   Cards - PRESERVE background bianco e header colorati originali
-   NO OVERRIDES - cards funzionano bene con sfondo navy
+   Cards - DARK not white!
    -------------------------------------------------------------------------- */
 [data-theme="night"] .card {
-  /* Aumenta solo l'ombra per risaltare su navy */
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  background: var(--bg-dark-secondary) !important;
+  border: 1px solid var(--border-dark);
   border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  color: var(--text-primary);
 }
 
-/* NON toccare .card-header - lascia gradienti originali */
-/* NON toccare .card-body - lascia bianco */
+/* Card headers - keep colorful but darken */
+[data-theme="night"] .card-header {
+  background: var(--bg-dark-tertiary) !important;
+  border-bottom: 1px solid var(--border-medium);
+  color: var(--text-primary) !important;
+}
+
+/* Card body */
+[data-theme="night"] .card-body {
+  background: var(--bg-dark-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Dashboard cards - preserve colors but dim them */
+[data-theme="night"] .card .card-header[style*="background"] {
+  opacity: 0.85;
+  border-bottom: 2px solid var(--color-accent-red);
+}
 
 /* --------------------------------------------------------------------------
-   Buttons - Rosso per primary, altri invariati
+   Buttons - Bright accents
    -------------------------------------------------------------------------- */
 [data-theme="night"] .btn-primary {
-  background: linear-gradient(135deg, #dc143c 0%, #b01030 100%);
+  background: linear-gradient(135deg, var(--color-accent-red) 0%, var(--color-accent-red-dark) 100%);
   border: none;
   color: #ffffff;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(220, 20, 60, 0.4);
-  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
 }
 
-[data-theme="night"] .btn-primary:hover,
-[data-theme="night"] .btn-primary:focus {
-  background: linear-gradient(135deg, #b01030 0%, #8a0c26 100%);
-  box-shadow: 0 6px 16px rgba(220, 20, 60, 0.6);
+[data-theme="night"] .btn-primary:hover {
+  background: linear-gradient(135deg, var(--color-accent-red-light) 0%, var(--color-accent-red) 100%);
+  box-shadow: 0 6px 16px rgba(255, 107, 107, 0.6);
   transform: translateY(-2px);
 }
 
-/* Referendum button override */
-[data-theme="night"] .btn-referendum {
-  background: #dc143c !important;
-  border: none;
-  color: #ffffff;
-  font-weight: 700;
-  box-shadow: 0 6px 16px rgba(220, 20, 60, 0.5);
-}
-
-[data-theme="night"] .btn-referendum:hover {
-  background: #b01030 !important;
-  box-shadow: 0 8px 20px rgba(220, 20, 60, 0.7);
-}
-
-/* Secondary buttons - subtle su navy */
 [data-theme="night"] .btn-secondary {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #ffffff;
+  background: var(--bg-dark-tertiary);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
 }
 
 [data-theme="night"] .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: var(--bg-dark-elevated);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+[data-theme="night"] .btn-success {
+  background: var(--color-success);
+  color: #ffffff;
+  border: none;
+}
+
+[data-theme="night"] .btn-danger {
+  background: var(--color-danger);
+  color: #ffffff;
+  border: none;
+}
+
+[data-theme="night"] .btn-warning {
+  background: var(--color-warning);
+  color: var(--text-inverse);
+  border: none;
+}
+
+[data-theme="night"] .btn-info {
+  background: var(--color-info);
+  color: var(--text-inverse);
+  border: none;
+}
+
+[data-theme="night"] .btn-outline-warning {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+[data-theme="night"] .btn-outline-warning:hover {
+  background: var(--color-warning);
+  color: var(--text-inverse);
 }
 
 /* --------------------------------------------------------------------------
-   Forms - PRESERVE bianco, solo focus rosso
+   Forms - Dark inputs
    -------------------------------------------------------------------------- */
+[data-theme="night"] .form-control,
+[data-theme="night"] .form-select {
+  background: var(--bg-dark-tertiary);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+}
+
 [data-theme="night"] .form-control:focus,
 [data-theme="night"] .form-select:focus {
-  border-color: #dc143c;
-  box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.25);
+  background: var(--bg-dark-elevated);
+  border-color: var(--color-accent-red);
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.25);
+  color: var(--text-primary);
 }
 
-/* Form labels - SOLO se direttamente su body navy (rare) */
-[data-theme="night"] body > .form-label,
-[data-theme="night"] .main-content > .form-label {
-  color: #ffffff;
+[data-theme="night"] .form-control::placeholder {
+  color: var(--text-muted);
 }
 
-/* Mantieni labels nere dentro cards */
-[data-theme="night"] .card .form-label {
-  color: #212529;
+[data-theme="night"] .form-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Form check (checkboxes, radios) */
+[data-theme="night"] .form-check-input {
+  background-color: var(--bg-dark-tertiary);
+  border-color: var(--border-medium);
+}
+
+[data-theme="night"] .form-check-input:checked {
+  background-color: var(--color-accent-red);
+  border-color: var(--color-accent-red);
+}
+
+[data-theme="night"] .form-check-label {
+  color: var(--text-primary);
 }
 
 /* --------------------------------------------------------------------------
-   Alerts - Night mode optimized
+   Alerts - Bright and visible
    -------------------------------------------------------------------------- */
 [data-theme="night"] .alert {
   border-radius: 12px;
+  border: 1px solid;
   font-weight: 500;
-  border-width: 1px;
-  border-style: solid;
 }
 
-/* Alert variants for night mode */
 [data-theme="night"] .alert-info {
-  background-color: var(--color-info-bg) !important;
-  border-color: var(--color-info-border) !important;
-  color: var(--color-info-text) !important;
-}
-
-[data-theme="night"] .alert-warning {
-  background-color: var(--color-warning-bg) !important;
-  border-color: var(--color-warning-border) !important;
-  color: var(--color-warning-text) !important;
+  background: var(--color-info-bg);
+  border-color: var(--color-info-border);
+  color: var(--color-info);
 }
 
 [data-theme="night"] .alert-success {
-  background-color: var(--color-success-bg) !important;
-  border-color: var(--color-success-border) !important;
-  color: var(--color-success-text) !important;
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+  color: var(--color-success);
+}
+
+[data-theme="night"] .alert-warning {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning);
 }
 
 [data-theme="night"] .alert-danger {
-  background-color: var(--color-danger-bg) !important;
-  border-color: var(--color-danger-border) !important;
-  color: var(--color-danger-text) !important;
-}
-
-[data-theme="night"] .alert-primary {
-  background-color: rgba(220, 20, 60, 0.15) !important;
-  border-color: rgba(220, 20, 60, 0.3) !important;
-  color: #ff6b6b !important;
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger);
 }
 
 /* --------------------------------------------------------------------------
-   Badges - Primary rosso, altri invariati
+   Badges - Bright
    -------------------------------------------------------------------------- */
+[data-theme="night"] .badge {
+  font-weight: 600;
+}
+
 [data-theme="night"] .badge.bg-primary {
-  background: #dc143c !important;
+  background: var(--color-accent-red) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="night"] .badge.bg-secondary {
+  background: var(--bg-dark-tertiary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .badge.bg-success {
+  background: var(--color-success) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="night"] .badge.bg-warning {
+  background: var(--color-warning) !important;
+  color: var(--text-inverse) !important;
+}
+
+[data-theme="night"] .badge.bg-danger {
+  background: var(--color-danger) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="night"] .badge.bg-info {
+  background: var(--color-info) !important;
+  color: var(--text-inverse) !important;
 }
 
 /* --------------------------------------------------------------------------
-   List Items - PRESERVE bianco, aumenta ombra
+   Lists - Dark
    -------------------------------------------------------------------------- */
 [data-theme="night"] .list-group-item {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
+  background: var(--bg-dark-secondary);
+  border: 1px solid var(--border-dark);
+  color: var(--text-primary);
   margin-bottom: 8px;
-  transition: all 0.2s ease;
+  border-radius: 8px;
 }
 
 [data-theme="night"] .list-group-item:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  background: var(--bg-dark-tertiary);
+  box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
 
 /* --------------------------------------------------------------------------
-   Footer - Navy con accento rosso
+   Tables - Dark
    -------------------------------------------------------------------------- */
-[data-theme="night"] .custom-footer {
-  background: linear-gradient(135deg, #152d47 0%, #1e3a5f 100%);
-  border-top: 3px solid #dc143c;
-  color: #ffffff;
+[data-theme="night"] .table {
+  background: var(--bg-dark-secondary);
+  color: var(--text-primary);
+}
+
+[data-theme="night"] .table thead {
+  background: var(--bg-dark-tertiary);
+  color: var(--text-primary);
+}
+
+[data-theme="night"] .table tbody tr {
+  border-color: var(--border-dark);
+}
+
+[data-theme="night"] .table-hover tbody tr:hover {
+  background: var(--bg-dark-tertiary);
+}
+
+[data-theme="night"] .table td,
+[data-theme="night"] .table th {
+  border-color: var(--border-dark);
+  color: var(--text-primary);
 }
 
 /* --------------------------------------------------------------------------
-   Modals - Bianche con header navy
+   Modals - Dark
    -------------------------------------------------------------------------- */
 [data-theme="night"] .modal-backdrop-custom {
-  background: rgba(30, 58, 95, 0.85);
+  background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(4px);
 }
 
 [data-theme="night"] .modal-custom {
-  background: #ffffff;
-  border: 2px solid #dc143c;
+  background: var(--bg-dark-elevated);
+  border: 2px solid var(--color-accent-red);
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-lg);
+  color: var(--text-primary);
 }
 
 [data-theme="night"] .modal-custom-header {
-  background: linear-gradient(135deg, #1e3a5f 0%, #264a6e 100%);
-  color: #ffffff;
-  border-bottom: 2px solid #dc143c;
-  font-weight: 600;
+  background: var(--bg-dark-tertiary);
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--color-accent-red);
 }
 
 [data-theme="night"] .modal-custom-body {
-  color: #212529;
+  background: var(--bg-dark-elevated);
+  color: var(--text-primary);
+}
+
+[data-theme="night"] .modal-content {
+  background: var(--bg-dark-elevated);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+}
+
+[data-theme="night"] .modal-header {
+  background: var(--bg-dark-tertiary);
+  border-bottom: 1px solid var(--border-medium);
+  color: var(--text-primary);
+}
+
+[data-theme="night"] .modal-body {
+  background: var(--bg-dark-elevated);
+  color: var(--text-primary);
+}
+
+[data-theme="night"] .modal-footer {
+  background: var(--bg-dark-elevated);
+  border-top: 1px solid var(--border-medium);
 }
 
 /* --------------------------------------------------------------------------
-   Page Headers - PRESERVE colori originali, aggiungi accento rosso
+   Page Headers - Dimmed colors
    -------------------------------------------------------------------------- */
 [data-theme="night"] .page-header {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-  border-left-width: 5px;
-  border-left-color: #dc143c;
-  border-radius: 12px;
+  opacity: 0.9;
+  box-shadow: var(--shadow-md);
+  border-left-width: 4px;
+  border-left-color: var(--color-accent-red);
 }
 
-/* NON override background dei page-header - lascia gradienti colorati */
-
 /* --------------------------------------------------------------------------
-   Dashboard Cards - PRESERVE completamente
+   Dashboard Cards - DIM not bright!
    -------------------------------------------------------------------------- */
-/* NO OVERRIDES per dashboard-card-header */
-/* NO OVERRIDES per dashboard-card-gradient-* */
-
-/* Solo piccoli accenti interattivi */
-[data-theme="night"] .dashboard-card-button {
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
+[data-theme="night"] .dashboard-card {
+  background: var(--bg-dark-secondary) !important;
 }
 
-[data-theme="night"] .dashboard-card-button:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+[data-theme="night"] .dashboard-card-header {
+  opacity: 0.75 !important;
+  filter: brightness(0.7) !important;
+}
+
+[data-theme="night"] .dashboard-card .card-body {
+  background: var(--bg-dark-secondary) !important;
+  color: var(--text-primary) !important;
 }
 
 /* --------------------------------------------------------------------------
-   Tables - Preserve bianco
+   Footer - Dark
    -------------------------------------------------------------------------- */
-[data-theme="night"] .table {
-  background: #ffffff;
-}
-
-[data-theme="night"] .table thead {
-  background: #f8f9fa;
-}
-
-[data-theme="night"] .table-hover tbody tr:hover {
-  background: rgba(220, 20, 60, 0.05);
+[data-theme="night"] .custom-footer {
+  background: var(--bg-dark-tertiary);
+  border-top: 2px solid var(--color-accent-red);
+  color: var(--text-secondary);
 }
 
 /* --------------------------------------------------------------------------
-   Scrollbar - Navy con thumb rosso
+   Scrollbar - Dark
    -------------------------------------------------------------------------- */
 [data-theme="night"] ::-webkit-scrollbar {
   width: 12px;
@@ -394,150 +460,135 @@
 }
 
 [data-theme="night"] ::-webkit-scrollbar-track {
-  background: #1e3a5f;
+  background: var(--bg-dark-primary);
 }
 
 [data-theme="night"] ::-webkit-scrollbar-thumb {
-  background: #dc143c;
+  background: var(--color-accent-red);
   border-radius: 6px;
-  border: 2px solid #1e3a5f;
+  border: 2px solid var(--bg-dark-primary);
 }
 
 [data-theme="night"] ::-webkit-scrollbar-thumb:hover {
-  background: #b01030;
+  background: var(--color-accent-red-light);
 }
 
 /* --------------------------------------------------------------------------
-   Focus States - Rosso invece di blu
+   Text Colors - Always visible
    -------------------------------------------------------------------------- */
-[data-theme="night"] *:focus-visible {
-  outline: 2px solid #dc143c;
-  outline-offset: 2px;
+[data-theme="night"] h1,
+[data-theme="night"] h2,
+[data-theme="night"] h3,
+[data-theme="night"] h4,
+[data-theme="night"] h5,
+[data-theme="night"] h6 {
+  color: var(--text-primary);
 }
 
-/* --------------------------------------------------------------------------
-   Links - Rosso nel testo
-   -------------------------------------------------------------------------- */
+[data-theme="night"] p {
+  color: var(--text-primary);
+}
+
+[data-theme="night"] .text-muted {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="night"] .text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="night"] small,
+[data-theme="night"] .small {
+  color: var(--text-secondary);
+}
+
+/* Never black text! */
+[data-theme="night"] .text-dark {
+  color: var(--text-primary) !important;
+}
+
+/* Links - bright accent */
 [data-theme="night"] a {
-  color: #dc143c;
+  color: var(--color-accent-red);
 }
 
 [data-theme="night"] a:hover {
-  color: #b01030;
-}
-
-/* Links in navbar restano bianchi */
-[data-theme="night"] .navbar a {
-  color: inherit;
+  color: var(--color-accent-red-light);
 }
 
 /* --------------------------------------------------------------------------
-   Specific Component Fixes - Solo dove necessario
+   Component Specific - Dark
    -------------------------------------------------------------------------- */
 
-/* GestioneRdl filters */
-[data-theme="night"] .gestione-rdl-filters {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-/* RDL cards and lists */
+/* RDL cards */
 [data-theme="night"] .rdl-card {
-  background: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-dark);
 }
 
-[data-theme="night"] .rdl-card-header {
-  border-bottom-color: var(--color-border-subtle);
+[data-theme="night"] .rdl-filters {
+  background: var(--bg-dark-tertiary) !important;
+  border-color: var(--border-medium);
 }
 
-/* Info boxes in modals - override inline styles where possible */
-[data-theme="night"] .modal-custom-body > div[style*="background: #e7f3ff"],
-[data-theme="night"] .modal-custom-body > div[style*="background:#e7f3ff"] {
-  background: var(--color-info-bg) !important;
-  border-color: var(--color-info-border) !important;
-  color: var(--color-info-text) !important;
+/* Section lists */
+[data-theme="night"] .sezioni-section-header {
+  background: var(--bg-dark-tertiary) !important;
+  color: var(--text-primary) !important;
 }
 
-/* Warning boxes - override inline styles */
-[data-theme="night"] div[style*="background: #fff3cd"],
-[data-theme="night"] div[style*="background:#fff3cd"] {
-  background: var(--color-warning-bg) !important;
-  border-color: var(--color-warning-border) !important;
-  color: var(--color-warning-text) !important;
+/* Status badges inline */
+[data-theme="night"] span[style*="backgroundColor"] {
+  border: 1px solid var(--border-medium) !important;
 }
 
 /* Info boxes - override inline styles */
-[data-theme="night"] div[style*="background: #e3f2fd"],
-[data-theme="night"] div[style*="background:#e3f2fd"],
 [data-theme="night"] div[style*="background: #e7f3ff"],
-[data-theme="night"] div[style*="background:#e7f3ff"] {
+[data-theme="night"] div[style*="background:#e7f3ff"],
+[data-theme="night"] div[style*="background: #e3f2fd"],
+[data-theme="night"] div[style*="background:#e3f2fd"] {
   background: var(--color-info-bg) !important;
   border-color: var(--color-info-border) !important;
+  color: var(--color-info) !important;
 }
 
-/* Subtle background - override inline styles */
-[data-theme="night"] div[style*="background: #f8f9fa"],
-[data-theme="night"] div[style*="background:#f8f9fa"],
-[data-theme="night"] div[style*="background: '#f8f9fa'"],
-[data-theme="night"] div[style*='background: "#f8f9fa"'] {
-  background: var(--color-surface-hover) !important;
-}
-
-/* Cream/beige backgrounds */
+[data-theme="night"] div[style*="background: #fff3cd"],
+[data-theme="night"] div[style*="background:#fff3cd"],
 [data-theme="night"] div[style*="background: #fffbf0"],
 [data-theme="night"] div[style*="background:#fffbf0"] {
   background: var(--color-warning-bg) !important;
-}
-
-/* Light borders - override inline */
-[data-theme="night"] div[style*="border-color: #dee2e6"],
-[data-theme="night"] div[style*="borderColor: #dee2e6"],
-[data-theme="night"] div[style*="border: 1px solid #dee2e6"] {
-  border-color: var(--color-border-subtle) !important;
-}
-
-/* Text colors that need adjustment */
-[data-theme="night"] div[style*="color: #495057"] {
-  color: #e9ecef !important;
-}
-
-/* Section headers with background colors */
-[data-theme="night"] .sezioni-section-header[style*="background: #fff3cd"] {
-  background: var(--color-warning-bg) !important;
-  color: var(--color-warning-text) !important;
   border-color: var(--color-warning-border) !important;
+  color: var(--color-warning) !important;
 }
 
-/* Mappatura components già su background bianco - OK */
+[data-theme="night"] div[style*="background: #f8f9fa"],
+[data-theme="night"] div[style*="background:#f8f9fa"] {
+  background: var(--bg-dark-tertiary) !important;
+}
 
-/* Status badges - try to target inline styled spans */
-[data-theme="night"] span[style*="backgroundColor"][style*="color"] {
-  /* Can't override easily, needs JS change */
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+/* Text color overrides */
+[data-theme="night"] div[style*="color: #495057"],
+[data-theme="night"] div[style*="color: #212529"] {
+  color: var(--text-primary) !important;
+}
+
+/* Border overrides */
+[data-theme="night"] div[style*="border: 1px solid #dee2e6"],
+[data-theme="night"] div[style*="borderColor: #dee2e6"] {
+  border-color: var(--border-medium) !important;
 }
 
 /* --------------------------------------------------------------------------
-   Mobile Responsive - Maintain readability
+   Responsive
    -------------------------------------------------------------------------- */
 @media (max-width: 576px) {
   [data-theme="night"] .card {
     border-radius: 8px;
   }
-
-  [data-theme="night"] .navbar {
-    border-bottom-width: 2px;
-  }
-
-  [data-theme="night"] body {
-    background-size: 18px 18px;
-  }
 }
 
 /* --------------------------------------------------------------------------
-   Print - Override everything to white
+   Print
    -------------------------------------------------------------------------- */
 @media print {
   [data-theme="night"] body {
@@ -545,139 +596,9 @@
     color: black !important;
   }
 
-  [data-theme="night"] .navbar,
-  [data-theme="night"] .custom-footer {
-    display: none !important;
-  }
-
   [data-theme="night"] .card {
+    background: white !important;
+    color: black !important;
     border: 1px solid #dee2e6 !important;
-    box-shadow: none !important;
   }
-}
-
-/* --------------------------------------------------------------------------
-   Accessibility - High Contrast Mode Support
-   -------------------------------------------------------------------------- */
-@media (prefers-contrast: high) {
-  [data-theme="night"] body {
-    background: #000000;
-  }
-
-  [data-theme="night"] .card {
-    border: 2px solid #ffffff;
-  }
-
-  [data-theme="night"] .btn-primary {
-    border: 2px solid #ffffff;
-  }
-}
-
-/* --------------------------------------------------------------------------
-   Reduced Motion - Respect user preferences
-   -------------------------------------------------------------------------- */
-@media (prefers-reduced-motion: reduce) {
-  [data-theme="night"] * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* --------------------------------------------------------------------------
-   Utility Classes - Use instead of inline styles
-   -------------------------------------------------------------------------- */
-
-/* Backgrounds */
-[data-theme="night"] .bg-info-subtle {
-  background-color: var(--color-info-bg) !important;
-  border-color: var(--color-info-border) !important;
-  color: var(--color-info-text) !important;
-}
-
-[data-theme="night"] .bg-warning-subtle {
-  background-color: var(--color-warning-bg) !important;
-  border-color: var(--color-warning-border) !important;
-  color: var(--color-warning-text) !important;
-}
-
-[data-theme="night"] .bg-success-subtle {
-  background-color: var(--color-success-bg) !important;
-  border-color: var(--color-success-border) !important;
-  color: var(--color-success-text) !important;
-}
-
-[data-theme="night"] .bg-danger-subtle {
-  background-color: var(--color-danger-bg) !important;
-  border-color: var(--color-danger-border) !important;
-  color: var(--color-danger-text) !important;
-}
-
-[data-theme="night"] .bg-surface-subtle {
-  background-color: var(--color-surface-subtle) !important;
-}
-
-[data-theme="night"] .bg-surface-hover {
-  background-color: var(--color-surface-hover) !important;
-}
-
-[data-theme="night"] .bg-surface-active {
-  background-color: var(--color-surface-active) !important;
-}
-
-/* Borders */
-[data-theme="night"] .border-subtle {
-  border-color: var(--color-border-subtle) !important;
-}
-
-[data-theme="night"] .border-medium {
-  border-color: var(--color-border-medium) !important;
-}
-
-[data-theme="night"] .border-strong {
-  border-color: var(--color-border-strong) !important;
-}
-
-/* Text colors */
-[data-theme="night"] .text-info-night {
-  color: var(--color-info-text) !important;
-}
-
-[data-theme="night"] .text-warning-night {
-  color: var(--color-warning-text) !important;
-}
-
-[data-theme="night"] .text-success-night {
-  color: var(--color-success-text) !important;
-}
-
-[data-theme="night"] .text-danger-night {
-  color: var(--color-danger-text) !important;
-}
-
-[data-theme="night"] .text-muted-night {
-  color: #adb5bd !important;
-}
-
-[data-theme="night"] .text-subtle-night {
-  color: #dee2e6 !important;
-}
-
-/* Status badge utilities */
-[data-theme="night"] .badge-status-pending {
-  background-color: var(--color-warning-bg) !important;
-  color: var(--color-warning-text) !important;
-  border: 1px solid var(--color-warning-border);
-}
-
-[data-theme="night"] .badge-status-approved {
-  background-color: var(--color-success-bg) !important;
-  color: var(--color-success-text) !important;
-  border: 1px solid var(--color-success-border);
-}
-
-[data-theme="night"] .badge-status-rejected {
-  background-color: var(--color-danger-bg) !important;
-  color: var(--color-danger-text) !important;
-  border: 1px solid var(--color-danger-border);
 }
