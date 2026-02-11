@@ -71024,3 +71024,109 @@ Now all page headers use explicit color definitions that match dashboard boxes:
 
 **Test Result:** Ricarica e verifica page-header colors match dashboard
 
+
+#### Issue #30: Mappatura additional elements - white backgrounds (batch)
+**Page:** Mappatura  
+**Problem:** Multiple additional mappatura elements with light backgrounds discovered during thorough testing:
+
+**Elements:**
+```css
+/* View toggle buttons - white + bright blue active */
+.mappatura-view-toggle button {
+    background: white;
+}
+.mappatura-view-toggle button.active {
+    background: var(--color-primary);  /* Bright blue - too harsh */
+}
+
+/* Stats bar - white */
+.mappatura-stats {
+    background: white;
+}
+
+/* Legend - light gray */
+.mappatura-legend {
+    background: var(--color-gray-100);
+    color: var(--color-gray-600);
+}
+
+/* Bulk actions sticky bar - white */
+.mappatura-bulk-actions {
+    background: white;
+    border-top: 2px solid var(--color-primary);  /* Bright blue */
+}
+
+/* Empty state - white */
+.mappatura-empty {
+    background: white;
+}
+```
+
+User feedback:
+- "il blu è troppo acceso .mappatura-view-toggle button.active"
+- "troppo bianco .mappatura-view-toggle button"
+- "troppo bianco .mappatura-stats"
+- "troppo bianco .mappatura-legend"
+- "troppo bianco .mappatura-bulk-actions"
+- "troppo bianco .mappatura-empty"
+
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+/* View toggle - inactive (gray), active (RED not blue), hover */
+[data-theme="night"] .mappatura-view-toggle button {
+  background: var(--bg-dark-tertiary) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="night"] .mappatura-view-toggle button.active {
+  background: var(--color-accent-red) !important;  /* RED instead of blue */
+  color: white !important;
+}
+
+[data-theme="night"] .mappatura-view-toggle button:hover:not(.active) {
+  background: var(--bg-dark-elevated) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Stats bar */
+[data-theme="night"] .mappatura-stats {
+  background: var(--bg-dark-secondary) !important;
+  border: 1px solid var(--border-medium) !important;
+}
+
+/* Legend */
+[data-theme="night"] .mappatura-legend {
+  background: var(--bg-dark-tertiary) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border-medium) !important;
+}
+
+/* Bulk actions sticky bar */
+[data-theme="night"] .mappatura-bulk-actions {
+  background: var(--bg-dark-secondary) !important;
+  border-top-color: var(--color-accent-red) !important;  /* RED border */
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Empty state */
+[data-theme="night"] .mappatura-empty {
+  background: var(--bg-dark-secondary) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* Loading state */
+[data-theme="night"] .mappatura-loading {
+  color: var(--text-secondary) !important;
+}
+```
+
+**Key changes:**
+- View toggle active: BLUE → RED (consistent with theme accent)
+- All white backgrounds → dark variants
+- Proper interaction states (inactive, active, hover)
+- Sticky bulk actions bar: dark with red accent border
+
+**Test Result:** Ricarica Mappatura e verifica tutti elementi scuri + button active ROSSO non blu
+
