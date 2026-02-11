@@ -21,7 +21,7 @@
   /* Text colors */
   --text-primary: #e4e6eb;         /* Bianco caldo */
   --text-secondary: #b8bcc8;       /* Grigio chiaro */
-  --text-muted: #8b92a3;           /* Grigio medio */
+  --text-muted: #b8bcc8;           /* Grigio medio */
   --text-inverse: #1a1d29;         /* Nero (per badges) */
 
   /* Accent colors - BRILLANTI per visibilità */
@@ -1130,6 +1130,34 @@
 }
 
 /* --------------------------------------------------------------------------
+
+/* TemplateEditor component overrides */
+[data-theme="night"] .template-config-section {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-dark) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .template-config-section h3 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .template-editor-help {
+  background: var(--bg-dark-tertiary) !important;
+  border-color: var(--border-dark) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .template-editor-help h4 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .template-editor-help code {
+  background: var(--bg-dark-elevated) !important;
+  border: 1px solid var(--border-medium) !important;
+  color: var(--color-accent-red) !important;
+}
+
    Responsive
    -------------------------------------------------------------------------- */
 @media (max-width: 576px) {

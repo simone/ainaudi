@@ -70677,3 +70677,78 @@ Replace black box-shadow with white/light shadow + add border for separation.
 
 **Test Result:** Ricarica e verifica cards con bordi e ombre visibili
 
+
+#### Issue #22: .text-muted still too dark (follow-up)
+**Element:** `.text-muted` class - CSS variable
+**Problem:** After Issue #19 fix (#a8b0bf), user reports still too dark.
+
+User feedback: "grigio troppo scuro, in dark mode"
+
+**Previous fix:** #8b92a3 → #a8b0bf  
+**Still not enough:** #a8b0bf still too dark
+
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+Changed CSS variable to match `--text-secondary` (#b8bcc8):
+```css
+--text-muted: #b8bcc8;  /* Was #a8b0bf, was #8b92a3 */
+```
+
+Now uses same color as `--text-secondary` for maximum readability.
+
+**Test Result:** Ricarica e verifica .text-muted ora ben leggibile
+
+#### Issue #23: TemplateEditor component - white backgrounds
+**Page:** Template editor page
+**File:** `src/TemplateEditor.css`
+**Problem:** Multiple template classes with light backgrounds:
+
+**Elements:**
+```css
+.template-config-section {
+    background: white;
+    border: 1px solid #dee2e6;
+}
+
+.template-editor-help {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+.template-editor-help code {
+    background: #e9ecef;
+}
+```
+
+User feedback: "troppo bianco" on both sections
+
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+[data-theme="night"] .template-config-section {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-dark) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .template-editor-help {
+  background: var(--bg-dark-tertiary) !important;
+  border-color: var(--border-dark) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .template-editor-help code {
+  background: var(--bg-dark-elevated) !important;
+  border: 1px solid var(--border-medium) !important;
+  color: var(--color-accent-red) !important;
+}
+```
+
+Plus h3 and h4 headings inside with text-primary color.
+
+**Test Result:** Ricarica Template Editor page e verifica sezioni scure
+
+---
+
