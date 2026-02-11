@@ -202,6 +202,20 @@
   color: var(--text-primary) !important;
 }
 
+/* Ensure all elements inside accordion-body are readable */
+[data-theme="night"] .accordion-body p,
+[data-theme="night"] .accordion-body ul,
+[data-theme="night"] .accordion-body li,
+[data-theme="night"] .accordion-body strong,
+[data-theme="night"] .accordion-body div {
+  color: inherit !important;
+}
+
+[data-theme="night"] .accordion-body .text-muted,
+[data-theme="night"] .accordion-body small.text-muted {
+  color: var(--text-muted) !important;
+}
+
 /* --------------------------------------------------------------------------
    Cards - DARK not white!
    -------------------------------------------------------------------------- */
@@ -903,6 +917,7 @@
 [data-theme="night"] .gd-territory-card {
   background: var(--bg-dark-secondary) !important;
   border-color: var(--border-dark) !important;
+  color: var(--text-primary) !important;
 }
 
 [data-theme="night"] .gd-territory-card:hover {
@@ -911,6 +926,26 @@
 
 [data-theme="night"] .gd-territory-card:active {
   background: var(--bg-dark-elevated) !important;
+}
+
+[data-theme="night"] .gd-territory-card-name {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .gd-territory-card-name .sigla {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="night"] .gd-territory-card-stats {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="night"] .gd-territory-progress-text {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .gd-territory-progress-text strong {
+  color: var(--text-primary) !important;
 }
 
 [data-theme="night"] .gd-territory-progress-bar {

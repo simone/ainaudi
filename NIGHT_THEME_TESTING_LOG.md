@@ -558,6 +558,103 @@ Active accordion items now highlight with red accent color.
 
 **Test Result:** Ricarica Risorse page e verifica titoli documenti leggibili
 
+#### Issue #17: Accordion body content - text not readable
+**Element:** `.accordion-body` and child elements (p, ul, li, strong, div)
+**Problem:** After fixing accordion backgrounds, text inside accordion body became unreadable.
+Elements inside (p, ul, li, strong) have hardcoded dark colors from Bootstrap or inherit wrong colors.
+
+**HTML Example:**
+```html
+<div class="accordion-body">
+  <div class="faq-risposta">
+    <p>Il Presidente di seggio...</p>  <!-- Not readable -->
+    <ul><li>Sovraintende...</li></ul>  <!-- Not readable -->
+    <strong>Decisioni:</strong>        <!-- Not readable -->
+  </div>
+</div>
+```
+
+**Root Cause:** Child elements inside .accordion-body don't inherit color properly or have hardcoded dark colors.
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+/* Ensure all elements inside accordion-body are readable */
+[data-theme="night"] .accordion-body p,
+[data-theme="night"] .accordion-body ul,
+[data-theme="night"] .accordion-body li,
+[data-theme="night"] .accordion-body strong,
+[data-theme="night"] .accordion-body div {
+  color: inherit !important;
+}
+
+[data-theme="night"] .accordion-body .text-muted,
+[data-theme="night"] .accordion-body small.text-muted {
+  color: var(--text-muted) !important;
+}
+```
+
+Force all child elements to inherit color from .accordion-body (which is set to --text-primary).
+
+**Test Result:** Ricarica pagine con accordion e verifica tutto testo leggibile
+
+#### Issue #18: .gd-territory-card content - text not readable
+**Element:** `.gd-territory-card-name`, `.gd-territory-card-stats`, `.gd-territory-progress-text`
+**Problem:** After fixing .gd-territory-card background, text inside became unreadable.
+Child elements have hardcoded dark colors:
+
+**From GestioneDesignazioni.css:**
+```css
+.gd-territory-card-name {
+    color: #212529;  /* Almost black - invisible on dark bg */
+}
+
+.gd-territory-card-stats {
+    color: #6c757d;  /* Dark gray - invisible on dark bg */
+}
+```
+
+**HTML Example:**
+```html
+<div class="gd-territory-card">
+  <div class="gd-territory-card-name">Abruzzo</div>  <!-- Not readable -->
+  <div class="gd-territory-card-stats">0 sezioni mappate</div>  <!-- Not readable -->
+  <div class="gd-territory-progress-text">
+    <strong>0</strong>/1633 sezioni  <!-- Not readable -->
+  </div>
+</div>
+```
+
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+[data-theme="night"] .gd-territory-card {
+  color: var(--text-primary) !important;  /* Added this */
+}
+
+[data-theme="night"] .gd-territory-card-name {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .gd-territory-card-name .sigla {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="night"] .gd-territory-card-stats {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="night"] .gd-territory-progress-text,
+[data-theme="night"] .gd-territory-progress-text strong {
+  color: var(--text-primary) !important;
+}
+```
+
+Override all child element colors with appropriate light colors.
+
+**Test Result:** Ricarica GestioneDesignazioni e verifica territory cards testo leggibile
+
 ---
 
 ### Critical (Bloccanti) - FIXED
