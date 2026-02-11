@@ -298,6 +298,33 @@ div[style*="border-bottom: 1px solid rgb(233, 236, 239)"] → --border-dark
 
 **Test Result:** Ricarica liste registrazioni e verifica backgrounds scuri
 
+#### Issue #10: Progress bars - light background
+**Element:** `.progress`, `.progress-stacked`
+**Problem:** Uses Bootstrap `--bs-progress-bg: var(--bs-secondary-bg)` → light gray
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+[data-theme="night"] .progress {
+  background-color: var(--bg-dark-tertiary) !important;
+  --bs-progress-bg: var(--bg-dark-tertiary) !important;
+  --bs-progress-bar-bg: var(--color-accent-red) !important;
+}
+
+[data-theme="night"] .progress-bar {
+  background-color: var(--color-accent-red) !important;
+}
+
+[data-theme="night"] .progress-bar-striped {
+  /* Dark-aware stripes with subtle transparency */
+}
+```
+
+Override Bootstrap variables + direct properties.
+Progress bars now dark with bright red fill.
+
+**Test Result:** Ricarica e verifica progress bars scuri con fill rosso
+
 ---
 
 ### Critical (Bloccanti) - FIXED
