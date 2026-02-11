@@ -359,6 +359,37 @@ Extended to div, span, p, i, input elements.
 
 **Test Result:** Ricarica MappaturaGerarchica e verifica tutto scuro
 
+#### Issue #12: Alert-secondary + semantic subtle backgrounds
+**Element:** `.alert-secondary`, inline subtle colors
+**Problem:**
+- `.alert-secondary` uses `--bs-secondary-bg-subtle` → light gray
+- Inline `rgb(209, 231, 221)` light green (success subtle)
+- Inline `rgb(248, 215, 218)` light pink (danger subtle)
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+/* Alert-secondary */
+[data-theme="night"] .alert-secondary {
+  background: var(--bg-dark-tertiary) !important;
+  /* Override all Bootstrap variables */
+}
+
+/* Success subtle background - light green */
+div[style*="background: rgb(209, 231, 221)"] {
+  background: var(--color-success-bg) !important;
+  border-color: var(--color-success) !important;
+}
+
+/* Danger subtle background - light pink */
+div[style*="background: rgb(248, 215, 218)"] {
+  background: var(--color-danger-bg) !important;
+  border-color: var(--color-danger) !important;
+}
+```
+
+**Test Result:** Ricarica e verifica alerts e boxes semantici scuri
+
 ---
 
 ### Critical (Bloccanti) - FIXED

@@ -366,6 +366,16 @@
   --bs-alert-link-color: var(--text-primary) !important;
 }
 
+[data-theme="night"] .alert-secondary {
+  background: var(--bg-dark-tertiary) !important;
+  border-color: var(--border-medium) !important;
+  color: var(--text-secondary) !important;
+  --bs-alert-bg: var(--bg-dark-tertiary) !important;
+  --bs-alert-color: var(--text-secondary) !important;
+  --bs-alert-border-color: var(--border-medium) !important;
+  --bs-alert-link-color: var(--text-primary) !important;
+}
+
 /* --------------------------------------------------------------------------
    Badges - Bright
    -------------------------------------------------------------------------- */
@@ -812,6 +822,21 @@
 [data-theme="night"] span[style*="background-color: rgb(233, 236, 239)"] {
   background: var(--bg-dark-secondary) !important;
   background-color: var(--bg-dark-secondary) !important;
+}
+
+/* Success/danger subtle backgrounds - light green/pink */
+[data-theme="night"] div[style*="background: rgb(209, 231, 221)"],
+[data-theme="night"] div[style*="background:rgb(209, 231, 221)"],
+[data-theme="night"] div[style*="background: rgb(209,231,221)"] {
+  background: var(--color-success-bg) !important;
+  border-color: var(--color-success) !important;
+}
+
+[data-theme="night"] div[style*="background: rgb(248, 215, 218)"],
+[data-theme="night"] div[style*="background:rgb(248, 215, 218)"],
+[data-theme="night"] div[style*="background: rgb(248,215,218)"] {
+  background: var(--color-danger-bg) !important;
+  border-color: var(--color-danger) !important;
 }
 
 /* Text color overrides - catch all dark text on inline styles */
