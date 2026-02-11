@@ -1197,7 +1197,7 @@ small.text-muted {
 
 /* Header - uses RDL color */
 .mappatura-header {
-  background: linear-gradient(135deg, #fd7e14 0%, #dc6a0c 100%);
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
   color: white;
   padding: var(--spacing-md);
   border-radius: var(--radius-md);

@@ -71197,3 +71197,45 @@ Changed from RDL orange to mappatura light blue (muted version matching dashboar
 
 **Test Result:** Ricarica Mappatura page e verifica header ora BLU (come dashboard box) non arancione
 
+
+### General Bug Fix (Not Theme-Specific)
+
+#### Bug: .mappatura-header - Wrong color in base CSS
+**File:** `src/styles.css` (base styles, not theme-specific)
+**Problem:** `.mappatura-header` had RDL orange gradient instead of mappatura blue.
+
+```css
+/* BEFORE (wrong) */
+.mappatura-header {
+  background: linear-gradient(135deg, #fd7e14 0%, #dc6a0c 100%);
+  /* RDL orange - WRONG! */
+}
+```
+
+This was a bug in the base CSS, affecting both light and dark themes.
+
+**Comparison:**
+- `.page-header.mappatura` → Blue #3498db (correct) ✓
+- `.dashboard-card-gradient-mappatura` → Blue #3498db (correct) ✓  
+- `.mappatura-header` → Orange #fd7e14 (WRONG!) ✗
+
+User feedback: "il problema della header mappatura è un problema generale non di tema"
+
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+Changed in `src/styles.css` (line 1200):
+```css
+/* AFTER (correct) */
+.mappatura-header {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  /* Mappatura blue - matches page-header and dashboard box */
+}
+```
+
+Now all three mappatura headers use consistent blue color in BOTH light and dark themes:
+- Light mode: Blue #3498db → #2980b9
+- Dark mode: Muted blue #3d7ba8 → #32658c (from night-theme.css)
+
+**Test Result:** Ricarica Mappatura in LIGHT e DARK mode - header blu in entrambi
+
