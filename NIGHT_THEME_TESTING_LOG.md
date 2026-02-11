@@ -71130,3 +71130,70 @@ User feedback:
 
 **Test Result:** Ricarica Mappatura e verifica tutti elementi scuri + button active ROSSO non blu
 
+
+#### Issue #31: .btn-link - bright blue and hard to read
+**Element:** `.btn-link` (Bootstrap link-styled button)
+**Problem:** Uses Bootstrap `--bs-link-color` which is a bright blue (#0d6efd) that's too harsh on dark backgrounds and hard to read.
+
+```css
+.btn-link {
+    --bs-btn-color: var(--bs-link-color);  /* Bright blue */
+    --bs-btn-hover-color: var(--bs-link-hover-color);
+}
+```
+
+User feedback: "troppo blu acceso e non si legge bene"
+
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+[data-theme="night"] .btn-link {
+  --bs-btn-color: var(--color-info) !important;
+  --bs-btn-hover-color: var(--color-info-light) !important;
+  --bs-btn-active-color: var(--color-info-light) !important;
+  color: var(--color-info) !important;
+  text-decoration: underline !important;
+}
+
+[data-theme="night"] .btn-link:hover {
+  color: var(--text-primary) !important;  /* White on hover */
+}
+
+[data-theme="night"] .btn-link:disabled {
+  color: var(--text-muted) !important;
+}
+```
+
+Changed from bright blue to softer `--color-info` cyan (#4fc3f7) which has better contrast and readability on dark backgrounds. Hover state turns to white for maximum visibility.
+
+**Test Result:** Ricarica e verifica .btn-link ora leggibile con blu più soft
+
+#### Issue #32: .mappatura-header - wrong gradient color
+**Element:** `.mappatura-header` 
+**Problem:** Has orange gradient (#fd7e14 → #dc6a0c) which is RDL color, not mappatura color.
+
+```css
+.mappatura-header {
+    background: linear-gradient(135deg, #fd7e14 0%, #dc6a0c 100%);
+    /* This is RDL orange, not mappatura blue! */
+}
+```
+
+Should match dashboard mappatura box which uses light blue (#3d7ba8 → #32658c in night mode).
+
+User feedback: "mappatura header non rispetta i colori del box in dashboard"
+
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+[data-theme="night"] .mappatura-header {
+  background: linear-gradient(135deg, #3d7ba8 0%, #32658c 100%) !important;
+}
+```
+
+Changed from RDL orange to mappatura light blue (muted version matching dashboard box).
+
+**Test Result:** Ricarica Mappatura page e verifica header ora BLU (come dashboard box) non arancione
+

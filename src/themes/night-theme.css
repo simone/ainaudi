@@ -366,6 +366,24 @@
 }
 
 
+/* Link buttons - softer blue for dark mode */
+[data-theme="night"] .btn-link {
+  --bs-btn-color: var(--color-info) !important;
+  --bs-btn-hover-color: var(--color-info-light) !important;
+  --bs-btn-active-color: var(--color-info-light) !important;
+  color: var(--color-info) !important;
+  text-decoration: underline !important;
+}
+
+[data-theme="night"] .btn-link:hover {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .btn-link:disabled {
+  color: var(--text-muted) !important;
+}
+
+
 /* --------------------------------------------------------------------------
    Forms - Dark inputs
    -------------------------------------------------------------------------- */
@@ -1509,6 +1527,11 @@
 [data-theme="night"] .mappatura-loading {
   color: var(--text-secondary) !important;
 }
+
+[data-theme="night"] .mappatura-header {
+  background: linear-gradient(135deg, #3d7ba8 0%, #32658c 100%) !important;
+}
+
 
 
 @media (max-width: 576px) {
