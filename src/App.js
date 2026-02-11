@@ -1070,8 +1070,8 @@ function AppContent() {
                 </div>
             </footer>
 
-            {/* Theme Switcher - Day/Night Mode */}
-            {isAuthenticated && <ThemeSwitcher />}
+            {/* Theme Switcher - Available on all pages (login + app) */}
+            <ThemeSwitcher />
         </>
     );
 }

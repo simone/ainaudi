@@ -71311,3 +71311,31 @@ useEffect(() => {
 - Modern browsers: `prefers-color-scheme` media query (Chrome 76+, Firefox 67+, Safari 12.1+)
 - Fallback: Default to 'daily' if not supported
 
+
+### ThemeSwitcher on Login Page
+**Feature Request:** "metti il theme switcher anche nella pagina di login"
+
+**Change:** Removed `isAuthenticated` condition from ThemeSwitcher rendering.
+
+**Before:**
+```javascript
+{isAuthenticated && <ThemeSwitcher />}
+// ThemeSwitcher only visible when logged in
+```
+
+**After:**
+```javascript
+<ThemeSwitcher />
+// ThemeSwitcher always visible (login page + authenticated app)
+```
+
+**Benefits:**
+- ✅ Users can choose theme BEFORE logging in
+- ✅ Theme preference persists after login
+- ✅ Better UX - theme choice available immediately
+- ✅ System preference detection works on login page too
+
+**Location:** `src/App.js` line 1074
+
+**Test:** Visit login page → ThemeSwitcher button (🌙/☀️) visible in bottom-right corner
+
