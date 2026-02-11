@@ -795,8 +795,23 @@
 [data-theme="night"] div[style*="background: #fff"],
 [data-theme="night"] div[style*="background:#fff"],
 [data-theme="night"] div[style*="background: #ffffff"],
-[data-theme="night"] div[style*="background:#ffffff"] {
+[data-theme="night"] div[style*="background:#ffffff"],
+[data-theme="night"] div[style*="background-color: rgb(255, 255, 255)"],
+[data-theme="night"] div[style*="background-color:rgb(255, 255, 255)"],
+[data-theme="night"] div[style*="background-color: rgb(255,255,255)"],
+[data-theme="night"] div[style*="background-color: rgb(248, 249, 250)"],
+[data-theme="night"] div[style*="background-color:rgb(248, 249, 250)"],
+[data-theme="night"] div[style*="background-color: rgb(248,249,250)"],
+[data-theme="night"] div[style*="background-color: rgb(245, 245, 245)"],
+[data-theme="night"] div[style*="background-color:rgb(245, 245, 245)"],
+[data-theme="night"] div[style*="background-color: rgb(245,245,245)"],
+[data-theme="night"] div[style*="background-color: rgb(233, 236, 239)"],
+[data-theme="night"] div[style*="background-color:rgb(233, 236, 239)"],
+[data-theme="night"] div[style*="background-color: rgb(233,236,239)"],
+[data-theme="night"] span[style*="background-color: rgb(245, 245, 245)"],
+[data-theme="night"] span[style*="background-color: rgb(233, 236, 239)"] {
   background: var(--bg-dark-secondary) !important;
+  background-color: var(--bg-dark-secondary) !important;
 }
 
 /* Text color overrides - catch all dark text on inline styles */
@@ -810,12 +825,23 @@
 [data-theme="night"] div[style*="color: rgb(73, 80, 87)"],
 [data-theme="night"] div[style*="color:rgb(73, 80, 87)"],
 [data-theme="night"] div[style*="color: rgb(73,80,87)"],
+[data-theme="night"] div[style*="color: rgb(108, 117, 125)"],
+[data-theme="night"] div[style*="color:rgb(108, 117, 125)"],
+[data-theme="night"] div[style*="color: rgb(108,117,125)"],
+[data-theme="night"] div[style*="color: rgb(33, 37, 41)"],
+[data-theme="night"] div[style*="color:rgb(33, 37, 41)"],
+[data-theme="night"] div[style*="color: rgb(33,37,41)"],
 [data-theme="night"] span[style*="color: rgb(51, 51, 51)"],
 [data-theme="night"] span[style*="color: rgb(73, 80, 87)"],
+[data-theme="night"] span[style*="color: rgb(108, 117, 125)"],
+[data-theme="night"] span[style*="color: rgb(33, 37, 41)"],
 [data-theme="night"] span[style*="color: #333"],
 [data-theme="night"] p[style*="color: rgb(51, 51, 51)"],
 [data-theme="night"] p[style*="color: rgb(73, 80, 87)"],
-[data-theme="night"] p[style*="color: #333"] {
+[data-theme="night"] p[style*="color: rgb(108, 117, 125)"],
+[data-theme="night"] p[style*="color: rgb(33, 37, 41)"],
+[data-theme="night"] p[style*="color: #333"],
+[data-theme="night"] i[style*="color: rgb(108, 117, 125)"] {
   color: var(--text-primary) !important;
 }
 
@@ -824,7 +850,16 @@
 [data-theme="night"] div[style*="borderColor: #dee2e6"],
 [data-theme="night"] div[style*="border-bottom: 1px solid rgb(233, 236, 239)"],
 [data-theme="night"] div[style*="border-bottom:1px solid rgb(233, 236, 239)"],
-[data-theme="night"] div[style*="border-bottom: 1px solid rgb(233,236,239)"] {
+[data-theme="night"] div[style*="border-bottom: 1px solid rgb(233,236,239)"],
+[data-theme="night"] div[style*="border-top: 1px solid rgb(222, 226, 230)"],
+[data-theme="night"] div[style*="border-top:1px solid rgb(222, 226, 230)"],
+[data-theme="night"] div[style*="border-top: 1px solid rgb(222,226,230)"],
+[data-theme="night"] div[style*="border-bottom: 1px solid rgb(222, 226, 230)"],
+[data-theme="night"] div[style*="border-bottom:1px solid rgb(222, 226, 230)"],
+[data-theme="night"] div[style*="border-bottom: 1px solid rgb(222,226,230)"],
+[data-theme="night"] div[style*="border: 1px solid rgb(222, 226, 230)"],
+[data-theme="night"] div[style*="border:1px solid rgb(222, 226, 230)"],
+[data-theme="night"] input[style*="border: 1px solid rgb(222, 226, 230)"] {
   border-color: var(--border-dark) !important;
 }
 

@@ -325,6 +325,40 @@ Progress bars now dark with bright red fill.
 
 **Test Result:** Ricarica e verifica progress bars scuri con fill rosso
 
+#### Issue #11: Mappatura page - massive inline rgb() styles
+**Page:** MappaturaGerarchica
+**Problem:** Entire page built with inline rgb() colors:
+- `rgb(245, 245, 245)` body background
+- `rgb(255, 255, 255)` white cards/headers/footer
+- `rgb(233, 236, 239)` light gray badges
+- `rgb(108, 117, 125)` gray text
+- `rgb(33, 37, 41)` almost black text
+- `rgb(222, 226, 230)` borders
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+Extended inline style selectors to catch ALL rgb() variations used in Mappatura page:
+
+```css
+/* Backgrounds - added rgb() variations */
+background-color: rgb(255, 255, 255) → --bg-dark-secondary
+background-color: rgb(245, 245, 245) → --bg-dark-secondary
+background-color: rgb(233, 236, 239) → --bg-dark-secondary
+background-color: rgb(248, 249, 250) → --bg-dark-secondary
+
+/* Text - added new rgb() grays */
+color: rgb(108, 117, 125) → --text-primary (medium gray)
+color: rgb(33, 37, 41) → --text-primary (almost black)
+
+/* Borders - added rgb() variations */
+border: 1px solid rgb(222, 226, 230) → --border-dark
+border-top/border-bottom variants
+```
+
+Extended to div, span, p, i, input elements.
+
+**Test Result:** Ricarica MappaturaGerarchica e verifica tutto scuro
+
 ---
 
 ### Critical (Bloccanti) - FIXED
