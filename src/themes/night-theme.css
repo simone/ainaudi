@@ -370,6 +370,17 @@
 }
 
 
+/* Input group addons - Dark backgrounds */
+[data-theme="night"] .input-group-text {
+  background-color: var(--bg-dark-tertiary) !important;
+  border-color: var(--border-medium) !important;
+  color: var(--text-secondary) !important;
+  --bs-tertiary-bg: var(--bg-dark-tertiary) !important;
+  --bs-body-color: var(--text-secondary) !important;
+  --bs-border-color: var(--border-medium) !important;
+}
+
+
 /* Form check (checkboxes, radios) */
 [data-theme="night"] .form-check-input {
   background-color: var(--bg-dark-tertiary);

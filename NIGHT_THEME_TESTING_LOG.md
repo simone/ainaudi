@@ -70795,3 +70795,37 @@ Adjust blue text to appropriate info accent color.
 
 **Test Result:** Ricarica e verifica Affluenza card scura con testo info-blue visibile
 
+
+#### Issue #25: .input-group-text - light background
+**Element:** `.input-group-text` (Bootstrap input group addon)
+**Problem:** Uses Bootstrap CSS variables pointing to light backgrounds:
+```css
+.input-group-text {
+    background-color: var(--bs-tertiary-bg);  /* Light gray/white */
+    color: var(--bs-body-color);  /* Dark text */
+    border: var(--bs-border-width) solid var(--bs-border-color);  /* Light border */
+}
+```
+
+Used for input prefixes/suffixes (icons, text before/after inputs).
+
+User feedback: "troppo bianco"
+
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+[data-theme="night"] .input-group-text {
+  background-color: var(--bg-dark-tertiary) !important;
+  border-color: var(--border-medium) !important;
+  color: var(--text-secondary) !important;
+  --bs-tertiary-bg: var(--bg-dark-tertiary) !important;
+  --bs-body-color: var(--text-secondary) !important;
+  --bs-border-color: var(--border-medium) !important;
+}
+```
+
+Override both direct properties and Bootstrap CSS variables.
+
+**Test Result:** Ricarica e verifica input-group-text scuri
+
