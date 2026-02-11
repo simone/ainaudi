@@ -309,6 +309,63 @@
   color: var(--text-inverse);
 }
 
+[data-theme="night"] .btn-outline-secondary {
+  border-color: var(--text-secondary) !important;
+  color: var(--text-secondary) !important;
+  background: transparent !important;
+}
+
+[data-theme="night"] .btn-outline-secondary:hover {
+  background: var(--bg-dark-elevated) !important;
+  border-color: var(--text-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .btn-outline-primary {
+  border-color: var(--color-accent-red) !important;
+  color: var(--color-accent-red) !important;
+  background: transparent !important;
+}
+
+[data-theme="night"] .btn-outline-primary:hover {
+  background: var(--color-accent-red) !important;
+  color: white !important;
+}
+
+[data-theme="night"] .btn-outline-info {
+  border-color: var(--color-info) !important;
+  color: var(--color-info) !important;
+  background: transparent !important;
+}
+
+[data-theme="night"] .btn-outline-info:hover {
+  background: var(--color-info) !important;
+  color: var(--text-inverse) !important;
+}
+
+[data-theme="night"] .btn-outline-success {
+  border-color: var(--color-success) !important;
+  color: var(--color-success) !important;
+  background: transparent !important;
+}
+
+[data-theme="night"] .btn-outline-success:hover {
+  background: var(--color-success) !important;
+  color: white !important;
+}
+
+[data-theme="night"] .btn-outline-danger {
+  border-color: var(--color-danger) !important;
+  color: var(--color-danger) !important;
+  background: transparent !important;
+}
+
+[data-theme="night"] .btn-outline-danger:hover {
+  background: var(--color-danger) !important;
+  color: white !important;
+}
+
+
 /* --------------------------------------------------------------------------
    Forms - Dark inputs
    -------------------------------------------------------------------------- */
@@ -1133,7 +1190,20 @@
 [data-theme="night"] p[style*="color: rgb(108, 117, 125)"],
 [data-theme="night"] p[style*="color: rgb(33, 37, 41)"],
 [data-theme="night"] p[style*="color: #333"],
-[data-theme="night"] i[style*="color: rgb(108, 117, 125)"] {
+[data-theme="night"] i[style*="color: rgb(108, 117, 125)"],
+[data-theme="night"] span[style*="color: rgb(0, 0, 0)"],
+[data-theme="night"] span[style*="color:rgb(0, 0, 0)"],
+[data-theme="night"] span[style*="color: rgb(0,0,0)"],
+[data-theme="night"] span[style*="color: #000"],
+[data-theme="night"] span[style*="color: black"],
+[data-theme="night"] div[style*="color: rgb(0, 0, 0)"],
+[data-theme="night"] div[style*="color:rgb(0, 0, 0)"],
+[data-theme="night"] div[style*="color: rgb(0,0,0)"],
+[data-theme="night"] div[style*="color: #000"],
+[data-theme="night"] div[style*="color: black"],
+[data-theme="night"] p[style*="color: rgb(0, 0, 0)"],
+[data-theme="night"] p[style*="color: #000"],
+[data-theme="night"] p[style*="color: black"] {
   color: var(--text-primary) !important;
 }
 
@@ -1182,6 +1252,118 @@
   background: var(--bg-dark-elevated) !important;
   border: 1px solid var(--border-medium) !important;
   color: var(--color-accent-red) !important;
+}
+
+
+/* ==========================================================================
+   Dashboard & Page Header Colors - MUTED for Night Theme
+   ========================================================================== */
+
+/* 
+   In night theme, bright gradients are overwhelming.
+   Use darker, less saturated versions for better visual hierarchy.
+   Reduce brightness by ~30-40%, reduce saturation by ~20%
+*/
+
+/* Territorio - Purple (violet) */
+[data-theme="night"] .page-header.territorio,
+[data-theme="night"] .dashboard-card-gradient-territorio {
+  background: linear-gradient(135deg, #5a3d8f 0%, #4a3278 100%) !important;
+}
+
+/* Consultazione - Blue */
+[data-theme="night"] .page-header.consultazione,
+[data-theme="night"] .dashboard-card-gradient-consultazione {
+  background: linear-gradient(135deg, #2d5a9f 0%, #244a85 100%) !important;
+}
+
+/* Delegati/Deleghe - Green */
+[data-theme="night"] .page-header.delegati,
+[data-theme="night"] .page-header.deleghe,
+[data-theme="night"] .dashboard-card-gradient-delegati {
+  background: linear-gradient(135deg, #2d6b4a 0%, #24573c 100%) !important;
+}
+
+/* Campagne - Red/Coral */
+[data-theme="night"] .page-header.campagne,
+[data-theme="night"] .dashboard-card-gradient-campagne {
+  background: linear-gradient(135deg, #c65555 0%, #b04545 100%) !important;
+}
+
+/* RDL/Gestione RDL - Orange */
+[data-theme="night"] .page-header.rdl,
+[data-theme="night"] .page-header.gestione-rdl,
+[data-theme="night"] .dashboard-card-gradient-rdl {
+  background: linear-gradient(135deg, #b8580f 0%, #9a4a0d 100%) !important;
+}
+
+/* Sezioni/Gestione Sezioni - Light Purple */
+[data-theme="night"] .page-header.sezioni,
+[data-theme="night"] .page-header.gestione-sezioni,
+[data-theme="night"] .dashboard-card-gradient-sezioni {
+  background: linear-gradient(135deg, #7d4a94 0%, #6a3d7f 100%) !important;
+}
+
+/* Mappatura/Mappatura Gerarchica - Light Blue */
+[data-theme="night"] .page-header.mappatura,
+[data-theme="night"] .page-header.mappatura-gerarchica,
+[data-theme="night"] .dashboard-card-gradient-mappatura {
+  background: linear-gradient(135deg, #3d7ba8 0%, #32658c 100%) !important;
+}
+
+/* Designazioni - Teal/Turquoise */
+[data-theme="night"] .page-header.designazioni,
+[data-theme="night"] .dashboard-card-gradient-designazioni {
+  background: linear-gradient(135deg, #2d7b6b 0%, #25655a 100%) !important;
+}
+
+/* Templates/Template List/Template Editor - Dark Red */
+[data-theme="night"] .page-header.templates,
+[data-theme="night"] .page-header.template-list,
+[data-theme="night"] .page-header.template-editor,
+[data-theme="night"] .dashboard-card-gradient-templates {
+  background: linear-gradient(135deg, #b8403a 0%, #9a3430 100%) !important;
+}
+
+/* PDF/Genera Moduli - Yellow/Orange */
+[data-theme="night"] .page-header.pdf,
+[data-theme="night"] .page-header.genera-moduli,
+[data-theme="night"] .dashboard-card-gradient-pdf {
+  background: linear-gradient(135deg, #c17d10 0%, #a1670e 100%) !important;
+}
+
+/* Scrutinio/Sections - Mint Green */
+[data-theme="night"] .page-header.scrutinio,
+[data-theme="night"] .page-header.sections,
+[data-theme="night"] .dashboard-card-gradient-scrutinio {
+  background: linear-gradient(135deg, #2d9973 0%, #258060 100%) !important;
+}
+
+/* Risultati Live/Scrutinio Aggregato - Dark Green */
+[data-theme="night"] .page-header.risultati-live,
+[data-theme="night"] .page-header.scrutinio-aggregato,
+[data-theme="night"] .dashboard-card-gradient-risultati {
+  background: linear-gradient(135deg, #2d8a54 0%, #25724a 100%) !important;
+}
+
+/* KPI/Diretta - Red */
+[data-theme="night"] .page-header.kpi,
+[data-theme="night"] .page-header.diretta,
+[data-theme="night"] .dashboard-card-gradient-kpi {
+  background: linear-gradient(135deg, #b33640 0%, #972d35 100%) !important;
+}
+
+/* Risorse/Assistenza - Cyan */
+[data-theme="night"] .page-header.risorse,
+[data-theme="night"] .page-header.assistenza,
+[data-theme="night"] .dashboard-card-gradient-risorse {
+  background: linear-gradient(135deg, #2d7f8f 0%, #256a78 100%) !important;
+}
+
+/* Generic dashboard card headers - apply muted treatment */
+[data-theme="night"] .dashboard-card-header[style*="background"],
+[data-theme="night"] .page-header[style*="linear-gradient"] {
+  filter: brightness(0.75) saturate(0.85) !important;
 }
 
    Responsive

@@ -70829,3 +70829,118 @@ Override both direct properties and Bootstrap CSS variables.
 
 **Test Result:** Ricarica e verifica input-group-text scuri
 
+
+## UI/UX Improvements
+
+### Improvement #1: Dashboard Colors Muted for Night Theme
+**Problem:** User feedback: "rivedi i colori che sono nella dashboard, sono troppo sparati per questo tema di colori"
+
+**Analysis:**
+- 14 gradient colors used in `.page-header.*` and `.dashboard-card-gradient-*`
+- Original colors are very bright and saturated (e.g., `#6f42c1`, `#0d6efd`, `#198754`)
+- In night theme, these overwhelming bright gradients hurt visual hierarchy
+- Too much color saturation causes eye strain in dark mode
+
+**Solution:** Created **muted color palette** for night theme:
+- Reduced brightness by 30-40%
+- Reduced saturation by 20%
+- Maintains color differentiation while being easier on the eyes
+
+**Palette Changes (original → muted):**
+- Territorio purple: `#6f42c1` → `#5a3d8f`
+- Consultazione blue: `#0d6efd` → `#2d5a9f`
+- Delegati green: `#198754` → `#2d6b4a`
+- Campagne red: `#ff6b6b` → `#c65555`
+- RDL orange: `#fd7e14` → `#b8580f`
+- Sezioni light purple: `#9b59b6` → `#7d4a94`
+- Mappatura light blue: `#3498db` → `#3d7ba8`
+- Designazioni teal: `#16a085` → `#2d7b6b`
+- Templates dark red: `#e74c3c` → `#b8403a`
+- PDF yellow/orange: `#f39c12` → `#c17d10`
+- Scrutinio mint: `#20c997` → `#2d9973`
+- Risultati green: `#27ae60` → `#2d8a54`
+- KPI red: `#dc3545` → `#b33640`
+- Risorse cyan: `#17a2b8` → `#2d7f8f`
+
+**Generic fallback:** For any remaining inline gradients, apply `filter: brightness(0.75) saturate(0.85)`
+
+**Test Result:** Ricarica dashboard e tutte le pagine, verifica colori più soft e meno abbaglianti
+
+
+#### Issue #26: Black text invisible (color: rgb(0,0,0))
+**Element:** Inline `style="color: rgb(0, 0, 0)"` and variations
+**Problem:** Pure black text (#000, rgb(0,0,0), keyword "black") invisible on dark backgrounds.
+
+**HTML Example:**
+```html
+<span class="ms-2 px-2 py-1 rounded" style="color: rgb(0, 0, 0);">verde</span>
+```
+
+User feedback: "non tutto il testo si vede"
+
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+Added comprehensive black color overrides for all variations:
+```css
+[data-theme="night"] span[style*="color: rgb(0, 0, 0)"],
+[data-theme="night"] span[style*="color: #000"],
+[data-theme="night"] span[style*="color: black"],
+[data-theme="night"] div[style*="color: rgb(0, 0, 0)"],
+[data-theme="night"] div[style*="color: #000"],
+[data-theme="night"] div[style*="color: black"],
+[data-theme="night"] p[style*="color: rgb(0, 0, 0)"],
+[data-theme="night"] p[style*="color: #000"],
+[data-theme="night"] p[style*="color: black"] {
+  color: var(--text-primary) !important;
+}
+```
+
+Catches all black color variations: rgb with/without spaces, hex, keyword.
+
+**Test Result:** Ricarica e verifica testo nero ora visibile
+
+#### Issue #27: .btn-outline-secondary not readable
+**Element:** `.btn-outline-secondary` and other outline button variants
+**Problem:** Bootstrap outline buttons use default colors that are too faint on dark backgrounds.
+`.btn-outline-secondary` uses gray that barely contrasts with dark background.
+
+**HTML Example:**
+```html
+<button class="btn btn-outline-secondary btn-sm">
+  <i class="fas fa-sync-alt me-1"></i>Aggiorna
+</button>
+```
+
+User feedback: "questo button non si legge bene"
+
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+Added overrides for all outline button variants:
+```css
+/* Secondary - gray text/border → lighter gray */
+[data-theme="night"] .btn-outline-secondary {
+  border-color: var(--text-secondary) !important;
+  color: var(--text-secondary) !important;
+}
+[data-theme="night"] .btn-outline-secondary:hover {
+  background: var(--bg-dark-elevated) !important;
+  border-color: var(--text-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Primary, Info, Success, Danger - use accent colors */
+.btn-outline-primary → --color-accent-red
+.btn-outline-info → --color-info
+.btn-outline-success → --color-success
+.btn-outline-danger → --color-danger
+```
+
+All outline buttons now have:
+- Proper contrast in normal state
+- Visible hover state (lighter border + text or filled background)
+- Consistent with night theme colors
+
+**Test Result:** Ricarica e verifica outline buttons visibili con buon contrasto
+
