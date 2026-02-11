@@ -118,6 +118,43 @@
 }
 
 /* --------------------------------------------------------------------------
+   Nav Tabs - Dark backgrounds
+   -------------------------------------------------------------------------- */
+[data-theme="night"] .nav-tabs {
+  border-bottom-color: var(--border-medium);
+}
+
+[data-theme="night"] .nav-tabs .nav-link {
+  background: var(--bg-dark-secondary);
+  color: var(--text-secondary);
+  border-color: var(--border-dark);
+}
+
+[data-theme="night"] .nav-tabs .nav-link:hover {
+  background: var(--bg-dark-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+[data-theme="night"] .nav-tabs .nav-link.active,
+[data-theme="night"] .nav-tabs .nav-item.show .nav-link {
+  background: var(--bg-dark-tertiary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-medium) var(--border-medium) transparent !important;
+  --bs-nav-tabs-link-active-bg: var(--bg-dark-tertiary) !important;
+  --bs-nav-tabs-link-active-color: var(--text-primary) !important;
+  --bs-nav-tabs-link-active-border-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .tab-content {
+  background: var(--bg-dark-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-medium);
+  border-top: none;
+  padding: 1rem;
+}
+
+/* --------------------------------------------------------------------------
    Cards - DARK not white!
    -------------------------------------------------------------------------- */
 [data-theme="night"] .card {
@@ -399,6 +436,21 @@
 [data-theme="night"] .table-bordered th,
 [data-theme="night"] .table-bordered td {
   border-color: var(--border-dark) !important;
+}
+
+/* Code elements in tables and elsewhere */
+[data-theme="night"] code,
+[data-theme="night"] .table code,
+[data-theme="night"] pre code {
+  background: var(--bg-dark-tertiary) !important;
+  color: var(--color-accent-red) !important;
+  border: 1px solid var(--border-medium);
+}
+
+[data-theme="night"] pre {
+  background: var(--bg-dark-tertiary) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-medium);
 }
 
 /* --------------------------------------------------------------------------

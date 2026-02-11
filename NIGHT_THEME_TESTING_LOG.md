@@ -141,6 +141,50 @@ For each issue, document:
 
 **Test Result:** Ricarica e verifica header consultazione ora scuro
 
+#### Issue #4: Code elements in tables - light background
+**Element:** `.table code`, `code`, `pre`
+**Problem:**
+```css
+.table code {
+    background: #f8f9fa;  /* Light gray */
+    color: #d63384;       /* Pink */
+}
+```
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+[data-theme="night"] code,
+[data-theme="night"] .table code {
+  background: var(--bg-dark-tertiary) !important;
+  color: var(--color-accent-red) !important;
+  border: 1px solid var(--border-medium);
+}
+```
+Also fixed `pre` elements for code blocks.
+
+**Test Result:** Ricarica e verifica elementi code ora scuri
+
+#### Issue #5: Nav tabs active state - white background
+**Element:** `.nav-tabs .nav-link.active`
+**Problem:** Uses Bootstrap variables pointing to white:
+- `--bs-nav-tabs-link-active-bg` → white
+- `--bs-nav-tabs-link-active-color` → dark text
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+[data-theme="night"] .nav-tabs .nav-link.active {
+  background: var(--bg-dark-tertiary) !important;
+  color: var(--text-primary) !important;
+  --bs-nav-tabs-link-active-bg: var(--bg-dark-tertiary) !important;
+  --bs-nav-tabs-link-active-color: var(--text-primary) !important;
+}
+```
+Also styled inactive tabs, hover states, and tab-content area.
+
+**Test Result:** Ricarica e verifica tabs attive ora scure
+
 ---
 
 ### Critical (Bloccanti) - FIXED
