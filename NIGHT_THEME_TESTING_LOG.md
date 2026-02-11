@@ -241,6 +241,37 @@ All overrides use !important to beat Bootstrap specificity.
 
 **Test Result:** Ricarica e verifica elementi con .bg-white ora scuri
 
+#### Issue #8: GestioneRdl component - multiple white backgrounds
+**File:** `src/GestioneRdl.css`
+**Problem:** 4 classes with hardcoded white backgrounds:
+- `.rdl-stats` (line 243)
+- `.rdl-card` (line 74)
+- `.rdl-card-compact` (line 90)
+- `.rdl-filters` (line 18)
+
+Plus many elements using `--color-gray-100` (light gray)
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+Comprehensive GestioneRdl component overrides (15+ rules):
+```css
+/* Main containers */
+.rdl-card, .rdl-card-compact → --bg-dark-secondary
+.rdl-filters, .rdl-stats → dark backgrounds
+.rdl-stat-box, .rdl-territory-filters → --bg-dark-tertiary
+
+/* Text colors */
+.rdl-data-label, .rdl-section-header → --text-secondary
+.rdl-data-value, .rdl-form-label → --text-primary
+
+/* Badges */
+.rdl-badge-info → --color-info-bg + --color-info
+.rdl-badge-primary → red accent colors
+.rdl-badge-muted → dark elevated
+```
+
+**Test Result:** Ricarica GestioneRdl page e verifica tutti elementi scuri
+
 ---
 
 ### Critical (Bloccanti) - FIXED

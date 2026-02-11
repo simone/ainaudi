@@ -648,15 +648,83 @@
    Component Specific - Dark
    -------------------------------------------------------------------------- */
 
-/* RDL cards */
+/* GestioneRdl component overrides */
 [data-theme="night"] .rdl-card {
   background: var(--bg-dark-secondary) !important;
-  border-color: var(--border-dark);
+  border-color: var(--border-dark) !important;
+}
+
+[data-theme="night"] .rdl-card-compact {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-dark) !important;
 }
 
 [data-theme="night"] .rdl-filters {
   background: var(--bg-dark-tertiary) !important;
-  border-color: var(--border-medium);
+  border-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .rdl-stats {
+  background: var(--bg-dark-secondary) !important;
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="night"] .rdl-stat-box {
+  background: var(--bg-dark-tertiary) !important;
+}
+
+[data-theme="night"] .rdl-territory-filters {
+  background: var(--bg-dark-tertiary) !important;
+  border-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .rdl-bulk-actions {
+  background: var(--bg-dark-tertiary) !important;
+  border-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .rdl-edit-container {
+  background: var(--bg-dark-tertiary) !important;
+}
+
+[data-theme="night"] .rdl-data-label {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="night"] .rdl-data-value {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .rdl-section-header {
+  color: var(--text-secondary) !important;
+  border-bottom-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .rdl-stat-label {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="night"] .rdl-form-label {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .rdl-badge-info {
+  background: var(--color-info-bg) !important;
+  color: var(--color-info) !important;
+}
+
+[data-theme="night"] .rdl-badge-primary {
+  background: rgba(255, 107, 107, 0.15) !important;
+  color: var(--color-accent-red) !important;
+}
+
+[data-theme="night"] .rdl-badge-muted {
+  background: var(--bg-dark-elevated) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="night"] .rdl-expandable-content {
+  border-top-color: var(--border-medium) !important;
 }
 
 /* Section lists */
