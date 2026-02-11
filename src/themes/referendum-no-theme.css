@@ -1,87 +1,59 @@
 /* ==========================================================================
-   TEMA REFERENDUM 2026 - VOTA NO
-   Stile allineato alla campagna "VOTA NO AL REFERENDUM SALVA-CASTA"
+   TEMA REFERENDUM 2026 - VOTA NO (v2 - UX Refined)
+   Approccio conservativo: mantiene gerarchia visiva, aggiunge accenti rossi
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   CSS Variables Override - Tema Referendum NO
+   CSS Variables Override - Solo essenziali
    -------------------------------------------------------------------------- */
 [data-theme="referendum-no"] {
-  /* Palette principale campagna NO */
+  /* Palette campagna (uso selettivo) */
   --color-campaign-navy: #1e3a5f;
-  --color-campaign-navy-light: #264a6e;
-  --color-campaign-navy-dark: #152d47;
   --color-campaign-red: #dc143c;
   --color-campaign-red-dark: #b01030;
-  --color-campaign-white: #ffffff;
 
-  /* Override colori primari */
+  /* Override SOLO primary color per bottoni */
   --color-primary: #dc143c;
   --color-primary-dark: #b01030;
-  --color-ainaudi-blue: #1e3a5f;
 
-  /* Backgrounds - Tema scuro con Navy */
-  --bg-primary: #1e3a5f;
-  --bg-secondary: #264a6e;
-  --bg-tertiary: #2f5578;
-  --bg-overlay: rgba(30, 58, 95, 0.95);
+  /* Background generale (non cards) */
+  --bg-app: #1e3a5f;
 
-  /* Text - Invertito per sfondo scuro */
-  --text-primary: #ffffff;
-  --text-secondary: #e9ecef;
-  --text-muted: #adb5bd;
-  --text-inverse: #1e3a5f;
-
-  /* Borders */
-  --border-primary: rgba(255, 255, 255, 0.2);
-  --border-secondary: rgba(255, 255, 255, 0.15);
+  /* Border focus rosso invece di blu */
   --border-focus: #dc143c;
-
-  /* Surfaces - Cards su sfondo navy */
-  --surface-card: #ffffff;
-  --surface-elevated: #ffffff;
-  --surface-input: #ffffff;
-
-  /* Semantici adattati */
-  --color-success: #28a745;
-  --color-success-light: #d1f2d9;
-  --color-danger: #dc143c;
-  --color-danger-light: #f8d7da;
-  --color-warning: #ffc107;
-  --color-warning-light: #fff3cd;
-
-  /* Border radius aumentato (stile campagna) */
-  --radius-sm: 0.5rem;   /* 8px */
-  --radius-md: 1rem;     /* 16px */
-  --radius-lg: 1.5rem;   /* 24px */
-  --radius-xl: 2rem;     /* 32px */
 }
 
 /* --------------------------------------------------------------------------
-   Body & Background Pattern
+   Body Background - Navy con pattern puntini
    -------------------------------------------------------------------------- */
 [data-theme="referendum-no"] body {
   background: #1e3a5f;
-  /* Pattern a puntini come nella campagna */
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-  background-size: 20px 20px;
-  color: #ffffff;
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.06) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+  background-attachment: fixed;
+}
+
+/* Main content area */
+[data-theme="referendum-no"] .main-content {
+  background: transparent;
 }
 
 /* --------------------------------------------------------------------------
-   Navbar - Navy con accenti rossi
+   Navbar - Navy con accento rosso (OK, manteniamo)
    -------------------------------------------------------------------------- */
 [data-theme="referendum-no"] .navbar {
   background: linear-gradient(135deg, #1e3a5f 0%, #264a6e 100%) !important;
   border-bottom: 3px solid #dc143c;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 [data-theme="referendum-no"] .navbar-brand {
   color: #ffffff !important;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 [data-theme="referendum-no"] .navbar .nav-link {
@@ -92,58 +64,41 @@
 [data-theme="referendum-no"] .navbar .nav-link:hover,
 [data-theme="referendum-no"] .navbar .nav-link.active {
   color: #ffffff !important;
-  background: rgba(220, 20, 60, 0.2);
-  border-radius: var(--radius-md);
+  background: rgba(220, 20, 60, 0.15);
+  border-radius: 8px;
+}
+
+/* Navbar dropdown backgrounds */
+[data-theme="referendum-no"] .navbar .dropdown-menu {
+  background: #ffffff;
+  border: 1px solid rgba(220, 20, 60, 0.2);
+}
+
+[data-theme="referendum-no"] .navbar .dropdown-item:hover {
+  background: rgba(220, 20, 60, 0.1);
 }
 
 /* --------------------------------------------------------------------------
-   Cards - Bianche su navy con bordi arrotondati
+   Cards - PRESERVE background bianco e header colorati originali
+   NO OVERRIDES - cards funzionano bene con sfondo navy
    -------------------------------------------------------------------------- */
 [data-theme="referendum-no"] .card {
-  background: #ffffff;
-  border: none;
-  border-radius: var(--radius-lg);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  overflow: hidden;
+  /* Aumenta solo l'ombra per risaltare su navy */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
 }
 
-[data-theme="referendum-no"] .card-header {
-  background: linear-gradient(135deg, #1e3a5f 0%, #264a6e 100%);
-  color: #ffffff;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 3px solid #dc143c;
-  padding: var(--spacing-md) var(--spacing-lg);
-}
-
-[data-theme="referendum-no"] .card-header.bg-primary {
-  background: linear-gradient(135deg, #dc143c 0%, #b01030 100%) !important;
-  border-bottom-color: #ffffff;
-}
-
-[data-theme="referendum-no"] .card-header.bg-referendum {
-  background: linear-gradient(135deg, #1e3a5f 0%, #264a6e 100%) !important;
-  border-bottom-color: #dc143c;
-}
-
-[data-theme="referendum-no"] .card-body {
-  background: #ffffff;
-  color: #212529;
-  padding: var(--spacing-lg);
-}
+/* NON toccare .card-header - lascia gradienti originali */
+/* NON toccare .card-body - lascia bianco */
 
 /* --------------------------------------------------------------------------
-   Buttons - Rosso acceso come CTA principale
+   Buttons - Rosso per primary, altri invariati
    -------------------------------------------------------------------------- */
 [data-theme="referendum-no"] .btn-primary {
   background: linear-gradient(135deg, #dc143c 0%, #b01030 100%);
   border: none;
   color: #ffffff;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-radius: var(--radius-md);
+  font-weight: 600;
   box-shadow: 0 4px 12px rgba(220, 20, 60, 0.4);
   transition: all 0.3s ease;
 }
@@ -155,163 +110,85 @@
   transform: translateY(-2px);
 }
 
-[data-theme="referendum-no"] .btn-secondary {
-  background: linear-gradient(135deg, #264a6e 0%, #1e3a5f 100%);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  color: #ffffff;
-  font-weight: 600;
-  border-radius: var(--radius-md);
-}
-
-[data-theme="referendum-no"] .btn-secondary:hover {
-  background: linear-gradient(135deg, #2f5578 0%, #264a6e 100%);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
-[data-theme="referendum-no"] .btn-success {
-  background: #28a745;
-  border: none;
-  font-weight: 600;
-  border-radius: var(--radius-md);
-}
-
-[data-theme="referendum-no"] .btn-danger {
-  background: #dc143c;
-  border: none;
-  font-weight: 600;
-  border-radius: var(--radius-md);
-}
-
-/* Referendum button style override */
+/* Referendum button override */
 [data-theme="referendum-no"] .btn-referendum {
-  background: #dc143c;
+  background: #dc143c !important;
   border: none;
   color: #ffffff;
   font-weight: 700;
-  text-transform: uppercase;
-  border-radius: var(--radius-lg);
   box-shadow: 0 6px 16px rgba(220, 20, 60, 0.5);
 }
 
 [data-theme="referendum-no"] .btn-referendum:hover {
-  background: #b01030;
+  background: #b01030 !important;
   box-shadow: 0 8px 20px rgba(220, 20, 60, 0.7);
 }
 
-/* --------------------------------------------------------------------------
-   Page Headers - Navy con accento rosso
-   -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] .page-header {
-  background: linear-gradient(135deg, #1e3a5f 0%, #264a6e 100%);
-  border-left: 5px solid #dc143c;
-  border-radius: var(--radius-lg);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-}
-
-[data-theme="referendum-no"] .page-header-title {
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-[data-theme="referendum-no"] .page-header-badge {
-  background: rgba(220, 20, 60, 0.2);
+/* Secondary buttons - subtle su navy */
+[data-theme="referendum-no"] .btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   color: #ffffff;
-  border: 1px solid rgba(220, 20, 60, 0.5);
-  font-weight: 600;
+}
+
+[data-theme="referendum-no"] .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 /* --------------------------------------------------------------------------
-   Forms - Su background bianco con accenti rossi
+   Forms - PRESERVE bianco, solo focus rosso
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] .form-control,
-[data-theme="referendum-no"] .form-select {
-  border: 2px solid #dee2e6;
-  border-radius: var(--radius-md);
-  background: #ffffff;
-  color: #212529;
-}
-
 [data-theme="referendum-no"] .form-control:focus,
 [data-theme="referendum-no"] .form-select:focus {
   border-color: #dc143c;
   box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.25);
-  background: #ffffff;
 }
 
-[data-theme="referendum-no"] .form-label {
+/* Form labels - SOLO se direttamente su body navy (rare) */
+[data-theme="referendum-no"] body > .form-label,
+[data-theme="referendum-no"] .main-content > .form-label {
   color: #ffffff;
-  font-weight: 600;
+}
+
+/* Mantieni labels nere dentro cards */
+[data-theme="referendum-no"] .card .form-label {
+  color: #212529;
 }
 
 /* --------------------------------------------------------------------------
-   Alerts - Adattati al tema scuro
+   Alerts - Leggeri upgrade
    -------------------------------------------------------------------------- */
 [data-theme="referendum-no"] .alert {
-  border-radius: var(--radius-lg);
+  border-radius: 12px;
   border: none;
   font-weight: 500;
 }
 
-[data-theme="referendum-no"] .alert-success {
-  background: #28a745;
-  color: #ffffff;
-}
-
-[data-theme="referendum-no"] .alert-danger {
-  background: #dc143c;
-  color: #ffffff;
-}
-
-[data-theme="referendum-no"] .alert-warning {
-  background: #ffc107;
-  color: #212529;
-}
-
-[data-theme="referendum-no"] .alert-info {
-  background: #17a2b8;
-  color: #ffffff;
-}
-
 /* --------------------------------------------------------------------------
-   Badges - Stile campagna
+   Badges - Primary rosso, altri invariati
    -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] .badge {
-  border-radius: var(--radius-md);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: var(--spacing-xs) var(--spacing-md);
-}
-
 [data-theme="referendum-no"] .badge.bg-primary {
   background: #dc143c !important;
 }
 
-[data-theme="referendum-no"] .badge.bg-secondary {
-  background: #264a6e !important;
-}
-
 /* --------------------------------------------------------------------------
-   List Items - Su background bianco
+   List Items - PRESERVE bianco, aumenta ombra
    -------------------------------------------------------------------------- */
 [data-theme="referendum-no"] .list-group-item {
-  background: #ffffff;
-  color: #212529;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-xs);
-}
-
-[data-theme="referendum-no"] .list-group-item:hover {
-  background: #f8f9fa;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  margin-bottom: 8px;
   transition: all 0.2s ease;
 }
 
+[data-theme="referendum-no"] .list-group-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transform: translateY(-1px);
+}
+
 /* --------------------------------------------------------------------------
-   Footer - Navy coordinato
+   Footer - Navy con accento rosso
    -------------------------------------------------------------------------- */
 [data-theme="referendum-no"] .custom-footer {
   background: linear-gradient(135deg, #152d47 0%, #1e3a5f 100%);
@@ -320,52 +197,78 @@
 }
 
 /* --------------------------------------------------------------------------
-   Dashboard Cards - Navy con accenti rossi
-   -------------------------------------------------------------------------- */
-[data-theme="referendum-no"] .dashboard-card-header {
-  background: linear-gradient(135deg, #1e3a5f 0%, #264a6e 100%);
-}
-
-[data-theme="referendum-no"] .dashboard-card-button {
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  transition: all 0.3s ease;
-}
-
-[data-theme="referendum-no"] .dashboard-card-button:hover {
-  border-color: #dc143c;
-  box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.3);
-  transform: scale(1.02);
-}
-
-[data-theme="referendum-no"] .dashboard-card-badge {
-  background: #dc143c !important;
-  color: #ffffff !important;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-/* --------------------------------------------------------------------------
-   Modals - Coordinati al tema
+   Modals - Bianche con header navy
    -------------------------------------------------------------------------- */
 [data-theme="referendum-no"] .modal-backdrop-custom {
   background: rgba(30, 58, 95, 0.85);
+  backdrop-filter: blur(4px);
 }
 
 [data-theme="referendum-no"] .modal-custom {
   background: #ffffff;
-  border: 3px solid #dc143c;
-  border-radius: var(--radius-xl);
+  border: 2px solid #dc143c;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 [data-theme="referendum-no"] .modal-custom-header {
   background: linear-gradient(135deg, #1e3a5f 0%, #264a6e 100%);
   color: #ffffff;
-  border-bottom: 3px solid #dc143c;
-  font-weight: 700;
+  border-bottom: 2px solid #dc143c;
+  font-weight: 600;
+}
+
+[data-theme="referendum-no"] .modal-custom-body {
+  color: #212529;
 }
 
 /* --------------------------------------------------------------------------
-   Scrollbar personalizzata (per browser Webkit)
+   Page Headers - PRESERVE colori originali, aggiungi accento rosso
+   -------------------------------------------------------------------------- */
+[data-theme="referendum-no"] .page-header {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  border-left-width: 5px;
+  border-left-color: #dc143c;
+  border-radius: 12px;
+}
+
+/* NON override background dei page-header - lascia gradienti colorati */
+
+/* --------------------------------------------------------------------------
+   Dashboard Cards - PRESERVE completamente
+   -------------------------------------------------------------------------- */
+/* NO OVERRIDES per dashboard-card-header */
+/* NO OVERRIDES per dashboard-card-gradient-* */
+
+/* Solo piccoli accenti interattivi */
+[data-theme="referendum-no"] .dashboard-card-button {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+[data-theme="referendum-no"] .dashboard-card-button:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   Tables - Preserve bianco
+   -------------------------------------------------------------------------- */
+[data-theme="referendum-no"] .table {
+  background: #ffffff;
+}
+
+[data-theme="referendum-no"] .table thead {
+  background: #f8f9fa;
+}
+
+[data-theme="referendum-no"] .table-hover tbody tr:hover {
+  background: rgba(220, 20, 60, 0.05);
+}
+
+/* --------------------------------------------------------------------------
+   Scrollbar - Navy con thumb rosso
    -------------------------------------------------------------------------- */
 [data-theme="referendum-no"] ::-webkit-scrollbar {
   width: 12px;
@@ -387,50 +290,104 @@
 }
 
 /* --------------------------------------------------------------------------
-   Animazioni speciali tema campagna
+   Focus States - Rosso invece di blu
    -------------------------------------------------------------------------- */
-@keyframes pulse-red {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(220, 20, 60, 0.7);
-  }
-  50% {
-    box-shadow: 0 0 0 10px rgba(220, 20, 60, 0);
-  }
-}
-
-[data-theme="referendum-no"] .pulse-red {
-  animation: pulse-red 2s infinite;
+[data-theme="referendum-no"] *:focus-visible {
+  outline: 2px solid #dc143c;
+  outline-offset: 2px;
 }
 
 /* --------------------------------------------------------------------------
-   Responsive - Mantiene lo stile su mobile
+   Links - Rosso nel testo
+   -------------------------------------------------------------------------- */
+[data-theme="referendum-no"] a {
+  color: #dc143c;
+}
+
+[data-theme="referendum-no"] a:hover {
+  color: #b01030;
+}
+
+/* Links in navbar restano bianchi */
+[data-theme="referendum-no"] .navbar a {
+  color: inherit;
+}
+
+/* --------------------------------------------------------------------------
+   Specific Component Fixes - Solo dove necessario
+   -------------------------------------------------------------------------- */
+
+/* GestioneRdl filters */
+[data-theme="referendum-no"] .gestione-rdl-filters {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Mappatura components già su background bianco - OK */
+
+/* --------------------------------------------------------------------------
+   Mobile Responsive - Maintain readability
    -------------------------------------------------------------------------- */
 @media (max-width: 576px) {
   [data-theme="referendum-no"] .card {
-    border-radius: var(--radius-md);
+    border-radius: 8px;
   }
 
-  [data-theme="referendum-no"] .card-header {
-    padding: var(--spacing-sm) var(--spacing-md);
-    font-size: 0.9rem;
+  [data-theme="referendum-no"] .navbar {
+    border-bottom-width: 2px;
   }
 
-  [data-theme="referendum-no"] .btn-primary,
-  [data-theme="referendum-no"] .btn-secondary {
-    border-radius: var(--radius-md);
+  [data-theme="referendum-no"] body {
+    background-size: 18px 18px;
   }
 }
 
 /* --------------------------------------------------------------------------
-   Print - Mantiene leggibilità
+   Print - Override everything to white
    -------------------------------------------------------------------------- */
 @media print {
   [data-theme="referendum-no"] body {
-    background: white;
-    color: black;
+    background: white !important;
+    color: black !important;
+  }
+
+  [data-theme="referendum-no"] .navbar,
+  [data-theme="referendum-no"] .custom-footer {
+    display: none !important;
   }
 
   [data-theme="referendum-no"] .card {
-    border: 2px solid #1e3a5f;
+    border: 1px solid #dee2e6 !important;
+    box-shadow: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Accessibility - High Contrast Mode Support
+   -------------------------------------------------------------------------- */
+@media (prefers-contrast: high) {
+  [data-theme="referendum-no"] body {
+    background: #000000;
+  }
+
+  [data-theme="referendum-no"] .card {
+    border: 2px solid #ffffff;
+  }
+
+  [data-theme="referendum-no"] .btn-primary {
+    border: 2px solid #ffffff;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Reduced Motion - Respect user preferences
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="referendum-no"] * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
