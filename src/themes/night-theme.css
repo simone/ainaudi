@@ -328,6 +328,16 @@
   color: var(--text-primary) !important;
 }
 
+[data-theme="night"] .alert-light {
+  background: var(--bg-dark-tertiary) !important;
+  border-color: var(--border-medium) !important;
+  color: var(--text-secondary) !important;
+  --bs-alert-bg: var(--bg-dark-tertiary) !important;
+  --bs-alert-color: var(--text-secondary) !important;
+  --bs-alert-border-color: var(--border-medium) !important;
+  --bs-alert-link-color: var(--text-primary) !important;
+}
+
 /* --------------------------------------------------------------------------
    Badges - Bright
    -------------------------------------------------------------------------- */

@@ -185,6 +185,30 @@ Also styled inactive tabs, hover states, and tab-content area.
 
 **Test Result:** Ricarica e verifica tabs attive ora scure
 
+#### Issue #6: Alert-light - white/light background
+**Element:** `.alert-light`
+**Problem:** Uses Bootstrap light variables:
+```css
+--bs-alert-bg: var(--bs-light-bg-subtle);  /* Very light gray/white */
+--bs-alert-color: var(--bs-light-text-emphasis);  /* Dark text */
+```
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+[data-theme="night"] .alert-light {
+  background: var(--bg-dark-tertiary) !important;
+  border-color: var(--border-medium) !important;
+  color: var(--text-secondary) !important;
+  --bs-alert-bg: var(--bg-dark-tertiary) !important;
+  --bs-alert-color: var(--text-secondary) !important;
+  --bs-alert-border-color: var(--border-medium) !important;
+}
+```
+Override all Bootstrap alert-light variables.
+
+**Test Result:** Ricarica e verifica .alert-light ora scuro
+
 ---
 
 ### Critical (Bloccanti) - FIXED
