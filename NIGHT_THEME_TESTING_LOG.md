@@ -70752,3 +70752,46 @@ Plus h3 and h4 headings inside with text-primary color.
 
 ---
 
+
+#### Issue #24: Affluenza card - light blue background
+**Element:** Inline styles with light blue info/primary background
+**Problem:** Div with `background-color: rgb(231, 243, 255)` (light blue) still renders bright.
+Also contains `color: rgb(13, 110, 253)` (bright blue) for numbers.
+
+**HTML Example:**
+```html
+<div style="background-color: rgb(231, 243, 255); ...">
+  <div style="font-size: 1.75rem; font-weight: bold; color: rgb(13, 110, 253);">
+    0.0%
+  </div>
+  <div style="font-size: 0.7rem; color: rgb(108, 117, 125); ...">
+    Affluenza
+  </div>
+</div>
+```
+
+This is an info/primary colored card (light blue background, blue text).
+
+User feedback: "troppo bianco"
+
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+/* Info/primary subtle background - light blue */
+[data-theme="night"] div[style*="background-color: rgb(231, 243, 255)"] {
+  background: var(--color-info-bg) !important;
+  border: 1px solid var(--color-info) !important;
+}
+
+/* Primary/info bright blue text */
+[data-theme="night"] div[style*="color: rgb(13, 110, 253)"] {
+  color: var(--color-info) !important;
+}
+```
+
+Use semantic info background color (dark-aware) instead of light blue.
+Adjust blue text to appropriate info accent color.
+
+**Test Result:** Ricarica e verifica Affluenza card scura con testo info-blue visibile
+
