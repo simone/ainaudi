@@ -141,9 +141,9 @@
   color: var(--text-primary) !important;
 }
 
-/* Dashboard cards - preserve colors but dim them */
+/* Dashboard cards - preserve colors naturally */
 [data-theme="night"] .card .card-header[style*="background"] {
-  opacity: 0.85;
+  /* Removed opacity hack - let colors be natural */
   border-bottom: 2px solid var(--color-accent-red);
 }
 
@@ -416,25 +416,23 @@
 }
 
 /* --------------------------------------------------------------------------
-   Page Headers - Dimmed colors
+   Page Headers
    -------------------------------------------------------------------------- */
 [data-theme="night"] .page-header {
-  opacity: 0.9;
   box-shadow: var(--shadow-md);
   border-left-width: 4px;
   border-left-color: var(--color-accent-red);
 }
 
 /* --------------------------------------------------------------------------
-   Dashboard Cards - DIM not bright!
+   Dashboard Cards
    -------------------------------------------------------------------------- */
 [data-theme="night"] .dashboard-card {
   background: var(--bg-dark-secondary) !important;
 }
 
 [data-theme="night"] .dashboard-card-header {
-  opacity: 0.75 !important;
-  filter: brightness(0.7) !important;
+  /* Let natural colors show - no opacity/filter hacks */
 }
 
 [data-theme="night"] .dashboard-card .card-body {
