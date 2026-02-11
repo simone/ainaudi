@@ -1140,10 +1140,10 @@
 /* Info/primary subtle background - light blue */
 [data-theme="night"] div[style*="background-color: rgb(231, 243, 255)"],
 [data-theme="night"] div[style*="background-color:rgb(231, 243, 255)"],
-[data-theme="night"] div[style*="background-color: rgb(231,243,255)"] {
+[data-theme="night"] div[style*="background-color: rgb(231,243,255)"],
 [data-theme="night"] div[style*="background: rgb(227, 242, 253)"],
 [data-theme="night"] div[style*="background:rgb(227, 242, 253)"],
-[data-theme="night"] div[style*="background: rgb(227,242,253)"],
+[data-theme="night"] div[style*="background: rgb(227,242,253)"] {
   background: var(--color-info-bg) !important;
   background-color: var(--color-info-bg) !important;
   border: 1px solid var(--color-info) !important;
