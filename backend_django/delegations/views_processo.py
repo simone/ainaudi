@@ -1284,6 +1284,115 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
 
         return Response(progress)
 
+    @action(detail=False, methods=['get'], url_path='mie-designazioni')
+    def mie_designazioni(self, request):
+        """
+        Restituisce le designazioni dell'utente loggato (RDL).
+
+        GET /api/deleghe/processi/mie-designazioni/?consultazione_id=1
+
+        Response:
+        {
+            "has_designazioni": true,
+            "consultazione": {...},
+            "designazioni": [
+                {
+                    "id": 1,
+                    "sezione": {...},
+                    "tipo": "EFFETTIVO",  # o "SUPPLENTE" o "EFFETTIVO+SUPPLENTE"
+                    "processo": {...}
+                }
+            ]
+        }
+        """
+        user_email = request.user.email
+        consultazione_id = request.GET.get('consultazione_id')
+
+        if not consultazione_id:
+            # Prendi consultazione attiva
+            from elections.models import ConsultazioneElettorale
+            consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
+            if not consultazione:
+                return Response({
+                    'has_designazioni': False,
+                    'message': 'Nessuna consultazione attiva'
+                })
+            consultazione_id = consultazione.id
+
+        # Trova designazioni RDL (sia effettivo che supplente)
+        designazioni = DesignazioneRDL.objects.filter(
+            Q(effettivo_email=user_email) | Q(supplente_email=user_email),
+            processo__consultazione_id=consultazione_id,
+            processo__stato__in=['APPROVATO', 'INVIATO'],
+            stato='CONFERMATA',
+            is_attiva=True
+        ).select_related(
+            'processo', 'processo__consultazione',
+            'sezione', 'sezione__comune'
+        ).order_by('sezione__numero')
+
+        if not designazioni.exists():
+            return Response({
+                'has_designazioni': False,
+                'message': 'Nessuna designazione trovata'
+            })
+
+        # Raggruppa per sezione (un RDL può essere sia effettivo che supplente)
+        sezioni_map = {}
+        for des in designazioni:
+            sezione_id = des.sezione_id
+            if sezione_id not in sezioni_map:
+                sezioni_map[sezione_id] = {
+                    'designazione': des,
+                    'is_effettivo': False,
+                    'is_supplente': False
+                }
+
+            if des.effettivo_email == user_email:
+                sezioni_map[sezione_id]['is_effettivo'] = True
+            if des.supplente_email == user_email:
+                sezioni_map[sezione_id]['is_supplente'] = True
+
+        # Costruisci response
+        designazioni_list = []
+        for sezione_id, data in sezioni_map.items():
+            des = data['designazione']
+
+            # Determina tipo
+            if data['is_effettivo'] and data['is_supplente']:
+                tipo = 'EFFETTIVO+SUPPLENTE'
+            elif data['is_effettivo']:
+                tipo = 'EFFETTIVO'
+            else:
+                tipo = 'SUPPLENTE'
+
+            designazioni_list.append({
+                'id': des.id,
+                'tipo': tipo,
+                'sezione': {
+                    'id': des.sezione.id,
+                    'numero': des.sezione.numero,
+                    'indirizzo': des.sezione.indirizzo,
+                    'comune': des.sezione.comune.nome if des.sezione.comune else 'N/A'
+                },
+                'processo': {
+                    'id': des.processo.id,
+                    'stato': des.processo.stato
+                }
+            })
+
+        consultazione = designazioni.first().processo.consultazione
+
+        return Response({
+            'has_designazioni': True,
+            'consultazione': {
+                'id': consultazione.id,
+                'nome': consultazione.nome
+            },
+            'designazioni': designazioni_list,
+            'totale_sezioni': len(designazioni_list)
+        })
+
     @action(detail=False, methods=['get'], url_path='download-mia-nomina')
     def download_mia_nomina(self, request):
         """

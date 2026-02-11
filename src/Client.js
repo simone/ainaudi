@@ -1102,6 +1102,18 @@ const Client = (server, pdfServer, token) => {
                     console.error(error);
                     return { error: error.message };
                 });
+            },
+
+            // RDL - Get my own designations
+            mieDesignazioni: async (consultazioneId) => {
+                const params = new URLSearchParams();
+                if (consultazioneId) params.append('consultazione_id', consultazioneId);
+                return fetch(`${server}/api/deleghe/processi/mie-designazioni/?${params.toString()}`, {
+                    headers: { 'Authorization': authHeader }
+                }).then(response => response.json()).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                });
             }
         },
 

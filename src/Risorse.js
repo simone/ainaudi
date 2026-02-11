@@ -132,6 +132,10 @@ function Risorse({ client, consultazione, setError }) {
     const [data, setData] = useState({ documenti: null, faqs: null });
     const [pdfViewer, setPdfViewer] = useState(null); // { url, titolo } quando aperto
 
+    // RDL designations state
+    const [mieDesignazioni, setMieDesignazioni] = useState(null);
+    const [loadingNomina, setLoadingNomina] = useState(false);
+
     // FAQ state
     const [expandedFaq, setExpandedFaq] = useState(null);
     const [searchFaq, setSearchFaq] = useState('');
@@ -147,12 +151,28 @@ function Risorse({ client, consultazione, setError }) {
     const loadRisorse = async () => {
         setLoading(true);
         try {
+            // Load risorse (documenti + FAQ)
             const result = await client.risorse.list(consultazione?.id);
             if (result?.error) {
                 // API non disponibile, mostra dati mock
                 setData(getMockData());
             } else {
                 setData(result);
+            }
+
+            // Load RDL's own designations (if any)
+            if (consultazione?.id) {
+                try {
+                    const designazioni = await client.deleghe.processi.mieDesignazioni(consultazione.id);
+                    if (designazioni?.has_designazioni) {
+                        setMieDesignazioni(designazioni);
+                    } else {
+                        setMieDesignazioni(null);
+                    }
+                } catch (err) {
+                    console.log('Non è possibile caricare le designazioni:', err);
+                    setMieDesignazioni(null);
+                }
             }
         } catch (err) {
             console.log('API risorse non disponibile, uso dati mock');
@@ -295,6 +315,36 @@ function Risorse({ client, consultazione, setError }) {
         // Altrimenti lascia che il link apra in nuova scheda
     };
 
+    const handleDownloadNomina = async () => {
+        if (!consultazione?.id) {
+            setError('Nessuna consultazione attiva');
+            return;
+        }
+
+        setLoadingNomina(true);
+
+        try {
+            const apiUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
+            const url = `${apiUrl}/api/deleghe/processi/download-mia-nomina/?consultazione_id=${consultazione.id}`;
+
+            // Open PDF in viewer
+            setPdfViewer({
+                url,
+                titolo: 'La Tua Designazione RDL',
+                originalUrl: url
+            });
+
+        } catch (err) {
+            console.error('Errore download nomina:', err);
+            setError(
+                err.response?.data?.error ||
+                'Errore durante il caricamento del PDF. Verifica di avere una designazione confermata.'
+            );
+        } finally {
+            setLoadingNomina(false);
+        }
+    };
+
     const filteredFaqs = data.faqs?.categorie?.map(cat => ({
         ...cat,
         faqs: cat.faqs.filter(faq =>
@@ -329,6 +379,97 @@ function Risorse({ client, consultazione, setError }) {
                     Documenti, guide, FAQ e supporto per i Rappresentanti di Lista
                 </div>
             </div>
+
+            {/* RDL Designations Section (if user is RDL) */}
+            {mieDesignazioni?.has_designazioni && (
+                <div className="card mb-4" style={{ borderLeft: '4px solid #1F4E5F' }}>
+                    <div className="card-header" style={{ background: 'linear-gradient(135deg, #1F4E5F 0%, #2C5F6F 100%)', color: '#fff' }}>
+                        <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i className="fas fa-id-badge me-2"></i>
+                                <strong>Le Tue Designazioni RDL</strong>
+                            </div>
+                            <span className="badge bg-warning text-dark">
+                                {mieDesignazioni.totale_sezioni} {mieDesignazioni.totale_sezioni === 1 ? 'sezione' : 'sezioni'}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="card-body">
+                        <p className="card-text mb-3">
+                            Sei stato designato come Rappresentante di Lista per {mieDesignazioni.totale_sezioni === 1 ? 'la seguente sezione' : 'le seguenti sezioni'}:
+                        </p>
+
+                        <div className="list-group">
+                            {mieDesignazioni.designazioni.map((des, idx) => (
+                                <div key={idx} className="list-group-item list-group-item-action">
+                                    <div className="d-flex w-100 justify-content-between align-items-start">
+                                        <div className="flex-grow-1">
+                                            <h6 className="mb-1">
+                                                <i className="fas fa-map-marker-alt me-2" style={{ color: '#1F4E5F' }}></i>
+                                                Sezione {des.sezione.numero}
+                                            </h6>
+                                            <p className="mb-1 text-muted" style={{ fontSize: '0.9rem' }}>
+                                                {des.sezione.indirizzo}
+                                            </p>
+                                            <p className="mb-0 text-muted" style={{ fontSize: '0.85rem' }}>
+                                                {des.sezione.comune_nome}
+                                            </p>
+                                        </div>
+                                        <div className="ms-3">
+                                            {des.tipo === 'EFFETTIVO' && (
+                                                <span className="badge" style={{ backgroundColor: '#28a745' }}>
+                                                    🟢 Effettivo
+                                                </span>
+                                            )}
+                                            {des.tipo === 'SUPPLENTE' && (
+                                                <span className="badge" style={{ backgroundColor: '#FFC800', color: '#1F4E5F' }}>
+                                                    🟡 Supplente
+                                                </span>
+                                            )}
+                                            {des.tipo === 'EFFETTIVO+SUPPLENTE' && (
+                                                <div className="d-flex flex-column gap-1">
+                                                    <span className="badge" style={{ backgroundColor: '#28a745', fontSize: '0.7rem' }}>
+                                                        🟢 Effettivo
+                                                    </span>
+                                                    <span className="badge" style={{ backgroundColor: '#FFC800', color: '#1F4E5F', fontSize: '0.7rem' }}>
+                                                        🟡 Supplente
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-3 d-flex justify-content-end">
+                            <button
+                                className="btn btn-sm"
+                                style={{
+                                    backgroundColor: '#FFC800',
+                                    color: '#1F4E5F',
+                                    fontWeight: '600',
+                                    border: 'none'
+                                }}
+                                onClick={handleDownloadNomina}
+                                disabled={loadingNomina}
+                            >
+                                {loadingNomina ? (
+                                    <>
+                                        <span className="spinner-border spinner-border-sm me-2"></span>
+                                        Caricamento...
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fas fa-file-pdf me-2"></i>
+                                        Visualizza Nomina Ufficiale
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Tabs */}
             <ul className="nav nav-tabs mb-3">
