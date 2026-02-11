@@ -1360,14 +1360,111 @@
   background: linear-gradient(135deg, #2d7f8f 0%, #256a78 100%) !important;
 }
 
-/* Generic dashboard card headers - apply muted treatment */
-[data-theme="night"] .dashboard-card-header[style*="background"],
-[data-theme="night"] .page-header[style*="linear-gradient"] {
-  filter: brightness(0.75) saturate(0.85) !important;
+
+
+/* Mappatura component overrides */
+[data-theme="night"] .mappatura-tabs {
+  background: var(--bg-dark-secondary) !important;
+  border: 1px solid var(--border-medium) !important;
 }
 
-   Responsive
-   -------------------------------------------------------------------------- */
+[data-theme="night"] .mappatura-tab {
+  background: var(--bg-dark-tertiary) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .mappatura-tab.active {
+  background: var(--color-accent-red) !important;
+  color: white !important;
+}
+
+[data-theme="night"] .mappatura-tab:hover:not(.active) {
+  background: var(--bg-dark-elevated) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .mappatura-filters {
+  background: var(--bg-dark-secondary) !important;
+  border: 1px solid var(--border-medium) !important;
+  box-shadow: 0 1px 3px rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="night"] .mappatura-plesso {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .mappatura-plesso-header {
+  background: var(--bg-dark-tertiary) !important;
+  border-bottom-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .mappatura-plesso-header:hover {
+  background: var(--bg-dark-elevated) !important;
+}
+
+[data-theme="night"] .mappatura-plesso-sezioni {
+  background: var(--bg-dark-secondary) !important;
+}
+
+[data-theme="night"] .mappatura-sezione {
+  border-bottom-color: var(--border-dark) !important;
+}
+
+[data-theme="night"] .mappatura-slot {
+  background: var(--bg-dark-tertiary) !important;
+  border-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .mappatura-slot.assigned {
+  background: var(--color-success-bg) !important;
+  border-color: var(--color-success) !important;
+}
+
+[data-theme="night"] .mappatura-slot.empty {
+  background: var(--bg-dark-tertiary) !important;
+  border-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .mappatura-rdl-card {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .mappatura-rdl-header {
+  border-bottom-color: var(--border-dark) !important;
+}
+
+[data-theme="night"] .mappatura-flat-item {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .mappatura-flat-item:hover {
+  background: var(--bg-dark-tertiary) !important;
+}
+
+[data-theme="night"] .mappatura-add-sezione-item {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .mappatura-add-sezione-item:hover {
+  background: var(--bg-dark-tertiary) !important;
+}
+
+[data-theme="night"] .mappatura-add-sezione-item.selected {
+  background: var(--color-accent-red) !important;
+  color: white !important;
+}
+
+[data-theme="night"] .mappatura-add-sezione-item.disabled {
+  background: var(--bg-dark-tertiary) !important;
+  opacity: 0.5;
+  color: var(--text-muted) !important;
+}
+
 @media (max-width: 576px) {
   [data-theme="night"] .card {
     border-radius: 8px;

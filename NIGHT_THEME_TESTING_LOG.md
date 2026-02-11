@@ -70944,3 +70944,83 @@ All outline buttons now have:
 
 **Test Result:** Ricarica e verifica outline buttons visibili con buon contrasto
 
+
+#### Issue #28: Mappatura component - white backgrounds
+**Page:** Mappatura/MappaturaGerarchica  
+**File:** `src/styles.css` (multiple `.mappatura-*` classes)
+**Problem:** Mappatura component has extensive white backgrounds:
+
+**Elements with white backgrounds:**
+```css
+.mappatura-tabs { background: white; }
+.mappatura-filters { background: white; }
+.mappatura-plesso { background: white; }
+.mappatura-rdl-card { background: white; }
+```
+
+User feedback: 
+- "troppo bianco .mappatura-tabs"
+- "troppo bianco .mappatura-filters"
+
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+Comprehensive Mappatura component overrides (~15 classes):
+
+```css
+/* Main containers */
+.mappatura-tabs → --bg-dark-secondary with border
+.mappatura-filters → --bg-dark-secondary
+.mappatura-plesso → --bg-dark-secondary
+.mappatura-rdl-card → --bg-dark-secondary
+
+/* Tabs */
+.mappatura-tab → --bg-dark-tertiary (inactive)
+.mappatura-tab.active → --color-accent-red (active with red)
+.mappatura-tab:hover → --bg-dark-elevated (hover feedback)
+
+/* Plesso elements */
+.mappatura-plesso-header → --bg-dark-tertiary
+.mappatura-plesso-header:hover → --bg-dark-elevated
+.mappatura-plesso-sezioni → --bg-dark-secondary
+
+/* Slots */
+.mappatura-slot → --bg-dark-tertiary (default)
+.mappatura-slot.assigned → --color-success-bg (green for assigned)
+.mappatura-slot.empty → --bg-dark-tertiary
+
+/* List items */
+.mappatura-flat-item → --bg-dark-secondary + hover
+.mappatura-add-sezione-item → --bg-dark-secondary + hover
+.mappatura-add-sezione-item.selected → --color-accent-red
+.mappatura-add-sezione-item.disabled → opacity 0.5
+```
+
+All Mappatura page elements now dark with proper interaction states.
+
+**Test Result:** Ricarica Mappatura page e verifica tutto scuro
+
+### Issue #29: Generic filter interfering with specific colors
+**Problem:** Generic fallback rule was applying filter to ALL page-headers with inline styles:
+
+```css
+[data-theme="night"] .page-header[style*="linear-gradient"] {
+  filter: brightness(0.75) saturate(0.85) !important;
+}
+```
+
+This was interfering with specific color overrides for page headers (territorio, consultazione, mappatura, etc.), causing:
+- Header colors not matching dashboard box colors
+- User feedback: "mappatura header dovrebbe avere il colore del box in dashboard"
+
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+Removed generic filter rule completely.
+Now all page headers use explicit color definitions that match dashboard boxes:
+- `.page-header.mappatura` = `.dashboard-card-gradient-mappatura`
+- `.page-header.territorio` = `.dashboard-card-gradient-territorio`
+- etc. (all 14 color variants)
+
+**Test Result:** Ricarica e verifica page-header colors match dashboard
+
