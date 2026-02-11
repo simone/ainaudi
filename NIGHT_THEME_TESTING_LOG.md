@@ -209,6 +209,38 @@ Override all Bootstrap alert-light variables.
 
 **Test Result:** Ricarica e verifica .alert-light ora scuro
 
+#### Issue #7: Bootstrap utility classes - light backgrounds and text
+**Element:** `.bg-white`, `.bg-light`, `.text-dark`, etc.
+**Problem:**
+```css
+.bg-white { background-color: white; }  /* Hardcoded */
+.bg-light { background-color: #f8f9fa; }
+.text-dark { color: #212529; }  /* Black text */
+```
+Bootstrap utilities used throughout app - major source of light backgrounds.
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+Created comprehensive utility class overrides:
+```css
+/* Backgrounds */
+.bg-white → var(--bg-dark-secondary)
+.bg-light → var(--bg-dark-tertiary)
+
+/* Text colors */
+.text-dark → var(--text-primary)
+.text-muted → var(--text-muted)
+.text-black → var(--text-primary)
+
+/* Borders */
+.border → var(--border-medium)
+.border-light → var(--border-dark)
+```
+
+All overrides use !important to beat Bootstrap specificity.
+
+**Test Result:** Ricarica e verifica elementi con .bg-white ora scuri
+
 ---
 
 ### Critical (Bloccanti) - FIXED

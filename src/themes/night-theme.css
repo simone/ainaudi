@@ -376,6 +376,39 @@
 }
 
 /* --------------------------------------------------------------------------
+   Bootstrap Utility Classes - Override light backgrounds
+   -------------------------------------------------------------------------- */
+[data-theme="night"] .bg-white {
+  background-color: var(--bg-dark-secondary) !important;
+  --bs-bg-opacity: 1 !important;
+}
+
+[data-theme="night"] .bg-light {
+  background-color: var(--bg-dark-tertiary) !important;
+  --bs-bg-opacity: 1 !important;
+}
+
+[data-theme="night"] .text-dark {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .text-muted {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="night"] .text-black {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .border {
+  border-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .border-light {
+  border-color: var(--border-dark) !important;
+}
+
+/* --------------------------------------------------------------------------
    Lists - Dark
    -------------------------------------------------------------------------- */
 [data-theme="night"] .list-group-item {
