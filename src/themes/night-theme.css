@@ -765,6 +765,21 @@
   border-top-color: var(--border-medium) !important;
 }
 
+/* Document cards (Risorse page) */
+[data-theme="night"] .doc-card {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .doc-card:hover {
+  background: var(--bg-dark-tertiary) !important;
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="night"] .doc-card:active {
+  background: var(--bg-dark-elevated) !important;
+}
+
 /* Section lists */
 [data-theme="night"] .sezioni-section-header {
   background: var(--bg-dark-tertiary) !important;

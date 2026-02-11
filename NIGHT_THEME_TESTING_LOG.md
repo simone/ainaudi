@@ -390,6 +390,35 @@ div[style*="background: rgb(248, 215, 218)"] {
 
 **Test Result:** Ricarica e verifica alerts e boxes semantici scuri
 
+#### Issue #13: .doc-card states - light backgrounds
+**Element:** `.doc-card` (Risorse page)
+**Problem:**
+- Base: likely light background
+- `:hover`: light gray
+- `:active`: `#e9ecef` light gray
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+[data-theme="night"] .doc-card {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .doc-card:hover {
+  background: var(--bg-dark-tertiary) !important;
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="night"] .doc-card:active {
+  background: var(--bg-dark-elevated) !important;
+}
+```
+
+All interaction states now dark with proper visual feedback.
+
+**Test Result:** Ricarica Risorse page, verifica doc cards scure e hover/active states
+
 ---
 
 ### Critical (Bloccanti) - FIXED
