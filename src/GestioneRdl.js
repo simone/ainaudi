@@ -1505,6 +1505,9 @@ function GestioneRdl({ client, setError }) {
                                                         className="btn btn-link btn-sm p-0 ms-2"
                                                         className="text-sm text-muted"
                                                         title="Salva contatto"
+                                                        style={{
+                                                            backgroundColor: 'transparent'
+                                                        }}
                                                     >
                                                         <i className="fas fa-user-plus"></i>
                                                     </button>
@@ -1591,6 +1594,9 @@ function GestioneRdl({ client, setError }) {
                                                                     className="btn btn-link btn-sm p-0 ms-1"
                                                                     className="text-xxs text-muted"
                                                                     title="Salva contatto"
+                                                                    style={{
+                                                                        backgroundColor: 'transparent'
+                                                                    }}
                                                                 >
                                                                     <i className="fas fa-user-plus"></i>
                                                                 </button>

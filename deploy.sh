@@ -136,7 +136,7 @@ if [ "$SKIP_BACKEND" = false ]; then
 
     echo -e "${YELLOW}📦 Collect static files Django...${NC}"
     cd backend_django
-    python manage.py collectstatic --noinput --clear
+    python3 manage.py collectstatic --noinput --clear
     echo -e "${GREEN}✅ Static files collected${NC}"
 
     echo -e "${YELLOW}🚀 Deploy backend su App Engine (service: api)...${NC}"
