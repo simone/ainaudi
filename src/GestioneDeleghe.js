@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ConfirmModal from './ConfirmModal';
+import './GestioneDeleghe.css';
 
 /**
  * Genera un link WhatsApp per un numero di telefono
@@ -300,20 +301,14 @@ function GestioneDeleghe({ client, user, consultazione, setError, initialTab }) 
                                 {isReferendum ? (
                                     <ChainNode
                                         icon="📣"
-                                        iconBg="#198754"
                                         title="COMITATO PROMOTORE / M5S"
                                         subtitle="Promotore referendum o partito in Parlamento"
-                                        bgColor="#d1e7dd"
-                                        borderColor="#198754"
                                     />
                                 ) : (
                                     <ChainNode
                                         icon="⭐"
-                                        iconBg="#ffc107"
                                         title="MOVIMENTO 5 STELLE"
                                         subtitle="Deposito lista candidati"
-                                        bgColor="#fff3cd"
-                                        borderColor="#ffc107"
                                     />
                                 )}
                                 <ChainConnector />
@@ -324,11 +319,8 @@ function GestioneDeleghe({ client, user, consultazione, setError, initialTab }) 
                                         <React.Fragment key={dl.id || idx}>
                                             <ChainNode
                                                 icon="🏛️"
-                                                iconBg="#0d6efd"
                                                 title={`${dl.carica_display || dl.carica}: ${dl.cognome} ${dl.nome}`}
                                                 subtitle={`${dl.territorio || dl.circoscrizione || 'Territorio non specificato'} • Nomina: ${formatDate(dl.data_nomina)}`}
-                                                bgColor="#cfe2ff"
-                                                borderColor="#0d6efd"
                                                 highlight={true}
                                                 highlightText="TU"
                                             />
@@ -340,20 +332,14 @@ function GestioneDeleghe({ client, user, consultazione, setError, initialTab }) 
                                         <React.Fragment key={sd.id || idx}>
                                             <ChainNode
                                                 icon="🏛️"
-                                                iconBg="#0d6efd"
                                                 title={`${sd.delegato_carica}: ${sd.delegato_nome}`}
                                                 subtitle={isReferendum ? "Delegato" : "Delegato di Lista"}
-                                                bgColor="#e9ecef"
-                                                borderColor="#6c757d"
                                             />
                                             <ChainConnector />
                                             <ChainNode
                                                 icon="📋"
-                                                iconBg="#198754"
                                                 title={`${sd.cognome} ${sd.nome}`}
                                                 subtitle={`Sub-Delegato (${sd.tipo_delega_display || (sd.puo_designare_direttamente ? 'Designa' : 'Solo Mappatura')}) • ${sd.territorio || 'Territorio non specificato'}`}
-                                                bgColor="#d1e7dd"
-                                                borderColor="#198754"
                                                 highlight={true}
                                                 highlightText="TU"
                                             />
@@ -363,20 +349,14 @@ function GestioneDeleghe({ client, user, consultazione, setError, initialTab }) 
                                     <>
                                         <ChainNode
                                             icon="🏛️"
-                                            iconBg="#6c757d"
                                             title={isReferendum ? "Delegato" : "Delegato di Lista"}
                                             subtitle="(Non assegnato)"
-                                            bgColor="#f8f9fa"
-                                            borderColor="#dee2e6"
                                         />
                                         <ChainConnector />
                                         <ChainNode
                                             icon="👤"
-                                            iconBg="#dc3545"
                                             title={user?.display_name || user?.email || 'Tu'}
                                             subtitle="In attesa di autorizzazione"
-                                            bgColor="#f8d7da"
-                                            borderColor="#dc3545"
                                         />
                                     </>
                                 )}
@@ -661,51 +641,17 @@ function GestioneDeleghe({ client, user, consultazione, setError, initialTab }) 
 /**
  * Componente per un nodo della catena deleghe
  */
-function ChainNode({ icon, iconBg, title, subtitle, bgColor, borderColor, highlight, highlightText }) {
+function ChainNode({ icon, title, subtitle, highlight, highlightText }) {
     return (
-        <div className="d-flex align-items-center mb-2">
-            <div
-                style={{
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: '50%',
-                    background: iconBg,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.2rem',
-                    marginRight: '12px',
-                    flexShrink: 0
-                }}
-            >
+        <div className="chain-node">
+            <div className={`chain-node-icon ${highlight ? 'primary' : 'primary'}`}>
                 {icon}
             </div>
-            <div
-                style={{
-                    flex: 1,
-                    padding: '12px 16px',
-                    background: bgColor,
-                    borderRadius: '8px',
-                    border: `2px solid ${borderColor}`,
-                    position: 'relative'
-                }}
-            >
-                <div style={{ fontWeight: 600 }}>{title}</div>
-                <div style={{ fontSize: '0.85rem', color: '#6c757d' }}>{subtitle}</div>
+            <div className={`chain-node-content ${highlight ? 'highlight' : 'standard'}`}>
+                <div className="chain-node-title">{title}</div>
+                <div className="chain-node-subtitle">{subtitle}</div>
                 {highlight && (
-                    <span
-                        style={{
-                            position: 'absolute',
-                            top: '-8px',
-                            right: '12px',
-                            background: borderColor,
-                            color: 'white',
-                            padding: '2px 8px',
-                            borderRadius: '10px',
-                            fontSize: '0.7rem',
-                            fontWeight: 600
-                        }}
-                    >
+                    <span className="chain-node-badge highlight">
                         {highlightText}
                     </span>
                 )}

@@ -301,6 +301,136 @@
 }
 
 /* ==========================================================================
+   Alert Pending
+   ========================================================================== */
+
+.rdl-alert-pending {
+  background: var(--color-warning-light);
+  border: 1px solid var(--color-warning);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+[data-theme="night"] .rdl-alert-pending {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Status Badges
+   ========================================================================== */
+
+.rdl-status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.rdl-status-badge.pending {
+  background-color: var(--color-warning);
+  color: #000;
+}
+
+[data-theme="night"] .rdl-status-badge.pending {
+  background-color: var(--color-warning);
+  color: var(--text-inverse);
+}
+
+.rdl-status-badge.approved {
+  background-color: var(--color-success);
+  color: #fff;
+}
+
+[data-theme="night"] .rdl-status-badge.approved {
+  background-color: var(--color-success);
+  color: var(--text-inverse);
+}
+
+.rdl-status-badge.rejected {
+  background-color: var(--color-danger);
+  color: #fff;
+}
+
+[data-theme="night"] .rdl-status-badge.rejected {
+  background-color: var(--color-danger);
+  color: var(--text-inverse);
+}
+
+.rdl-status-badge.default {
+  background-color: var(--color-gray-600);
+  color: #fff;
+}
+
+[data-theme="night"] .rdl-status-badge.default {
+  background-color: var(--bg-dark-tertiary);
+  color: var(--text-primary);
+}
+
+/* Badge info (fuorisede) */
+.rdl-badge-info {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  background-color: var(--color-info);
+  color: #000;
+}
+
+[data-theme="night"] .rdl-badge-info {
+  background-color: var(--color-info);
+  color: var(--text-inverse);
+}
+
+.rdl-badge-info-small {
+  padding: 1px 6px;
+  font-size: 0.75rem;
+}
+
+/* Badge source (auto-registrazione, CSV import, manuale) */
+.rdl-badge-source {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.rdl-badge-source.self {
+  background: var(--color-gray-600);
+  color: #fff;
+}
+
+[data-theme="night"] .rdl-badge-source.self {
+  background: var(--bg-dark-tertiary);
+  color: var(--text-primary);
+}
+
+.rdl-badge-source.import {
+  background: var(--color-info);
+  color: #000;
+}
+
+[data-theme="night"] .rdl-badge-source.import {
+  background: var(--color-info);
+  color: var(--text-inverse);
+}
+
+.rdl-badge-source.manual {
+  background: var(--color-warning);
+  color: #000;
+}
+
+[data-theme="night"] .rdl-badge-source.manual {
+  background: var(--color-warning);
+  color: var(--text-inverse);
+}
+
+/* ==========================================================================
    Responsive
    ========================================================================== */
 

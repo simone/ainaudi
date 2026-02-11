@@ -764,22 +764,28 @@ function GestioneRdl({ client, setError }) {
     });
 
     const getStatusBadge = (status) => {
-        const styles = {
-            PENDING: { bg: '#ffc107', color: '#000', label: 'In attesa' },
-            APPROVED: { bg: '#198754', color: '#fff', label: 'Approvato' },
-            REJECTED: { bg: '#dc3545', color: '#fff', label: 'Rifiutato' }
+        const config = {
+            PENDING: { className: 'pending', label: 'In attesa' },
+            APPROVED: { className: 'approved', label: 'Approvato' },
+            REJECTED: { className: 'rejected', label: 'Rifiutato' }
         };
-        const s = styles[status] || { bg: '#6c757d', color: '#fff', label: status };
+        const s = config[status] || { className: 'default', label: status };
         return (
-            <span style={{
-                display: 'inline-block',
-                padding: '2px 8px',
-                borderRadius: '4px',
-                fontSize: '0.75rem',
-                fontWeight: 500,
-                backgroundColor: s.bg,
-                color: s.color
-            }}>
+            <span className={`rdl-status-badge ${s.className}`}>
+                {s.label}
+            </span>
+        );
+    };
+
+    const getSourceBadge = (source) => {
+        const config = {
+            SELF: { className: 'self', label: 'Auto-registrazione' },
+            IMPORT: { className: 'import', label: 'CSV Import' },
+            MANUAL: { className: 'manual', label: 'Manuale' }
+        };
+        const s = config[source] || { className: 'self', label: source };
+        return (
+            <span className={`rdl-badge-source ${s.className}`}>
                 {s.label}
             </span>
         );
@@ -1222,14 +1228,7 @@ function GestioneRdl({ client, setError }) {
 
             {/* Alert pending */}
             {pendingCount > 0 && !statusFilter && (
-                <div style={{
-                    background: '#fff3cd',
-                    border: '1px solid #ffc107',
-                    borderRadius: '8px',
-                    padding: '10px 12px',
-                    marginBottom: '12px',
-                    fontSize: '0.9rem'
-                }}>
+                <div className="rdl-alert-pending">
                     <strong>{pendingCount}</strong> in attesa di approvazione
                 </div>
             )}
@@ -1467,15 +1466,7 @@ function GestioneRdl({ client, setError }) {
                                         <div className="d-flex flex-column align-items-end gap-xs">
                                             {getStatusBadge(reg.status)}
                                             {reg.fuorisede && (
-                                                <span style={{
-                                                    display: 'inline-block',
-                                                    padding: '2px 8px',
-                                                    borderRadius: '4px',
-                                                    fontSize: '0.7rem',
-                                                    fontWeight: 500,
-                                                    backgroundColor: '#0dcaf0',
-                                                    color: '#000'
-                                                }}>
+                                                <span className="rdl-badge-info">
                                                     <i className="fas fa-suitcase me-1" style={{ fontSize: '0.65rem' }}></i>
                                                     Fuorisede
                                                 </span>
@@ -1615,14 +1606,7 @@ function GestioneRdl({ client, setError }) {
                                                         <div style={{ gridColumn: '1 / -1' }}>
                                                             <span className="text-muted">Fuorisede:</span>{' '}
                                                             {reg.fuorisede ? (
-                                                                <span style={{
-                                                                    background: '#0dcaf0',
-                                                                    color: '#000',
-                                                                    padding: '1px 6px',
-                                                                    borderRadius: '4px',
-                                                                    fontSize: '0.75rem',
-                                                                    fontWeight: 500
-                                                                }}>SI</span>
+                                                                <span className="rdl-badge-info rdl-badge-info-small">SI</span>
                                                             ) : (
                                                                 <span className="text-muted">No</span>
                                                             )}
@@ -1657,18 +1641,7 @@ function GestioneRdl({ client, setError }) {
                                                                 {reg.campagna_nome}
                                                             </a>
                                                         ) : (
-                                                            <span style={{
-                                                                background: reg.source === 'SELF' ? '#6c757d' : reg.source === 'IMPORT' ? '#0dcaf0' : '#ffc107',
-                                                                color: reg.source === 'IMPORT' ? '#000' : '#fff',
-                                                                padding: '1px 6px',
-                                                                borderRadius: '4px',
-                                                                fontSize: '0.75rem',
-                                                                fontWeight: 500
-                                                            }}>
-                                                                {reg.source === 'SELF' ? 'Auto-registrazione' :
-                                                                 reg.source === 'IMPORT' ? 'CSV Import' :
-                                                                 reg.source === 'MANUAL' ? 'Manuale' : reg.source}
-                                                            </span>
+                                                            getSourceBadge(reg.source)
                                                         )}
                                                     </div>
                                                 </div>
