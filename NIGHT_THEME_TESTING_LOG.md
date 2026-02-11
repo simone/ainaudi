@@ -490,6 +490,74 @@ All .gd-* classes now use dark theme colors with proper interaction states.
 
 **Test Result:** Ricarica GestioneDesignazioni page e verifica tutti elementi scuri
 
+#### Issue #15: Bootstrap Accordion - light backgrounds
+**Element:** `.accordion`
+**Problem:** Bootstrap accordion uses CSS variables pointing to light backgrounds:
+```css
+.accordion {
+    --bs-accordion-color: var(--bs-body-color);
+    --bs-accordion-bg: var(--bs-body-bg);  /* Points to white/light */
+    --bs-accordion-active-bg: var(--bs-primary-bg-subtle);  /* Light blue */
+    --bs-accordion-btn-icon: url(...'%23212529'...);  /* Black stroke #212529 */
+    --bs-accordion-btn-active-icon: url(...'%23052c65'...);  /* Dark blue stroke */
+}
+```
+All accordion elements render with light backgrounds and dark icons in night mode.
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+[data-theme="night"] .accordion {
+  --bs-accordion-color: var(--text-primary) !important;
+  --bs-accordion-bg: var(--bg-dark-secondary) !important;
+  --bs-accordion-border-color: var(--border-medium) !important;
+  --bs-accordion-btn-color: var(--text-primary) !important;
+  --bs-accordion-btn-bg: var(--bg-dark-secondary) !important;
+  --bs-accordion-btn-icon: light icon SVG (#e4e6eb stroke) !important;
+  --bs-accordion-btn-active-icon: red icon SVG (#ff6b6b stroke) !important;
+  --bs-accordion-active-color: var(--text-primary) !important;
+  --bs-accordion-active-bg: var(--bg-dark-tertiary) !important;
+  --bs-accordion-btn-focus-box-shadow: red focus ring !important;
+}
+
+[data-theme="night"] .accordion-item,
+[data-theme="night"] .accordion-button,
+[data-theme="night"] .accordion-body {
+  /* All dark with proper states */
+}
+
+[data-theme="night"] .accordion-button:not(.collapsed) {
+  background: var(--bg-dark-tertiary) !important;
+  color: var(--color-accent-red) !important;
+}
+```
+
+Override all Bootstrap accordion variables + direct styles for items, buttons, and body.
+Active accordion items now highlight with red accent color.
+
+**Test Result:** Ricarica e verifica accordion elementi scuri con icone chiare
+
+#### Issue #16: .doc-card-title - black text invisible
+**Element:** `.doc-card-title` (Risorse page document cards)
+**Problem:**
+```css
+.doc-card-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #1a1a1a;  /* Almost black - invisible on dark background */
+}
+```
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+```css
+[data-theme="night"] .doc-card-title {
+  color: var(--text-primary) !important;
+}
+```
+
+**Test Result:** Ricarica Risorse page e verifica titoli documenti leggibili
+
 ---
 
 ### Critical (Bloccanti) - FIXED
