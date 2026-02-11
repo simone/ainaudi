@@ -71339,3 +71339,39 @@ useEffect(() => {
 
 **Test:** Visit login page → ThemeSwitcher button (🌙/☀️) visible in bottom-right corner
 
+
+#### Issue #33: CSV import box - light blue background
+**Element:** Inline style with `background: rgb(227, 242, 253)` (light blue info)
+**Problem:** CSV import info box has light blue background that's too bright in night mode.
+
+**HTML:**
+```html
+<div style="background: rgb(227, 242, 253); border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 0.85rem;">
+  <div class="fw-semibold mb-sm">Import CSV</div>
+  <div class="mb-sm text-muted">Seleziona un file CSV da importare...</div>
+  <input type="file" class="form-control form-control-sm" accept=".csv">
+</div>
+```
+
+This is an info-styled box (light blue) similar to `rgb(231, 243, 255)` but slightly different shade.
+
+User feedback: "troppo bianco"
+
+**Status:** ✅ FIXED
+
+**Fix Applied:**
+Added `rgb(227, 242, 253)` to existing info background overrides:
+```css
+[data-theme="night"] div[style*="background: rgb(227, 242, 253)"],
+[data-theme="night"] div[style*="background:rgb(227, 242, 253)"],
+[data-theme="night"] div[style*="background: rgb(227,242,253)"] {
+  background: var(--color-info-bg) !important;
+  background-color: var(--color-info-bg) !important;
+  border: 1px solid var(--color-info) !important;
+}
+```
+
+Same treatment as other info backgrounds - dark info-bg with cyan border.
+
+**Test Result:** Ricarica e verifica CSV import box scuro con bordo cyan
+
