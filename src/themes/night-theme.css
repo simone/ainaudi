@@ -22,6 +22,33 @@
 
   /* Border focus rosso invece di blu */
   --border-focus: #dc143c;
+
+  /* Semantic backgrounds for night mode */
+  --color-info-bg: rgba(13, 202, 240, 0.15);
+  --color-info-border: rgba(13, 202, 240, 0.3);
+  --color-info-text: #3dd5f3;
+
+  --color-warning-bg: rgba(255, 193, 7, 0.15);
+  --color-warning-border: rgba(255, 193, 7, 0.3);
+  --color-warning-text: #ffda6a;
+
+  --color-success-bg: rgba(25, 135, 84, 0.15);
+  --color-success-border: rgba(25, 135, 84, 0.3);
+  --color-success-text: #75b798;
+
+  --color-danger-bg: rgba(220, 53, 69, 0.15);
+  --color-danger-border: rgba(220, 53, 69, 0.3);
+  --color-danger-text: #ea868f;
+
+  /* Surface colors */
+  --color-surface-subtle: rgba(255, 255, 255, 0.05);
+  --color-surface-hover: rgba(255, 255, 255, 0.08);
+  --color-surface-active: rgba(255, 255, 255, 0.12);
+
+  /* Border colors */
+  --color-border-subtle: rgba(255, 255, 255, 0.1);
+  --color-border-medium: rgba(255, 255, 255, 0.2);
+  --color-border-strong: rgba(255, 255, 255, 0.3);
 }
 
 /* --------------------------------------------------------------------------
@@ -36,11 +63,38 @@
   );
   background-size: 24px 24px;
   background-attachment: fixed;
+  color: #ffffff;  /* Default text color white */
 }
 
 /* Main content area */
 [data-theme="night"] .main-content {
   background: transparent;
+  color: #ffffff;
+}
+
+/* Ensure text in non-card areas is visible */
+[data-theme="night"] .container,
+[data-theme="night"] .row {
+  color: #ffffff;
+}
+
+/* Text utilities for night mode */
+[data-theme="night"] .text-light {
+  color: #f8f9fa !important;
+}
+
+[data-theme="night"] .text-muted {
+  color: #adb5bd !important;
+}
+
+[data-theme="night"] .text-secondary {
+  color: #dee2e6 !important;
+}
+
+/* Small text */
+[data-theme="night"] .text-sm,
+[data-theme="night"] small {
+  color: #dee2e6;
 }
 
 /* --------------------------------------------------------------------------
@@ -71,12 +125,43 @@
 
 /* Navbar dropdown backgrounds */
 [data-theme="night"] .navbar .dropdown-menu {
-  background: #ffffff;
-  border: 1px solid rgba(220, 20, 60, 0.2);
+  background: #2c4a6e !important;  /* Navy più chiaro per dropdown */
+  border: 1px solid rgba(220, 20, 60, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-[data-theme="night"] .navbar .dropdown-item:hover {
-  background: rgba(220, 20, 60, 0.1);
+[data-theme="night"] .navbar .dropdown-item {
+  color: #ffffff !important;
+}
+
+[data-theme="night"] .navbar .dropdown-item:hover,
+[data-theme="night"] .navbar .dropdown-item:focus {
+  background: rgba(220, 20, 60, 0.25) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="night"] .navbar .dropdown-item.active {
+  background: rgba(220, 20, 60, 0.4) !important;
+  color: #ffffff !important;
+}
+
+/* Navbar toggler for mobile */
+[data-theme="night"] .navbar-toggler {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="night"] .navbar-toggler-icon {
+  filter: brightness(2);  /* Make hamburger icon visible */
+}
+
+/* Scheda color indicators in dropdowns */
+[data-theme="night"] .scheda-color-indicator {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Dropdown dividers */
+[data-theme="night"] .dropdown-divider {
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* --------------------------------------------------------------------------
@@ -158,12 +243,44 @@
 }
 
 /* --------------------------------------------------------------------------
-   Alerts - Leggeri upgrade
+   Alerts - Night mode optimized
    -------------------------------------------------------------------------- */
 [data-theme="night"] .alert {
   border-radius: 12px;
-  border: none;
   font-weight: 500;
+  border-width: 1px;
+  border-style: solid;
+}
+
+/* Alert variants for night mode */
+[data-theme="night"] .alert-info {
+  background-color: var(--color-info-bg) !important;
+  border-color: var(--color-info-border) !important;
+  color: var(--color-info-text) !important;
+}
+
+[data-theme="night"] .alert-warning {
+  background-color: var(--color-warning-bg) !important;
+  border-color: var(--color-warning-border) !important;
+  color: var(--color-warning-text) !important;
+}
+
+[data-theme="night"] .alert-success {
+  background-color: var(--color-success-bg) !important;
+  border-color: var(--color-success-border) !important;
+  color: var(--color-success-text) !important;
+}
+
+[data-theme="night"] .alert-danger {
+  background-color: var(--color-danger-bg) !important;
+  border-color: var(--color-danger-border) !important;
+  color: var(--color-danger-text) !important;
+}
+
+[data-theme="night"] .alert-primary {
+  background-color: rgba(220, 20, 60, 0.15) !important;
+  border-color: rgba(220, 20, 60, 0.3) !important;
+  color: #ff6b6b !important;
 }
 
 /* --------------------------------------------------------------------------
@@ -326,7 +443,81 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+/* RDL cards and lists */
+[data-theme="night"] .rdl-card {
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="night"] .rdl-card-header {
+  border-bottom-color: var(--color-border-subtle);
+}
+
+/* Info boxes in modals - override inline styles where possible */
+[data-theme="night"] .modal-custom-body > div[style*="background: #e7f3ff"],
+[data-theme="night"] .modal-custom-body > div[style*="background:#e7f3ff"] {
+  background: var(--color-info-bg) !important;
+  border-color: var(--color-info-border) !important;
+  color: var(--color-info-text) !important;
+}
+
+/* Warning boxes - override inline styles */
+[data-theme="night"] div[style*="background: #fff3cd"],
+[data-theme="night"] div[style*="background:#fff3cd"] {
+  background: var(--color-warning-bg) !important;
+  border-color: var(--color-warning-border) !important;
+  color: var(--color-warning-text) !important;
+}
+
+/* Info boxes - override inline styles */
+[data-theme="night"] div[style*="background: #e3f2fd"],
+[data-theme="night"] div[style*="background:#e3f2fd"],
+[data-theme="night"] div[style*="background: #e7f3ff"],
+[data-theme="night"] div[style*="background:#e7f3ff"] {
+  background: var(--color-info-bg) !important;
+  border-color: var(--color-info-border) !important;
+}
+
+/* Subtle background - override inline styles */
+[data-theme="night"] div[style*="background: #f8f9fa"],
+[data-theme="night"] div[style*="background:#f8f9fa"],
+[data-theme="night"] div[style*="background: '#f8f9fa'"],
+[data-theme="night"] div[style*='background: "#f8f9fa"'] {
+  background: var(--color-surface-hover) !important;
+}
+
+/* Cream/beige backgrounds */
+[data-theme="night"] div[style*="background: #fffbf0"],
+[data-theme="night"] div[style*="background:#fffbf0"] {
+  background: var(--color-warning-bg) !important;
+}
+
+/* Light borders - override inline */
+[data-theme="night"] div[style*="border-color: #dee2e6"],
+[data-theme="night"] div[style*="borderColor: #dee2e6"],
+[data-theme="night"] div[style*="border: 1px solid #dee2e6"] {
+  border-color: var(--color-border-subtle) !important;
+}
+
+/* Text colors that need adjustment */
+[data-theme="night"] div[style*="color: #495057"] {
+  color: #e9ecef !important;
+}
+
+/* Section headers with background colors */
+[data-theme="night"] .sezioni-section-header[style*="background: #fff3cd"] {
+  background: var(--color-warning-bg) !important;
+  color: var(--color-warning-text) !important;
+  border-color: var(--color-warning-border) !important;
+}
+
 /* Mappatura components già su background bianco - OK */
+
+/* Status badges - try to target inline styled spans */
+[data-theme="night"] span[style*="backgroundColor"][style*="color"] {
+  /* Can't override easily, needs JS change */
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
 
 /* --------------------------------------------------------------------------
    Mobile Responsive - Maintain readability
@@ -391,4 +582,102 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* --------------------------------------------------------------------------
+   Utility Classes - Use instead of inline styles
+   -------------------------------------------------------------------------- */
+
+/* Backgrounds */
+[data-theme="night"] .bg-info-subtle {
+  background-color: var(--color-info-bg) !important;
+  border-color: var(--color-info-border) !important;
+  color: var(--color-info-text) !important;
+}
+
+[data-theme="night"] .bg-warning-subtle {
+  background-color: var(--color-warning-bg) !important;
+  border-color: var(--color-warning-border) !important;
+  color: var(--color-warning-text) !important;
+}
+
+[data-theme="night"] .bg-success-subtle {
+  background-color: var(--color-success-bg) !important;
+  border-color: var(--color-success-border) !important;
+  color: var(--color-success-text) !important;
+}
+
+[data-theme="night"] .bg-danger-subtle {
+  background-color: var(--color-danger-bg) !important;
+  border-color: var(--color-danger-border) !important;
+  color: var(--color-danger-text) !important;
+}
+
+[data-theme="night"] .bg-surface-subtle {
+  background-color: var(--color-surface-subtle) !important;
+}
+
+[data-theme="night"] .bg-surface-hover {
+  background-color: var(--color-surface-hover) !important;
+}
+
+[data-theme="night"] .bg-surface-active {
+  background-color: var(--color-surface-active) !important;
+}
+
+/* Borders */
+[data-theme="night"] .border-subtle {
+  border-color: var(--color-border-subtle) !important;
+}
+
+[data-theme="night"] .border-medium {
+  border-color: var(--color-border-medium) !important;
+}
+
+[data-theme="night"] .border-strong {
+  border-color: var(--color-border-strong) !important;
+}
+
+/* Text colors */
+[data-theme="night"] .text-info-night {
+  color: var(--color-info-text) !important;
+}
+
+[data-theme="night"] .text-warning-night {
+  color: var(--color-warning-text) !important;
+}
+
+[data-theme="night"] .text-success-night {
+  color: var(--color-success-text) !important;
+}
+
+[data-theme="night"] .text-danger-night {
+  color: var(--color-danger-text) !important;
+}
+
+[data-theme="night"] .text-muted-night {
+  color: #adb5bd !important;
+}
+
+[data-theme="night"] .text-subtle-night {
+  color: #dee2e6 !important;
+}
+
+/* Status badge utilities */
+[data-theme="night"] .badge-status-pending {
+  background-color: var(--color-warning-bg) !important;
+  color: var(--color-warning-text) !important;
+  border: 1px solid var(--color-warning-border);
+}
+
+[data-theme="night"] .badge-status-approved {
+  background-color: var(--color-success-bg) !important;
+  color: var(--color-success-text) !important;
+  border: 1px solid var(--color-success-border);
+}
+
+[data-theme="night"] .badge-status-rejected {
+  background-color: var(--color-danger-bg) !important;
+  color: var(--color-danger-text) !important;
+  border: 1px solid var(--color-danger-border);
 }
