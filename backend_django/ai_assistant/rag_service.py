@@ -94,14 +94,48 @@ class RAGService:
                 logger.info(
                     f"Best match too weak (similarity={best_similarity:.3f}): {user_question[:50]}"
                 )
-                # Use clarification for weak matches
-                clarification = vertex_ai_service.clarify_off_topic_question(user_question)
 
-                return {
-                    'answer': clarification,
-                    'sources': [],
-                    'retrieved_docs': 0,
-                }
+                # Check if this is a follow-up question in a conversation
+                # If so, use conversation history instead of asking for clarification
+                if session and session.messages.count() > 1:
+                    # Get recent conversation history (last 6 messages max)
+                    recent_messages = list(
+                        session.messages.order_by('-created_at')[:6]
+                    )
+                    recent_messages.reverse()  # Chronological order
+
+                    # Build conversation context
+                    conversation_history = []
+                    for msg in recent_messages[:-1]:  # Exclude current user message
+                        role_label = "Utente" if msg.role == 'user' else "Assistente"
+                        conversation_history.append(f"{role_label}: {msg.content}")
+
+                    conv_context = "\n".join(conversation_history)
+
+                    logger.info(
+                        f"Weak match but continuing conversation (history: {len(recent_messages)-1} msgs)"
+                    )
+
+                    # Generate response using conversation context (no RAG docs)
+                    answer = vertex_ai_service.generate_response(
+                        prompt=user_question,
+                        context=f"CONVERSAZIONE PRECEDENTE:\n{conv_context}"
+                    )
+
+                    return {
+                        'answer': answer,
+                        'sources': [],
+                        'retrieved_docs': 0,
+                    }
+                else:
+                    # First message or no history: ask for clarification
+                    clarification = vertex_ai_service.clarify_off_topic_question(user_question)
+
+                    return {
+                        'answer': clarification,
+                        'sources': [],
+                        'retrieved_docs': 0,
+                    }
 
             # 6. Build context from retrieved documents
             context_parts = []
