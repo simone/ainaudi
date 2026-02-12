@@ -31,6 +31,15 @@ class KnowledgeSource(models.Model):
     )
     content = models.TextField(_('contenuto'))
     embedding = VectorField(dimensions=768, null=True, blank=True)  # text-embedding-004
+
+    # Optional reference to source document (for PDF preview links)
+    source_url = models.URLField(
+        _('URL sorgente'),
+        max_length=500,
+        blank=True,
+        help_text=_('URL del documento PDF originale (per preview)')
+    )
+
     created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
     updated_at = models.DateTimeField(_('ultimo aggiornamento'), auto_now=True)
     is_active = models.BooleanField(_('attivo'), default=True)

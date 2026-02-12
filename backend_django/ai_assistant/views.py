@@ -64,6 +64,7 @@ class ChatView(APIView):
                             'id': src.id,
                             'title': src.title,
                             'type': src.source_type,
+                            'url': src.source_url if src.source_url else None,
                         }
                         for src in KnowledgeSource.objects.filter(id__in=msg.sources_cited)
                     ] if msg.sources_cited else []

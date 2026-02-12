@@ -158,6 +158,27 @@
     font-size: 0.85rem;
 }
 
+.source-item {
+    margin: 6px 0;
+    line-height: 1.6;
+}
+
+.source-link {
+    color: #1F4E5F;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.source-link:hover {
+    color: #2C5F6F;
+    text-decoration: underline;
+}
+
+.source-link i {
+    font-size: 0.8em;
+}
+
 /* Markdown Content Styling */
 .message-content {
     word-wrap: break-word;
@@ -383,6 +404,14 @@
 
 [data-theme="night"] .message-sources .text-muted {
     color: #aaa !important;
+}
+
+[data-theme="night"] .source-link {
+    color: #4a9eff;
+}
+
+[data-theme="night"] .source-link:hover {
+    color: #6bb1ff;
 }
 
 /* Markdown styling for night theme */

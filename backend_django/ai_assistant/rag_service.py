@@ -56,6 +56,7 @@ class RAGService:
                     'title': doc.title,
                     'type': doc.source_type,
                     'similarity': 1 - doc.distance,  # Convert distance back to similarity
+                    'url': doc.source_url if doc.source_url else None,
                 })
 
             context = "\n\n---\n\n".join(context_parts)

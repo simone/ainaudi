@@ -91,6 +91,15 @@ def ingest_documento_to_knowledge_base(sender, instance, created, **kwargs):
         }
         source_type = source_type_map.get(instance.tipo_file, 'MANUAL')
 
+        # Determina source_url per PDF preview
+        source_url = ''
+        if instance.file:
+            # File caricato: usa URL del media file
+            source_url = instance.file.url
+        elif instance.url_esterno:
+            # URL esterno
+            source_url = instance.url_esterno
+
         # Crea o aggiorna KnowledgeSource
         ks, created = KnowledgeSource.objects.update_or_create(
             title=f"Doc: {instance.titolo[:100]}",
@@ -98,6 +107,7 @@ def ingest_documento_to_knowledge_base(sender, instance, created, **kwargs):
             defaults={
                 'content': full_content,
                 'embedding': embedding,
+                'source_url': source_url,
                 'is_active': instance.is_attivo,
             }
         )

@@ -235,10 +235,31 @@ function ChatInterface({ client, show, onClose }) {
                                 </div>
                                 {msg.sources && msg.sources.length > 0 && (
                                     <div className="message-sources">
-                                        <small className="text-muted">
-                                            <i className="fas fa-book me-1"></i>
-                                            Fonti: {msg.sources.map(s => s.title).join(', ')}
-                                        </small>
+                                        <div className="mb-2">
+                                            <small className="text-muted">
+                                                <i className="fas fa-book me-1"></i>
+                                                <strong>Fonti:</strong>
+                                            </small>
+                                        </div>
+                                        {msg.sources.map((source, sidx) => (
+                                            <div key={sidx} className="source-item">
+                                                <small className="text-muted">
+                                                    {source.title}
+                                                    {source.url && (
+                                                        <a
+                                                            href={source.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="ms-2 source-link"
+                                                            title="Apri documento"
+                                                        >
+                                                            <i className="fas fa-external-link-alt me-1"></i>
+                                                            Apri PDF
+                                                        </a>
+                                                    )}
+                                                </small>
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
