@@ -204,9 +204,26 @@ function ChatInterface({ client, show, onClose }) {
                         </div>
                     ) : messages.length === 0 ? (
                         <div className="chat-welcome">
-                            <i className="fas fa-comments" style={{ fontSize: '3rem', color: '#1F4E5F' }}></i>
-                            <p>Ciao! Sono l'assistente AI per RDL.</p>
-                            <p className="text-muted">Chiedimi qualsiasi cosa su procedure, scrutinio, normative...</p>
+                            <i className="fas fa-gavel" style={{ fontSize: '2.5rem', color: '#1F4E5F', marginBottom: '12px' }}></i>
+                            <h5 style={{ marginBottom: '16px', fontWeight: '600' }}>Assistente AI per Rappresentanti di Lista</h5>
+                            <p style={{ marginBottom: '20px', lineHeight: '1.6' }}>
+                                Ti aiuto a rispondere a domande operative durante le elezioni e i referendum.
+                            </p>
+                            <div style={{ textAlign: 'left', maxWidth: '320px', margin: '0 auto' }}>
+                                <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: '8px' }}>
+                                    <strong>Cosa posso fare:</strong>
+                                </p>
+                                <ul className="text-muted" style={{ fontSize: '0.85rem', paddingLeft: '20px', marginBottom: '0' }}>
+                                    <li>Spiegare procedure di scrutinio e spoglio</li>
+                                    <li>Chiarire diritti e doveri degli RDL</li>
+                                    <li>Gestione irregolarità e contestazioni</li>
+                                    <li>Interpretare normative elettorali</li>
+                                    <li>Fornire moduli e documentazione</li>
+                                </ul>
+                            </div>
+                            <p className="text-muted" style={{ fontSize: '0.85rem', marginTop: '20px', fontStyle: 'italic' }}>
+                                💬 Scrivi o usa il microfono per iniziare
+                            </p>
                         </div>
                     ) : null}
 
