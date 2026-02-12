@@ -807,14 +807,7 @@ function GestioneRdl({ client, setError }) {
                     children: (
                         <div>
                             <p>Stai per approvare <strong>{modal.targetName}</strong> come RDL.</p>
-                            <div style={{
-                                background: '#e7f3ff',
-                                border: '1px solid #b6d4fe',
-                                borderRadius: '6px',
-                                padding: '12px',
-                                marginBottom: '12px',
-                                fontSize: '0.9rem'
-                            }}>
+                            <div className="rdl-approval-checklist">
                                 <strong>Prima di approvare, verifica di aver:</strong>
                                 <ul className="mb-0 mt-sm ps-4">
                                     <li>Controllato che i dati anagrafici siano corretti</li>
@@ -1097,12 +1090,7 @@ function GestioneRdl({ client, setError }) {
                         onChange={handleImport}
                     />
                     {importResult && (
-                        <div style={{
-                            marginTop: '8px',
-                            padding: '8px',
-                            background: importResult.errors?.length ? '#fff3cd' : '#d1e7dd',
-                            borderRadius: '4px'
-                        }}>
+                        <div className={`rdl-import-result ${importResult.errors?.length ? 'warning' : 'success'}`}>
                             <div className="fw-medium">
                                 {importResult.created} creati, {importResult.updated} aggiornati
                                 {importResult.skipped > 0 && (
@@ -1693,81 +1681,36 @@ function GestioneRdl({ client, setError }) {
 
             {/* Error Correction Modal */}
             {showErrorModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 9999,
-                    padding: '20px'
-                }}>
-                    <div style={{
-                        background: 'white',
-                        borderRadius: '8px',
-                        maxWidth: '900px',
-                        width: '100%',
-                        maxHeight: '90vh',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
-                    }}>
+                <div className="error-modal-overlay">
+                    <div className="error-modal-container">
                         {/* Modal Header */}
-                        <div style={{
-                            padding: '16px 20px',
-                            borderBottom: '1px solid #dee2e6',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            background: '#f8f9fa'
-                        }}>
-                            <h5 style={{ margin: 0, fontSize: '1.1rem' }}>
+                        <div className="error-modal-header">
+                            <h5>
                                 <i className="fas fa-exclamation-triangle text-warning me-2"></i>
                                 Correggi Record in Errore ({failedRecords.length})
                             </h5>
                             <button
                                 onClick={() => setShowErrorModal(false)}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    fontSize: '1.5rem',
-                                    cursor: 'pointer',
-                                    color: '#6c757d'
-                                }}
+                                className="error-modal-close"
                             >
                                 &times;
                             </button>
                         </div>
 
                         {/* Modal Body */}
-                        <div style={{
-                            padding: '20px',
-                            overflowY: 'auto',
-                            flex: 1
-                        }}>
-                            <p style={{ marginBottom: '16px', color: '#6c757d', fontSize: '0.9rem' }}>
+                        <div className="error-modal-body">
+                            <p className="error-modal-intro">
                                 I seguenti record non sono stati importati a causa di errori. Correggi i campi evidenziati in rosso e riprova.
                             </p>
 
                             {/* User Territory Info */}
                             {userTerritory.length > 0 && (
-                                <div style={{
-                                    background: '#e7f3ff',
-                                    border: '1px solid #b6d4fe',
-                                    borderRadius: '6px',
-                                    padding: '12px',
-                                    marginBottom: '16px',
-                                    fontSize: '0.85rem'
-                                }}>
-                                    <div style={{ fontWeight: 600, marginBottom: '6px' }}>
+                                <div className="error-modal-territory-info">
+                                    <div className="fw-medium">
                                         <i className="fas fa-info-circle me-2"></i>
                                         La tua area di competenza:
                                     </div>
-                                    <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                                    <ul>
                                         {userTerritory.map((territory, idx) => (
                                             <li key={idx}>{territory}</li>
                                         ))}
@@ -1776,31 +1719,13 @@ function GestioneRdl({ client, setError }) {
                             )}
 
                             {editingRecords.map((record, index) => (
-                                <div key={index} style={{
-                                    border: '2px solid #ffc107',
-                                    borderRadius: '8px',
-                                    padding: '16px',
-                                    marginBottom: '16px',
-                                    background: '#fffbf0'
-                                }}>
+                                <div key={index} className="error-record-card">
                                     {/* Record Header */}
-                                    <div style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        marginBottom: '12px',
-                                        paddingBottom: '8px',
-                                        borderBottom: '1px solid #ffc107'
-                                    }}>
-                                        <strong style={{ fontSize: '0.95rem' }}>
+                                    <div className="error-record-header">
+                                        <strong>
                                             Riga {record.row_number}: {record.nome} {record.cognome}
                                         </strong>
-                                        <span style={{
-                                            background: '#dc3545',
-                                            color: 'white',
-                                            padding: '2px 8px',
-                                            borderRadius: '4px',
-                                            fontSize: '0.75rem'
-                                        }}>
+                                        <span className="error-record-badge">
                                             {record.error_message}
                                         </span>
                                     </div>
@@ -1808,7 +1733,7 @@ function GestioneRdl({ client, setError }) {
                                     {/* Record Fields */}
                                     <div className="grid-2-col gap-md">
                                         <div>
-                                            <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                            <label className="error-field-label">
                                                 Email *
                                             </label>
                                             <input
@@ -1824,7 +1749,7 @@ function GestioneRdl({ client, setError }) {
                                         </div>
 
                                         <div>
-                                            <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                            <label className="error-field-label">
                                                 Telefono *
                                             </label>
                                             <input
@@ -1840,7 +1765,7 @@ function GestioneRdl({ client, setError }) {
                                         </div>
 
                                         <div>
-                                            <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                            <label className="error-field-label">
                                                 Nome *
                                             </label>
                                             <input
@@ -1856,7 +1781,7 @@ function GestioneRdl({ client, setError }) {
                                         </div>
 
                                         <div>
-                                            <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                            <label className="error-field-label">
                                                 Cognome *
                                             </label>
                                             <input
@@ -1872,7 +1797,7 @@ function GestioneRdl({ client, setError }) {
                                         </div>
 
                                         <div style={{ gridColumn: '1 / -1' }}>
-                                            <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                            <label className="error-field-label">
                                                 Comune Seggio *
                                                 {record.error_fields?.includes('comune_seggio') && (
                                                     <span className="text-danger text-xs ms-2">
@@ -1881,19 +1806,11 @@ function GestioneRdl({ client, setError }) {
                                                 )}
                                             </label>
                                             {failedRecords[index] && failedRecords[index].comune_seggio && (
-                                                <div style={{
-                                                    background: '#fff3cd',
-                                                    border: '1px solid #ffc107',
-                                                    borderRadius: '4px',
-                                                    padding: '6px 8px',
-                                                    marginBottom: '6px',
-                                                    fontSize: '0.75rem',
-                                                    fontFamily: 'monospace'
-                                                }}>
-                                                    <strong>Valore CSV originale:</strong> <span style={{ color: '#dc3545' }}>{failedRecords[index].comune_seggio}</span>
+                                                <div className="error-csv-original">
+                                                    <strong>Valore CSV originale:</strong> <span className="text-danger">{failedRecords[index].comune_seggio}</span>
                                                     {failedRecords[index].provincia_seggio && (
-                                                        <span style={{ marginLeft: '8px' }}>
-                                                            Provincia: <span style={{ color: '#0d6efd' }}>{failedRecords[index].provincia_seggio}</span>
+                                                        <span className="ms-2">
+                                                            Provincia: <span className="text-primary">{failedRecords[index].provincia_seggio}</span>
                                                         </span>
                                                     )}
                                                 </div>
@@ -1953,7 +1870,7 @@ function GestioneRdl({ client, setError }) {
                                         </div>
 
                                         <div>
-                                            <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                            <label className="error-field-label">
                                                 Data Nascita *
                                                 {record.error_fields?.includes('data_nascita') && (
                                                     <span className="text-danger text-xs ms-2">
@@ -1979,7 +1896,7 @@ function GestioneRdl({ client, setError }) {
                                         </div>
 
                                         <div>
-                                            <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                            <label className="error-field-label">
                                                 Comune Nascita *
                                             </label>
                                             <input
@@ -1996,12 +1913,8 @@ function GestioneRdl({ client, setError }) {
                                     </div>
 
                                     {/* Note di correzione */}
-                                    <div style={{
-                                        marginTop: '12px',
-                                        paddingTop: '12px',
-                                        borderTop: '1px solid #ffc107'
-                                    }}>
-                                        <label style={{ fontSize: '0.8rem', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                    <div className="error-notes-section">
+                                        <label className="error-field-label">
                                             <i className="fas fa-comment me-2"></i>
                                             Note di Correzione
                                         </label>
@@ -2026,14 +1939,7 @@ function GestioneRdl({ client, setError }) {
                         </div>
 
                         {/* Modal Footer */}
-                        <div style={{
-                            padding: '16px 20px',
-                            borderTop: '1px solid #dee2e6',
-                            display: 'flex',
-                            justifyContent: 'flex-end',
-                            gap: '8px',
-                            background: '#f8f9fa'
-                        }}>
+                        <div className="error-modal-footer">
                             <button
                                 className="btn btn-secondary"
                                 onClick={() => setShowErrorModal(false)}
