@@ -179,12 +179,12 @@ function ChatInterface({ client, show, onClose }) {
                 <div className="chat-header">
                     <div>
                         <i className="fas fa-robot me-2"></i>
-                        <strong>Assistente AI</strong>
+                        <strong>AI RDL</strong>
                     </div>
-                    <div className="d-flex align-items-center gap-2">
+                    <div>
                         {messages.length > 0 && (
                             <button
-                                className="btn btn-sm btn-outline-light"
+                                className="btn btn-outline-light"
                                 onClick={handleNewConversation}
                                 title="Inizia una nuova conversazione"
                             >

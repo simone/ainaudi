@@ -32,27 +32,54 @@
 .chat-header {
     background: linear-gradient(135deg, #1F4E5F 0%, #2C5F6F 100%);
     color: white;
-    padding: max(env(safe-area-inset-top), 12px) 16px 12px 16px;
+    padding: max(env(safe-area-inset-top), 12px) 12px 12px 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-shrink: 0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    gap: 12px;
     /* Sticky on mobile for better UX */
     position: sticky;
     top: 0;
     z-index: 10;
 }
 
+.chat-header > div:first-child {
+    flex: 1;
+    min-width: 0; /* Allow text truncation */
+    display: flex;
+    align-items: center;
+}
+
+.chat-header > div:first-child strong {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Header buttons container */
+.chat-header > div:last-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* New conversation button - Mobile: icon only, compact */
 .chat-header .btn-outline-light {
     border-color: rgba(255, 255, 255, 0.5);
     color: white;
-    padding: 6px 10px;
+    padding: 0;
+    width: 36px;
+    height: 36px;
     min-height: 36px;
     min-width: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 8px;
+    flex-shrink: 0;
 }
 
 .chat-header .btn-outline-light:hover {
@@ -60,9 +87,23 @@
     border-color: white;
 }
 
+.chat-header .btn-outline-light i {
+    font-size: 1rem;
+}
+
+/* Close button - Mobile: compact */
 .chat-header .btn-close {
+    width: 36px;
+    height: 36px;
     min-height: 36px;
     min-width: 36px;
+    flex-shrink: 0;
+    padding: 0;
+    opacity: 0.9;
+}
+
+.chat-header .btn-close:hover {
+    opacity: 1;
 }
 
 /* Messages Area - Mobile: scrollable with momentum */
@@ -514,6 +555,20 @@
     .chat-header {
         border-radius: 16px 16px 0 0;
         padding: 16px 20px;
+        gap: 16px;
+    }
+
+    /* Desktop: larger buttons */
+    .chat-header .btn-outline-light,
+    .chat-header .btn-close {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        min-height: 32px;
+    }
+
+    .chat-header .btn-outline-light i {
+        font-size: 0.9rem;
     }
 
     .chat-input-container {
