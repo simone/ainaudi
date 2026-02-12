@@ -231,6 +231,15 @@
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
 }
 
+[data-theme="night"] .chat-header .btn-outline-light {
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="night"] .chat-header .btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
 [data-theme="night"] .chat-messages {
     background: #16213e;
 }
