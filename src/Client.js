@@ -1117,35 +1117,6 @@ const Client = (server, pdfServer, token) => {
             }
         },
 
-        // Templates documenti
-        templates: {
-            // Lista templates disponibili
-            list: async (consultazioneId) => {
-                const params = new URLSearchParams();
-                if (consultazioneId) params.append('consultazione', consultazioneId);
-                return fetch(`${server}/api/documents/templates/?${params.toString()}`, {
-                    headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
-                    console.error(error);
-                    return { error: error.message };
-                });
-            },
-
-            // Preview PDF con dati
-            preview: async (templateId, data) =>
-                fetch(`${server}/api/documents/templates/${templateId}/preview/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': authHeader
-                    },
-                    body: JSON.stringify(data)
-                }).then(response => response.blob()).catch(error => {
-                    console.error(error);
-                    return null;
-                }),
-        },
-
         // Campagne di reclutamento
         campagne: {
             list: async (consultazioneId) => {
@@ -1223,6 +1194,44 @@ const Client = (server, pdfServer, token) => {
                     return { error: error.message };
                 }),
         }
+    };
+
+    // Templates documenti
+    const templates = {
+        // Lista templates disponibili
+        list: async (consultazioneId) => {
+            const params = new URLSearchParams();
+            if (consultazioneId) params.append('consultazione', consultazioneId);
+            return fetch(`${server}/api/documents/templates/?${params.toString()}`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            });
+        },
+
+        // Preview PDF con dati
+        preview: async (templateId, data) =>
+            fetch(`${server}/api/documents/templates/${templateId}/preview/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify(data)
+            }).then(response => response.blob()).catch(error => {
+                console.error(error);
+                return null;
+            }),
+
+        // Get visible delegates/subdelegates for template ownership
+        visibleDelegates: async (consultazioneId) =>
+            fetch(`${server}/api/documents/visible-delegates/?consultazione=${consultazioneId}`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
     };
 
     // API per le Risorse (Documenti + FAQ)
@@ -2024,6 +2033,7 @@ const Client = (server, pdfServer, token) => {
         territorio,
         mappatura,
         ai,  // AI Assistant
+        templates,  // Document templates
         // Generic HTTP methods
         get,
         post,

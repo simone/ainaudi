@@ -8,6 +8,7 @@ import './TemplateEditor.css';
 function TemplateList({ client, onEditTemplate }) {
     const [templates, setTemplates] = useState([]);
     const [templateTypes, setTemplateTypes] = useState([]);
+    const [visibleDelegates, setVisibleDelegates] = useState([]);
     const [consultazione, setConsultazione] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -17,6 +18,7 @@ function TemplateList({ client, onEditTemplate }) {
         name: '',
         template_type: '',
         description: '',
+        owner_email: '',
         file: null
     });
 
@@ -52,6 +54,14 @@ function TemplateList({ client, onEditTemplate }) {
                 setTemplates(templatesData.results);
             } else {
                 setTemplates([]);
+            }
+
+            // Load visible delegates for owner selection
+            const delegatesData = await client.templates.visibleDelegates(electionData.id);
+            if (Array.isArray(delegatesData)) {
+                setVisibleDelegates(delegatesData);
+            } else {
+                setVisibleDelegates([]);
             }
 
         } catch (err) {
@@ -99,6 +109,9 @@ function TemplateList({ client, onEditTemplate }) {
             formData.append('name', newTemplate.name);
             formData.append('template_type', newTemplate.template_type);
             formData.append('description', newTemplate.description);
+            if (newTemplate.owner_email) {
+                formData.append('owner_email', newTemplate.owner_email);
+            }
             formData.append('template_file', newTemplate.file);
             formData.append('is_active', 'true');
 
@@ -111,6 +124,7 @@ function TemplateList({ client, onEditTemplate }) {
                 name: '',
                 template_type: templateTypes.length > 0 ? templateTypes[0].id : '',
                 description: '',
+                owner_email: '',
                 file: null
             });
 
@@ -254,6 +268,26 @@ function TemplateList({ client, onEditTemplate }) {
                                 </div>
 
                                 <div className="form-group">
+                                    <label>Proprietario</label>
+                                    <select
+                                        className="form-control"
+                                        value={newTemplate.owner_email}
+                                        onChange={(e) => setNewTemplate({...newTemplate, owner_email: e.target.value})}
+                                    >
+                                        <option value="">Template Generico (visibile a tutti)</option>
+                                        {visibleDelegates.map((delegate, idx) => (
+                                            <option key={idx} value={delegate.email}>
+                                                {delegate.nome_completo} ({delegate.tipo}) - {delegate.ambito}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <small className="text-muted">
+                                        Seleziona un proprietario per rendere il template personale (visibile solo a lui).
+                                        Lascia "Template Generico" per renderlo visibile a tutti.
+                                    </small>
+                                </div>
+
+                                <div className="form-group">
                                     <label>File PDF Template *</label>
                                     <input
                                         type="file"
@@ -280,6 +314,7 @@ function TemplateList({ client, onEditTemplate }) {
                                                 name: '',
                                                 template_type: templateTypes.length > 0 ? templateTypes[0].id : '',
                                                 description: '',
+                                                owner_email: '',
                                                 file: null
                                             });
                                         }}

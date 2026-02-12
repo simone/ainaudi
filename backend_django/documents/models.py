@@ -87,6 +87,10 @@ class Template(models.Model):
     """
     PDF template for document generation.
     Linked to a specific ConsultazioneElettorale and TemplateType.
+
+    Templates can be:
+    - Generic (owner_email=None): visible to all users
+    - Personal (owner_email set): visible only to the owner
     """
     consultazione = models.ForeignKey(
         'elections.ConsultazioneElettorale',
@@ -103,6 +107,12 @@ class Template(models.Model):
         related_name='templates',
         verbose_name=_('tipo template'),
         help_text=_('Tipo di template che definisce schema e modalità unione')
+    )
+    owner_email = models.EmailField(
+        _('proprietario (email)'),
+        null=True,
+        blank=True,
+        help_text=_('Se valorizzato, il template è personale e visibile solo al proprietario. Se null, è generico e visibile a tutti.')
     )
     name = models.CharField(_('nome'), max_length=100)
     description = models.TextField(_('descrizione'), blank=True)
@@ -147,9 +157,20 @@ class Template(models.Model):
         verbose_name_plural = _('template')
         ordering = ['consultazione', 'name']
         unique_together = [['consultazione', 'name']]
+        indexes = [
+            models.Index(fields=['owner_email', 'is_active']),
+        ]
 
     def __str__(self):
         return f'{self.name} v{self.version}'
+
+    def is_generic(self):
+        """Check if template is generic (not owned by anyone)."""
+        return not self.owner_email
+
+    def is_owned_by(self, email):
+        """Check if template is owned by given email."""
+        return self.owner_email == email
 
     def get_merge_mode(self):
         """Get merge mode, falling back to template_type default."""

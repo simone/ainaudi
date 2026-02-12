@@ -13,6 +13,7 @@ from .views import (
     TemplateEditorView,
     TemplatePreviewView,
     ServeMediaView,
+    VisibleDelegatesView,
 )
 
 router = DefaultRouter()
@@ -27,6 +28,7 @@ urlpatterns = [
     path('confirm/', ConfirmPDFView.as_view(), name='confirm-pdf'),
     path('templates/<int:pk>/editor/', TemplateEditorView.as_view(), name='template-editor'),
     path('templates/<int:pk>/preview/', TemplatePreviewView.as_view(), name='template-preview'),
+    path('visible-delegates/', VisibleDelegatesView.as_view(), name='visible-delegates'),
     # Serve media files through API (Vite proxy workaround)
     path('media/<path:filepath>', ServeMediaView.as_view(), name='serve-media'),
 ]

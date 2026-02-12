@@ -44,12 +44,54 @@ class TemplateViewSet(viewsets.ModelViewSet):
     GET /api/documents/templates/{id}/   - Get template detail
     PUT /api/documents/templates/{id}/   - Update template (admin only)
     DELETE /api/documents/templates/{id}/ - Delete template (admin only)
+
+    Ownership filtering:
+    - Generic templates (owner_email=null): visible to all
+    - Personal templates (owner_email set): visible only to owner
     """
     queryset = Template.objects.filter(is_active=True).select_related('consultazione')
     serializer_class = TemplateSerializer
     filterset_fields = ['template_type', 'is_active', 'consultazione']
     search_fields = ['name', 'description']
     pagination_class = None  # Disable pagination - return full list
+
+    def get_queryset(self):
+        """
+        Filter templates based on ownership and role:
+        - Admin/staff: see ALL templates (for management)
+        - Regular users: see generic templates + their own personal templates
+
+        Query parameters:
+        - ?usable_only=true: Filter only templates that the user can USE to generate documents
+          (generic + own personal), even for admins. Used in wizard/designation flows.
+        """
+        queryset = super().get_queryset()
+        user_email = self.request.user.email
+
+        # Check if we should filter for "usable" templates only
+        usable_only = self.request.query_params.get('usable_only', '').lower() == 'true'
+
+        if usable_only:
+            # Filter for templates the user can USE to generate documents
+            # (generic + own personal), regardless of staff status
+            from django.db.models import Q
+            return queryset.filter(
+                Q(owner_email__isnull=True) |  # Generic templates
+                Q(owner_email='') |             # Empty string treated as generic
+                Q(owner_email=user_email)       # User's personal templates
+            )
+
+        # Admin/staff can see all templates for management (without usable_only filter)
+        if self.request.user.is_staff:
+            return queryset
+
+        # Regular users see generic + their own personal templates
+        from django.db.models import Q
+        return queryset.filter(
+            Q(owner_email__isnull=True) |  # Generic templates
+            Q(owner_email='') |             # Empty string treated as generic
+            Q(owner_email=user_email)       # User's personal templates
+        )
 
     def get_permissions(self):
         """Admin required for create/update/delete"""
@@ -412,3 +454,215 @@ class ServeMediaView(APIView):
 
         # Serve file
         return FileResponse(open(full_path, 'rb'))
+
+
+class VisibleDelegatesView(APIView):
+    """
+    List delegates and subdelegates visible to the current user based on territorial overlap.
+
+    GET /api/documents/visible-delegates/?consultazione=<id>
+
+    Logic:
+    - Admin: sees all
+    - User with broader scope (e.g. region): sees all with narrower scope within their territory
+    - User with specific scope: sees those with overlapping scope
+
+    Returns:
+    [
+        {
+            "email": "user@example.com",
+            "nome_completo": "Mario Rossi",
+            "tipo": "Delegato" | "Sub-Delegato",
+            "ambito": "Regione Lazio" | "Provincia Roma" | "Comune Roma, Comune Cerveteri"
+        },
+        ...
+    ]
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from delegations.models import Delegato, SubDelega
+        from territory.models import Regione, Provincia, Comune
+        from django.db.models import Q
+
+        consultazione_id = request.query_params.get('consultazione')
+        if not consultazione_id:
+            return Response({'error': 'consultazione parameter required'}, status=400)
+
+        user_email = request.user.email
+        results = []
+
+        # Admin sees all
+        if request.user.is_staff:
+            delegati = Delegato.objects.filter(consultazione_id=consultazione_id)
+            for d in delegati:
+                ambito = self._get_ambito_descrizione(d)
+                results.append({
+                    'email': d.email,
+                    'nome_completo': d.nome_completo,
+                    'tipo': 'Delegato',
+                    'ambito': ambito
+                })
+
+            subdelegati = SubDelega.objects.filter(
+                delegato__consultazione_id=consultazione_id,
+                is_attiva=True
+            )
+            for sd in subdelegati:
+                ambito = self._get_ambito_descrizione(sd)
+                results.append({
+                    'email': sd.email,
+                    'nome_completo': sd.nome_completo,
+                    'tipo': 'Sub-Delegato',
+                    'ambito': ambito
+                })
+
+            return Response(results)
+
+        # Find user's territorial scope
+        user_delegato = Delegato.objects.filter(
+            consultazione_id=consultazione_id,
+            email=user_email
+        ).first()
+
+        user_subdelega = SubDelega.objects.filter(
+            delegato__consultazione_id=consultazione_id,
+            email=user_email,
+            is_attiva=True
+        ).first()
+
+        if not user_delegato and not user_subdelega:
+            # User has no delegation/subdelegation for this consultazione
+            return Response([])
+
+        # Determine user's scope
+        user_scope = user_delegato if user_delegato else user_subdelega
+        user_regioni = set(user_scope.regioni.values_list('id', flat=True))
+        user_province = set(user_scope.province.values_list('id', flat=True))
+        user_comuni = set(user_scope.comuni.values_list('id', flat=True))
+
+        # Find all delegates/subdelegates with overlapping scope
+        delegati = Delegato.objects.filter(consultazione_id=consultazione_id)
+        for d in delegati:
+            if self._has_territorial_overlap(d, user_regioni, user_province, user_comuni):
+                ambito = self._get_ambito_descrizione(d)
+                results.append({
+                    'email': d.email,
+                    'nome_completo': d.nome_completo,
+                    'tipo': 'Delegato',
+                    'ambito': ambito
+                })
+
+        subdelegati = SubDelega.objects.filter(
+            delegato__consultazione_id=consultazione_id,
+            is_attiva=True
+        )
+        for sd in subdelegati:
+            if self._has_territorial_overlap(sd, user_regioni, user_province, user_comuni):
+                ambito = self._get_ambito_descrizione(sd)
+                results.append({
+                    'email': sd.email,
+                    'nome_completo': sd.nome_completo,
+                    'tipo': 'Sub-Delegato',
+                    'ambito': ambito
+                })
+
+        return Response(results)
+
+    def _has_territorial_overlap(self, entity, user_regioni, user_province, user_comuni):
+        """Check if entity's territorial scope overlaps with user's scope."""
+        from territory.models import Regione, Provincia, Comune
+
+        entity_regioni = set(entity.regioni.values_list('id', flat=True))
+        entity_province = set(entity.province.values_list('id', flat=True))
+        entity_comuni = set(entity.comuni.values_list('id', flat=True))
+
+        # Case 1: Direct overlap at any level
+        if entity_regioni & user_regioni:
+            return True
+        if entity_province & user_province:
+            return True
+        if entity_comuni & user_comuni:
+            return True
+
+        # Case 2: User has broader scope (e.g. user has region, entity has province/comune in that region)
+        if user_regioni:
+            # User has regions - check if entity's provinces/comuni are within user's regions
+            if entity_province:
+                entity_province_regioni = set(
+                    Provincia.objects.filter(id__in=entity_province).values_list('regione_id', flat=True)
+                )
+                if entity_province_regioni & user_regioni:
+                    return True
+            if entity_comuni:
+                entity_comuni_regioni = set(
+                    Comune.objects.filter(id__in=entity_comuni).select_related('provincia').values_list('provincia__regione_id', flat=True)
+                )
+                if entity_comuni_regioni & user_regioni:
+                    return True
+
+        if user_province:
+            # User has provinces - check if entity's comuni are within user's provinces
+            if entity_comuni:
+                entity_comuni_province = set(
+                    Comune.objects.filter(id__in=entity_comuni).values_list('provincia_id', flat=True)
+                )
+                if entity_comuni_province & user_province:
+                    return True
+
+        # Case 3: Entity has broader scope that contains user's scope
+        if entity_regioni:
+            # Entity has regions - check if user's provinces/comuni are within entity's regions
+            if user_province:
+                user_province_regioni = set(
+                    Provincia.objects.filter(id__in=user_province).values_list('regione_id', flat=True)
+                )
+                if user_province_regioni & entity_regioni:
+                    return True
+            if user_comuni:
+                user_comuni_regioni = set(
+                    Comune.objects.filter(id__in=user_comuni).select_related('provincia').values_list('provincia__regione_id', flat=True)
+                )
+                if user_comuni_regioni & entity_regioni:
+                    return True
+
+        if entity_province:
+            # Entity has provinces - check if user's comuni are within entity's provinces
+            if user_comuni:
+                user_comuni_province = set(
+                    Comune.objects.filter(id__in=user_comuni).values_list('provincia_id', flat=True)
+                )
+                if user_comuni_province & entity_province:
+                    return True
+
+        return False
+
+    def _get_ambito_descrizione(self, entity):
+        """Generate human-readable scope description."""
+        parts = []
+
+        regioni = list(entity.regioni.values_list('nome', flat=True))
+        if regioni:
+            if len(regioni) == 1:
+                parts.append(f"Regione {regioni[0]}")
+            else:
+                parts.append(f"Regioni: {', '.join(regioni)}")
+
+        province = list(entity.province.values_list('nome', flat=True))
+        if province:
+            if len(province) == 1:
+                parts.append(f"Provincia {province[0]}")
+            else:
+                parts.append(f"Province: {', '.join(province)}")
+
+        comuni = list(entity.comuni.values_list('nome', flat=True))
+        if comuni:
+            if len(comuni) <= 3:
+                parts.append(f"Comuni: {', '.join(comuni)}")
+            else:
+                parts.append(f"{len(comuni)} comuni")
+
+        if hasattr(entity, 'municipi') and entity.municipi:
+            parts.append(f"{len(entity.municipi)} municipi")
+
+        return " | ".join(parts) if parts else "Ambito non specificato"

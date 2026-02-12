@@ -610,7 +610,7 @@ function AppContent() {
                                                 <a className={`nav-link ${activeTab === 'scrutinio-aggregato' ? 'active' : ''}`}
                                                    onClick={() => activate('scrutinio-aggregato')} href="#">
                                                     <i className="fas fa-chart-line me-1"></i>
-                                                    Risultati Live <span className="pulse-indicator pulse-indicator-success"></span>
+                                                    Live <span className="pulse-indicator pulse-indicator-success"></span>
                                                 </a>
                                             </li>
                                         )}

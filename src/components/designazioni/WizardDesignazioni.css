@@ -137,6 +137,68 @@
     align-items: center;
 }
 
+/* Night Theme */
+[data-theme="night"] .wizard-modal {
+    background: var(--bg-dark-secondary);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="night"] .wizard-header {
+    border-bottom-color: var(--border-dark);
+    background: var(--bg-dark-tertiary);
+}
+
+[data-theme="night"] .wizard-header h4 {
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .wizard-progress {
+    background: var(--bg-dark-tertiary);
+    border-bottom-color: var(--border-dark);
+}
+
+[data-theme="night"] .wizard-step::after {
+    background: var(--border-dark);
+}
+
+[data-theme="night"] .wizard-step.completed::after {
+    background: var(--color-success);
+}
+
+[data-theme="night"] .step-number {
+    background: var(--bg-dark-hover);
+    color: var(--text-secondary);
+}
+
+[data-theme="night"] .wizard-step.active .step-number {
+    background: var(--color-primary);
+    color: white;
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.3);
+}
+
+[data-theme="night"] .wizard-step.completed .step-number {
+    background: var(--color-success);
+    color: white;
+}
+
+[data-theme="night"] .step-label {
+    color: var(--text-secondary);
+}
+
+[data-theme="night"] .wizard-step.active .step-label {
+    color: var(--color-primary);
+}
+
+[data-theme="night"] .wizard-content {
+    background: var(--bg-dark-secondary);
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .wizard-footer {
+    border-top-color: var(--border-dark);
+    background: var(--bg-dark-tertiary);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .wizard-modal {

@@ -23,18 +23,20 @@ class TemplateSerializer(serializers.ModelSerializer):
     template_file_url = serializers.SerializerMethodField()
     variables_schema = serializers.SerializerMethodField()
     consultazione_nome = serializers.CharField(source='consultazione.nome', read_only=True, allow_null=True)
+    is_generic = serializers.SerializerMethodField()
 
     class Meta:
         model = Template
         fields = [
             'id', 'consultazione', 'consultazione_nome', 'name',
             'template_type', 'template_type_details',
+            'owner_email', 'is_generic',
             'description', 'template_file', 'template_file_url', 'variables_schema',
             'is_active', 'version', 'created_at', 'updated_at',
             # Template editor fields
             'field_mappings', 'loop_config', 'merge_mode'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'template_file_url', 'consultazione_nome', 'template_type_details', 'variables_schema']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'template_file_url', 'consultazione_nome', 'template_type_details', 'variables_schema', 'is_generic']
 
     def get_template_file_url(self, obj):
         """Return API endpoint URL for template file (works with Vite proxy)"""
@@ -55,6 +57,10 @@ class TemplateSerializer(serializers.ModelSerializer):
         if obj.template_type:
             return obj.template_type.default_schema
         return {}
+
+    def get_is_generic(self, obj):
+        """Return True if template is generic (not owned by anyone)"""
+        return obj.is_generic()
 
 
 class GeneratedDocumentSerializer(serializers.ModelSerializer):
