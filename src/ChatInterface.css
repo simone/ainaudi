@@ -294,6 +294,21 @@
     background: #3a7fcf;
 }
 
+/* Microphone button in night mode */
+[data-theme="night"] .btn-microphone {
+    background: #4a9eff;
+    color: #ffffff;
+}
+
+[data-theme="night"] .btn-microphone:hover {
+    background: #3a7fcf;
+}
+
+[data-theme="night"] .btn-microphone.recording {
+    background: #ff4444;
+    color: white;
+}
+
 /* Spinner in night mode */
 [data-theme="night"] .spinner-border {
     color: #4a9eff;
