@@ -157,7 +157,7 @@ function ChatInterface({ client, show, onClose }) {
         const userMessage = inputText.trim();
         setInputText('');
 
-        // Add user message to UI
+        // Add user message to UI (optimistic, without ID yet)
         setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
         setIsLoading(true);
 
@@ -179,12 +179,22 @@ function ChatInterface({ client, show, onClose }) {
                 setSessionTitle(response.title);
             }
 
-            // Add assistant message to UI
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: response.message.content,
-                sources: response.message.sources,
-            }]);
+            // Replace optimistic user message with real one (with ID) + add assistant message
+            setMessages(prev => {
+                // Remove the last message (optimistic user message without ID)
+                const messagesWithoutOptimistic = prev.slice(0, -1);
+                // Add both user message (with ID) and assistant message
+                return [
+                    ...messagesWithoutOptimistic,
+                    response.user_message,
+                    {
+                        id: response.message.id,
+                        role: 'assistant',
+                        content: response.message.content,
+                        sources: response.message.sources,
+                    }
+                ];
+            });
 
         } catch (error) {
             console.error('Chat error:', error);

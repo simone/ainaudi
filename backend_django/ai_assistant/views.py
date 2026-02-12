@@ -146,7 +146,7 @@ class ChatView(APIView):
             )
 
         # Save user message
-        ChatMessage.objects.create(
+        user_message = ChatMessage.objects.create(
             session=session,
             role=ChatMessage.Role.USER,
             content=message
@@ -176,6 +176,11 @@ class ChatView(APIView):
             return Response({
                 'session_id': session.id,
                 'title': session.title,
+                'user_message': {
+                    'id': user_message.id,
+                    'role': user_message.role,
+                    'content': user_message.content,
+                },
                 'message': {
                     'id': assistant_message.id,
                     'role': assistant_message.role,
