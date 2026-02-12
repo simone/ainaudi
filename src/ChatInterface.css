@@ -211,6 +211,94 @@
     50% { transform: scale(1.05); }
 }
 
+/* ============================================================
+   NIGHT THEME (Dark Mode)
+   ============================================================ */
+
+[data-theme="night"] .chat-container {
+    background: #1a1a2e;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="night"] .chat-messages {
+    background: #16213e;
+}
+
+[data-theme="night"] .chat-welcome {
+    color: #e0e0e0;
+}
+
+[data-theme="night"] .chat-welcome i {
+    color: #4a9eff !important;
+}
+
+[data-theme="night"] .chat-welcome .text-muted {
+    color: #999 !important;
+}
+
+[data-theme="night"] .chat-message.assistant .message-bubble {
+    background: #0f3460;
+    color: #e0e0e0;
+    border: 1px solid #1a4d7a;
+}
+
+[data-theme="night"] .message-sources {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="night"] .message-sources .text-muted {
+    color: #aaa !important;
+}
+
+/* Markdown styling for night theme */
+[data-theme="night"] .message-content code {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffd700;
+}
+
+[data-theme="night"] .message-content pre {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="night"] .message-content blockquote {
+    border-left-color: rgba(255, 255, 255, 0.3);
+    color: #ccc;
+}
+
+[data-theme="night"] .message-content a {
+    color: #4a9eff;
+}
+
+/* Input area night theme */
+[data-theme="night"] .chat-input-container {
+    background: #0f3460;
+    border-top: 1px solid #1a4d7a;
+}
+
+[data-theme="night"] .chat-input {
+    background: #16213e;
+    border: 1px solid #1a4d7a;
+    color: #e0e0e0;
+}
+
+[data-theme="night"] .chat-input::placeholder {
+    color: #888;
+}
+
+[data-theme="night"] .btn-send {
+    background: #4a9eff;
+}
+
+[data-theme="night"] .btn-send:hover {
+    background: #3a7fcf;
+}
+
+/* Spinner in night mode */
+[data-theme="night"] .spinner-border {
+    color: #4a9eff;
+}
+
 /* Mobile */
 @media (max-width: 768px) {
     .chat-overlay {
