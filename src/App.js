@@ -626,42 +626,62 @@ function AppContent() {
                                             </li>
                                         )}
                                     </ul>
-                                    {/* User Menu Dropdown */}
-                                    <div className="dropdown">
-                                        <button
-                                            className="btn btn-outline-light dropdown-toggle d-flex align-items-center"
-                                            type="button"
-                                            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                                            aria-expanded={isUserMenuOpen}
-                                        >
-                                            <i className="fas fa-user-circle me-2" style={{ fontSize: '1.2rem' }}></i>
-                                            <span className="d-none d-md-inline">{displayName}</span>
-                                        </button>
-                                        <ul className={`dropdown-menu dropdown-menu-end ${isUserMenuOpen ? 'show' : ''}`} style={{ minWidth: '250px' }}>
+
+                                    {/* User Menu - Separato per allineamento destro su desktop */}
+                                    <ul className="navbar-nav ms-auto">
+                                        <li className="nav-item dropdown">
+                                            <a className="nav-link dropdown-toggle d-flex align-items-center"
+                                               href="#"
+                                               role="button"
+                                               onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsUserMenuOpen(!isUserMenuOpen); }}
+                                               aria-expanded={isUserMenuOpen}
+                                               title={displayName}>
+                                                <i className="fas fa-user-circle me-2" style={{ fontSize: '1.2rem' }}></i>
+                                                <span className="d-lg-none">{displayName}</span>
+                                            </a>
+                                            <ul className={`dropdown-menu dropdown-menu-dark user-menu-dropdown ${isUserMenuOpen ? 'show' : ''}`}>
                                             {/* User Info Header */}
                                             <li>
-                                                <h6 className="dropdown-header d-flex align-items-center">
-                                                    <i className="fas fa-user me-2"></i>
-                                                    {displayName}
-                                                </h6>
+                                                {isImpersonating ? (
+                                                    <div className="dropdown-header">
+                                                        <div className="d-flex align-items-center mb-1">
+                                                            <i className="fas fa-user-secret me-2 text-warning"></i>
+                                                            <small className="text-warning fw-bold">Impersonando</small>
+                                                        </div>
+                                                        <div className="text-white">{user?.email}</div>
+                                                        {originalUser && (
+                                                            <div className="mt-1">
+                                                                <small className="text-white-50">
+                                                                    <i className="fas fa-user me-1"></i>
+                                                                    Tu sei: {originalUser.email}
+                                                                </small>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <h6 className="dropdown-header d-flex align-items-center">
+                                                        <i className="fas fa-user me-2"></i>
+                                                        {displayName}
+                                                    </h6>
+                                                )}
                                             </li>
                                             <li><hr className="dropdown-divider" /></li>
 
                                             {/* Theme Toggle */}
                                             <li>
-                                                <button
-                                                    className="dropdown-item d-flex align-items-center justify-content-between"
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        toggleTheme();
-                                                    }}
-                                                >
+                                                <a className="dropdown-item d-flex align-items-center justify-content-between"
+                                                   href="#"
+                                                   onClick={(e) => {
+                                                       e.preventDefault();
+                                                       toggleTheme();
+                                                       closeAllDropdowns();
+                                                   }}>
                                                     <span>
                                                         <i className={`fas ${theme === 'night' ? 'fa-sun' : 'fa-moon'} me-2`}></i>
                                                         {theme === 'night' ? 'Tema Daily' : 'Tema Night'}
                                                     </span>
                                                     <span>{theme === 'night' ? '☀️' : '🌙'}</span>
-                                                </button>
+                                                </a>
                                             </li>
 
                                             {/* Impersonate (admin only) */}
@@ -669,55 +689,55 @@ function AppContent() {
                                                 <>
                                                     <li><hr className="dropdown-divider" /></li>
                                                     <li>
-                                                        <button
-                                                            className="dropdown-item d-flex align-items-center"
-                                                            onClick={() => {
-                                                                setShowImpersonate(!showImpersonate);
-                                                                setIsUserMenuOpen(false);
-                                                            }}
-                                                        >
+                                                        <a className="dropdown-item d-flex align-items-center"
+                                                           href="#"
+                                                           onClick={(e) => {
+                                                               e.preventDefault();
+                                                               setShowImpersonate(!showImpersonate);
+                                                               closeAllDropdowns();
+                                                           }}>
                                                             <i className="fas fa-user-secret me-2 text-warning"></i>
                                                             Impersona utente
-                                                        </button>
+                                                        </a>
                                                     </li>
                                                 </>
                                             )}
 
-                                            {/* Logout */}
+                                            {/* Logout / Stop Impersonating */}
                                             <li><hr className="dropdown-divider" /></li>
                                             <li>
-                                                <button
-                                                    className="dropdown-item d-flex align-items-center text-danger"
-                                                    onClick={() => {
-                                                        handleSignoutClick();
-                                                        setIsUserMenuOpen(false);
-                                                    }}
-                                                >
-                                                    <i className="fas fa-sign-out-alt me-2"></i>
-                                                    Esci
-                                                </button>
+                                                {isImpersonating ? (
+                                                    <a className="dropdown-item d-flex align-items-center text-warning"
+                                                       href="#"
+                                                       onClick={(e) => {
+                                                           e.preventDefault();
+                                                           handleStopImpersonating();
+                                                           closeAllDropdowns();
+                                                       }}>
+                                                        <i className="fas fa-user-check me-2"></i>
+                                                        Torna al tuo account
+                                                    </a>
+                                                ) : (
+                                                    <a className="dropdown-item d-flex align-items-center text-danger"
+                                                       href="#"
+                                                       onClick={(e) => {
+                                                           e.preventDefault();
+                                                           handleSignoutClick();
+                                                           closeAllDropdowns();
+                                                       }}>
+                                                        <i className="fas fa-sign-out-alt me-2"></i>
+                                                        Esci
+                                                    </a>
+                                                )}
                                             </li>
                                         </ul>
-                                    </div>
-                                </div>
+                                    </li>
+                                </ul>
+                            </div>
                             </>
                         )}
                     </div>
                 </nav>
-                {isImpersonating && (
-                    <div className="alert alert-danger mt-3 d-flex align-items-center justify-content-between">
-                        <span>
-                            <strong>Stai impersonando:</strong> {user?.email}
-                            {originalUser && <span className="ms-2">(tu sei: {originalUser.email})</span>}
-                        </span>
-                        <button
-                            className="btn btn-light btn-sm"
-                            onClick={handleStopImpersonating}
-                        >
-                            Torna al tuo account
-                        </button>
-                    </div>
-                )}
                 {showImpersonate && user?.is_superuser && !isImpersonating && (
                     <div className="alert alert-warning mt-3">
                         <form onSubmit={handleImpersonate} className="d-flex align-items-center">

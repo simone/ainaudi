@@ -2697,3 +2697,33 @@ small.text-muted {
 [data-theme="night"] .chat-fab:hover {
   background: #3a7fcf;
 }
+
+/* ==========================================================================
+   User Menu - Mobile & Desktop
+   ========================================================================== */
+
+/* Desktop: dropdown allineato a destra, solo icona nel trigger */
+@media (min-width: 992px) {
+  .user-menu-dropdown {
+    right: 0 !important;
+    left: auto !important;
+  }
+
+  .navbar-nav .nav-item.dropdown .nav-link .fa-user-circle + span {
+    display: none; /* Nascondi nome su desktop */
+  }
+}
+
+/* Mobile: dropdown allineato a sinistra (uniforme agli altri menu) */
+@media (max-width: 991px) {
+  .user-menu-dropdown {
+    right: auto !important;
+    left: 0 !important;
+  }
+
+  .navbar-nav.ms-auto {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+  }
+}

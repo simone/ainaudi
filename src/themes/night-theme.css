@@ -1396,7 +1396,7 @@
 }
 
 [data-theme="night"] .mappatura-tab.active {
-  background: var(--color-accent-red) !important;
+  background: #3d7ba8 !important;
   color: white !important;
 }
 
@@ -1493,8 +1493,8 @@
 }
 
 [data-theme="night"] .mappatura-view-toggle button.active {
-  background: var(--color-accent-red) !important;
-  border-color: var(--color-accent-red) !important;
+  background: #3d7ba8 !important;
+  border-color: #3d7ba8 !important;
   color: white !important;
 }
 

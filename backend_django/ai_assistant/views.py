@@ -14,6 +14,37 @@ from .rag_service import rag_service
 logger = logging.getLogger(__name__)
 
 
+def generate_session_title(first_message: str) -> str:
+    """Generate a short title from the first user message using Gemini."""
+    from .vertex_service import vertex_ai_service
+
+    prompt = f"""Genera un titolo brevissimo (max 6 parole) per questa conversazione, basandoti sulla domanda dell'utente.
+Il titolo deve essere descrittivo ma conciso, in italiano.
+
+Domanda utente: "{first_message}"
+
+Rispondi SOLO con il titolo, senza virgolette, senza punteggiatura finale.
+Esempi:
+- "Come si compila la scheda?" → "Compilazione scheda elettorale"
+- "Cosa fare se vedo irregolarità?" → "Gestione irregolarità"
+- "Quali sono i miei diritti?" → "Diritti e doveri RDL"
+"""
+
+    try:
+        title = vertex_ai_service.generate_response(prompt, context=None)
+        # Clean up title
+        title = title.strip().strip('"').strip("'").strip('.')
+        # Limit length
+        if len(title) > 60:
+            title = title[:57] + '...'
+        return title
+    except Exception as e:
+        logger.error(f"Title generation failed: {e}")
+        # Fallback: use first words of message
+        words = first_message.split()[:6]
+        return ' '.join(words) + ('...' if len(words) == 6 else '')
+
+
 class ChatView(APIView):
     """
     Send a message to the AI assistant or retrieve session history.
@@ -29,36 +60,6 @@ class ChatView(APIView):
     Returns all messages in the session
     """
     permission_classes = [permissions.IsAuthenticated, CanAskToAIAssistant]
-
-    def _generate_session_title(self, first_message: str) -> str:
-        """Generate a short title from the first user message using Gemini."""
-        from .vertex_service import vertex_ai_service
-
-        prompt = f"""Genera un titolo brevissimo (max 6 parole) per questa conversazione, basandoti sulla domanda dell'utente.
-Il titolo deve essere descrittivo ma conciso, in italiano.
-
-Domanda utente: "{first_message}"
-
-Rispondi SOLO con il titolo, senza virgolette, senza punteggiatura finale.
-Esempi:
-- "Come si compila la scheda?" → "Compilazione scheda elettorale"
-- "Cosa fare se vedo irregolarità?" → "Gestione irregolarità"
-- "Quali sono i miei diritti?" → "Diritti e doveri RDL"
-"""
-
-        try:
-            title = vertex_ai_service.generate_response(prompt, context=None)
-            # Clean up title
-            title = title.strip().strip('"').strip("'").strip('.')
-            # Limit length
-            if len(title) > 60:
-                title = title[:57] + '...'
-            return title
-        except Exception as e:
-            logger.error(f"Title generation failed: {e}")
-            # Fallback: use first words of message
-            words = first_message.split()[:6]
-            return ' '.join(words) + ('...' if len(words) == 6 else '')
 
     def get(self, request):
         """Retrieve messages from a session."""
@@ -166,7 +167,7 @@ Esempi:
             # Generate title if this is the first user message
             if session.messages.count() == 2 and not session.title:  # 1 user + 1 assistant
                 try:
-                    title = self._generate_session_title(message)
+                    title = generate_session_title(message)
                     session.title = title
                     session.save(update_fields=['title'])
                 except Exception as e:
@@ -240,10 +241,17 @@ class ChatBranchView(APIView):
         except ChatMessage.DoesNotExist:
             return Response({'error': 'Message not found or not a user message'}, status=404)
 
+        # Generate title for new branch based on edited message
+        try:
+            new_title = generate_session_title(new_message)
+        except Exception as e:
+            logger.warning(f"Failed to generate branch title: {e}")
+            new_title = f"Branch: {new_message[:50]}..."
+
         # Create new branch session
         new_session = ChatSession.objects.create(
             user_email=request.user.email,
-            title=original_session.title or "Branch",
+            title=new_title,
             context=original_session.context,
             parent_session=original_session
         )

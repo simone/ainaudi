@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import './ChatInterface.css';
 
@@ -26,8 +26,24 @@ function ChatInterface({ client, show, onClose }) {
     });
 
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
     const recognitionRef = useRef(null);
     const speechSynthesisRef = useRef(null);
+
+    // Scroll to bottom helper
+    const scrollToBottom = (behavior = 'auto') => {
+        if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+    };
+
+    // Scroll to bottom when chat is opened
+    useEffect(() => {
+        if (show && messages.length > 0) {
+            // Use timeout to ensure DOM is ready
+            setTimeout(() => scrollToBottom(), 100);
+        }
+    }, [show]);
 
     // Load saved session on mount
     useEffect(() => {
@@ -37,8 +53,11 @@ function ChatInterface({ client, show, onClose }) {
                 try {
                     const result = await client.ai.getSession(sessionId);
                     if (result.messages) {
+                        console.log('Session loaded:', sessionId, 'messages:', result.messages.length, 'first msg has id:', result.messages[0]?.id);
                         setMessages(result.messages);
                         setSessionTitle(result.title || '');
+                        // Scroll to bottom after messages are loaded
+                        setTimeout(() => scrollToBottom(), 200);
                     } else if (result.error === 'Session not found') {
                         // Session doesn't exist anymore, clear it
                         localStorage.removeItem('ai_chat_session_id');
@@ -60,10 +79,13 @@ function ChatInterface({ client, show, onClose }) {
         loadSavedSession();
     }, [sessionId, show, client]);
 
-    // Auto-scroll to latest message
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    // Auto-scroll to latest message when new messages arrive
+    useLayoutEffect(() => {
+        if (messages.length > 0 && !isLoadingHistory) {
+            // Use requestAnimationFrame to ensure DOM is updated
+            requestAnimationFrame(() => scrollToBottom());
+        }
+    }, [messages, isLoadingHistory]);
 
     // Initialize Web Speech API
     useEffect(() => {
@@ -227,7 +249,10 @@ function ChatInterface({ client, show, onClose }) {
             // Reload messages from new branch
             const result = await client.ai.getSession(response.session_id);
             if (result.messages) {
+                console.log('Branch messages loaded:', result.messages.map(m => ({ id: m.id, role: m.role })));
                 setMessages(result.messages);
+                // Scroll to bottom after branch messages are loaded
+                setTimeout(() => scrollToBottom(), 200);
             }
 
         } catch (error) {
@@ -263,8 +288,10 @@ function ChatInterface({ client, show, onClose }) {
             if (result.messages) {
                 setMessages(result.messages);
                 setSessionId(newSessionId);
-                setSessionTitle(result.session_title || '');
+                setSessionTitle(result.title || '');
                 localStorage.setItem('ai_chat_session_id', newSessionId);
+                // Scroll to bottom after switching session
+                setTimeout(() => scrollToBottom(), 200);
             }
         } catch (error) {
             console.error('Failed to switch session:', error);
@@ -333,13 +360,13 @@ function ChatInterface({ client, show, onClose }) {
     };
 
     const handleZoomIn = () => {
-        const newSize = Math.min(fontSize + 10, 150); // Max 150%
+        const newSize = Math.min(fontSize + 10, 200); // Max 200%
         setFontSize(newSize);
         localStorage.setItem('ai_chat_font_size', newSize);
     };
 
     const handleZoomOut = () => {
-        const newSize = Math.max(fontSize - 10, 80); // Min 80%
+        const newSize = Math.max(fontSize - 10, 70); // Min 70%
         setFontSize(newSize);
         localStorage.setItem('ai_chat_font_size', newSize);
     };
@@ -412,21 +439,20 @@ function ChatInterface({ client, show, onClose }) {
                         {/* Zoom controls */}
                         <div className="zoom-controls">
                             <button
-                                className="btn-zoom"
+                                className="btn-zoom btn-zoom-small"
                                 onClick={handleZoomOut}
-                                disabled={fontSize <= 80}
-                                title="Riduci testo"
+                                disabled={fontSize <= 70}
+                                title="Riduci dimensione testo"
                             >
-                                <i className="fas fa-minus"></i>
+                                <span className="zoom-icon-small">A</span>
                             </button>
-                            <span className="zoom-label">{fontSize}%</span>
                             <button
-                                className="btn-zoom"
+                                className="btn-zoom btn-zoom-large"
                                 onClick={handleZoomIn}
-                                disabled={fontSize >= 150}
-                                title="Ingrandisci testo"
+                                disabled={fontSize >= 200}
+                                title="Aumenta dimensione testo"
                             >
-                                <i className="fas fa-plus"></i>
+                                <span className="zoom-icon-large">A</span>
                             </button>
                         </div>
 
@@ -451,7 +477,11 @@ function ChatInterface({ client, show, onClose }) {
                 </div>
 
                 {/* Messages */}
-                <div className="chat-messages" style={{ fontSize: `${fontSize}%` }}>
+                <div
+                    ref={messagesContainerRef}
+                    className="chat-messages"
+                    style={{ fontSize: `${(fontSize / 100) * 16}px` }}
+                >
                     {isLoadingHistory ? (
                         <div className="chat-welcome">
                             <span className="spinner-border spinner-border-lg mb-3"></span>
@@ -483,7 +513,7 @@ function ChatInterface({ client, show, onClose }) {
                     ) : null}
 
                     {messages.map((msg, idx) => (
-                        <div key={idx} className={`chat-message ${msg.role}`}>
+                        <div key={msg.id || `msg-${idx}`} className={`chat-message ${msg.role}`}>
                             <div className="message-bubble">
                                 {editingMessageId === msg.id && msg.role === 'user' ? (
                                     /* Edit mode for user message */
@@ -554,12 +584,12 @@ function ChatInterface({ client, show, onClose }) {
                                             <div className="message-actions">
                                                 {msg.role === 'assistant' && (
                                                     <button
-                                                        className="btn-message-action"
+                                                        className={`btn-speak ${speakingMessageId === msg.id ? 'speaking' : ''}`}
                                                         onClick={() => handleSpeak(msg.id, msg.content)}
                                                         title={speakingMessageId === msg.id ? "Interrompi lettura" : "Leggi ad alta voce"}
                                                     >
-                                                        <i className={`fas ${speakingMessageId === msg.id ? 'fa-stop' : 'fa-volume-up'} me-1`}></i>
-                                                        {speakingMessageId === msg.id ? 'Stop' : 'Leggi'}
+                                                        <i className={`fas ${speakingMessageId === msg.id ? 'fa-stop-circle' : 'fa-volume-up'} me-2`}></i>
+                                                        {speakingMessageId === msg.id ? 'Interrompi' : 'Leggi ad alta voce'}
                                                     </button>
                                                 )}
                                                 {msg.role === 'user' && (
