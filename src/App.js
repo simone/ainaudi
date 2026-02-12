@@ -23,7 +23,6 @@ import TemplateEditor from "./TemplateEditor";
 import TemplateList from "./TemplateList";
 import ScrutinioAggregato from "./ScrutinioAggregato";
 import {AuthProvider, useAuth} from "./AuthContext";
-import ThemeSwitcher from "./components/ThemeSwitcher";
 import ChatInterface from "./ChatInterface";
 
 // In development, use empty string to leverage Vite proxy (vite.config.js)
@@ -95,6 +94,15 @@ function AppContent() {
     const [impersonateEmails, setImpersonateEmails] = useState([]);
     const [templateIdToEdit, setTemplateIdToEdit] = useState(null);
     const [showChat, setShowChat] = useState(false);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [theme, setTheme] = useState(() => {
+        const savedTheme = localStorage.getItem('app-theme');
+        if (savedTheme) return savedTheme;
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'night';
+        }
+        return 'daily';
+    });
 
     // Create client when we have a token
     const client = useMemo(() => {
@@ -125,6 +133,27 @@ function AppContent() {
                 });
         }
     }, [isAuthenticated, verifyMagicLink]);
+
+    // Theme effect
+    useEffect(() => {
+        if (theme === 'night') {
+            document.documentElement.setAttribute('data-theme', 'night');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+        }
+        localStorage.setItem('app-theme', theme);
+    }, [theme]);
+
+    // Close user menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (isUserMenuOpen && !event.target.closest('.dropdown')) {
+                setIsUserMenuOpen(false);
+            }
+        };
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, [isUserMenuOpen]);
 
     // Check for campagna URL: /campagna/:slug
     useEffect(() => {
@@ -305,6 +334,10 @@ function AppContent() {
         setCampagnaSlug(null);
         setConsultazione(null);
         setConsultazioneLoaded(false);
+    };
+
+    const toggleTheme = () => {
+        setTheme(prevTheme => prevTheme === 'daily' ? 'night' : 'daily');
     };
 
     const handleCloseCampagna = () => {
@@ -593,18 +626,78 @@ function AppContent() {
                                             </li>
                                         )}
                                     </ul>
-                                    <div className="d-flex align-items-center">
-                                        {user?.is_superuser && !isImpersonating && (
-                                            <button
-                                                className="btn btn-outline-warning btn-sm me-2"
-                                                onClick={() => setShowImpersonate(!showImpersonate)}
-                                                title="Impersona utente"
-                                            >
-                                                Impersona
-                                            </button>
-                                        )}
-                                        <p className="text-light me-3 mb-0">{displayName}</p>
-                                        <button className="btn btn-danger" onClick={handleSignoutClick}>Esci</button>
+                                    {/* User Menu Dropdown */}
+                                    <div className="dropdown">
+                                        <button
+                                            className="btn btn-outline-light dropdown-toggle d-flex align-items-center"
+                                            type="button"
+                                            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                                            aria-expanded={isUserMenuOpen}
+                                        >
+                                            <i className="fas fa-user-circle me-2" style={{ fontSize: '1.2rem' }}></i>
+                                            <span className="d-none d-md-inline">{displayName}</span>
+                                        </button>
+                                        <ul className={`dropdown-menu dropdown-menu-end ${isUserMenuOpen ? 'show' : ''}`} style={{ minWidth: '250px' }}>
+                                            {/* User Info Header */}
+                                            <li>
+                                                <h6 className="dropdown-header d-flex align-items-center">
+                                                    <i className="fas fa-user me-2"></i>
+                                                    {displayName}
+                                                </h6>
+                                            </li>
+                                            <li><hr className="dropdown-divider" /></li>
+
+                                            {/* Theme Toggle */}
+                                            <li>
+                                                <button
+                                                    className="dropdown-item d-flex align-items-center justify-content-between"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        toggleTheme();
+                                                    }}
+                                                >
+                                                    <span>
+                                                        <i className={`fas ${theme === 'night' ? 'fa-sun' : 'fa-moon'} me-2`}></i>
+                                                        {theme === 'night' ? 'Tema Daily' : 'Tema Night'}
+                                                    </span>
+                                                    <span>{theme === 'night' ? '☀️' : '🌙'}</span>
+                                                </button>
+                                            </li>
+
+                                            {/* Impersonate (admin only) */}
+                                            {user?.is_superuser && !isImpersonating && (
+                                                <>
+                                                    <li><hr className="dropdown-divider" /></li>
+                                                    <li>
+                                                        <button
+                                                            className="dropdown-item d-flex align-items-center"
+                                                            onClick={() => {
+                                                                setShowImpersonate(!showImpersonate);
+                                                                setIsUserMenuOpen(false);
+                                                            }}
+                                                        >
+                                                            <i className="fas fa-user-secret me-2 text-warning"></i>
+                                                            Impersona utente
+                                                        </button>
+                                                    </li>
+                                                </>
+                                            )}
+
+                                            {/* Logout */}
+                                            <li><hr className="dropdown-divider" /></li>
+                                            <li>
+                                                <button
+                                                    className="dropdown-item d-flex align-items-center text-danger"
+                                                    onClick={() => {
+                                                        handleSignoutClick();
+                                                        setIsUserMenuOpen(false);
+                                                    }}
+                                                >
+                                                    <i className="fas fa-sign-out-alt me-2"></i>
+                                                    Esci
+                                                </button>
+                                            </li>
+                                        </ul>
                                     </div>
                                 </div>
                             </>
@@ -1091,9 +1184,6 @@ function AppContent() {
                     onClose={() => setShowChat(false)}
                 />
             )}
-
-            {/* Theme Switcher - Available on all pages (login + app) */}
-            <ThemeSwitcher />
         </>
     );
 }
