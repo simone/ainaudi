@@ -340,7 +340,8 @@ function TemplateList({ client, onEditTemplate }) {
                         </p>
                     </div>
                 ) : (
-                    <table className="table table-striped">
+                    <div className="table-responsive-wrapper">
+                        <table className="table table-striped">
                         <thead>
                             <tr>
                                 <th>Nome</th>
@@ -383,6 +384,7 @@ function TemplateList({ client, onEditTemplate }) {
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 )}
             </div>
 

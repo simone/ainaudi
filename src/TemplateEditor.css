@@ -466,6 +466,322 @@
     background: #5a6268;
 }
 
+/* Night Theme */
+[data-theme="night"] .template-editor {
+    background: var(--bg-dark-primary);
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .template-editor-header {
+    border-bottom-color: var(--border-dark);
+}
+
+[data-theme="night"] .template-editor-header h2 {
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .template-selector label {
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .template-editor-loading {
+    color: var(--text-secondary);
+}
+
+/* PDF Preview Section - Night Theme */
+[data-theme="night"] .pdf-preview-section {
+    background: var(--bg-dark-secondary);
+    border-color: var(--border-dark);
+}
+
+[data-theme="night"] .pdf-controls h3 {
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .page-indicator {
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .zoom-controls {
+    border-left-color: var(--border-dark);
+}
+
+[data-theme="night"] .zoom-level {
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .pdf-canvas-container {
+    background: var(--bg-dark-tertiary);
+    border-color: var(--border-dark);
+}
+
+[data-theme="night"] .pdf-instructions {
+    background: rgba(31, 78, 95, 0.3);
+    border-color: rgba(31, 78, 95, 0.5);
+}
+
+[data-theme="night"] .pdf-instructions p,
+[data-theme="night"] .pdf-instructions li {
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .pdf-placeholder {
+    background: var(--bg-dark-tertiary);
+    border-color: var(--border-dark);
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .pdf-placeholder .text-muted {
+    color: var(--text-secondary);
+}
+
+/* Field Mappings Section - Night Theme */
+[data-theme="night"] .field-mappings-section {
+    background: var(--bg-dark-secondary);
+    border-color: var(--border-dark);
+}
+
+[data-theme="night"] .field-mappings-header h3 {
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .no-fields {
+    color: var(--text-secondary);
+}
+
+[data-theme="night"] .no-fields p {
+    color: var(--text-secondary);
+}
+
+/* Table - Night Theme */
+[data-theme="night"] .table {
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .table th {
+    background: var(--bg-dark-tertiary);
+    color: var(--text-primary);
+    border-bottom-color: var(--border-dark);
+}
+
+[data-theme="night"] .table td {
+    border-bottom-color: var(--border-dark);
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .table tbody tr {
+    border-bottom-color: var(--border-dark);
+}
+
+[data-theme="night"] .table tbody tr:hover {
+    background: var(--bg-dark-tertiary);
+}
+
+[data-theme="night"] .table code {
+    background: var(--bg-dark-tertiary);
+    color: #ff79c6;
+}
+
+/* Table bordered - Night Theme */
+[data-theme="night"] .table-bordered {
+    border-color: var(--border-dark);
+}
+
+[data-theme="night"] .table-bordered th,
+[data-theme="night"] .table-bordered td {
+    border-color: var(--border-dark);
+}
+
+/* Table light rows - Night Theme */
+[data-theme="night"] .table-light,
+[data-theme="night"] tr.table-light {
+    background: var(--bg-dark-tertiary);
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .table-light td,
+[data-theme="night"] tr.table-light td {
+    border-color: var(--border-dark);
+}
+
+/* Form controls in tables - Night Theme */
+[data-theme="night"] .table .form-control-sm {
+    background: var(--bg-dark-secondary);
+    border-color: var(--border-dark);
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .table .form-control-sm:focus {
+    background: var(--bg-dark-secondary);
+    border-color: #1F4E5F;
+    box-shadow: 0 0 0 0.2rem rgba(31, 78, 95, 0.25);
+}
+
+[data-theme="night"] .badge.bg-info {
+    background: #17a2b8 !important;
+    color: white;
+}
+
+[data-theme="night"] .badge.bg-warning {
+    background: #ffc107 !important;
+    color: #000;
+}
+
+/* Configuration Section - Night Theme */
+[data-theme="night"] .template-config-section {
+    background: var(--bg-dark-secondary);
+    border-color: var(--border-dark);
+}
+
+[data-theme="night"] .template-config-section h3 {
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .form-group label {
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .form-control {
+    background: var(--bg-dark-tertiary);
+    border-color: var(--border-dark);
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .form-control:focus {
+    border-color: #1F4E5F;
+    background: var(--bg-dark-tertiary);
+    box-shadow: 0 0 0 0.2rem rgba(31, 78, 95, 0.25);
+}
+
+[data-theme="night"] .form-control::placeholder {
+    color: var(--text-secondary);
+}
+
+[data-theme="night"] .loop-config {
+    background: var(--bg-dark-tertiary);
+}
+
+[data-theme="night"] .loop-config h4 {
+    color: var(--text-primary);
+}
+
+/* Help Section - Night Theme */
+[data-theme="night"] .template-editor-help {
+    background: var(--bg-dark-secondary);
+    border-color: var(--border-dark);
+}
+
+[data-theme="night"] .template-editor-help h4 {
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .template-editor-help li {
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .template-editor-help code {
+    background: var(--bg-dark-tertiary);
+    color: #ff79c6;
+}
+
+/* Buttons - Night Theme */
+[data-theme="night"] .btn-primary {
+    background: #1F4E5F;
+    border-color: #1F4E5F;
+}
+
+[data-theme="night"] .btn-primary:hover:not(:disabled) {
+    background: #2C5F6F;
+    border-color: #2C5F6F;
+}
+
+[data-theme="night"] .btn-success {
+    background: #198754;
+}
+
+[data-theme="night"] .btn-success:hover:not(:disabled) {
+    background: #157347;
+}
+
+[data-theme="night"] .btn-danger {
+    background: #dc3545;
+}
+
+[data-theme="night"] .btn-danger:hover:not(:disabled) {
+    background: #bb2d3b;
+}
+
+[data-theme="night"] .btn-secondary {
+    background: #6c757d;
+}
+
+[data-theme="night"] .btn-secondary:hover:not(:disabled) {
+    background: #5a6268;
+}
+
+/* Alerts - Night Theme */
+[data-theme="night"] .alert-success {
+    background: rgba(25, 135, 84, 0.2);
+    border-color: #198754;
+    color: #75b798;
+}
+
+[data-theme="night"] .alert-danger {
+    background: rgba(220, 53, 69, 0.2);
+    border-color: #dc3545;
+    color: #ea868f;
+}
+
+[data-theme="night"] .alert-info {
+    background: rgba(13, 202, 240, 0.2);
+    border-color: #0dcaf0;
+    color: #6edff6;
+}
+
+/* Card - Night Theme */
+[data-theme="night"] .card {
+    background: var(--bg-dark-secondary);
+    border-color: var(--border-dark);
+}
+
+[data-theme="night"] .card-header {
+    background: var(--bg-dark-tertiary);
+    border-bottom-color: var(--border-dark);
+}
+
+[data-theme="night"] .card-header h3 {
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .card-body {
+    background: var(--bg-dark-secondary);
+}
+
+[data-theme="night"] .form-actions {
+    border-top-color: var(--border-dark);
+}
+
+[data-theme="night"] .text-muted {
+    color: var(--text-secondary) !important;
+}
+
+[data-theme="night"] .new-template-form {
+    background: transparent;
+}
+
+/* Template Editor Footer - Night Theme */
+[data-theme="night"] .template-editor-footer {
+    border-top-color: var(--border-dark);
+    color: var(--text-secondary);
+}
+
+/* Table responsive wrapper */
+.table-responsive-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .template-editor-content {
@@ -483,6 +799,36 @@
     }
 
     .table {
-        font-size: 0.85em;
+        font-size: 0.8em;
+    }
+
+    /* Hide less important columns on mobile */
+    .template-config-section .table th:nth-child(3),
+    .template-config-section .table td:nth-child(3),
+    .template-config-section .table th:nth-child(4),
+    .template-config-section .table td:nth-child(4) {
+        display: none;
+    }
+
+    /* Make badge smaller on mobile */
+    .template-config-section .badge {
+        font-size: 0.7em;
+        padding: 2px 6px;
+    }
+
+    /* Compact buttons on mobile */
+    .template-config-section .btn-sm {
+        padding: 2px 8px;
+        font-size: 0.75em;
+        margin-right: 3px !important;
+    }
+
+    /* Make table cells more compact */
+    .template-config-section .table td {
+        padding: 8px 6px;
+    }
+
+    .template-config-section .table th {
+        padding: 10px 6px;
     }
 }

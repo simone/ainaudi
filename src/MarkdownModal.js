@@ -4,6 +4,19 @@ import remarkGfm from 'remark-gfm';
 import './MarkdownModal.css';
 
 /**
+ * Generate a URL-friendly slug from heading text
+ */
+const slugify = (text) => {
+    return text
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-àèéìòùáéíóú]/g, '') // Keep italian accents
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+};
+
+/**
  * Modal component for displaying markdown documentation
  *
  * Usage:
@@ -100,6 +113,37 @@ function MarkdownModal({ isOpen, onClose, markdownUrl, title }) {
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 components={{
+                                    // Auto-generate IDs for headings (for internal anchor links)
+                                    h1: ({node, children, ...props}) => {
+                                        const text = children?.toString() || '';
+                                        const id = slugify(text);
+                                        return <h1 id={id} {...props}>{children}</h1>;
+                                    },
+                                    h2: ({node, children, ...props}) => {
+                                        const text = children?.toString() || '';
+                                        const id = slugify(text);
+                                        return <h2 id={id} {...props}>{children}</h2>;
+                                    },
+                                    h3: ({node, children, ...props}) => {
+                                        const text = children?.toString() || '';
+                                        const id = slugify(text);
+                                        return <h3 id={id} {...props}>{children}</h3>;
+                                    },
+                                    h4: ({node, children, ...props}) => {
+                                        const text = children?.toString() || '';
+                                        const id = slugify(text);
+                                        return <h4 id={id} {...props}>{children}</h4>;
+                                    },
+                                    h5: ({node, children, ...props}) => {
+                                        const text = children?.toString() || '';
+                                        const id = slugify(text);
+                                        return <h5 id={id} {...props}>{children}</h5>;
+                                    },
+                                    h6: ({node, children, ...props}) => {
+                                        const text = children?.toString() || '';
+                                        const id = slugify(text);
+                                        return <h6 id={id} {...props}>{children}</h6>;
+                                    },
                                     // Custom code block styling
                                     code({node, inline, className, children, ...props}) {
                                         if (inline) {
