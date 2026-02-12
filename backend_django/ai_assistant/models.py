@@ -1,13 +1,14 @@
 """
 AI Assistant models: RAG-based chat system.
 
-This module will contain (to be implemented in Fase 6):
-- KnowledgeSource: Knowledge base documents
+This module contains:
+- KnowledgeSource: Knowledge base documents with vector embeddings
 - ChatSession: User chat sessions
 - ChatMessage: Individual messages in a session
 """
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from pgvector.django import VectorField
 
 from core.models import get_user_by_email
 
@@ -29,7 +30,7 @@ class KnowledgeSource(models.Model):
         choices=SourceType.choices
     )
     content = models.TextField(_('contenuto'))
-    # embedding = VectorField(dimensions=1536, null=True)  # Requires pgvector
+    embedding = VectorField(dimensions=768, null=True, blank=True)  # text-embedding-004
     created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
     updated_at = models.DateTimeField(_('ultimo aggiornamento'), auto_now=True)
     is_active = models.BooleanField(_('attivo'), default=True)

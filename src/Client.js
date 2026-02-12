@@ -1958,6 +1958,32 @@ const Client = (server, pdfServer, token) => {
         });
     };
 
+    // AI Assistant endpoints
+    const ai = {
+        // Send message to AI chat
+        chat: async (data) =>
+            fetch(`${server}/api/ai/chat/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify(data)
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // List user's chat sessions
+        sessions: async () =>
+            fetch(`${server}/api/ai/sessions/`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+    };
+
     return {
         server,  // Esponi URL del server per costruire URL diretti
         pdfServer,  // Esponi URL del PDF server
@@ -1974,6 +2000,7 @@ const Client = (server, pdfServer, token) => {
         risorse,
         territorio,
         mappatura,
+        ai,  // AI Assistant
         // Generic HTTP methods
         get,
         post,

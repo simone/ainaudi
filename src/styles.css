@@ -2660,3 +2660,29 @@ small.text-muted {
     grid-template-columns: 1fr;
   }
 }
+
+/* === Floating Action Button (FAB) for AI Chat === */
+.chat-fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #FFC800;
+  color: #1F4E5F;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 1000;
+  transition: transform 0.2s ease;
+}
+
+.chat-fab:hover {
+  transform: scale(1.1);
+}
+
+.chat-fab:active {
+  transform: scale(0.95);
+}

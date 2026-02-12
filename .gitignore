@@ -1,7 +1,15 @@
 node_modules/
 build
 .env
+.env.docker
 __pycache__
 .DS_Store
 .idea/cors.json
 .idea/
+
+# Google Cloud Credentials (NEVER COMMIT!)
+gcp-credentials.json
+*-credentials.json
+*.json.key
+service-account-*.json
+secrets/

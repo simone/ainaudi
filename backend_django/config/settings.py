@@ -377,8 +377,27 @@ FEATURE_FLAGS = {
     'INCIDENT_REPORTS': os.environ.get('FEATURE_INCIDENT_REPORTS', 'true').lower() == 'true',
     'SECTION_IMPORT': os.environ.get('FEATURE_SECTION_IMPORT', 'true').lower() == 'true',
     'TEMPLATES_ENGINE': os.environ.get('FEATURE_TEMPLATES_ENGINE', 'true').lower() == 'true',
-    'AI_ASSISTANT': os.environ.get('FEATURE_AI_ASSISTANT', 'false').lower() == 'true',
+    'AI_ASSISTANT': os.environ.get('FEATURE_AI_ASSISTANT', 'true').lower() == 'true',  # Enabled by default
 }
+
+
+# =============================================================================
+# VERTEX AI CONFIGURATION
+# =============================================================================
+
+VERTEX_AI_PROJECT = os.environ.get('VERTEX_AI_PROJECT', 'ainaudi-prod')
+VERTEX_AI_LOCATION = os.environ.get('VERTEX_AI_LOCATION', 'europe-west1')  # Belgio (Gemini disponibile)
+VERTEX_AI_LLM_MODEL = os.environ.get('VERTEX_AI_LLM_MODEL', 'gemini-2.0-flash-001')  # Modello stabile
+VERTEX_AI_EMBEDDING_MODEL = 'text-embedding-005'  # Latest stable (già 768 dim)
+
+
+# =============================================================================
+# RAG CONFIGURATION
+# =============================================================================
+
+RAG_TOP_K = 3  # Number of documents retrieved per query
+RAG_SIMILARITY_THRESHOLD = 0.6  # Minimum cosine similarity
+RAG_MAX_CONTEXT_TOKENS = 4000  # Max tokens for context
 
 
 # =============================================================================

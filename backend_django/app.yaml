@@ -45,7 +45,11 @@ env_variables:
   FEATURE_INCIDENT_REPORTS: "true"
   FEATURE_SECTION_IMPORT: "true"
   FEATURE_TEMPLATES_ENGINE: "true"
-  FEATURE_AI_ASSISTANT: "false"
+  FEATURE_AI_ASSISTANT: "true"
+
+  # Vertex AI Configuration (Gemini + Embeddings)
+  VERTEX_AI_PROJECT: "ainaudi-prod"
+  VERTEX_AI_LOCATION: "europe-west1"  # Belgio (Gemini disponibile)
 
 handlers:
   # Static files

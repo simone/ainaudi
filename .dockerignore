@@ -45,3 +45,4 @@ Thumbs.db
 # Backend specific (copied separately)
 backend/
 pdf/
+gcp-credentials.json

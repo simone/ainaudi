@@ -24,6 +24,7 @@ import TemplateList from "./TemplateList";
 import ScrutinioAggregato from "./ScrutinioAggregato";
 import {AuthProvider, useAuth} from "./AuthContext";
 import ThemeSwitcher from "./components/ThemeSwitcher";
+import ChatInterface from "./ChatInterface";
 
 // In development, use empty string to leverage Vite proxy (vite.config.js)
 // In production, use empty string for same-origin requests
@@ -93,6 +94,7 @@ function AppContent() {
     const [showImpersonate, setShowImpersonate] = useState(false);
     const [impersonateEmails, setImpersonateEmails] = useState([]);
     const [templateIdToEdit, setTemplateIdToEdit] = useState(null);
+    const [showChat, setShowChat] = useState(false);
 
     // Create client when we have a token
     const client = useMemo(() => {
@@ -1069,6 +1071,26 @@ function AppContent() {
                     </p>
                 </div>
             </footer>
+
+            {/* FAB: Floating Action Button for AI Chat */}
+            {isAuthenticated && permissions.can_ask_to_ai_assistant && (
+                <button
+                    className="chat-fab"
+                    onClick={() => setShowChat(true)}
+                    title="Assistente AI"
+                >
+                    <i className="fas fa-robot"></i>
+                </button>
+            )}
+
+            {/* Chat Interface Modal */}
+            {client && (
+                <ChatInterface
+                    client={client}
+                    show={showChat}
+                    onClose={() => setShowChat(false)}
+                />
+            )}
 
             {/* Theme Switcher - Available on all pages (login + app) */}
             <ThemeSwitcher />

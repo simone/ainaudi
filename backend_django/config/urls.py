@@ -69,6 +69,7 @@ urlpatterns = [
     path('api/deleghe/', include('delegations.urls')),  # Italian alias
     path('api/territory/', include('territory.urls')),
     path('api/documents/', include('documents.urls')),
+    path('api/ai/', include('ai_assistant.urls')),  # AI Assistant
 
     # Public campaign endpoints (no auth required)
     # Italian paths used by frontend

@@ -110,3 +110,38 @@ TODO: Gestire i secrets con Google Secret Manager
 $ gcloud secrets create <secret-name> --replication-policy automatic
 $ gcloud secrets versions add <secret-name> --data-file <file>
 ```
+
+---
+
+## 🤖 AI Assistant (Nuovo!)
+
+AInaudi ora include un assistente AI basato su **Gemini 2.0 Flash** per supportare gli RDL durante le operazioni elettorali.
+
+### Features
+- 💬 Chat testuale + 🎤 input vocale (Web Speech API)
+- 📚 RAG (Retrieval-Augmented Generation) su FAQ e documenti
+- 🇮🇹 Deployment su Vertex AI Milano (GDPR compliant)
+- ⚡ Ingestion automatica via Django signals
+- 📍 Risposte con fonti citate
+
+### Quick Start (3 minuti)
+
+```bash
+# 1. Setup automatico Google Cloud
+./scripts/setup-vertex-ai.sh ainaudi-prod
+
+# 2. Build e avvia Docker
+docker-compose build --no-cache backend
+docker-compose up -d
+
+# 3. Test
+docker-compose exec backend python manage.py shell
+```
+
+**Documentazione completa:**
+- [QUICK_START_AI.md](./QUICK_START_AI.md) - Setup rapido in 3 minuti
+- [VERTEX_AI_SETUP.md](./VERTEX_AI_SETUP.md) - Guida completa per sviluppo e produzione
+
+### Costi
+- **Sviluppo**: ~$0.10/giorno (primi 100 test gratis)
+- **Produzione**: ~$50-100/mese (1000 utenti, 10 domande/giorno)

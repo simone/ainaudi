@@ -1,7 +1,7 @@
 services:
-  # PostgreSQL Database
+  # PostgreSQL Database with pgvector extension
   db:
-    image: postgres:15-alpine
+    image: ankane/pgvector:v0.5.1
     container_name: ainaudi_postgres
     restart: unless-stopped
     environment:
@@ -63,12 +63,19 @@ services:
       - EMAIL_HOST_USER=
       - EMAIL_HOST_PASSWORD=
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-"AINAUDI (M5S) - Simone Federici <s.federici@gmail.com>"}
+      # Feature Flags
       - FEATURE_MAGIC_LINK=true
-      - FEATURE_AI_ASSISTANT=false
+      - FEATURE_AI_ASSISTANT=${FEATURE_AI_ASSISTANT:-true}
+      # Vertex AI Configuration
+      - VERTEX_AI_PROJECT=${VERTEX_AI_PROJECT:-ainaudi-prod}
+      - VERTEX_AI_LOCATION=${VERTEX_AI_LOCATION:-europe-west1}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/gcp-credentials.json
     volumes:
       - ./backend_django:/app
       - backend_static:/app/staticfiles
       - backend_media:/app/media
+      # Mount secrets directory (contains gcp-credentials.json)
+      - ./secrets:/app/secrets:ro
     ports:
       - "3001:8000"
     depends_on:

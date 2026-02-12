@@ -1,15 +1,17 @@
 """
-Views for AI Assistant endpoints.
-
-Note: Full implementation in Fase 6 with RAG and Anthropic/OpenAI integration.
+Views for AI Assistant endpoints with RAG implementation.
 """
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, status
+import logging
 
 from core.permissions import CanAskToAIAssistant
 from .models import KnowledgeSource, ChatSession, ChatMessage
+from .rag_service import rag_service
+
+logger = logging.getLogger(__name__)
 
 
 class ChatView(APIView):
@@ -43,15 +45,25 @@ class ChatView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Message length validation (2000 chars)
+        if len(message) > 2000:
+            return Response(
+                {'error': 'Message too long (max 2000 characters)'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # Get or create session
         if session_id:
             try:
-                session = ChatSession.objects.get(id=session_id, user=request.user)
+                session = ChatSession.objects.get(
+                    id=session_id,
+                    user_email=request.user.email
+                )
             except ChatSession.DoesNotExist:
                 return Response({'error': 'Session not found'}, status=404)
         else:
             session = ChatSession.objects.create(
-                user=request.user,
+                user_email=request.user.email,
                 context=context
             )
 
@@ -62,30 +74,35 @@ class ChatView(APIView):
             content=message
         )
 
-        # TODO: Implement RAG-based response generation
-        # For now, return a placeholder response
-        response_content = (
-            "Mi dispiace, l'assistente AI non è ancora completamente implementato. "
-            "Consulta le FAQ o contatta il supporto per assistenza."
-        )
+        # === RAG IMPLEMENTATION ===
+        try:
+            rag_result = rag_service.answer_question(message, context)
 
-        # Save assistant response
-        assistant_message = ChatMessage.objects.create(
-            session=session,
-            role=ChatMessage.Role.ASSISTANT,
-            content=response_content,
-            sources_cited=[]
-        )
+            # Save assistant response with sources
+            assistant_message = ChatMessage.objects.create(
+                session=session,
+                role=ChatMessage.Role.ASSISTANT,
+                content=rag_result['answer'],
+                sources_cited=[s['id'] for s in rag_result['sources']]
+            )
 
-        return Response({
-            'session_id': session.id,
-            'message': {
-                'id': assistant_message.id,
-                'role': assistant_message.role,
-                'content': assistant_message.content,
-                'sources': assistant_message.sources_cited,
-            }
-        })
+            return Response({
+                'session_id': session.id,
+                'message': {
+                    'id': assistant_message.id,
+                    'role': assistant_message.role,
+                    'content': assistant_message.content,
+                    'sources': rag_result['sources'],
+                    'retrieved_docs': rag_result['retrieved_docs'],
+                }
+            })
+
+        except Exception as e:
+            logger.error(f"RAG error in chat: {e}", exc_info=True)
+            return Response(
+                {'error': 'Errore durante la generazione della risposta'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class ChatSessionsView(APIView):
@@ -97,7 +114,7 @@ class ChatSessionsView(APIView):
     permission_classes = [permissions.IsAuthenticated, CanAskToAIAssistant]
 
     def get(self, request):
-        sessions = ChatSession.objects.filter(user=request.user).order_by('-updated_at')[:20]
+        sessions = ChatSession.objects.filter(user_email=request.user.email).order_by('-updated_at')[:20]
         return Response([
             {
                 'id': s.id,
