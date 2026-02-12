@@ -77,24 +77,30 @@ class VertexAIService:
 
         try:
             # Build full prompt with context
+            system_prompt = settings.RAG_SYSTEM_PROMPT
+
             if context:
-                full_prompt = f"""Sei un assistente AI per rappresentanti di lista (RDL) durante le elezioni italiane.
+                full_prompt = f"""{system_prompt}
 
 CONTESTO DA DOCUMENTI:
 {context}
 
-DOMANDA UTENTE:
+DOMANDA DELL'RDL:
+{prompt}
+"""
+            else:
+                # No context available - use general knowledge
+                full_prompt = f"""Sei un assistente esperto per Rappresentanti di Lista (RDL) del Movimento 5 Stelle durante le elezioni italiane.
+
+DOMANDA:
 {prompt}
 
 ISTRUZIONI:
-- Rispondi in italiano chiaro e conciso
-- Usa il contesto fornito se rilevante
-- Se non sai qualcosa, ammettilo onestamente
-- Fornisci risposte pratiche e operative
-- NON inventare informazioni non presenti nel contesto
+- Rispondi in italiano chiaro e professionale
+- Fornisci informazioni generali basate sulla tua conoscenza
+- Se la domanda richiede informazioni specifiche non disponibili, suggerisci di consultare la documentazione ufficiale
+- Mantieni un tono professionale ma accessibile
 """
-            else:
-                full_prompt = prompt
 
             # Generate response
             response = self._llm.generate_content(full_prompt)
