@@ -19,9 +19,15 @@ function ChatInterface({ client, show, onClose }) {
     const [showSessionsList, setShowSessionsList] = useState(false);
     const [sessions, setSessions] = useState([]);
     const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+    const [speakingMessageId, setSpeakingMessageId] = useState(null);
+    const [fontSize, setFontSize] = useState(() => {
+        const saved = localStorage.getItem('ai_chat_font_size');
+        return saved ? parseInt(saved) : 100; // 100 = default (100%)
+    });
 
     const messagesEndRef = useRef(null);
     const recognitionRef = useRef(null);
+    const speechSynthesisRef = useRef(null);
 
     // Load saved session on mount
     useEffect(() => {
@@ -267,6 +273,127 @@ function ChatInterface({ client, show, onClose }) {
         }
     };
 
+    const handleSpeak = (messageId, text) => {
+        // Stop any ongoing speech
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+            if (speakingMessageId === messageId) {
+                // Toggle off if clicking the same message
+                setSpeakingMessageId(null);
+                return;
+            }
+        }
+
+        // Check if Speech Synthesis is supported
+        if (!('speechSynthesis' in window)) {
+            alert('Il tuo browser non supporta la sintesi vocale. Usa Chrome, Safari o Edge.');
+            return;
+        }
+
+        // Create utterance
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'it-IT';
+        utterance.rate = 0.9; // Slightly slower for better comprehension
+        utterance.pitch = 1.0;
+
+        // Find Italian voice (prefer quality voices)
+        const voices = window.speechSynthesis.getVoices();
+        const italianVoice = voices.find(voice =>
+            voice.lang.startsWith('it') && (voice.name.includes('Google') || voice.name.includes('Microsoft'))
+        ) || voices.find(voice => voice.lang.startsWith('it'));
+
+        if (italianVoice) {
+            utterance.voice = italianVoice;
+        }
+
+        // Event handlers
+        utterance.onstart = () => {
+            setSpeakingMessageId(messageId);
+        };
+
+        utterance.onend = () => {
+            setSpeakingMessageId(null);
+        };
+
+        utterance.onerror = (event) => {
+            console.error('Speech synthesis error:', event);
+            setSpeakingMessageId(null);
+        };
+
+        // Speak
+        speechSynthesisRef.current = utterance;
+        window.speechSynthesis.speak(utterance);
+    };
+
+    const handleStopSpeaking = () => {
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+            setSpeakingMessageId(null);
+        }
+    };
+
+    const handleZoomIn = () => {
+        const newSize = Math.min(fontSize + 10, 150); // Max 150%
+        setFontSize(newSize);
+        localStorage.setItem('ai_chat_font_size', newSize);
+    };
+
+    const handleZoomOut = () => {
+        const newSize = Math.max(fontSize - 10, 80); // Min 80%
+        setFontSize(newSize);
+        localStorage.setItem('ai_chat_font_size', newSize);
+    };
+
+    const handleZoomReset = () => {
+        setFontSize(100);
+        localStorage.setItem('ai_chat_font_size', 100);
+    };
+
+    // Cleanup speech on unmount
+    useEffect(() => {
+        return () => {
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+            }
+        };
+    }, []);
+
+    // Load voices on mount (needed for some browsers)
+    useEffect(() => {
+        if ('speechSynthesis' in window) {
+            const loadVoices = () => {
+                window.speechSynthesis.getVoices();
+            };
+            loadVoices();
+            if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                window.speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        }
+    }, []);
+
+    // Block body scroll when chat is open (mobile)
+    useEffect(() => {
+        if (show) {
+            // Save current scroll position
+            const scrollY = window.scrollY;
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${scrollY}px`;
+            document.body.style.left = '0';
+            document.body.style.right = '0';
+            document.body.style.overflow = 'hidden';
+
+            return () => {
+                // Restore scroll position
+                document.body.style.position = '';
+                document.body.style.top = '';
+                document.body.style.left = '';
+                document.body.style.right = '';
+                document.body.style.overflow = '';
+                window.scrollTo(0, scrollY);
+            };
+        }
+    }, [show]);
+
     if (!show) return null;
 
     return (
@@ -282,6 +409,27 @@ function ChatInterface({ client, show, onClose }) {
                         </div>
                     </div>
                     <div>
+                        {/* Zoom controls */}
+                        <div className="zoom-controls">
+                            <button
+                                className="btn-zoom"
+                                onClick={handleZoomOut}
+                                disabled={fontSize <= 80}
+                                title="Riduci testo"
+                            >
+                                <i className="fas fa-minus"></i>
+                            </button>
+                            <span className="zoom-label">{fontSize}%</span>
+                            <button
+                                className="btn-zoom"
+                                onClick={handleZoomIn}
+                                disabled={fontSize >= 150}
+                                title="Ingrandisci testo"
+                            >
+                                <i className="fas fa-plus"></i>
+                            </button>
+                        </div>
+
                         <button
                             className="btn btn-outline-light"
                             onClick={handleLoadSessions}
@@ -303,7 +451,7 @@ function ChatInterface({ client, show, onClose }) {
                 </div>
 
                 {/* Messages */}
-                <div className="chat-messages">
+                <div className="chat-messages" style={{ fontSize: `${fontSize}%` }}>
                     {isLoadingHistory ? (
                         <div className="chat-welcome">
                             <span className="spinner-border spinner-border-lg mb-3"></span>
@@ -401,16 +549,29 @@ function ChatInterface({ client, show, onClose }) {
                                                 ))}
                                             </div>
                                         )}
-                                        {msg.role === 'user' && msg.id && !isLoading && (
+                                        {/* Actions row */}
+                                        {msg.id && !isLoading && (
                                             <div className="message-actions">
-                                                <button
-                                                    className="btn-message-action"
-                                                    onClick={() => handleEditMessage(msg.id, msg.content)}
-                                                    title="Modifica messaggio"
-                                                >
-                                                    <i className="fas fa-edit me-1"></i>
-                                                    Modifica
-                                                </button>
+                                                {msg.role === 'assistant' && (
+                                                    <button
+                                                        className="btn-message-action"
+                                                        onClick={() => handleSpeak(msg.id, msg.content)}
+                                                        title={speakingMessageId === msg.id ? "Interrompi lettura" : "Leggi ad alta voce"}
+                                                    >
+                                                        <i className={`fas ${speakingMessageId === msg.id ? 'fa-stop' : 'fa-volume-up'} me-1`}></i>
+                                                        {speakingMessageId === msg.id ? 'Stop' : 'Leggi'}
+                                                    </button>
+                                                )}
+                                                {msg.role === 'user' && (
+                                                    <button
+                                                        className="btn-message-action"
+                                                        onClick={() => handleEditMessage(msg.id, msg.content)}
+                                                        title="Modifica messaggio"
+                                                    >
+                                                        <i className="fas fa-edit me-1"></i>
+                                                        Modifica
+                                                    </button>
+                                                )}
                                             </div>
                                         )}
                                     </>
