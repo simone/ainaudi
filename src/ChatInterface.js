@@ -23,21 +23,34 @@ function ChatInterface({ client, show, onClose }) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognitionRef.current = new SpeechRecognition();
             recognitionRef.current.lang = 'it-IT';
-            recognitionRef.current.continuous = false;
-            recognitionRef.current.interimResults = false;
+            recognitionRef.current.continuous = true;  // Continua ad ascoltare
+            recognitionRef.current.interimResults = true;  // Mostra risultati parziali
 
             recognitionRef.current.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                setInputText(transcript);
-                setIsRecording(false);
+                // Accumula tutti i risultati finali
+                let transcript = '';
+
+                for (let i = 0; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                    if (i < event.results.length - 1) {
+                        transcript += ' ';
+                    }
+                }
+
+                // Aggiorna il campo di testo con tutto il trascritto
+                setInputText(transcript.trim());
             };
 
             recognitionRef.current.onerror = (event) => {
                 console.error('Speech recognition error:', event.error);
-                setIsRecording(false);
+                // Non fermare per 'no-speech', può essere una pausa naturale
+                if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                    setIsRecording(false);
+                }
             };
 
             recognitionRef.current.onend = () => {
+                // Solo se non stiamo registrando (stop manuale)
                 setIsRecording(false);
             };
         }
@@ -175,7 +188,7 @@ function ChatInterface({ client, show, onClose }) {
                         className={`btn btn-microphone ${isRecording ? 'recording' : ''}`}
                         onClick={handleMicrophoneClick}
                         disabled={isLoading}
-                        title="Registra messaggio vocale"
+                        title={isRecording ? 'Clicca per fermare' : 'Clicca e parla (clicca di nuovo per fermare)'}
                     >
                         <i className={`fas ${isRecording ? 'fa-stop' : 'fa-microphone'}`}></i>
                     </button>
@@ -183,7 +196,7 @@ function ChatInterface({ client, show, onClose }) {
                     <input
                         type="text"
                         className="form-control chat-input"
-                        placeholder="Scrivi o usa il microfono..."
+                        placeholder={isRecording ? 'Sto ascoltando... (clicca STOP per fermare)' : 'Scrivi o usa il microfono...'}
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
                         onKeyPress={handleKeyPress}
