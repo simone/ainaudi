@@ -1,4 +1,8 @@
-/* Chat Overlay */
+/* ============================================================
+   CHAT INTERFACE - MOBILE FIRST DESIGN
+   ============================================================ */
+
+/* Chat Overlay - Mobile: fullscreen, no padding */
 .chat-overlay {
     position: fixed;
     top: 0;
@@ -8,41 +12,47 @@
     background: rgba(0, 0, 0, 0.5);
     z-index: 9999;
     display: flex;
-    align-items: flex-end;
-    justify-content: flex-end;
-    padding: 20px;
-    animation: fadeIn 0.15s ease-in-out;
+    align-items: stretch;
+    justify-content: stretch;
+    animation: fadeIn 0.2s ease-in-out;
 }
 
-/* Chat Container */
+/* Chat Container - Mobile: fullscreen */
 .chat-container {
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
-    width: 400px;
-    max-width: 100%;
-    height: 600px;
-    max-height: 80vh;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
     animation: slideUp 0.3s ease-out;
+    /* No border-radius on mobile for true fullscreen */
 }
 
-/* Header */
+/* Header - Mobile: sticky, safe area padding */
 .chat-header {
     background: linear-gradient(135deg, #1F4E5F 0%, #2C5F6F 100%);
     color: white;
-    padding: 16px;
-    border-radius: 12px 12px 0 0;
+    padding: max(env(safe-area-inset-top), 12px) 16px 12px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    /* Sticky on mobile for better UX */
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .chat-header .btn-outline-light {
     border-color: rgba(255, 255, 255, 0.5);
     color: white;
-    padding: 4px 8px;
+    padding: 6px 10px;
+    min-height: 36px;
+    min-width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .chat-header .btn-outline-light:hover {
@@ -50,36 +60,66 @@
     border-color: white;
 }
 
-/* Messages Area */
+.chat-header .btn-close {
+    min-height: 36px;
+    min-width: 36px;
+}
+
+/* Messages Area - Mobile: scrollable with momentum */
 .chat-messages {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 16px;
     background: #f8f9fa;
+    -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
 }
 
+/* Welcome Message - Mobile: compact, centered */
 .chat-welcome {
     text-align: center;
-    padding: 30px 20px;
+    padding: 20px 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100%;
+    min-height: 100%;
 }
 
 .chat-welcome h5 {
     color: #1F4E5F;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+}
+
+.chat-welcome p {
+    font-size: 0.9rem;
+    line-height: 1.5;
 }
 
 .chat-welcome ul {
     text-align: left;
-    line-height: 1.8;
+    line-height: 1.6;
+    font-size: 0.85rem;
+    margin: 12px 0;
 }
 
+/* Message Bubbles - Mobile: larger padding, easier to read */
 .chat-message {
-    margin-bottom: 12px;
+    margin-bottom: 16px;
     display: flex;
+    animation: fadeInMessage 0.3s ease-out;
+}
+
+@keyframes fadeInMessage {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .chat-message.user {
@@ -91,26 +131,31 @@
 }
 
 .message-bubble {
-    max-width: 80%;
-    padding: 10px 14px;
-    border-radius: 12px;
+    max-width: 85%; /* More space on mobile */
+    padding: 12px 16px;
+    border-radius: 18px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .chat-message.user .message-bubble {
     background: #1F4E5F;
     color: white;
+    border-radius: 18px 18px 4px 18px;
 }
 
 .chat-message.assistant .message-bubble {
     background: white;
     color: #333;
     border: 1px solid #ddd;
+    border-radius: 18px 18px 18px 4px;
 }
 
 .message-sources {
-    margin-top: 8px;
-    padding-top: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
     border-top: 1px solid rgba(0, 0, 0, 0.1);
+    font-size: 0.85rem;
 }
 
 /* Markdown Content Styling */
@@ -180,24 +225,44 @@
     font-style: italic;
 }
 
-/* Input Container */
+/* Input Container - Mobile: sticky bottom, safe area, larger touch targets */
 .chat-input-container {
-    padding: 16px;
+    padding: 12px 16px max(env(safe-area-inset-bottom), 12px) 16px;
     background: white;
     border-top: 1px solid #ddd;
     display: flex;
-    gap: 8px;
-    border-radius: 0 0 12px 12px;
+    gap: 10px;
+    align-items: center;
+    flex-shrink: 0;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+    /* Sticky on mobile */
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
 }
 
+/* Microphone Button - Mobile: 48px minimum (Apple HIG) */
 .btn-microphone {
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
     border-radius: 50%;
     background: #FFC800;
     border: none;
     color: #1F4E5F;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-microphone:active {
+    transform: scale(0.95);
 }
 
 .btn-microphone.recording {
@@ -206,18 +271,50 @@
     animation: pulse 1s infinite;
 }
 
+/* Input Field - Mobile: larger font, no zoom on focus */
 .chat-input {
     flex: 1;
-    border-radius: 22px;
-    padding: 10px 16px;
+    border-radius: 24px;
+    padding: 12px 18px;
+    border: 1px solid #dee2e6;
+    font-size: 16px; /* Prevents zoom on iOS */
+    line-height: 1.4;
+    min-height: 48px;
 }
 
+.chat-input:focus {
+    outline: none;
+    border-color: #1F4E5F;
+    box-shadow: 0 0 0 3px rgba(31, 78, 95, 0.1);
+}
+
+/* Send Button - Mobile: 48px minimum */
 .btn-send {
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
     border-radius: 50%;
     background: #1F4E5F;
     border: none;
+    color: white;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-send:active {
+    transform: scale(0.95);
+}
+
+.btn-send:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* Animations */
@@ -352,26 +449,88 @@
     color: #4a9eff;
 }
 
-/* Mobile */
-@media (max-width: 768px) {
+/* ============================================================
+   TABLET & DESKTOP (Progressive Enhancement)
+   ============================================================ */
+
+/* Tablet (768px+): Chat becomes a widget */
+@media (min-width: 768px) {
     .chat-overlay {
-        padding: 0;
-        align-items: stretch;
-        justify-content: stretch;
+        align-items: flex-end;
+        justify-content: flex-end;
+        padding: 20px;
     }
 
     .chat-container {
-        width: 100%;
-        height: 100%;
-        max-height: 100vh;
-        border-radius: 0;
+        width: 420px;
+        max-width: calc(100vw - 40px);
+        height: 650px;
+        max-height: calc(100vh - 40px);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        animation: slideUpDesktop 0.3s ease-out;
+    }
+
+    @keyframes slideUpDesktop {
+        from {
+            transform: translateY(30px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
     }
 
     .chat-header {
-        border-radius: 0;
+        border-radius: 16px 16px 0 0;
+        padding: 16px 20px;
     }
 
     .chat-input-container {
-        border-radius: 0;
+        border-radius: 0 0 16px 16px;
+        padding: 16px 20px;
+    }
+
+    .chat-messages {
+        padding: 20px;
+    }
+
+    .chat-welcome {
+        padding: 40px 24px;
+    }
+
+    .message-bubble {
+        max-width: 80%;
+    }
+
+    /* Smaller buttons on desktop (mouse is more precise) */
+    .btn-microphone,
+    .btn-send {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .chat-input {
+        font-size: 15px;
+        min-height: 44px;
+    }
+}
+
+/* Large Desktop (1024px+): Slightly larger widget */
+@media (min-width: 1024px) {
+    .chat-container {
+        width: 460px;
+        height: 700px;
+    }
+
+    .chat-welcome h5 {
+        font-size: 1.2rem;
+    }
+
+    .chat-welcome p {
+        font-size: 0.95rem;
     }
 }
