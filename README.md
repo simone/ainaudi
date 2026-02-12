@@ -134,8 +134,11 @@ AInaudi ora include un assistente AI basato su **Gemini 2.0 Flash** per supporta
 docker-compose build --no-cache backend
 docker-compose up -d
 
-# 3. Test
-docker-compose exec backend python manage.py shell
+# 3. Vettorializza knowledge base (FAQ + Documenti)
+docker-compose exec backend python manage.py vectorize_knowledge
+
+# 4. Test dal frontend
+# Apri http://localhost:3000 → click FAB button (robot) → chiedi qualcosa!
 ```
 
 **Documentazione completa:**

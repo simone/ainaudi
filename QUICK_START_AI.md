@@ -108,13 +108,35 @@ Se vedi entrambi i ✅ → **Setup completato!**
 
 ---
 
+## 📚 Vettorializza Knowledge Base (Opzionale)
+
+Per abilitare il RAG con le FAQ e i Documenti esistenti:
+
+```bash
+# Vettorializza tutte le FAQ e i Documenti
+docker-compose exec backend python manage.py vectorize_knowledge
+
+# Output atteso:
+# ✅ 12 FAQ vettorializzate
+# ✅ 11 Documenti processati
+# ⏱️ ~15 secondi
+```
+
+**Altre opzioni:**
+```bash
+--faq-only    # Solo FAQ
+--docs-only   # Solo Documenti
+--force       # Re-vettorializza tutto
+--dry-run     # Mostra cosa farebbe senza farlo
+```
+
 ## 🎯 Test Frontend
 
 1. Apri http://localhost:3000
 2. Login (usa Magic Link o credenziali esistenti)
 3. Cerca il **FAB button giallo** in basso a destra (icona robot 🤖)
-4. Clicca e invia: _"Come si vota per il referendum?"_
-5. Verifica la risposta con fonti
+4. Clicca e invia: _"Cosa dice il Ministero dell'Interno sul referendum?"_
+5. Verifica la risposta **con fonti citate** 📚
 
 ---
 
