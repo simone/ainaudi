@@ -7,10 +7,43 @@ function ChatInterface({ client, show, onClose }) {
     const [inputText, setInputText] = useState('');
     const [isRecording, setIsRecording] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [sessionId, setSessionId] = useState(null);
+    const [sessionId, setSessionId] = useState(() => {
+        // Recupera sessionId salvato in localStorage
+        const saved = localStorage.getItem('ai_chat_session_id');
+        return saved ? parseInt(saved) : null;
+    });
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
     const messagesEndRef = useRef(null);
     const recognitionRef = useRef(null);
+
+    // Load saved session on mount
+    useEffect(() => {
+        const loadSavedSession = async () => {
+            if (sessionId && show && messages.length === 0) {
+                setIsLoadingHistory(true);
+                try {
+                    const result = await client.ai.getSession(sessionId);
+                    if (result.messages) {
+                        setMessages(result.messages);
+                    } else if (result.error === 'Session not found') {
+                        // Session doesn't exist anymore, clear it
+                        localStorage.removeItem('ai_chat_session_id');
+                        setSessionId(null);
+                    }
+                } catch (error) {
+                    console.error('Error loading session:', error);
+                    // Clear invalid session
+                    localStorage.removeItem('ai_chat_session_id');
+                    setSessionId(null);
+                } finally {
+                    setIsLoadingHistory(false);
+                }
+            }
+        };
+
+        loadSavedSession();
+    }, [sessionId, show, client]);
 
     // Auto-scroll to latest message
     useEffect(() => {
@@ -98,9 +131,10 @@ function ChatInterface({ client, show, onClose }) {
                 message: userMessage,
             });
 
-            // Save session ID for continuity
-            if (!sessionId) {
+            // Save session ID for continuity (both in state and localStorage)
+            if (!sessionId && response.session_id) {
                 setSessionId(response.session_id);
+                localStorage.setItem('ai_chat_session_id', response.session_id);
             }
 
             // Add assistant message to UI
@@ -128,6 +162,14 @@ function ChatInterface({ client, show, onClose }) {
         }
     };
 
+    const handleNewConversation = () => {
+        // Clear current conversation
+        setMessages([]);
+        setSessionId(null);
+        setInputText('');
+        localStorage.removeItem('ai_chat_session_id');
+    };
+
     if (!show) return null;
 
     return (
@@ -139,18 +181,34 @@ function ChatInterface({ client, show, onClose }) {
                         <i className="fas fa-robot me-2"></i>
                         <strong>Assistente AI</strong>
                     </div>
-                    <button className="btn-close btn-close-white" onClick={onClose}></button>
+                    <div className="d-flex align-items-center gap-2">
+                        {messages.length > 0 && (
+                            <button
+                                className="btn btn-sm btn-outline-light"
+                                onClick={handleNewConversation}
+                                title="Inizia una nuova conversazione"
+                            >
+                                <i className="fas fa-plus"></i>
+                            </button>
+                        )}
+                        <button className="btn-close btn-close-white" onClick={onClose}></button>
+                    </div>
                 </div>
 
                 {/* Messages */}
                 <div className="chat-messages">
-                    {messages.length === 0 && (
+                    {isLoadingHistory ? (
+                        <div className="chat-welcome">
+                            <span className="spinner-border spinner-border-lg mb-3"></span>
+                            <p>Caricamento conversazione...</p>
+                        </div>
+                    ) : messages.length === 0 ? (
                         <div className="chat-welcome">
                             <i className="fas fa-comments" style={{ fontSize: '3rem', color: '#1F4E5F' }}></i>
                             <p>Ciao! Sono l'assistente AI per RDL.</p>
                             <p className="text-muted">Chiedimi qualsiasi cosa su procedure, scrutinio, normative...</p>
                         </div>
-                    )}
+                    ) : null}
 
                     {messages.map((msg, idx) => (
                         <div key={idx} className={`chat-message ${msg.role}`}>

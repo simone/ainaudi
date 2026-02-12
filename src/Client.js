@@ -1974,6 +1974,15 @@ const Client = (server, pdfServer, token) => {
                 return { error: error.message };
             }),
 
+        // Get messages from a session
+        getSession: async (sessionId) =>
+            fetch(`${server}/api/ai/chat/?session_id=${sessionId}`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
         // List user's chat sessions
         sessions: async () =>
             fetch(`${server}/api/ai/sessions/`, {

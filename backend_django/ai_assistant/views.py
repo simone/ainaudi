@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class ChatView(APIView):
     """
-    Send a message to the AI assistant.
+    Send a message to the AI assistant or retrieve session history.
 
     POST /api/ai/chat/
     {
@@ -24,8 +24,53 @@ class ChatView(APIView):
         "message": "Come si compila la scheda del referendum?",
         "context": "SCRUTINY"  // optional
     }
+
+    GET /api/ai/chat/?session_id=1
+    Returns all messages in the session
     """
     permission_classes = [permissions.IsAuthenticated, CanAskToAIAssistant]
+
+    def get(self, request):
+        """Retrieve messages from a session."""
+        session_id = request.query_params.get('session_id')
+
+        if not session_id:
+            return Response(
+                {'error': 'session_id required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            session = ChatSession.objects.get(
+                id=session_id,
+                user_email=request.user.email
+            )
+        except ChatSession.DoesNotExist:
+            return Response({'error': 'Session not found'}, status=404)
+
+        # Get all messages in chronological order
+        messages = session.messages.order_by('created_at')
+
+        return Response({
+            'session_id': session.id,
+            'messages': [
+                {
+                    'id': msg.id,
+                    'role': msg.role,
+                    'content': msg.content,
+                    'created_at': msg.created_at,
+                    'sources': [
+                        {
+                            'id': src.id,
+                            'title': src.title,
+                            'type': src.source_type,
+                        }
+                        for src in KnowledgeSource.objects.filter(id__in=msg.sources_cited)
+                    ] if msg.sources_cited else []
+                }
+                for msg in messages
+            ]
+        })
 
     def post(self, request):
         # Check feature flag

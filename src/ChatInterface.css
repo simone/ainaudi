@@ -39,6 +39,17 @@
     align-items: center;
 }
 
+.chat-header .btn-outline-light {
+    border-color: rgba(255, 255, 255, 0.5);
+    color: white;
+    padding: 4px 8px;
+}
+
+.chat-header .btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: white;
+}
+
 /* Messages Area */
 .chat-messages {
     flex: 1;
