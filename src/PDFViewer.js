@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
+import './PDFViewer.css';
 
 // Configura il worker PDF.js
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -19,6 +20,37 @@ function PDFViewer({ url, originalUrl, titolo, onClose }) {
     const [error, setError] = useState(null);
     const [pageWidth, setPageWidth] = useState(null);
     const [isLandscape, setIsLandscape] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    // Block body scroll when PDF viewer is open
+    useEffect(() => {
+        // Save current scroll position
+        const scrollY = window.scrollY;
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.overflow = 'hidden';
+
+        return () => {
+            // Restore scroll position
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.overflow = '';
+            window.scrollTo(0, scrollY);
+        };
+    }, []);
+
+    // Detect mobile/desktop on resize
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const onDocumentLoadSuccess = ({ numPages }) => {
         setNumPages(numPages);
@@ -103,48 +135,59 @@ function PDFViewer({ url, originalUrl, titolo, onClose }) {
                     </div>
                 </div>
 
-                {/* Toolbar */}
-                <div className="pdf-viewer-toolbar">
-                    <div className="pdf-toolbar-group">
-                        <button
-                            className="pdf-toolbar-btn"
-                            onClick={goToPrevPage}
-                            disabled={pageNumber <= 1}
-                        >
-                            <i className="fas fa-chevron-left"></i>
-                        </button>
-                        <span className="pdf-toolbar-label">
-                            {pageNumber} / {numPages || '?'}
-                        </span>
-                        <button
-                            className="pdf-toolbar-btn"
-                            onClick={goToNextPage}
-                            disabled={pageNumber >= (numPages || 1)}
-                        >
-                            <i className="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
+                {/* Toolbar - only show navigation on desktop */}
+                {!isMobile && (
+                    <div className="pdf-viewer-toolbar">
+                        <div className="pdf-toolbar-group">
+                            <button
+                                className="pdf-toolbar-btn"
+                                onClick={goToPrevPage}
+                                disabled={pageNumber <= 1}
+                            >
+                                <i className="fas fa-chevron-left"></i>
+                            </button>
+                            <span className="pdf-toolbar-label">
+                                {pageNumber} / {numPages || '?'}
+                            </span>
+                            <button
+                                className="pdf-toolbar-btn"
+                                onClick={goToNextPage}
+                                disabled={pageNumber >= (numPages || 1)}
+                            >
+                                <i className="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
 
-                    <div className="pdf-toolbar-group">
-                        <button
-                            className="pdf-toolbar-btn"
-                            onClick={zoomOut}
-                            title="Riduci"
-                        >
-                            <i className="fas fa-minus"></i>
-                        </button>
-                        <span className="pdf-toolbar-label">
-                            Zoom
-                        </span>
-                        <button
-                            className="pdf-toolbar-btn"
-                            onClick={zoomIn}
-                            title="Ingrandisci"
-                        >
-                            <i className="fas fa-plus"></i>
-                        </button>
+                        <div className="pdf-toolbar-group">
+                            <button
+                                className="pdf-toolbar-btn"
+                                onClick={zoomOut}
+                                title="Riduci"
+                            >
+                                <i className="fas fa-minus"></i>
+                            </button>
+                            <span className="pdf-toolbar-label">
+                                Zoom
+                            </span>
+                            <button
+                                className="pdf-toolbar-btn"
+                                onClick={zoomIn}
+                                title="Ingrandisci"
+                            >
+                                <i className="fas fa-plus"></i>
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
+
+                {/* Mobile: Show page count */}
+                {isMobile && numPages && (
+                    <div className="pdf-viewer-toolbar pdf-mobile-info">
+                        <span className="pdf-toolbar-label">
+                            {numPages} {numPages === 1 ? 'pagina' : 'pagine'}
+                        </span>
+                    </div>
+                )}
 
                 {/* PDF Content */}
                 <div className="pdf-viewer-content">
@@ -173,180 +216,34 @@ function PDFViewer({ url, originalUrl, titolo, onClose }) {
                             onLoadError={onDocumentLoadError}
                             loading={null}
                         >
-                            <Page
-                                pageNumber={pageNumber}
-                                width={pageWidth}
-                                scale={pageWidth ? undefined : scale}
-                                onLoadSuccess={onPageLoadSuccess}
-                                renderTextLayer={false}
-                                renderAnnotationLayer={false}
-                            />
+                            {isMobile ? (
+                                // Mobile: Render all pages for continuous scroll
+                                Array.from(new Array(numPages), (el, index) => (
+                                    <Page
+                                        key={`page_${index + 1}`}
+                                        pageNumber={index + 1}
+                                        width={pageWidth || window.innerWidth - 40}
+                                        onLoadSuccess={index === 0 ? onPageLoadSuccess : undefined}
+                                        renderTextLayer={false}
+                                        renderAnnotationLayer={false}
+                                        className="pdf-page-mobile"
+                                    />
+                                ))
+                            ) : (
+                                // Desktop: Single page with navigation
+                                <Page
+                                    pageNumber={pageNumber}
+                                    width={pageWidth}
+                                    scale={pageWidth ? undefined : scale}
+                                    onLoadSuccess={onPageLoadSuccess}
+                                    renderTextLayer={false}
+                                    renderAnnotationLayer={false}
+                                />
+                            )}
                         </Document>
                     )}
                 </div>
             </div>
-
-            <style>{`
-                .pdf-viewer-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.85);
-                    z-index: 1050;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .pdf-viewer-container {
-                    width: 95%;
-                    max-width: 1400px;
-                    height: 95vh;
-                    background: #1a1a1a;
-                    border-radius: 8px;
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
-                }
-
-                .pdf-viewer-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 12px 16px;
-                    background: #2d2d2d;
-                    border-bottom: 1px solid #444;
-                }
-
-                .pdf-title {
-                    display: flex;
-                    align-items: center;
-                    color: white;
-                    font-weight: 500;
-                    overflow: hidden;
-                    max-width: calc(100% - 100px);
-                }
-
-                .pdf-actions {
-                    display: flex;
-                    gap: 8px;
-                }
-
-                .pdf-viewer-toolbar {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    gap: 16px;
-                    padding: 8px 16px;
-                    background: #252525;
-                    border-bottom: 1px solid #444;
-                }
-
-                .pdf-toolbar-group {
-                    display: inline-flex;
-                    align-items: center;
-                    background: #3a3a3a;
-                    border-radius: 6px;
-                    overflow: hidden;
-                }
-
-                .pdf-toolbar-btn {
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 36px;
-                    height: 32px;
-                    border: none;
-                    background: #4a4a4a;
-                    color: white;
-                    cursor: pointer;
-                    transition: background 0.2s;
-                }
-
-                .pdf-toolbar-btn:hover:not(:disabled) {
-                    background: #5a5a5a;
-                }
-
-                .pdf-toolbar-btn:disabled {
-                    opacity: 0.4;
-                    cursor: not-allowed;
-                }
-
-                .pdf-toolbar-label {
-                    padding: 0 12px;
-                    color: white;
-                    font-size: 0.85rem;
-                    white-space: nowrap;
-                }
-
-                .pdf-viewer-content {
-                    flex: 1;
-                    overflow: auto;
-                    display: flex;
-                    justify-content: center;
-                    padding: 20px;
-                    background: #333;
-                }
-
-                .pdf-viewer-content .react-pdf__Document {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                }
-
-                .pdf-viewer-content .react-pdf__Page {
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-                    margin-bottom: 20px;
-                }
-
-                .pdf-loading, .pdf-error {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    text-align: center;
-                    padding: 40px;
-                }
-
-                @media (max-width: 768px) {
-                    .pdf-viewer-container {
-                        width: 100%;
-                        height: 100vh;
-                        border-radius: 0;
-                    }
-
-                    .pdf-viewer-toolbar {
-                        gap: 8px;
-                        padding: 6px 10px;
-                    }
-
-                    .pdf-toolbar-btn {
-                        width: 32px;
-                        height: 28px;
-                        font-size: 0.8rem;
-                    }
-
-                    .pdf-toolbar-label {
-                        padding: 0 8px;
-                        font-size: 0.75rem;
-                    }
-
-                    .pdf-viewer-header {
-                        padding: 8px 12px;
-                    }
-
-                    .pdf-title {
-                        font-size: 0.85rem;
-                    }
-
-                    .pdf-viewer-content {
-                        padding: 10px;
-                    }
-                }
-            `}</style>
         </div>
     );
 }

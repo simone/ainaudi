@@ -14,13 +14,14 @@ class RAGService:
     """RAG pipeline: retrieve → contextualize → generate."""
 
     @staticmethod
-    def answer_question(user_question: str, context_type: str = None) -> dict:
+    def answer_question(user_question: str, context_type: str = None, session=None) -> dict:
         """
         Answer user question using RAG pipeline.
 
         Args:
             user_question: User's question
             context_type: Optional context (e.g., "SCRUTINY", "INCIDENT")
+            session: ChatSession instance (to check conversation history)
 
         Returns:
             dict: {
@@ -30,6 +31,22 @@ class RAGService:
             }
         """
         try:
+            # 0. Pre-filter: check if question is trivial
+            # ONLY for first message in conversation (not in middle of chat)
+            is_first_message = True
+            if session:
+                # Count messages BEFORE current one (exclude the just-saved user message)
+                previous_messages = session.messages.count() - 1
+                is_first_message = previous_messages == 0
+
+            if is_first_message and vertex_ai_service.is_trivial_question(user_question):
+                logger.info(f"Trivial question detected (first message): {user_question[:50]}")
+                return {
+                    'answer': "🤷",
+                    'sources': [],
+                    'retrieved_docs': 0,
+                }
+
             # 1. Generate query embedding
             query_embedding = vertex_ai_service.generate_embedding(user_question)
 
@@ -61,10 +78,24 @@ class RAGService:
 
             context = "\n\n---\n\n".join(context_parts)
 
-            # 4. Generate response with Gemini
+            # 4. Check if we have relevant context
+            if not context or len(similar_docs) == 0:
+                # No relevant documents found - question likely off-topic
+                logger.info(f"No relevant context found for: {user_question[:50]}")
+
+                # Use minimal model call to clarify if question is pertinent
+                clarification = vertex_ai_service.clarify_off_topic_question(user_question)
+
+                return {
+                    'answer': clarification,
+                    'sources': [],
+                    'retrieved_docs': 0,
+                }
+
+            # 5. Generate response with Gemini + context
             answer = vertex_ai_service.generate_response(
                 prompt=user_question,
-                context=context if context else None
+                context=context
             )
 
             logger.info(

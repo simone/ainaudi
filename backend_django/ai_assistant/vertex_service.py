@@ -62,6 +62,80 @@ class VertexAIService:
             logger.error(f"✗ Vertex AI initialization failed: {e}", exc_info=True)
             raise
 
+    def is_trivial_question(self, question: str) -> bool:
+        """
+        Check if question is trivial/silly using minimal model call.
+
+        Returns True if question is: greeting, joke, nonsense, off-topic
+        """
+        # Quick pattern matching for obvious cases (no API call)
+        question_lower = question.lower().strip()
+
+        # Obvious greetings
+        greetings = ['ciao', 'salve', 'buongiorno', 'buonasera', 'hey', 'hello', 'hi']
+        if question_lower in greetings or len(question_lower) < 5:
+            return True
+
+        # Test patterns
+        test_patterns = ['test', 'prova', 'asdf', '???', '!!!']
+        if any(pattern in question_lower for pattern in test_patterns) and len(question_lower) < 15:
+            return True
+
+        self._ensure_initialized()
+
+        try:
+            classification_prompt = f"""Classifica come SERIA o BANALE.
+
+SERIA = elezioni, scrutinio, procedure RDL, normative
+BANALE = saluti, battute, nonsense, off-topic
+
+"{question}"
+
+Rispondi: SERIA o BANALE"""
+
+            response = self._llm.generate_content(classification_prompt)
+            result = response.text.strip().upper()
+
+            return 'BANALE' in result
+
+        except Exception as e:
+            logger.warning(f"Classification failed, assuming serious: {e}")
+            return False  # In caso di errore, tratta come seria
+
+    def clarify_off_topic_question(self, question: str) -> str:
+        """
+        Handle questions without relevant RAG context (likely off-topic).
+
+        Returns a brief clarification or shrug emoji.
+        """
+        self._ensure_initialized()
+
+        try:
+            clarification_prompt = f"""La domanda non ha documenti rilevanti nella KB RDL (elezioni/scrutinio).
+
+Domanda: "{question}"
+
+Se è CHIARAMENTE off-topic (meteo, sport, gossip, cucina) → 🤷
+
+Se menziona date/numeri/procedure ma è vaga → chiedi chiarimento (max 10 parole)
+
+Se sembra pertinente RDL ma incompleta → chiedi dettagli (max 10 parole)
+
+Esempi:
+- "Che tempo fa?" → 🤷
+- "Chi vince Sanremo?" → 🤷
+- "che devo fare il 21?" → "Il 21 di quale mese? Per quale attività (voto/scrutinio)?"
+- "documenti necessari" → "Documenti per quale procedura? Designazione, scrutinio, contestazioni?"
+- "cosa succede domani" → "Domani in quale contesto? Seggio, scrutinio, altro?"
+"""
+
+            response = self._llm.generate_content(clarification_prompt)
+            return response.text.strip()
+
+        except Exception as e:
+            logger.error(f"Clarification failed: {e}", exc_info=True)
+            return "Non ho capito la domanda. Puoi essere più specifico?"
+
     def generate_response(self, prompt: str, context: str = None) -> str:
         """
         Generate response using Gemini 1.5 Flash.
@@ -76,11 +150,25 @@ class VertexAIService:
         self._ensure_initialized()
 
         try:
+            # Get current date info for temporal context
+            from datetime import datetime
+            import locale
+            try:
+                locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
+            except:
+                pass  # Fallback to default if Italian locale not available
+
+            now = datetime.now()
+            date_context = f"""DATA DI OGGI: {now.strftime('%A %d %B %Y')}
+(Giorno della settimana: {now.strftime('%A')}, Ora: {now.strftime('%H:%M')})"""
+
             # Build full prompt with context
             system_prompt = settings.RAG_SYSTEM_PROMPT
 
             if context:
                 full_prompt = f"""{system_prompt}
+
+{date_context}
 
 CONTESTO DA DOCUMENTI:
 {context}
@@ -90,16 +178,17 @@ DOMANDA DELL'RDL:
 """
             else:
                 # No context available - use general knowledge
-                full_prompt = f"""Sei un assistente esperto per Rappresentanti di Lista (RDL) del Movimento 5 Stelle durante le elezioni italiane.
+                full_prompt = f"""Sei un assistente per RDL del M5S durante elezioni.
+
+{date_context}
 
 DOMANDA:
 {prompt}
 
 ISTRUZIONI:
-- Rispondi in italiano chiaro e professionale
-- Fornisci informazioni generali basate sulla tua conoscenza
-- Se la domanda richiede informazioni specifiche non disponibili, suggerisci di consultare la documentazione ufficiale
-- Mantieni un tono professionale ma accessibile
+- Rispondi breve e chiaro
+- Usa conoscenza generale RDL
+- Tono professionale diretto
 """
 
             # Generate response

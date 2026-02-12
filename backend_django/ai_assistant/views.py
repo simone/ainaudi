@@ -154,7 +154,7 @@ class ChatView(APIView):
 
         # === RAG IMPLEMENTATION ===
         try:
-            rag_result = rag_service.answer_question(message, context)
+            rag_result = rag_service.answer_question(message, context, session=session)
 
             # Save assistant response with sources
             assistant_message = ChatMessage.objects.create(
@@ -278,7 +278,7 @@ class ChatBranchView(APIView):
 
         # Generate AI response for the edited message
         try:
-            rag_result = rag_service.answer_question(new_message, original_session.context)
+            rag_result = rag_service.answer_question(new_message, original_session.context, session=new_session)
 
             assistant_message = ChatMessage.objects.create(
                 session=new_session,

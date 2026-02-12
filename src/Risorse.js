@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PDFViewer from './PDFViewer';
 import ReactMarkdown from 'react-markdown';
+import MarkdownModal from './MarkdownModal';
 
 /**
  * Pagina Risorse: Documenti e FAQ
@@ -131,6 +132,7 @@ function Risorse({ client, consultazione, setError }) {
     const [activeTab, setActiveTab] = useState('documenti'); // 'documenti' | 'faq'
     const [data, setData] = useState({ documenti: null, faqs: null });
     const [pdfViewer, setPdfViewer] = useState(null); // { url, titolo } quando aperto
+    const [showManuale, setShowManuale] = useState(false); // Manuale utente RDL
 
     // RDL designations state
     const [mieDesignazioni, setMieDesignazioni] = useState(null);
@@ -502,10 +504,43 @@ function Risorse({ client, consultazione, setError }) {
             {/* Tab Documenti */}
             {activeTab === 'documenti' && (
                 <>
+                    {/* Manuale Utente RDL - sempre in primo */}
+                    <div className="card mb-3">
+                        <div className="card-header bg-primary text-white">
+                            <i className="fas fa-book-open me-2"></i>
+                            <strong>Manuale Utente AInaudi</strong>
+                            <span className="badge bg-light text-primary ms-2">1</span>
+                        </div>
+                        <div>
+                            <a
+                                href="#"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setShowManuale(true);
+                                }}
+                                className="doc-card"
+                            >
+                                <div className="doc-card-icon" style={{ background: '#0d6efd12' }}>
+                                    <i className="fas fa-book-open" style={{ fontSize: '1.25rem', color: '#0d6efd' }}></i>
+                                </div>
+                                <div className="doc-card-content">
+                                    <div className="doc-card-title">
+                                        <i className="fas fa-star doc-card-star"></i>
+                                        Manuale Utente Completo
+                                    </div>
+                                    <p className="doc-card-desc">
+                                        Guida completa all'utilizzo dell'applicazione AInaudi per RDL: scrutinio, risorse, assistente IA e funzionalità avanzate.
+                                    </p>
+                                </div>
+                                <i className="fas fa-chevron-right doc-card-arrow"></i>
+                            </a>
+                        </div>
+                    </div>
+
                     {data.documenti?.categorie?.length === 0 ? (
                         <div className="text-center text-muted py-5">
                             <div style={{ fontSize: '3rem' }}>📂</div>
-                            <p>Nessun documento disponibile</p>
+                            <p>Nessun altro documento disponibile</p>
                         </div>
                     ) : (
                         data.documenti?.categorie?.map(categoria => (
@@ -642,6 +677,14 @@ function Risorse({ client, consultazione, setError }) {
                     onClose={() => setPdfViewer(null)}
                 />
             )}
+
+            {/* Manuale Utente Modal */}
+            <MarkdownModal
+                isOpen={showManuale}
+                onClose={() => setShowManuale(false)}
+                markdownUrl="/MANUALE_RDL.md"
+                title="Manuale Utente AInaudi"
+            />
         </>
     );
 }
