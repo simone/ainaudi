@@ -58,6 +58,12 @@ class ChatSession(models.Model):
     Chat session with the AI assistant.
     """
     user_email = models.EmailField(_('utente (email)'), default='')
+    title = models.CharField(
+        _('titolo'),
+        max_length=100,
+        blank=True,
+        help_text=_('Titolo auto-generato dal primo messaggio')
+    )
     context = models.CharField(
         _('contesto'),
         max_length=50,
@@ -72,6 +78,15 @@ class ChatSession(models.Model):
         blank=True,
         related_name='chat_sessions',
         verbose_name=_('sezione')
+    )
+    parent_session = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='branches',
+        verbose_name=_('sessione parent'),
+        help_text=_('Sessione da cui è stato fatto il branch (edit messaggio)')
     )
     created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
     updated_at = models.DateTimeField(_('ultimo aggiornamento'), auto_now=True)

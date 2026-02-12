@@ -13,6 +13,12 @@ function ChatInterface({ client, show, onClose }) {
         return saved ? parseInt(saved) : null;
     });
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [sessionTitle, setSessionTitle] = useState('');
+    const [editingMessageId, setEditingMessageId] = useState(null);
+    const [editText, setEditText] = useState('');
+    const [showSessionsList, setShowSessionsList] = useState(false);
+    const [sessions, setSessions] = useState([]);
+    const [isLoadingSessions, setIsLoadingSessions] = useState(false);
 
     const messagesEndRef = useRef(null);
     const recognitionRef = useRef(null);
@@ -26,16 +32,19 @@ function ChatInterface({ client, show, onClose }) {
                     const result = await client.ai.getSession(sessionId);
                     if (result.messages) {
                         setMessages(result.messages);
+                        setSessionTitle(result.title || '');
                     } else if (result.error === 'Session not found') {
                         // Session doesn't exist anymore, clear it
                         localStorage.removeItem('ai_chat_session_id');
                         setSessionId(null);
+                        setSessionTitle('');
                     }
                 } catch (error) {
                     console.error('Error loading session:', error);
                     // Clear invalid session
                     localStorage.removeItem('ai_chat_session_id');
                     setSessionId(null);
+                    setSessionTitle('');
                 } finally {
                     setIsLoadingHistory(false);
                 }
@@ -131,10 +140,15 @@ function ChatInterface({ client, show, onClose }) {
                 message: userMessage,
             });
 
-            // Save session ID for continuity (both in state and localStorage)
+            // Save session ID and title for continuity (both in state and localStorage)
             if (!sessionId && response.session_id) {
                 setSessionId(response.session_id);
                 localStorage.setItem('ai_chat_session_id', response.session_id);
+            }
+
+            // Update title if returned (after first message)
+            if (response.title && !sessionTitle) {
+                setSessionTitle(response.title);
             }
 
             // Add assistant message to UI
@@ -166,8 +180,91 @@ function ChatInterface({ client, show, onClose }) {
         // Clear current conversation
         setMessages([]);
         setSessionId(null);
+        setSessionTitle('');
         setInputText('');
         localStorage.removeItem('ai_chat_session_id');
+    };
+
+    const handleEditMessage = (messageId, content) => {
+        setEditingMessageId(messageId);
+        setEditText(content);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingMessageId(null);
+        setEditText('');
+    };
+
+    const handleSendEdit = async (messageId) => {
+        if (!editText.trim() || isLoading) return;
+
+        setIsLoading(true);
+        setEditingMessageId(null);
+
+        try {
+            // Create branch with edited message
+            const response = await client.ai.branch({
+                session_id: sessionId,
+                message_id: messageId,
+                new_message: editText.trim(),
+            });
+
+            if (response.error) {
+                throw new Error(response.error);
+            }
+
+            // Switch to new branch
+            setSessionId(response.session_id);
+            setSessionTitle(response.title);
+            localStorage.setItem('ai_chat_session_id', response.session_id);
+
+            // Reload messages from new branch
+            const result = await client.ai.getSession(response.session_id);
+            if (result.messages) {
+                setMessages(result.messages);
+            }
+
+        } catch (error) {
+            console.error('Edit error:', error);
+            alert('Errore durante la modifica del messaggio. Riprova.');
+            setEditingMessageId(messageId);
+        } finally {
+            setIsLoading(false);
+            setEditText('');
+        }
+    };
+
+    const handleLoadSessions = async () => {
+        setIsLoadingSessions(true);
+        setShowSessionsList(true);
+        try {
+            const result = await client.ai.sessions();
+            if (Array.isArray(result)) {
+                setSessions(result);
+            }
+        } catch (error) {
+            console.error('Failed to load sessions:', error);
+        } finally {
+            setIsLoadingSessions(false);
+        }
+    };
+
+    const handleSwitchSession = async (newSessionId) => {
+        setIsLoadingHistory(true);
+        setShowSessionsList(false);
+        try {
+            const result = await client.ai.getSession(newSessionId);
+            if (result.messages) {
+                setMessages(result.messages);
+                setSessionId(newSessionId);
+                setSessionTitle(result.session_title || '');
+                localStorage.setItem('ai_chat_session_id', newSessionId);
+            }
+        } catch (error) {
+            console.error('Failed to switch session:', error);
+        } finally {
+            setIsLoadingHistory(false);
+        }
     };
 
     if (!show) return null;
@@ -179,14 +276,24 @@ function ChatInterface({ client, show, onClose }) {
                 <div className="chat-header">
                     <div>
                         <i className="fas fa-robot me-2"></i>
-                        <strong>AI RDL</strong>
+                        <div>
+                            <strong>AI RDL</strong>
+                            {sessionTitle && <div className="chat-title-subtitle">{sessionTitle}</div>}
+                        </div>
                     </div>
                     <div>
+                        <button
+                            className="btn btn-outline-light"
+                            onClick={handleLoadSessions}
+                            title="Conversazioni precedenti"
+                        >
+                            <i className="fas fa-history"></i>
+                        </button>
                         {messages.length > 0 && (
                             <button
                                 className="btn btn-outline-light"
                                 onClick={handleNewConversation}
-                                title="Inizia una nuova conversazione"
+                                title="Nuova conversazione"
                             >
                                 <i className="fas fa-plus"></i>
                             </button>
@@ -230,37 +337,83 @@ function ChatInterface({ client, show, onClose }) {
                     {messages.map((msg, idx) => (
                         <div key={idx} className={`chat-message ${msg.role}`}>
                             <div className="message-bubble">
-                                <div className="message-content">
-                                    <ReactMarkdown>{msg.content}</ReactMarkdown>
-                                </div>
-                                {msg.sources && msg.sources.length > 0 && (
-                                    <div className="message-sources">
-                                        <div className="mb-2">
-                                            <small className="text-muted">
-                                                <i className="fas fa-book me-1"></i>
-                                                <strong>Fonti:</strong>
-                                            </small>
+                                {editingMessageId === msg.id && msg.role === 'user' ? (
+                                    /* Edit mode for user message */
+                                    <div className="message-edit-container">
+                                        <textarea
+                                            className="form-control message-edit-textarea"
+                                            value={editText}
+                                            onChange={(e) => setEditText(e.target.value)}
+                                            rows={3}
+                                            autoFocus
+                                        />
+                                        <div className="message-edit-actions">
+                                            <button
+                                                className="btn btn-sm btn-primary"
+                                                onClick={() => handleSendEdit(msg.id)}
+                                                disabled={!editText.trim() || isLoading}
+                                            >
+                                                <i className="fas fa-paper-plane me-1"></i>
+                                                Invia modificato
+                                            </button>
+                                            <button
+                                                className="btn btn-sm btn-secondary"
+                                                onClick={handleCancelEdit}
+                                                disabled={isLoading}
+                                            >
+                                                <i className="fas fa-times me-1"></i>
+                                                Annulla
+                                            </button>
                                         </div>
-                                        {msg.sources.map((source, sidx) => (
-                                            <div key={sidx} className="source-item">
-                                                <small className="text-muted">
-                                                    {source.title}
-                                                    {source.url && (
-                                                        <a
-                                                            href={source.url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="ms-2 source-link"
-                                                            title="Apri documento"
-                                                        >
-                                                            <i className="fas fa-external-link-alt me-1"></i>
-                                                            Apri PDF
-                                                        </a>
-                                                    )}
-                                                </small>
-                                            </div>
-                                        ))}
                                     </div>
+                                ) : (
+                                    /* Normal message display */
+                                    <>
+                                        <div className="message-content">
+                                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                        </div>
+                                        {msg.sources && msg.sources.length > 0 && (
+                                            <div className="message-sources">
+                                                <div className="mb-2">
+                                                    <small className="text-muted">
+                                                        <i className="fas fa-book me-1"></i>
+                                                        <strong>Fonti:</strong>
+                                                    </small>
+                                                </div>
+                                                {msg.sources.map((source, sidx) => (
+                                                    <div key={sidx} className="source-item">
+                                                        <small className="text-muted">
+                                                            {source.title}
+                                                            {source.url && (
+                                                                <a
+                                                                    href={source.url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="ms-2 source-link"
+                                                                    title="Apri documento"
+                                                                >
+                                                                    <i className="fas fa-external-link-alt me-1"></i>
+                                                                    Apri PDF
+                                                                </a>
+                                                            )}
+                                                        </small>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {msg.role === 'user' && msg.id && !isLoading && (
+                                            <div className="message-actions">
+                                                <button
+                                                    className="btn-message-action"
+                                                    onClick={() => handleEditMessage(msg.id, msg.content)}
+                                                    title="Modifica messaggio"
+                                                >
+                                                    <i className="fas fa-edit me-1"></i>
+                                                    Modifica
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -307,6 +460,58 @@ function ChatInterface({ client, show, onClose }) {
                         <i className="fas fa-paper-plane"></i>
                     </button>
                 </div>
+
+                {/* Sessions List Modal */}
+                {showSessionsList && (
+                    <div className="sessions-overlay" onClick={() => setShowSessionsList(false)}>
+                        <div className="sessions-panel" onClick={(e) => e.stopPropagation()}>
+                            <div className="sessions-header">
+                                <h5>
+                                    <i className="fas fa-history me-2"></i>
+                                    Conversazioni
+                                </h5>
+                                <button className="btn-close" onClick={() => setShowSessionsList(false)}></button>
+                            </div>
+                            <div className="sessions-list">
+                                {isLoadingSessions ? (
+                                    <div className="text-center p-4">
+                                        <span className="spinner-border spinner-border-sm"></span>
+                                        <p className="mt-2 mb-0">Caricamento...</p>
+                                    </div>
+                                ) : sessions.length === 0 ? (
+                                    <div className="text-center p-4 text-muted">
+                                        <i className="fas fa-comments mb-2" style={{ fontSize: '2rem' }}></i>
+                                        <p>Nessuna conversazione salvata</p>
+                                    </div>
+                                ) : (
+                                    sessions.map((session) => (
+                                        <div
+                                            key={session.id}
+                                            className={`session-item ${session.id === sessionId ? 'active' : ''}`}
+                                            onClick={() => handleSwitchSession(session.id)}
+                                        >
+                                            <div className="session-title">
+                                                <i className="fas fa-comment me-2"></i>
+                                                {session.title}
+                                            </div>
+                                            <div className="session-meta">
+                                                <small className="text-muted">
+                                                    {session.message_count} {session.message_count === 1 ? 'messaggio' : 'messaggi'}
+                                                    {' · '}
+                                                    {new Date(session.updated_at).toLocaleDateString('it-IT', {
+                                                        day: 'numeric',
+                                                        month: 'short',
+                                                        year: 'numeric'
+                                                    })}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

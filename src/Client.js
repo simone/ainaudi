@@ -1983,6 +1983,20 @@ const Client = (server, pdfServer, token) => {
                 return { error: error.message };
             }),
 
+        // Create a branch by editing a message
+        branch: async (data) =>
+            fetch(`${server}/api/ai/chat/branch/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify(data)
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
         // List user's chat sessions
         sessions: async () =>
             fetch(`${server}/api/ai/sessions/`, {
