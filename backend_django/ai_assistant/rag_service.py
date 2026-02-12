@@ -47,10 +47,19 @@ class RAGService:
                     'retrieved_docs': 0,
                 }
 
-            # 1. Generate query embedding
+            # 1. Pre-filter: check if question is too short/vague
+            if len(user_question.strip()) < 3:
+                logger.info(f"Question too short: '{user_question}'")
+                return {
+                    'answer': "Puoi essere più specifico? La domanda è troppo breve.",
+                    'sources': [],
+                    'retrieved_docs': 0,
+                }
+
+            # 2. Generate query embedding
             query_embedding = vertex_ai_service.generate_embedding(user_question)
 
-            # 2. Similarity search in pgvector
+            # 3. Similarity search in pgvector
             similar_docs = (
                 KnowledgeSource.objects
                 .filter(is_active=True)
@@ -62,7 +71,39 @@ class RAGService:
                 [:settings.RAG_TOP_K]
             )
 
-            # 3. Build context from retrieved documents
+            # 4. Check if we have relevant context
+            if len(similar_docs) == 0:
+                # No relevant documents found - question likely off-topic
+                logger.info(f"No relevant context found for: {user_question[:50]}")
+
+                # Use minimal model call to clarify if question is pertinent
+                clarification = vertex_ai_service.clarify_off_topic_question(user_question)
+
+                return {
+                    'answer': clarification,
+                    'sources': [],
+                    'retrieved_docs': 0,
+                }
+
+            # 5. Check if best match is too weak (even if above threshold)
+            # If best document has similarity < 0.6, it's likely too vague/off-topic
+            best_similarity = 1 - similar_docs[0].distance
+            QUALITY_THRESHOLD = 0.6  # Higher than RAG_SIMILARITY_THRESHOLD for quality check
+
+            if best_similarity < QUALITY_THRESHOLD:
+                logger.info(
+                    f"Best match too weak (similarity={best_similarity:.3f}): {user_question[:50]}"
+                )
+                # Use clarification for weak matches
+                clarification = vertex_ai_service.clarify_off_topic_question(user_question)
+
+                return {
+                    'answer': clarification,
+                    'sources': [],
+                    'retrieved_docs': 0,
+                }
+
+            # 6. Build context from retrieved documents
             context_parts = []
             sources = []
 
@@ -78,21 +119,7 @@ class RAGService:
 
             context = "\n\n---\n\n".join(context_parts)
 
-            # 4. Check if we have relevant context
-            if not context or len(similar_docs) == 0:
-                # No relevant documents found - question likely off-topic
-                logger.info(f"No relevant context found for: {user_question[:50]}")
-
-                # Use minimal model call to clarify if question is pertinent
-                clarification = vertex_ai_service.clarify_off_topic_question(user_question)
-
-                return {
-                    'answer': clarification,
-                    'sources': [],
-                    'retrieved_docs': 0,
-                }
-
-            # 5. Generate response with Gemini + context
+            # 7. Generate response with Gemini + context
             answer = vertex_ai_service.generate_response(
                 prompt=user_question,
                 context=context
