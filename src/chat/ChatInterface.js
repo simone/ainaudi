@@ -137,6 +137,39 @@ function ChatInterface({ client, show, onClose }) {
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [show, onClose]);
 
+    // Stop recording helper - used by multiple triggers
+    const stopRecording = () => {
+        if (isRecording && recognitionRef.current) {
+            recognitionRef.current.stop();
+        }
+    };
+
+    // Stop recording when chat closes
+    useEffect(() => {
+        if (!show) {
+            stopRecording();
+        }
+    }, [show]);
+
+    // Stop recording when app loses focus (tab switch, app switch on mobile)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                stopRecording();
+            }
+        };
+        const handleBlur = () => {
+            stopRecording();
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('blur', handleBlur);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('blur', handleBlur);
+        };
+    }, [isRecording]);
+
     const handleMicrophoneClick = () => {
         if (!recognitionRef.current) {
             alert('Il tuo browser non supporta il riconoscimento vocale. Usa Chrome o Edge.');
@@ -153,6 +186,8 @@ function ChatInterface({ client, show, onClose }) {
 
     const handleSendMessage = async () => {
         if (!inputText.trim() || isLoading) return;
+
+        stopRecording();
 
         const userMessage = inputText.trim();
         setInputText('');
@@ -648,7 +683,7 @@ function ChatInterface({ client, show, onClose }) {
                         className="form-control chat-input"
                         placeholder={isRecording ? 'Sto ascoltando... (clicca STOP per fermare)' : 'Scrivi o usa il microfono...'}
                         value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
+                        onChange={(e) => { stopRecording(); setInputText(e.target.value); }}
                         onKeyPress={handleKeyPress}
                         disabled={isLoading}
                     />
