@@ -85,6 +85,36 @@
     white-space: nowrap;
 }
 
+.sezione-rdl-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 3px;
+}
+
+.sezione-rdl-tag {
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sezione-rdl-tag.effettivo {
+    background: rgba(25, 135, 84, 0.1);
+    color: #198754;
+}
+
+.sezione-rdl-tag.supplente {
+    background: rgba(13, 110, 253, 0.1);
+    color: #0d6efd;
+}
+
 .sezione-status {
     display: flex;
     align-items: center;
@@ -276,6 +306,16 @@
 
 [data-theme="night"] .sezione-subtitle {
     color: #999;
+}
+
+[data-theme="night"] .sezione-rdl-tag.effettivo {
+    background: rgba(25, 135, 84, 0.2);
+    color: #75b798;
+}
+
+[data-theme="night"] .sezione-rdl-tag.supplente {
+    background: rgba(13, 110, 253, 0.2);
+    color: #6ea8fe;
 }
 
 [data-theme="night"] .sezione-progress {

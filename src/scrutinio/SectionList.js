@@ -321,6 +321,20 @@ function SectionList({client, user, setError, referenti}) {
                     <div className="sezione-subtitle">
                         {section.comune}
                     </div>
+                    {!section.is_mia && (section.effettivo || section.supplente) && (
+                        <div className="sezione-rdl-info">
+                            {section.effettivo && (
+                                <span className="sezione-rdl-tag effettivo" title={section.effettivo.email}>
+                                    <i className="fas fa-user"></i> {section.effettivo.nome}
+                                </span>
+                            )}
+                            {section.supplente && (
+                                <span className="sezione-rdl-tag supplente" title={section.supplente.email}>
+                                    <i className="fas fa-user-tag"></i> {section.supplente.nome}
+                                </span>
+                            )}
+                        </div>
+                    )}
                 </div>
                 <div className="sezione-status">
                     {complete ? (

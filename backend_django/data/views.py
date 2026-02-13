@@ -1030,6 +1030,20 @@ class ScrutinioSezioniView(APIView):
         sezioni_page = sezioni_qs[offset:offset + page_size]
         has_more = offset + page_size < total
 
+        # Prefetch assignments (effettivo/supplente) for all sections in page
+        sezioni_page_ids = [s.id for s in sezioni_page]
+        assignments_by_sezione = {}
+        for a in SectionAssignment.objects.filter(
+            sezione_id__in=sezioni_page_ids,
+            consultazione=consultazione,
+        ).select_related('rdl_registration'):
+            if a.rdl_registration:
+                assignments_by_sezione.setdefault(a.sezione_id, {})[a.role] = {
+                    'nome': f"{a.rdl_registration.cognome} {a.rdl_registration.nome}".strip(),
+                    'email': a.rdl_registration.email,
+                    'telefono': a.rdl_registration.telefono or '',
+                }
+
         sezioni_list = []
         for sezione in sezioni_page:
             # Get or create DatiSezione
@@ -1063,6 +1077,7 @@ class ScrutinioSezioniView(APIView):
                 else:
                     schede_data[str(scheda.id)] = None
 
+            sez_assignments = assignments_by_sezione.get(sezione.id, {})
             sezioni_list.append({
                 'comune': sezione.comune.nome,
                 'sezione': sezione.numero,
@@ -1071,6 +1086,8 @@ class ScrutinioSezioniView(APIView):
                 'is_mia': sezione.id in my_sezioni_ids,
                 'dati_seggio': dati_seggio,
                 'schede': schede_data,
+                'effettivo': sez_assignments.get('RDL'),
+                'supplente': sez_assignments.get('SUPPLENTE'),
             })
 
         return Response({
