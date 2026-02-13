@@ -29,6 +29,7 @@ function ChatInterface({ client, show, onClose }) {
     const messagesContainerRef = useRef(null);
     const recognitionRef = useRef(null);
     const prePrefixRef = useRef('');  // Testo esistente prima della registrazione
+    const textareaRef = useRef(null);
     const speechSynthesisRef = useRef(null);
 
     // Scroll to bottom helper
@@ -87,6 +88,15 @@ function ChatInterface({ client, show, onClose }) {
             requestAnimationFrame(() => scrollToBottom());
         }
     }, [messages, isLoadingHistory]);
+
+    // Auto-resize textarea when inputText changes
+    useEffect(() => {
+        const el = textareaRef.current;
+        if (el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+        }
+    }, [inputText]);
 
     // Initialize Web Speech API
     useEffect(() => {
@@ -683,14 +693,15 @@ function ChatInterface({ client, show, onClose }) {
                         <i className={`fas ${isRecording ? 'fa-stop' : 'fa-microphone'}`}></i>
                     </button>
 
-                    <input
-                        type="text"
+                    <textarea
+                        ref={textareaRef}
                         className="form-control chat-input"
                         placeholder={isRecording ? 'Sto ascoltando... (clicca STOP per fermare)' : 'Scrivi o usa il microfono...'}
                         value={inputText}
                         onChange={(e) => { stopRecording(); setInputText(e.target.value); }}
-                        onKeyPress={handleKeyPress}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                         disabled={isLoading}
+                        rows={1}
                     />
 
                     <button
