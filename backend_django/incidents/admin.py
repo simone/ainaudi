@@ -3,6 +3,7 @@ Django Admin configuration for incidents models.
 """
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
+from territory.admin_filters import make_territory_filters
 from .models import IncidentReport, IncidentComment, IncidentAttachment
 
 
@@ -24,7 +25,7 @@ class IncidentReportAdmin(admin.ModelAdmin):
         'id', 'title', 'category', 'severity', 'status',
         'location_description', 'reporter', 'created_at'
     ]
-    list_filter = ['status', 'category', 'severity', 'consultazione', 'sezione__comune']
+    list_filter = ['status', 'category', 'severity', 'consultazione', *make_territory_filters('sezione__comune')]
     search_fields = ['title', 'description', 'reporter__email', 'sezione__comune__nome']
     raw_id_fields = ['consultazione', 'sezione', 'reporter', 'resolved_by', 'assigned_to']
     inlines = [IncidentCommentInline, IncidentAttachmentInline]

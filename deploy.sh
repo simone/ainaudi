@@ -132,6 +132,7 @@ if [ "$SKIP_FRONTEND" = false ]; then
     # Collect Django admin/DRF static files into frontend build
     echo -e "${YELLOW}📦 Collect static Django (admin, rest_framework)...${NC}"
     (cd backend_django && python3 manage.py collectstatic --noinput --clear)
+    mkdir -p build/static
     cp -r backend_django/staticfiles/admin build/static/admin
     cp -r backend_django/staticfiles/rest_framework build/static/rest_framework
     echo -e "${GREEN}✅ Static Django copiati in build/static/${NC}"

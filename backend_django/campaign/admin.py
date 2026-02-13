@@ -5,6 +5,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
+from territory.admin_filters import make_territory_filters
 from .models import CampagnaReclutamento, RdlRegistration
 
 
@@ -89,7 +90,7 @@ class CampagnaReclutamentoAdmin(admin.ModelAdmin):
 @admin.register(RdlRegistration)
 class RdlRegistrationAdmin(admin.ModelAdmin):
     list_display = ['email', 'cognome', 'nome', 'comune', 'municipio', 'status', 'source', 'geo_display', 'n_plessi_vicini', 'requested_at']
-    list_filter = ['status', 'source', 'comune__provincia__regione', 'comune', ('latitudine', admin.EmptyFieldListFilter)]
+    list_filter = ['status', 'source', *make_territory_filters('comune'), ('latitudine', admin.EmptyFieldListFilter)]
     search_fields = ['email', 'nome', 'cognome', 'comune__nome']
     raw_id_fields = ['comune', 'municipio', 'consultazione', 'campagna']
     date_hierarchy = 'requested_at'

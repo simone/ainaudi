@@ -3,6 +3,7 @@ Django Admin configuration for sections models.
 """
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
+from territory.admin_filters import make_territory_filters
 from .models import SectionAssignment, DatiSezione, DatiScheda, SectionDataHistory
 
 
@@ -16,7 +17,7 @@ class DatiSchedaInline(admin.TabularInline):
 @admin.register(SectionAssignment)
 class SectionAssignmentAdmin(admin.ModelAdmin):
     list_display = ['sezione', 'rdl_registration', 'role', 'consultazione', 'assigned_at']
-    list_filter = ['role', 'consultazione', 'sezione__comune__provincia__regione']
+    list_filter = ['role', 'consultazione', *make_territory_filters('sezione__comune')]
     search_fields = [
         'rdl_registration__email', 'rdl_registration__nome', 'rdl_registration__cognome',
         'sezione__comune__nome', 'sezione__numero'
@@ -49,7 +50,7 @@ class DatiSezioneAdmin(admin.ModelAdmin):
     ]
     list_filter = [
         'is_complete', 'is_verified', 'consultazione',
-        'sezione__comune__provincia__regione', 'sezione__comune'
+        *make_territory_filters('sezione__comune')
     ]
     search_fields = ['sezione__comune__nome', 'sezione__numero']
     raw_id_fields = ['sezione', 'consultazione']

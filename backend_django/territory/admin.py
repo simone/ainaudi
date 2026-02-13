@@ -4,6 +4,7 @@ Admin configuration for Territorio app.
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
+from .admin_filters import make_territory_filters
 from .models import (
     Regione, Provincia, Comune, Municipio, SezioneElettorale,
     TerritorialPartitionSet, TerritorialPartitionUnit, TerritorialPartitionMembership
@@ -21,7 +22,7 @@ class RegioneAdmin(admin.ModelAdmin):
 @admin.register(Provincia)
 class ProvinciaAdmin(admin.ModelAdmin):
     list_display = ['codice_istat', 'sigla', 'nome', 'regione', 'is_citta_metropolitana']
-    list_filter = ['regione', 'is_citta_metropolitana']
+    list_filter = [*make_territory_filters(regione='regione'), 'is_citta_metropolitana']
     search_fields = ['nome', 'sigla', 'codice_istat']
     ordering = ['regione__codice_istat', 'nome']
     autocomplete_fields = ['regione']
@@ -30,7 +31,7 @@ class ProvinciaAdmin(admin.ModelAdmin):
 @admin.register(Comune)
 class ComuneAdmin(admin.ModelAdmin):
     list_display = ['codice_istat', 'nome', 'provincia', 'sopra_15000_abitanti']
-    list_filter = ['provincia__regione', 'provincia', 'sopra_15000_abitanti']
+    list_filter = [*make_territory_filters(''), 'sopra_15000_abitanti']
     search_fields = ['nome', 'codice_istat', 'codice_catastale']
     ordering = ['nome']
     autocomplete_fields = ['provincia']
@@ -39,7 +40,7 @@ class ComuneAdmin(admin.ModelAdmin):
 @admin.register(Municipio)
 class MunicipioAdmin(admin.ModelAdmin):
     list_display = ['numero', 'nome', 'comune']
-    list_filter = ['comune__provincia__regione', 'comune']
+    list_filter = [*make_territory_filters('comune')]
     search_fields = ['nome', 'comune__nome']
     ordering = ['comune', 'numero']
     autocomplete_fields = ['comune']
@@ -48,7 +49,7 @@ class MunicipioAdmin(admin.ModelAdmin):
 @admin.register(SezioneElettorale)
 class SezioneElettoraleAdmin(admin.ModelAdmin):
     list_display = ['numero', 'comune', 'municipio', 'denominazione', 'indirizzo', 'n_elettori', 'is_attiva', 'geo_display']
-    list_filter = ['is_attiva', 'comune__provincia__regione', 'comune__provincia', 'comune', ('latitudine', admin.EmptyFieldListFilter)]
+    list_filter = ['is_attiva', *make_territory_filters('comune'), ('latitudine', admin.EmptyFieldListFilter)]
     search_fields = ['numero', 'denominazione', 'indirizzo', 'comune__nome']
     ordering = ['comune', 'numero']
     autocomplete_fields = ['comune', 'municipio']
