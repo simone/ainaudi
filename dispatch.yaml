@@ -1,25 +1,17 @@
 dispatch:
-  # PDF generation (heavy, 1GB RAM, scale-to-zero)
-  - url: "*/api/deleghe/processi/*/genera_*"
-    service: pdf
-
-  # Django Admin (exact match senza trailing slash)
-  - url: "*/admin"
-    service: api
-
-  # Django Admin (con trailing slash e subpaths)
+  # Django Admin
   - url: "*/admin/*"
     service: api
 
-  # Campagna Open Graph (exact match senza trailing slash)
+  # Campagna Open Graph
   - url: "*/campagna/*"
     service: api
 
-  # API backend (tutto il resto delle API)
+  # API backend
   - url: "*/api/*"
     service: api
 
-  # Tutto il resto → React frontend (incluso /static/* del frontend)
+  # Tutto il resto → React frontend
   - url: "*/*"
     service: default
 
