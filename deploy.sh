@@ -145,10 +145,15 @@ if [ "$SKIP_BACKEND" = false ]; then
     echo -e "${BLUE}║                  2. BACKEND DJANGO                        ║${NC}"
     echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
 
-    echo -e "${YELLOW}📦 Collect static files Django...${NC}"
     cd backend_django
+
+    echo -e "${YELLOW}📦 Collect static files Django...${NC}"
     python3 manage.py collectstatic --noinput --clear
     echo -e "${GREEN}✅ Static files collected${NC}"
+
+    echo -e "${YELLOW}🗄️  Esecuzione migrazioni database...${NC}"
+    python3 manage.py migrate --noinput
+    echo -e "${GREEN}✅ Migrazioni completate${NC}"
 
     echo -e "${YELLOW}🚀 Deploy backend su App Engine (service: api)...${NC}"
     gcloud app deploy app.yaml \
