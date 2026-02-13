@@ -220,3 +220,120 @@
     color: #6c757d;
     margin-top: 2px;
 }
+
+.sezioni-section-header-territory {
+    background: #fff3cd;
+    color: #856404;
+}
+
+/* ============================================================
+   NIGHT THEME
+   ============================================================ */
+
+[data-theme="night"] .sezioni-search {
+    background: #1a1a2e;
+    border-bottom-color: #1a4d7a;
+}
+
+[data-theme="night"] .sezioni-search-input {
+    background: #16213e;
+    border-color: #1a4d7a;
+    color: #e0e0e0;
+}
+
+[data-theme="night"] .sezioni-search-input:focus {
+    border-color: #4a9eff;
+}
+
+[data-theme="night"] .sezioni-search-input::placeholder {
+    color: #888;
+}
+
+[data-theme="night"] .sezioni-header-title {
+    color: #e0e0e0;
+}
+
+[data-theme="night"] .sezioni-header-subtitle {
+    color: #999;
+}
+
+[data-theme="night"] .sezione-card {
+    background: #1a1a2e;
+    border-bottom-color: #1a4d7a;
+}
+
+[data-theme="night"] .sezione-card:hover {
+    background: #16213e;
+}
+
+[data-theme="night"] .sezione-card:active {
+    background: #0f3460;
+}
+
+[data-theme="night"] .sezione-title {
+    color: #e0e0e0;
+}
+
+[data-theme="night"] .sezione-subtitle {
+    color: #999;
+}
+
+[data-theme="night"] .sezione-progress {
+    background: #0f3460;
+}
+
+[data-theme="night"] .sezione-badge.complete {
+    background: rgba(25, 135, 84, 0.2);
+    color: #75b798;
+}
+
+[data-theme="night"] .sezione-badge.warning {
+    background: rgba(255, 193, 7, 0.15);
+    color: #ffda6a;
+}
+
+[data-theme="night"] .sezione-badge.primary {
+    background: rgba(13, 110, 253, 0.2);
+    color: #6ea8fe;
+}
+
+[data-theme="night"] .sezione-arrow {
+    color: #555;
+}
+
+[data-theme="night"] .sezioni-empty {
+    color: #999;
+}
+
+[data-theme="night"] .sezioni-section-header {
+    background: #16213e;
+    border-bottom-color: #1a4d7a;
+    color: #999;
+}
+
+[data-theme="night"] .consultazione-info {
+    background: linear-gradient(135deg, #0f3460 0%, #0a2a4a 100%);
+}
+
+[data-theme="night"] .plesso-header {
+    background: #16213e;
+    border-bottom-color: #1a4d7a;
+    color: #ccc;
+}
+
+[data-theme="night"] .plesso-header i {
+    color: #888;
+}
+
+[data-theme="night"] .plesso-header .plesso-count {
+    color: #888;
+}
+
+[data-theme="night"] .sezioni-section-header-territory {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffda6a;
+}
+
+[data-theme="night"] .plesso-address {
+    color: #888;
+}

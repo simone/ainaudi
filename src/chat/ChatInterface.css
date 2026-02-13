@@ -247,6 +247,7 @@
 
 .chat-message.assistant .message-bubble {
     background: white;
+    max-width: 100%;
     color: #1a1a1a;
     border: 1px solid #e0e0e0;
     border-radius: 18px 18px 18px 4px;
@@ -345,13 +346,23 @@
     font-size: 0.85rem;
     padding: 6px 12px;
     cursor: pointer;
-    transition: color 0.2s ease;
+    transition: color 0.2s ease, background 0.2s ease;
     border-radius: 12px;
 }
 
 .btn-message-action:hover {
     color: #1F4E5F;
     background: rgba(31, 78, 95, 0.05);
+}
+
+/* Edit button inside user bubbles (dark background) */
+.chat-message.user .btn-message-action {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.chat-message.user .btn-message-action:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.15);
 }
 
 .btn-message-action i {

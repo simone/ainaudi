@@ -455,6 +455,132 @@ const wizardStyles = `
         80% { opacity: 1; transform: translateX(-50%) translateY(0); }
         100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
     }
+
+    /* ============================================================
+       NIGHT THEME
+       ============================================================ */
+
+    [data-theme="night"] .wizard-container {
+        background: #1a1a2e;
+    }
+
+    [data-theme="night"] .wizard-drag-bar {
+        background: #555;
+    }
+
+    [data-theme="night"] .wizard-header {
+        background: linear-gradient(135deg, #0f3460 0%, #0a2a4a 100%);
+    }
+
+    [data-theme="night"] .wizard-tab {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    [data-theme="night"] .wizard-tab.active {
+        background: #1a1a2e;
+        color: #4a9eff;
+    }
+
+    [data-theme="night"] .wizard-tab.complete:not(.active) {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    [data-theme="night"] .wizard-tab-check {
+        color: #75b798;
+    }
+
+    [data-theme="night"] .wizard-card {
+        background: #16213e;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    [data-theme="night"] .wizard-card-title {
+        color: #e0e0e0;
+    }
+
+    [data-theme="night"] .wizard-card-subtitle {
+        color: #999;
+    }
+
+    [data-theme="night"] .wizard-field-label {
+        color: #ccc;
+    }
+
+    [data-theme="night"] .wizard-field-col label {
+        color: #999;
+    }
+
+    [data-theme="night"] .wizard-input {
+        background: #1a1a2e;
+        border-color: #1a4d7a;
+        color: #e0e0e0;
+    }
+
+    [data-theme="night"] .wizard-input:focus {
+        border-color: #4a9eff;
+    }
+
+    [data-theme="night"] .wizard-input::placeholder {
+        color: #666;
+    }
+
+    [data-theme="night"] .wizard-total {
+        background: #0f3460;
+    }
+
+    [data-theme="night"] .wizard-total-label {
+        color: #999;
+    }
+
+    [data-theme="night"] .wizard-total-value {
+        color: #e0e0e0;
+    }
+
+    [data-theme="night"] .wizard-total-value.highlight {
+        color: #4a9eff;
+    }
+
+    [data-theme="night"] .referendum-vote-card {
+        background: #1a1a2e;
+    }
+
+    [data-theme="night"] .referendum-vote-card.si {
+        border-color: #75b798;
+    }
+
+    [data-theme="night"] .referendum-vote-card.no {
+        border-color: #ea868f;
+    }
+
+    [data-theme="night"] .referendum-vote-input {
+        background: #16213e;
+        color: #e0e0e0;
+    }
+
+    [data-theme="night"] .referendum-vote-input:focus {
+        box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.25);
+    }
+
+    [data-theme="night"] .wizard-nav {
+        background: #1a1a2e;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    [data-theme="night"] .wizard-nav-btn.secondary {
+        background: #0f3460;
+        color: #ccc;
+    }
+
+    [data-theme="night"] .wizard-nav-indicator {
+        background: #16213e;
+        color: #999;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    [data-theme="night"] .wizard-scroll {
+        background: #1a1a2e;
+    }
 `;
 
 function SectionForm({schede, section, sectionData, saveSection, saveAndClose}) {

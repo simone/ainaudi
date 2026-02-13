@@ -422,7 +422,7 @@ function SectionList({client, user, setError, referenti}) {
             {/* Other sections in my territory (as delegato/sub-delegato) */}
             {(otherSections.length > 0 || totalTerritorio > 0) && (
                 <>
-                    <div className="sezioni-section-header" style={{ background: '#fff3cd', color: '#856404' }}>
+                    <div className="sezioni-section-header sezioni-section-header-territory">
                         <i className="fas fa-users"></i>
                         Sezioni del territorio
                         <span style={{ marginLeft: 'auto', fontWeight: 400 }}>
