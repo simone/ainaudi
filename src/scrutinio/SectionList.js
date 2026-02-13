@@ -424,7 +424,7 @@ function SectionList({client, user, setError, referenti}) {
                 <>
                     <div className="sezioni-section-header sezioni-section-header-territory">
                         <i className="fas fa-users"></i>
-                        Sezioni del territorio
+                        Sezioni delegate
                         <span style={{ marginLeft: 'auto', fontWeight: 400 }}>
                             {searchText ? otherSections.length : totalTerritorio}
                         </span>

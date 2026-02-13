@@ -984,7 +984,7 @@ class ScrutinioSezioniView(APIView):
         ).values_list('sezione_id', flat=True)
         my_sezioni_ids.update(designazioni)
 
-        # 2. Delegato/SubDelegato: sections from their territory
+        # 2. Delegato/SubDelegato: sections from their territory (solo mappate)
         roles = get_user_delegation_roles(request.user, consultazione.id)
         if roles['is_delegato'] or roles['is_sub_delegato']:
             sezioni_filter = get_sezioni_filter_for_user(request.user, consultazione.id)
@@ -995,12 +995,15 @@ class ScrutinioSezioniView(APIView):
                     # They should use admin or specific filters
                     pass
                 else:
-                    territory_sezioni = SezioneElettorale.objects.filter(
-                        sezioni_filter,
-                        is_attiva=True
-                    ).values_list('id', flat=True)
+                    # Solo sezioni mappate (con almeno un SectionAssignment)
+                    mapped_sezioni_ids = set(SectionAssignment.objects.filter(
+                        sezione__in=SezioneElettorale.objects.filter(
+                            sezioni_filter, is_attiva=True
+                        ),
+                        consultazione=consultazione,
+                    ).values_list('sezione_id', flat=True).distinct())
                     # Exclude sections already in my_sezioni_ids
-                    territory_sezioni_ids.update(set(territory_sezioni) - my_sezioni_ids)
+                    territory_sezioni_ids.update(mapped_sezioni_ids - my_sezioni_ids)
 
         sezioni_ids = my_sezioni_ids | territory_sezioni_ids
 

@@ -14,9 +14,10 @@ from django.db.models import Q, Count, Case, When, F
 from django.utils import timezone
 
 from core.permissions import HasScrutinioAccess
-from .models import SectionAssignment, DatiSezione, DatiScheda
+from .models import DatiSezione, DatiScheda, SectionAssignment
 from elections.models import ConsultazioneElettorale, SchedaElettorale
 from territory.models import SezioneElettorale
+from delegations.models import DesignazioneRDL
 from delegations.permissions import get_sezioni_filter_for_user, get_user_delegation_roles
 
 
@@ -64,23 +65,30 @@ class ScrutinioMieiSeggiLightView(APIView):
         my_sezioni_ids = set()
         territory_sezioni_ids = set()
 
-        # 1. RDL: sections from SectionAssignment
-        assignments = SectionAssignment.objects.filter(
-            rdl_registration__email=request.user.email,
-            consultazione=consultazione,
+        # 1. RDL: sections from DesignazioneRDL (confirmed designations)
+        designazioni = DesignazioneRDL.objects.filter(
+            Q(effettivo_email=request.user.email) | Q(supplente_email=request.user.email),
+            is_attiva=True,
+            stato='CONFERMATA',
+        ).filter(
+            Q(delegato__consultazione=consultazione) |
+            Q(sub_delega__delegato__consultazione=consultazione)
         ).values_list('sezione_id', flat=True)
-        my_sezioni_ids.update(assignments)
+        my_sezioni_ids.update(designazioni)
 
-        # 2. Delegato/SubDelegato: sections from their territory
+        # 2. Delegato/SubDelegato: sections from their territory (solo mappate)
         roles = get_user_delegation_roles(request.user, consultazione.id)
         if roles['is_delegato'] or roles['is_sub_delegato']:
             sezioni_filter = get_sezioni_filter_for_user(request.user, consultazione.id)
             if sezioni_filter is not None and sezioni_filter != Q():
-                territory_sezioni = SezioneElettorale.objects.filter(
-                    sezioni_filter,
-                    is_attiva=True
-                ).values_list('id', flat=True)
-                territory_sezioni_ids.update(set(territory_sezioni) - my_sezioni_ids)
+                # Solo sezioni mappate (con almeno un SectionAssignment)
+                mapped_sezioni_ids = set(SectionAssignment.objects.filter(
+                    sezione__in=SezioneElettorale.objects.filter(
+                        sezioni_filter, is_attiva=True
+                    ),
+                    consultazione=consultazione,
+                ).values_list('sezione_id', flat=True).distinct())
+                territory_sezioni_ids.update(mapped_sezioni_ids - my_sezioni_ids)
 
         sezioni_ids = my_sezioni_ids | territory_sezioni_ids
 
@@ -186,11 +194,15 @@ class ScrutinioSezioneDetailView(APIView):
 
         # Check permission (same logic as other scrutinio views)
         my_sezioni_ids = set()
-        assignments = SectionAssignment.objects.filter(
-            rdl_registration__email=request.user.email,
-            consultazione=consultazione,
+        designazioni = DesignazioneRDL.objects.filter(
+            Q(effettivo_email=request.user.email) | Q(supplente_email=request.user.email),
+            is_attiva=True,
+            stato='CONFERMATA',
+        ).filter(
+            Q(delegato__consultazione=consultazione) |
+            Q(sub_delega__delegato__consultazione=consultazione)
         ).values_list('sezione_id', flat=True)
-        my_sezioni_ids.update(assignments)
+        my_sezioni_ids.update(designazioni)
 
         roles = get_user_delegation_roles(request.user, consultazione.id)
         if roles['is_delegato'] or roles['is_sub_delegato']:
@@ -310,11 +322,15 @@ class ScrutinioSezioneSaveView(APIView):
 
         # Verify access (same as detail view)
         my_sezioni_ids = set()
-        assignments = SectionAssignment.objects.filter(
-            rdl_registration__email=request.user.email,
-            consultazione=consultazione,
+        designazioni = DesignazioneRDL.objects.filter(
+            Q(effettivo_email=request.user.email) | Q(supplente_email=request.user.email),
+            is_attiva=True,
+            stato='CONFERMATA',
+        ).filter(
+            Q(delegato__consultazione=consultazione) |
+            Q(sub_delega__delegato__consultazione=consultazione)
         ).values_list('sezione_id', flat=True)
-        my_sezioni_ids.update(assignments)
+        my_sezioni_ids.update(designazioni)
 
         roles = get_user_delegation_roles(request.user, consultazione.id)
         if roles['is_delegato'] or roles['is_sub_delegato']:
