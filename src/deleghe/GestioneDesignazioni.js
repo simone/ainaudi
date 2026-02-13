@@ -45,6 +45,8 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
 
     // Confirm modal state
     const [showAnnullaModal, setShowAnnullaModal] = useState(false);
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [emailProcessoId, setEmailProcessoId] = useState(null);
 
     // PDF Viewer state
     const [pdfViewer, setPdfViewer] = useState(null); // { url, titolo, blobUrl } quando aperto
@@ -535,14 +537,15 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
     };
 
     // Handler invio email agli RDL
-    const handleInviaEmail = async (processoId) => {
-        const confirmMessage = 'Sei sicuro di voler inviare le email a tutti gli RDL di questo processo?\n\n' +
-            'Questa operazione può richiedere alcuni minuti per comuni grandi.\n' +
-            'Riceverai una notifica al completamento.';
+    const handleInviaEmail = (processoId) => {
+        setEmailProcessoId(processoId);
+        setShowEmailModal(true);
+    };
 
-        if (!window.confirm(confirmMessage)) {
-            return;
-        }
+    const confirmInviaEmail = async () => {
+        setShowEmailModal(false);
+        const processoId = emailProcessoId;
+        setEmailProcessoId(null);
 
         setInviandoEmail(prev => ({ ...prev, [processoId]: true }));
         setEmailProgress(prev => ({ ...prev, [processoId]: { percentage: 0, status: 'STARTED' } }));
@@ -1216,6 +1219,24 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                     </div>
                 </ConfirmModal>
 
+                {/* Modal conferma invio email */}
+                <ConfirmModal
+                    show={showEmailModal}
+                    onConfirm={confirmInviaEmail}
+                    onCancel={() => { setShowEmailModal(false); setEmailProcessoId(null); }}
+                    title="Invio Email RDL"
+                    confirmText="Invia Email"
+                    confirmVariant="primary"
+                >
+                    <div>
+                        <p>Sei sicuro di voler inviare le email a tutti gli RDL di questo processo?</p>
+                        <p className="text-muted mb-0">
+                            Questa operazione puo' richiedere alcuni minuti per comuni grandi.
+                            Riceverai una notifica al completamento.
+                        </p>
+                    </div>
+                </ConfirmModal>
+
                 {/* PDF Viewer Modal */}
                 {pdfViewer && (
                     <PDFViewer
@@ -1372,6 +1393,24 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                     </ul>
                     <p className="mb-0">
                         Le sezioni torneranno disponibili per un nuovo atto.
+                    </p>
+                </div>
+            </ConfirmModal>
+
+            {/* Modal conferma invio email */}
+            <ConfirmModal
+                show={showEmailModal}
+                onConfirm={confirmInviaEmail}
+                onCancel={() => { setShowEmailModal(false); setEmailProcessoId(null); }}
+                title="Invio Email RDL"
+                confirmText="Invia Email"
+                confirmVariant="primary"
+            >
+                <div>
+                    <p>Sei sicuro di voler inviare le email a tutti gli RDL di questo processo?</p>
+                    <p className="text-muted mb-0">
+                        Questa operazione puo' richiedere alcuni minuti per comuni grandi.
+                        Riceverai una notifica al completamento.
                     </p>
                 </div>
             </ConfirmModal>

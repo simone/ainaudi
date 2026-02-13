@@ -1053,9 +1053,11 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         Ogni pagina contiene la designazione per una singola sezione.
         """
         from documents.pdf_generator import PDFGenerator
+        from documents.template_types import DesignationSingleType
         from django.core.files.base import ContentFile
         from django.utils import timezone
-        from PyPDF2 import PdfWriter
+        from PyPDF2 import PdfWriter, PdfReader
+        import io
 
         designazioni = processo.designazioni.all().select_related(
             'sezione', 'sezione__comune', 'sezione__municipio'
@@ -1065,38 +1067,18 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         writer = PdfWriter()
 
         for designazione in designazioni:
-            # Prepara dati per singola designazione
-            data = {
-                'delegato': processo.dati_delegato,
-                'designazioni': [{
-                    'effettivo_cognome': designazione.effettivo_cognome,
-                    'effettivo_nome': designazione.effettivo_nome,
-                    'effettivo_data_nascita': designazione.effettivo_data_nascita,
-                    'effettivo_luogo_nascita': designazione.effettivo_luogo_nascita,
-                    'effettivo_domicilio': designazione.effettivo_domicilio,
-                    'supplente_cognome': designazione.supplente_cognome or '',
-                    'supplente_nome': designazione.supplente_nome or '',
-                    'supplente_data_nascita': designazione.supplente_data_nascita,
-                    'supplente_luogo_nascita': designazione.supplente_luogo_nascita or '',
-                    'supplente_domicilio': designazione.supplente_domicilio or '',
-                    'sezione_numero': designazione.sezione.numero,
-                    'sezione_indirizzo': designazione.sezione.indirizzo or '',
-                    'comune_nome': designazione.sezione.comune.nome if designazione.sezione.comune else '',
-                }]
-            }
+            data = DesignationSingleType.serialize(processo, designazione)
 
             # Genera PDF per questa sezione (singola pagina)
             generator = PDFGenerator(processo.template_individuale.template_file, data)
             pdf_bytes = generator.generate_from_template(processo.template_individuale)
 
             # Importa la pagina nel writer multi-pagina
-            from PyPDF2 import PdfReader
             pdf_reader = PdfReader(pdf_bytes)
             for page in pdf_reader.pages:
                 writer.add_page(page)
 
         # Salva PDF multi-pagina
-        import io
         output = io.BytesIO()
         writer.write(output)
         output.seek(0)
@@ -1116,6 +1098,7 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         Crea un unico PDF multi-pagina contenente tutte le designazioni.
         """
         from documents.pdf_generator import generate_pdf
+        from documents.template_types import DesignationMultiType
         from django.core.files.base import ContentFile
         from django.utils import timezone
 
@@ -1123,28 +1106,7 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             'sezione', 'sezione__comune', 'sezione__municipio'
         ).order_by('sezione__numero')
 
-        # Prepara dati per tutte le designazioni
-        data = {
-            'delegato': processo.dati_delegato,
-            'designazioni': [
-                {
-                    'effettivo_cognome': d.effettivo_cognome,
-                    'effettivo_nome': d.effettivo_nome,
-                    'effettivo_data_nascita': d.effettivo_data_nascita,
-                    'effettivo_luogo_nascita': d.effettivo_luogo_nascita,
-                    'effettivo_domicilio': d.effettivo_domicilio,
-                    'supplente_cognome': d.supplente_cognome or '',
-                    'supplente_nome': d.supplente_nome or '',
-                    'supplente_data_nascita': d.supplente_data_nascita,
-                    'supplente_luogo_nascita': d.supplente_luogo_nascita or '',
-                    'supplente_domicilio': d.supplente_domicilio or '',
-                    'sezione_numero': d.sezione.numero,
-                    'sezione_indirizzo': d.sezione.indirizzo or '',
-                    'comune_nome': d.sezione.comune.nome if d.sezione.comune else '',
-                }
-                for d in designazioni
-            ]
-        }
+        data = DesignationMultiType.serialize(processo, designazioni)
 
         # Genera PDF cumulativo (multi-pagina)
         pdf_bytes = generate_pdf(processo.template_cumulativo, data)

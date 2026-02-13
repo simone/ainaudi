@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ConfirmModal from '../components/ConfirmModal';
 import './TemplateEditor.css';
 
 /**
@@ -13,6 +14,7 @@ function TemplateList({ client, onEditTemplate }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
     const [showNewTemplateForm, setShowNewTemplateForm] = useState(false);
     const [newTemplate, setNewTemplate] = useState({
         name: '',
@@ -138,10 +140,13 @@ function TemplateList({ client, onEditTemplate }) {
         }
     };
 
-    const handleDeleteTemplate = async (template) => {
-        if (!window.confirm(`Sei sicuro di voler eliminare il template "${template.name}"?`)) {
-            return;
-        }
+    const handleDeleteTemplate = (template) => {
+        setDeleteTarget(template);
+    };
+
+    const confirmDeleteTemplate = async () => {
+        const template = deleteTarget;
+        setDeleteTarget(null);
 
         try {
             setLoading(true);
@@ -386,6 +391,16 @@ function TemplateList({ client, onEditTemplate }) {
                     <li><strong>JSONPath:</strong> Indica da dove prendere i dati (es: $.delegato.cognome)</li>
                 </ul>
             </div>
+
+            <ConfirmModal
+                show={!!deleteTarget}
+                onConfirm={confirmDeleteTemplate}
+                onCancel={() => setDeleteTarget(null)}
+                title="Elimina Template"
+                message={`Sei sicuro di voler eliminare il template "${deleteTarget?.name}"?`}
+                confirmText="Elimina"
+                confirmVariant="danger"
+            />
         </div>
     );
 }

@@ -1,223 +1,180 @@
-# Guida Loop - Stampa Unione PDF
+# Guida Template PDF - JSONPath e Loop
 
-## 📋 Indice
+## Indice
 
-1. [Cosa sono i Loop](#cosa-sono-i-loop)
+1. [Tipi di Template](#tipi-di-template)
 2. [Espressioni JSONPath](#espressioni-jsonpath)
-3. [Configurare un Loop](#configurare-un-loop)
-4. [Merge Mode](#merge-mode)
-5. [Esempi Pratici](#esempi-pratici)
-6. [Troubleshooting](#troubleshooting)
+3. [Configurare un Loop (solo MULTI)](#configurare-un-loop)
+4. [Esempi Pratici](#esempi-pratici)
+5. [Troubleshooting](#troubleshooting)
 
 ---
 
-## 🔄 Cosa sono i Loop
+## Tipi di Template
 
-I **loop** permettono di generare automaticamente sezioni ripetute in un PDF.
+### DESIGNATION_SINGLE - Designazione Individuale
 
-### Caso d'Uso: Designazioni RDL
+**Un documento per sezione**. Dati piatti al top level, nessun loop.
 
-Un Delegato può avere **multiple designazioni** (una per sezione elettorale):
-
-```
-Delegato: Mario Rossi
-├── Designazione 1: Sezione 001 - Effettivo: Luigi Verdi
-├── Designazione 2: Sezione 002 - Effettivo: Anna Bianchi
-└── Designazione 3: Sezione 003 - Effettivo: Paolo Neri
-```
-
-Con i **loop**, puoi creare automaticamente una riga per ogni designazione.
-
----
-
-## 🧭 Espressioni JSONPath
-
-### 1. JSONPath Semplice
-
-Estrae un singolo campo dal JSON:
-
-```javascript
-// Dati
+Struttura dati:
+```json
 {
   "delegato": {
     "cognome": "Rossi",
-    "nome": "Mario"
+    "nome": "Mario",
+    "luogo_nascita": "Roma",
+    "data_nascita": "1980-01-15",
+    "carica": "Deputato",
+    "documento": "CI AB123456",
+    "domicilio": "Via Roma 1, Roma"
+  },
+  "sezione": 2359,
+  "comune": "Roma",
+  "indirizzo": "VIA VALLOMBROSA, 31",
+  "effettivo": {
+    "cognome": "Verdi",
+    "nome": "Luigi",
+    "data_nascita": "1990-03-20",
+    "luogo_nascita": "Torino",
+    "domicilio": "Via Milano 5, Milano"
+  },
+  "supplente": {
+    "cognome": "Gialli",
+    "nome": "Maria",
+    "data_nascita": "1988-07-10",
+    "luogo_nascita": "Bologna",
+    "domicilio": "Via Torino 8, Milano"
   }
 }
+```
 
-// JSONPath
+**JSONPath disponibili:**
+- `$.delegato.cognome`, `$.delegato.nome`, `$.delegato.data_nascita`, `$.delegato.luogo_nascita`, `$.delegato.carica`, `$.delegato.documento`, `$.delegato.domicilio`
+- `$.sezione`, `$.comune`, `$.indirizzo`
+- `$.effettivo.cognome`, `$.effettivo.nome`, `$.effettivo.data_nascita`, `$.effettivo.luogo_nascita`, `$.effettivo.domicilio`
+- `$.supplente.cognome`, `$.supplente.nome`, `$.supplente.data_nascita`, `$.supplente.luogo_nascita`, `$.supplente.domicilio`
+
+**Tutti i campi sono di tipo `text`**. Non serve nessun loop.
+
+---
+
+### DESIGNATION_MULTI - Designazione Riepilogativa
+
+**Un documento con tutte le sezioni**. Delegato e comune al top level, designazioni in array per loop.
+
+Struttura dati:
+```json
+{
+  "delegato": {
+    "cognome": "Rossi",
+    "nome": "Mario",
+    "luogo_nascita": "Roma",
+    "data_nascita": "1980-01-15",
+    "carica": "Deputato",
+    "documento": "CI AB123456",
+    "domicilio": "Via Roma 1, Roma"
+  },
+  "comune": "Roma",
+  "designazioni": [
+    {
+      "sezione": 2359,
+      "indirizzo": "VIA VALLOMBROSA, 31",
+      "effettivo": {
+        "cognome": "Verdi",
+        "nome": "Luigi",
+        "data_nascita": "1990-03-20",
+        "luogo_nascita": "Torino",
+        "domicilio": "Via Milano 5, Milano"
+      },
+      "supplente": {
+        "cognome": "Gialli",
+        "nome": "Maria",
+        "data_nascita": "1988-07-10",
+        "luogo_nascita": "Bologna",
+        "domicilio": "Via Torino 8, Milano"
+      }
+    }
+  ]
+}
+```
+
+**JSONPath delegato e comune (tipo `text`, assoluti):**
+- `$.delegato.cognome`, `$.delegato.nome`, etc.
+- `$.comune` (uguale per tutte le sezioni, non si fanno documenti cross-comune)
+
+**Loop jsonpath:** `$.designazioni`
+
+**JSONPath nel loop (relativi ad ogni item):**
+- `$.sezione`, `$.indirizzo`
+- `$.effettivo.cognome`, `$.effettivo.nome`, `$.effettivo.data_nascita`, `$.effettivo.luogo_nascita`, `$.effettivo.domicilio`
+- `$.supplente.cognome`, `$.supplente.nome`, `$.supplente.data_nascita`, `$.supplente.luogo_nascita`, `$.supplente.domicilio`
+
+---
+
+## Espressioni JSONPath
+
+### JSONPath Semplice
+
+Estrae un singolo campo:
+
+```
 $.delegato.cognome
 // Risultato: "Rossi"
 ```
 
-### 2. JSONPath Concatenato
+### JSONPath Concatenato
 
-Concatena più campi con `+`:
+Concatena piu' campi con `+`:
 
-```javascript
-// JSONPath
+```
 $.delegato.cognome + " " + $.delegato.nome
 // Risultato: "Rossi Mario"
+
+$.effettivo.cognome + " " + $.effettivo.nome
+// Risultato: "Verdi Luigi"
 ```
 
-### 3. JSONPath con Literal
+### Autocomplete
 
-Aggiungi testo statico con quote:
-
-```javascript
-// JSONPath
-$.comune + " (" + $.provincia + ")"
-// Risultato: "Roma (RM)"
-
-// Oppure
-"Sezione " + $.sezione.numero
-// Risultato: "Sezione 001"
-```
-
-### 4. Loop Array
-
-Estrae un array da iterare:
-
-```javascript
-// Dati
-{
-  "designazioni": [
-    {"sezione": "001", "effettivo": "Verdi Luigi"},
-    {"sezione": "002", "effettivo": "Bianchi Anna"}
-  ]
-}
-
-// JSONPath Loop
-$.designazioni
-// Risultato: Array con 2 elementi
-```
+Digita `$.` nel campo JSONPath per vedere i suggerimenti. I suggerimenti derivano dallo schema di esempio del tipo template.
 
 ---
 
-## 🎯 Autocomplete JSONPath
+## Configurare un Loop
 
-L'editor template ha **autocomplete intelligente** per i JSONPath che ti aiuta a inserire i campi correttamente.
+> Solo per template **DESIGNATION_MULTI** (riepilogativo).
+> Per DESIGNATION_SINGLE non serve: tutti i campi sono `text`.
 
-### Come Funziona
+### Workflow
 
-1. **Basato su Esempio**: I suggerimenti derivano dal campo `variables_schema` del template
-2. **Typing**: Digita `$.` per vedere tutti i campi disponibili
-3. **Filtraggio**: I suggerimenti si filtrano mentre digiti
-4. **Esempi in tempo reale**: Ogni suggerimento mostra un valore di esempio
+1. **Aggiungi campo** con tipo `loop` e JSONPath `$.designazioni`
+2. **Seleziona la PRIMA riga** della tabella sul PDF (l'area del loop)
+3. Le righe successive vengono generate automaticamente
+4. Usa il pulsante **"Campi"** per definire le colonne del loop
 
-### Utilizzo
-
-```
-1. Digita "$." nel campo JSONPath
-2. Appare un menu con tutti i campi disponibili
-3. Usa ↑↓ per navigare o continua a digitare per filtrare
-4. Premi Enter o Tab per accettare il suggerimento
-5. Premi Esc per chiudere il menu
-```
-
-### Esempio Interattivo
-
-```javascript
-// Quando digiti: "$.del"
-// Autocomplete mostra:
-$.delegato.cognome        (string) "Rossi"
-$.delegato.nome           (string) "Mario"
-$.delegato.email          (string) "mario.rossi@m5s.it"
-$.delegato.nome_completo  (string) "Rossi Mario"
-
-// Quando digiti: "$.desi"
-// Autocomplete mostra:
-$.designazioni            (array) [2 elementi]
-$.designazioni[].sezione  (string) "001"
-$.designazioni[].indirizzo (string) "Via Roma 1"
-```
-
-### Bash-like Completion
-
-L'autocomplete funziona come **bash completion** nella shell:
-
-```bash
-# Bash:
-cd /ho[TAB] → /home/
-cd /home/u[TAB] → /home/user/
-
-# JSONPath (uguale):
-$.del[TAB] → $.delegato
-$.delegato.[↓] → mostra: cognome, nome, email, ...
-$.delegato.co[↓] → $.delegato.cognome
-```
-
-### Aggiornare Schema Esempio
-
-Se aggiungi nuovi campi ai serializer Django:
-
-1. Vai su **Django Admin** → **Documents** → **Templates**
-2. Seleziona il template
-3. Modifica campo **"Variables Schema"**
-4. Aggiungi i nuovi campi nell'esempio JSON
-5. Salva
-
-L'autocomplete si aggiornerà automaticamente!
-
----
-
-## ⚙️ Configurare un Loop
-
-### Workflow Completo
-
-#### 1. **Upload Template PDF**
-- Usa un PDF con spazio per righe ripetute
-- Esempio: template con tabella vuota
-
-#### 2. **Definisci Area Loop**
-Nel Template Editor:
-
-1. **Apri template** → Click "Configura"
-2. **Trascina area** sul PDF per definire **solo la prima riga**
-3. **Compila form**:
-   - **JSONPath**: `$.designazioni` (array da iterare) - usa autocomplete!
-   - **Tipo**: `loop`
-   - **Coordinate**: Auto-popolate dalla selezione
-
-**⚠️ IMPORTANTE: Selezione Riga**
-
-Per campi di tipo **loop** (tabelle con righe ripetute):
-
-1. **Seleziona SOLO la prima riga** sul PDF
-2. Le righe successive verranno **automaticamente generate**
-3. Ogni riga avrà la **stessa altezza** della prima
-4. Il sistema trasla verticalmente ogni riga
-
-**Esempio Pratico**:
-```
-Prima riga:  Y=150, Height=20  →  Area: 150-170
-Seconda riga: Y=170, Height=20  →  Area: 170-190
-Terza riga:   Y=190, Height=20  →  Area: 190-210
-```
-
-**Non serve selezionare manualmente ogni riga!**
-
-#### 3. **Aggiungi Campi Loop**
+### Campi Loop
 
 Per ogni colonna della tabella, aggiungi un campo:
 
-**Esempio: Tabella Designazioni**
+| Campo | JSONPath |
+|-------|----------|
+| Sezione | `$.sezione` |
+| Comune | `$.comune` |
+| Effettivo | `$.effettivo.cognome + " " + $.effettivo.nome` |
+| Data nascita eff. | `$.effettivo.data_nascita` |
+| Luogo nascita eff. | `$.effettivo.luogo_nascita` |
+| Domicilio eff. | `$.effettivo.domicilio` |
+| Supplente | `$.supplente.cognome + " " + $.supplente.nome` |
+| Data nascita suppl. | `$.supplente.data_nascita` |
+| Luogo nascita suppl. | `$.supplente.luogo_nascita` |
+| Domicilio suppl. | `$.supplente.domicilio` |
 
-| Campo | JSONPath | Posizione |
-|-------|----------|-----------|
-| Sezione | `$.sezione` | x:50, y:100 |
-| Effettivo | `$.effettivo_cognome + " " + $.effettivo_nome` | x:150, y:100 |
-| Email | `$.effettivo_email` | x:350, y:100 |
+I JSONPath nei loop sono **relativi all'elemento corrente** dell'array.
 
-**Nota**: JSONPath nei loop è **relativo all'elemento corrente** dell'array!
+### Paginazione
 
-#### 4. **Configura Paginazione**
+Se la lista e' lunga, configura la paginazione:
 
-Se la lista è lunga, configura la paginazione:
-
-**Merge Mode**: `MULTI_PAGE_LOOP`
-
-**Loop Config**:
 ```json
 {
   "rows_first_page": 6,
@@ -226,91 +183,24 @@ Se la lista è lunga, configura la paginazione:
 }
 ```
 
-- **rows_first_page**: Quante righe nella prima pagina (es: 6 se c'è header)
-- **rows_per_page**: Quante righe nelle pagine successive (es: 13 se no header)
-- **data_source**: JSONPath dell'array da iterare
+- **rows_first_page**: Righe nella prima pagina (meno se c'e' header)
+- **rows_per_page**: Righe nelle pagine successive
+
+### Loop Multi-Pagina (posizioni diverse)
+
+Se la prima pagina ha un header e le successive no:
+
+1. **Prima pagina**: Seleziona riga sotto header, imposta page=0
+2. **Pagine successive**: Seleziona riga dall'alto, imposta page=1
+3. Il backend usa page=0 per pagina 1, page=1 per pagine 2, 3, 4...
 
 ---
 
-## 📑 Merge Mode
+## Esempi Pratici
 
-### 1. `SINGLE_DOC_PER_RECORD`
+### Esempio: DESIGNATION_SINGLE
 
-**Un PDF per ogni record principale.**
-
-**Esempio**: Un PDF per ogni Delegato (con tutte le sue designazioni).
-
-```
-Input: 3 Delegati con N designazioni ciascuno
-Output: 3 PDF separati
-```
-
-**Quando usare**:
-- Email individuali
-- Stampa separata per ogni persona
-- Archiviazione per delegato
-
-### 2. `MULTI_PAGE_LOOP`
-
-**Un unico PDF multi-pagina con tutti i record.**
-
-**Esempio**: Un PDF con tutti i Delegati (uno sotto l'altro).
-
-```
-Input: 20 Delegati
-Output: 1 PDF con 3 pagine (6+13+1 righe)
-```
-
-**Quando usare**:
-- Report completo
-- Stampa centralizzata
-- Archivio unico
-
----
-
-## 💡 Esempi Pratici
-
-### Esempio 1: Designazioni RDL (Individuale)
-
-**Template**: `individuale.pdf`
-**Merge Mode**: `SINGLE_DOC_PER_RECORD`
-
-#### Dati Input
-```json
-{
-  "delegato": {
-    "cognome": "Rossi",
-    "nome": "Mario",
-    "email": "mario.rossi@m5s.it"
-  },
-  "designazioni": [
-    {
-      "sezione": "001",
-      "indirizzo": "Via Roma 1",
-      "effettivo_cognome": "Verdi",
-      "effettivo_nome": "Luigi",
-      "effettivo_email": "luigi.verdi@example.com",
-      "supplente_cognome": "Bianchi",
-      "supplente_nome": "Anna",
-      "supplente_email": "anna.bianchi@example.com"
-    },
-    {
-      "sezione": "002",
-      "indirizzo": "Via Milano 5",
-      "effettivo_cognome": "Neri",
-      "effettivo_nome": "Paolo",
-      "effettivo_email": "paolo.neri@example.com",
-      "supplente_cognome": null,
-      "supplente_nome": null,
-      "supplente_email": null
-    }
-  ]
-}
-```
-
-#### Field Mappings
-
-**Campi Singoli (Delegato)**:
+**Field Mappings** (tutti `text`):
 ```json
 [
   {
@@ -320,331 +210,76 @@ Output: 1 PDF con 3 pagine (6+13+1 righe)
     "page": 0
   },
   {
-    "jsonpath": "$.delegato.email",
+    "jsonpath": "$.sezione",
     "type": "text",
-    "area": {"x": 100, "y": 80, "width": 250, "height": 20},
+    "area": {"x": 100, "y": 80, "width": 50, "height": 20},
+    "page": 0
+  },
+  {
+    "jsonpath": "$.effettivo.cognome + ' ' + $.effettivo.nome",
+    "type": "text",
+    "area": {"x": 100, "y": 110, "width": 200, "height": 20},
     "page": 0
   }
 ]
 ```
 
-**Campi Loop (Designazioni)**:
+### Esempio: DESIGNATION_MULTI
+
+**Campi delegato** (`text`) + **Loop designazioni**:
 ```json
 [
+  {
+    "jsonpath": "$.delegato.cognome + ' ' + $.delegato.nome",
+    "type": "text",
+    "area": {"x": 100, "y": 50, "width": 200, "height": 20},
+    "page": 0
+  },
   {
     "jsonpath": "$.designazioni",
     "type": "loop",
     "area": {"x": 50, "y": 150, "width": 500, "height": 15},
     "page": 0,
+    "rows": 6,
     "loop_fields": [
-      {
-        "jsonpath": "$.sezione",
-        "x_offset": 0
-      },
-      {
-        "jsonpath": "$.indirizzo",
-        "x_offset": 80
-      },
-      {
-        "jsonpath": "$.effettivo_cognome + ' ' + $.effettivo_nome",
-        "x_offset": 250
-      },
-      {
-        "jsonpath": "$.supplente_cognome + ' ' + $.supplente_nome",
-        "x_offset": 400
-      }
+      {"jsonpath": "$.sezione", "x": 0, "y": 0, "width": 40, "height": 12},
+      {"jsonpath": "$.comune", "x": 50, "y": 0, "width": 100, "height": 12},
+      {"jsonpath": "$.effettivo.cognome + ' ' + $.effettivo.nome", "x": 160, "y": 0, "width": 150, "height": 12},
+      {"jsonpath": "$.supplente.cognome + ' ' + $.supplente.nome", "x": 320, "y": 0, "width": 150, "height": 12}
     ]
   }
 ]
 ```
 
-#### Risultato
-```
-┌─────────────────────────────────────────┐
-│ Delegato: Mario Rossi                   │
-│ Email: mario.rossi@m5s.it               │
-│                                          │
-│ Designazioni:                           │
-│ ┌────────────────────────────────────┐  │
-│ │ 001 │ Via Roma 1 │ Verdi Luigi │   │  │
-│ │     │            │ Bianchi Anna│   │  │
-│ ├────────────────────────────────────┤  │
-│ │ 002 │ Via Milano │ Neri Paolo  │   │  │
-│ │     │         5  │             │   │  │
-│ └────────────────────────────────────┘  │
-└─────────────────────────────────────────┘
-```
-
 ---
 
-### Esempio 2: Report Riepilogativo (Multi-page)
+## Troubleshooting
 
-**Template**: `riepilogativo.pdf`
-**Merge Mode**: `MULTI_PAGE_LOOP`
-
-#### Loop Config
-```json
-{
-  "rows_first_page": 6,
-  "rows_per_page": 13,
-  "data_source": "$.tutti_delegati"
-}
-```
-
-#### Dati Input
-```json
-{
-  "tutti_delegati": [
-    {
-      "cognome": "Rossi",
-      "nome": "Mario",
-      "comune": "Roma",
-      "num_designazioni": 5
-    },
-    {
-      "cognome": "Bianchi",
-      "nome": "Anna",
-      "comune": "Milano",
-      "num_designazioni": 3
-    }
-    // ... altri 18 delegati
-  ]
-}
-```
-
-#### Field Mapping Loop
-```json
-{
-  "jsonpath": "$.tutti_delegati",
-  "type": "loop",
-  "area": {"x": 50, "y": 100, "width": 500, "height": 20},
-  "page": 0,
-  "loop_fields": [
-    {
-      "jsonpath": "$.cognome + ' ' + $.nome",
-      "x_offset": 0
-    },
-    {
-      "jsonpath": "$.comune",
-      "x_offset": 200
-    },
-    {
-      "jsonpath": "$.num_designazioni",
-      "x_offset": 350
-    }
-  ]
-}
-```
-
-#### Risultato
-```
-Pagina 1: Righe 1-6
-┌──────────────────────────────────┐
-│ Nome         │ Comune  │ N.Des. │
-├──────────────────────────────────┤
-│ Rossi Mario  │ Roma    │ 5      │
-│ Bianchi Anna │ Milano  │ 3      │
-│ ...                              │
-│ (6 righe totali)                 │
-└──────────────────────────────────┘
-
-Pagina 2: Righe 7-19
-┌──────────────────────────────────┐
-│ Verdi Luigi  │ Torino  │ 2      │
-│ ...                              │
-│ (13 righe totali)                │
-└──────────────────────────────────┘
-
-Pagina 3: Riga 20
-┌──────────────────────────────────┐
-│ Neri Paolo   │ Napoli  │ 4      │
-└──────────────────────────────────┘
-```
-
----
-
-## 📄 Loop Multi-Pagina (Posizioni Diverse)
-
-### Problema
-
-Quando il loop genera più pagine, spesso:
-- **Prima pagina**: Ha un header, loop inizia più in basso (es. Y=200)
-- **Pagine successive**: Niente header, loop può iniziare dall'alto (es. Y=50)
-
-### Soluzione: Due Configurazioni Loop
-
-Configura **DUE campi loop** con:
-- **Stesso JSONPath** (es. `$.designazioni`)
-- **Page diverso**:
-  - `page=0`: Prima pagina (con header, Y=200)
-  - `page=1`: Template pagine successive (senza header, Y=50)
-
-### Esempio Configurazione
-
-```json
-[
-  {
-    "jsonpath": "$.designazioni",
-    "type": "loop",
-    "page": 0,
-    "area": {"x": 50, "y": 200, "width": 500, "height": 20}
-  },
-  {
-    "jsonpath": "$.designazioni",
-    "type": "loop",
-    "page": 1,
-    "area": {"x": 50, "y": 50, "width": 500, "height": 20}
-  }
-]
-```
-
-### Come Configurare
-
-1. **Prima pagina**: Seleziona riga sotto header, imposta page=0
-2. **Pagine successive**: Seleziona riga dall'alto, imposta page=1
-3. Il backend userà page=0 per pagina 1, page=1 per pagine 2, 3, 4...
-
-**Guida dettagliata**: Vedi `/MULTI_PAGE_LOOP_GUIDE.md`
-
----
-
-## 🔧 Troubleshooting
-
-### ❌ "Campo vuoto nel PDF"
+### Campo vuoto nel PDF
 
 **Causa**: JSONPath non trova il dato.
 
 **Soluzioni**:
-1. Verifica JSONPath nel browser console:
-   ```javascript
-   data = {delegato: {cognome: "Rossi"}};
-   // Test
-   data.delegato.cognome; // "Rossi"
-   ```
+1. Controlla maiuscole/minuscole: `$.delegato.cognome` (non `$.Delegato.Cognome`)
+2. Verifica che il path corrisponda alla struttura: i campi sono nested (`$.effettivo.cognome`, non `$.effettivo_cognome`)
+3. Usa l'autocomplete per verificare i path disponibili
 
-2. Controlla maiuscole/minuscole:
-   - ✅ `$.delegato.cognome`
-   - ❌ `$.Delegato.Cognome`
-
-3. Verifica che il campo esista:
-   ```javascript
-   // Usa fallback per campi opzionali
-   $.supplente_cognome || ""
-   ```
-
----
-
-### ❌ "Loop non genera righe"
+### Loop non genera righe
 
 **Causa**: JSONPath loop non restituisce array.
 
 **Soluzioni**:
-1. Verifica che `data_source` punti ad array:
-   ```json
-   {
-     "designazioni": [...]  // ✅ Array
-   }
-   ```
+1. Verifica che il JSONPath sia `$.designazioni` (deve puntare all'array)
+2. Controlla che il tipo campo sia `loop`
+3. Assicurati di aver aggiunto almeno un loop_field
 
-2. Controlla tipo campo:
-   - Loop deve avere `"type": "loop"`
+### Righe sovrapposte
 
-3. Verifica `loop_config`:
-   ```json
-   {
-     "data_source": "$.designazioni",  // Deve esistere!
-     "rows_first_page": 6
-   }
-   ```
+**Causa**: `height` troppo piccolo nel loop area.
+
+**Soluzione**: Aumenta `height` nell'area del loop (es: da 15 a 25).
 
 ---
 
-### ❌ "Righe sovrapposte"
-
-**Causa**: `height` o `y_offset` sbagliati.
-
-**Soluzioni**:
-1. Aumenta `height` nel loop area:
-   ```json
-   "area": {"height": 25}  // Era 15, troppo piccolo
-   ```
-
-2. Configura `y_spacing` (se supportato):
-   ```json
-   "loop_config": {
-     "y_spacing": 20  // Spazio tra righe
-   }
-   ```
-
----
-
-### ❌ "Testo troncato"
-
-**Causa**: `width` troppo piccolo.
-
-**Soluzioni**:
-1. Aumenta `width`:
-   ```json
-   "area": {"width": 300}  // Era 150
-   ```
-
-2. Usa font più piccolo (backend):
-   ```python
-   page.insert_text(..., fontsize=8)  # Era 10
-   ```
-
----
-
-## 📚 Best Practices
-
-### 1. **Testa con Dati Reali**
-Prima di generare centinaia di PDF, testa con 2-3 record.
-
-### 2. **Usa Nomi Descrittivi**
-```json
-// ❌ Sbagliato
-"jsonpath": "$.d.c"
-
-// ✅ Corretto
-"jsonpath": "$.delegato.cognome"
-```
-
-### 3. **Documenta Loop Config**
-Aggiungi commenti nel template:
-```json
-{
-  "loop_config": {
-    "rows_first_page": 6,  // Sotto header
-    "rows_per_page": 13    // Senza header
-  }
-}
-```
-
-### 4. **Gestisci Campi Opzionali**
-Usa espressioni con fallback:
-```javascript
-// Se supplente può essere null
-$.supplente_cognome + " " + $.supplente_nome
-// Diventa: "null null" se mancante
-
-// Meglio (backend deve supportare):
-$.supplente_cognome || "-"
-```
-
-### 5. **Preview Prima di Conferma**
-Usa workflow preview → conferma per evitare errori.
-
----
-
-## 🎓 Risorse
-
-- **Template Editor**: Delegati → Template Designazioni
-- **Test Dati**: `backend_django/documents/tests/fixtures/`
-- **Codice JSONPath**: `backend_django/documents/jsonpath_resolver.py`
-- **Worker PDF**: `pdf/generate_adapter.py`
-
----
-
-**Versione**: 1.0
-**Ultima modifica**: 2026-02-05
-**Autore**: Sistema RDL AInaudi
+**Versione**: 2.0
+**Ultima modifica**: 2026-02-13

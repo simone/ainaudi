@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import MarkdownModal from '../components/MarkdownModal';
 import JSONPathAutocomplete from '../components/JSONPathAutocomplete';
+import ConfirmModal from '../components/ConfirmModal';
 import './TemplateEditor.css';
 
 // Configure PDF.js worker (use local worker from /public folder)
@@ -65,6 +66,11 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
     const [hoveredField, setHoveredField] = useState(null); // { index, isLoopField, loopIndex, handle }
     const [draggingField, setDraggingField] = useState(null); // { index, isLoopField, loopIndex, startX, startY, mode: 'move'|'resize', handle }
     const [cursorStyle, setCursorStyle] = useState('pointer');
+    const [editingFieldIndex, setEditingFieldIndex] = useState(null); // index del campo in editing
+    const dragStartPosRef = useRef(null); // posizione iniziale mouseDown per distinguere click da drag
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showRowsPrompt, setShowRowsPrompt] = useState(false);
+    const [rowsPromptData, setRowsPromptData] = useState(null); // { selX, selY, selW, selH, defaultRows }
 
     // Load available templates and template types on mount
     useEffect(() => {
@@ -500,9 +506,11 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         const fieldAtPos = findFieldAtPosition(x, y, pageIndex);
 
         if (fieldAtPos) {
-            // Start dragging or resizing
+            // Save initial position to distinguish click from drag
+            dragStartPosRef.current = { x, y };
+
             if (fieldAtPos.handle) {
-                // Resize mode
+                // Resize mode (always drag, never click)
                 setDraggingField({
                     ...fieldAtPos,
                     startX: x,
@@ -510,7 +518,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                     mode: 'resize'
                 });
             } else {
-                // Move mode
+                // Move mode (may become click if mouse doesn't move)
                 setDraggingField({
                     ...fieldAtPos,
                     startX: x,
@@ -673,9 +681,33 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         }
     };
 
-    const handleCanvasMouseUp = () => {
+    const handleCanvasMouseUp = (e) => {
         // Handle end of drag/resize
         if (draggingField) {
+            const startPos = dragStartPosRef.current;
+            const wasDrag = !startPos || draggingField.mode === 'resize';
+
+            // Check if it was a click (mouse moved less than 5px)
+            if (!wasDrag && startPos) {
+                const canvas = canvasRef.current;
+                const rect = canvas.getBoundingClientRect();
+                const canvasX = (e.clientX - rect.left) * (canvas.width / rect.width);
+                const canvasY = (e.clientY - rect.top) * (canvas.height / rect.height);
+                const endX = canvasX / scale;
+                const endY = canvasY / scale;
+                const dist = Math.sqrt((endX - startPos.x) ** 2 + (endY - startPos.y) ** 2);
+
+                if (dist < 5 && draggingField.type === 'field') {
+                    // It was a click, not a drag - open edit mode
+                    setEditingFieldIndex(draggingField.index);
+                    setDraggingField(null);
+                    setCursorStyle('pointer');
+                    dragStartPosRef.current = null;
+                    return;
+                }
+            }
+
+            dragStartPosRef.current = null;
             setDraggingField(null);
             setCursorStyle('pointer');
             setSuccess(draggingField.mode === 'move' ? 'Campo spostato!' : 'Campo ridimensionato!');
@@ -704,59 +736,13 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             const selY = Math.round(currentSelection.y);
             const selW = Math.round(currentSelection.width);
             const selH = Math.round(currentSelection.height);
+            const defaultRows = Math.floor(selH / fieldMappings[currentLoopIndex].area.height);
 
-            // Ask for number of rows in this page
-            const rowsInput = window.prompt(
-                `Quante righe del loop ci sono in questa pagina (pagina ${currentPage})?\n\n` +
-                `Suggerimento: Calcola in base all'altezza disponibile.\n` +
-                `- Altezza area selezionata: ${selH}px\n` +
-                `- Altezza singola riga: ${fieldMappings[currentLoopIndex].area.height}px\n` +
-                `- Righe stimate: ${Math.floor(selH / fieldMappings[currentLoopIndex].area.height)}`,
-                Math.floor(selH / fieldMappings[currentLoopIndex].area.height).toString()
-            );
-
-            if (!rowsInput) {
-                // User cancelled
-                setIsSelecting(false);
-                setSelectionStart(null);
-                setCurrentSelection(null);
-                setIsAddingLoopPage(false);
-                setError('Aggiunta pagina annullata');
-                setTimeout(() => setError(null), 2000);
-                return;
-            }
-
-            const rows = parseInt(rowsInput);
-            if (isNaN(rows) || rows < 1) {
-                setIsSelecting(false);
-                setSelectionStart(null);
-                setCurrentSelection(null);
-                setIsAddingLoopPage(false);
-                setError('Numero di righe non valido');
-                setTimeout(() => setError(null), 2000);
-                return;
-            }
-
-            const updatedMappings = [...fieldMappings];
-            const loopMapping = updatedMappings[currentLoopIndex];
-
-            if (!loopMapping.loop_pages) {
-                loopMapping.loop_pages = [];
-            }
-
-            loopMapping.loop_pages.push({
-                page: currentPage - 1,
-                area: { x: selX, y: selY, width: selW, height: selH },
-                rows: rows
-            });
-
-            setFieldMappings(updatedMappings);
+            // Show prompt modal for number of rows
+            setRowsPromptData({ selX, selY, selW, selH, defaultRows });
+            setShowRowsPrompt(true);
             setIsSelecting(false);
             setSelectionStart(null);
-            setCurrentSelection(null);
-            setIsAddingLoopPage(false);
-            setSuccess(`Pagina ${currentPage} aggiunta al loop con ${rows} righe!`);
-            setTimeout(() => setSuccess(null), 2000);
             return;
         }
 
@@ -961,6 +947,47 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         setFieldMappings(updatedMappings);
     };
 
+    const handleRowsPromptConfirm = (inputValue) => {
+        setShowRowsPrompt(false);
+        const rows = parseInt(inputValue);
+        if (!rowsPromptData || isNaN(rows) || rows < 1) {
+            setCurrentSelection(null);
+            setIsAddingLoopPage(false);
+            setError('Numero di righe non valido');
+            setTimeout(() => setError(null), 2000);
+            setRowsPromptData(null);
+            return;
+        }
+
+        const { selX, selY, selW, selH } = rowsPromptData;
+        const updatedMappings = [...fieldMappings];
+        const loopMapping = updatedMappings[currentLoopIndex];
+
+        if (!loopMapping.loop_pages) {
+            loopMapping.loop_pages = [];
+        }
+
+        loopMapping.loop_pages.push({
+            page: currentPage - 1,
+            area: { x: selX, y: selY, width: selW, height: selH },
+            rows: rows
+        });
+
+        setFieldMappings(updatedMappings);
+        setCurrentSelection(null);
+        setIsAddingLoopPage(false);
+        setRowsPromptData(null);
+        setSuccess(`Pagina ${currentPage} aggiunta al loop con ${rows} righe!`);
+        setTimeout(() => setSuccess(null), 2000);
+    };
+
+    const handleRowsPromptCancel = () => {
+        setShowRowsPrompt(false);
+        setCurrentSelection(null);
+        setIsAddingLoopPage(false);
+        setRowsPromptData(null);
+    };
+
     const handleSave = async () => {
         if (!selectedTemplateId) {
             setError('Seleziona un template prima di salvare');
@@ -1026,12 +1053,13 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         }
     };
 
-    const handleDeleteTemplate = async () => {
+    const handleDeleteTemplate = () => {
         if (!selectedTemplateId) return;
+        setShowDeleteModal(true);
+    };
 
-        if (!window.confirm(`Sei sicuro di voler eliminare il template "${template?.name}"?`)) {
-            return;
-        }
+    const confirmDeleteTemplate = async () => {
+        setShowDeleteModal(false);
 
         try {
             setLoading(true);
@@ -1238,21 +1266,23 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                 <div className="form-group">
                                     <label>
                                         JSONPath *
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowLoopGuide(true)}
-                                            style={{
-                                                marginLeft: '10px',
-                                                fontSize: '0.9em',
-                                                background: 'none',
-                                                border: 'none',
-                                                color: '#0d6efd',
-                                                cursor: 'pointer',
-                                                textDecoration: 'underline'
-                                            }}
-                                        >
-                                            📖 Guida Loop & JSONPath
-                                        </button>
+                                        {template?.template_type_code !== 'DESIGNATION_SINGLE' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowLoopGuide(true)}
+                                                style={{
+                                                    marginLeft: '10px',
+                                                    fontSize: '0.9em',
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    color: '#0d6efd',
+                                                    cursor: 'pointer',
+                                                    textDecoration: 'underline'
+                                                }}
+                                            >
+                                                Guida Loop & JSONPath
+                                            </button>
+                                        )}
                                     </label>
                                     <JSONPathAutocomplete
                                         value={newField.jsonpath}
@@ -1263,21 +1293,32 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                     />
                                     <small className="text-muted">
                                         <strong>Semplice:</strong> <code>$.delegato.cognome</code><br/>
-                                        <strong>Concatenato:</strong> <code>$.cognome + " " + $.nome</code><br/>
-                                        <strong>Loop:</strong> <code>$.designazioni</code> (array)
+                                        <strong>Concatenato:</strong> <code>$.delegato.cognome + " " + $.delegato.nome</code>
+                                        {template?.template_type_code !== 'DESIGNATION_SINGLE' && (
+                                            <><br/><strong>Loop:</strong> <code>$.designazioni</code> (array)</>
+                                        )}
                                     </small>
                                 </div>
 
                                 <div className="form-group">
                                     <label>Tipo Campo *</label>
-                                    <select
-                                        className="form-control"
-                                        value={newField.type}
-                                        onChange={(e) => setNewField({...newField, type: e.target.value})}
-                                    >
-                                        <option value="text">Text (campo singolo)</option>
-                                        <option value="loop">Loop (lista elementi)</option>
-                                    </select>
+                                    {template?.template_type_code === 'DESIGNATION_SINGLE' ? (
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            value="Text (campo singolo)"
+                                            disabled
+                                        />
+                                    ) : (
+                                        <select
+                                            className="form-control"
+                                            value={newField.type}
+                                            onChange={(e) => setNewField({...newField, type: e.target.value})}
+                                        >
+                                            <option value="text">Text (campo singolo)</option>
+                                            <option value="loop">Loop (lista elementi)</option>
+                                        </select>
+                                    )}
                                 </div>
 
                                 {newField.type === 'loop' && (
@@ -1539,58 +1580,114 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                             </thead>
                             <tbody>
                                 {fieldMappings.map((mapping, index) => (
-                                    <tr key={index}>
-                                        <td><code>{mapping.jsonpath}</code></td>
-                                        <td>
-                                            <span className={`badge ${mapping.type === 'loop' ? 'bg-warning' : 'bg-info'}`}>
-                                                {mapping.type}
-                                            </span>
-                                            {mapping.type === 'loop' && (
-                                                <>
-                                                    <button
-                                                        className="btn btn-sm btn-primary ms-2"
-                                                        onClick={() => openLoopFieldsModal(mapping, index)}
-                                                        title="Gestisci campi del loop"
-                                                    >
-                                                        📝 Campi ({mapping.loop_fields?.length || 0})
-                                                    </button>
-                                                    <button
-                                                        className="btn btn-sm btn-success ms-1"
-                                                        onClick={() => {
-                                                            setCurrentLoopIndex(index);
-                                                            setIsAddingLoopPage(true);
-                                                            setSuccess('Vai alla pagina dove vuoi continuare il loop e disegna l\'area');
-                                                        }}
-                                                        title="Aggiungi il loop su un'altra pagina"
-                                                    >
-                                                        📄 +Pagina
-                                                    </button>
-                                                </>
-                                            )}
-                                        </td>
-                                        <td>
-                                            p:{mapping.page}, x:{mapping.area.x}, y:{mapping.area.y}
-                                            {mapping.type === 'loop' && (
-                                                <div className="badge bg-info ms-2" title="Righe in questa pagina">
-                                                    {mapping.rows || 6}r
+                                    editingFieldIndex === index ? (
+                                        <tr key={index} className="table-warning">
+                                            <td colSpan="5">
+                                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                                    <div style={{ flex: '1 1 300px' }}>
+                                                        <label className="small text-muted">JSONPath</label>
+                                                        <JSONPathAutocomplete
+                                                            value={mapping.jsonpath}
+                                                            onChange={(value) => {
+                                                                const updated = [...fieldMappings];
+                                                                updated[index] = { ...updated[index], jsonpath: value };
+                                                                setFieldMappings(updated);
+                                                            }}
+                                                            exampleData={template?.variables_schema || {}}
+                                                            placeholder="$.delegato.cognome"
+                                                        />
+                                                    </div>
+                                                    <div style={{ flex: '0 0 auto' }}>
+                                                        <label className="small text-muted">Pagina</label>
+                                                        <input
+                                                            type="number"
+                                                            className="form-control form-control-sm"
+                                                            value={mapping.page}
+                                                            onChange={(e) => {
+                                                                const updated = [...fieldMappings];
+                                                                updated[index] = { ...updated[index], page: parseInt(e.target.value) || 0 };
+                                                                setFieldMappings(updated);
+                                                            }}
+                                                            min="0"
+                                                            style={{ width: '60px' }}
+                                                        />
+                                                    </div>
+                                                    <div style={{ flex: '0 0 auto' }}>
+                                                        <button
+                                                            className="btn btn-success btn-sm"
+                                                            onClick={() => {
+                                                                setEditingFieldIndex(null);
+                                                                setSuccess('Campo aggiornato!');
+                                                                setTimeout(() => setSuccess(null), 1500);
+                                                            }}
+                                                        >
+                                                            OK
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-outline-secondary btn-sm ms-1"
+                                                            onClick={() => setEditingFieldIndex(null)}
+                                                        >
+                                                            Chiudi
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            )}
-                                            {mapping.loop_pages && mapping.loop_pages.length > 0 && (
-                                                <div className="badge bg-success ms-2" title={`+${mapping.loop_pages.length} pagine aggiuntive (${mapping.loop_pages.map(lp => lp.rows || '?').join(', ')} righe)`}>
-                                                    +{mapping.loop_pages.length}pag
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td>{mapping.area.width}×{mapping.area.height}</td>
-                                        <td>
-                                            <button
-                                                onClick={() => handleRemoveField(index)}
-                                                className="btn btn-danger btn-sm"
-                                            >
-                                                Rimuovi
-                                            </button>
-                                        </td>
-                                    </tr>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        <tr key={index} style={{ cursor: 'pointer' }} onClick={() => setEditingFieldIndex(index)}>
+                                            <td><code>{mapping.jsonpath}</code></td>
+                                            <td>
+                                                <span className={`badge ${mapping.type === 'loop' ? 'bg-warning' : 'bg-info'}`}>
+                                                    {mapping.type}
+                                                </span>
+                                                {mapping.type === 'loop' && (
+                                                    <>
+                                                        <button
+                                                            className="btn btn-sm btn-primary ms-2"
+                                                            onClick={(e) => { e.stopPropagation(); openLoopFieldsModal(mapping, index); }}
+                                                            title="Gestisci campi del loop"
+                                                        >
+                                                            Campi ({mapping.loop_fields?.length || 0})
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-sm btn-success ms-1"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setCurrentLoopIndex(index);
+                                                                setIsAddingLoopPage(true);
+                                                                setSuccess('Vai alla pagina dove vuoi continuare il loop e disegna l\'area');
+                                                            }}
+                                                            title="Aggiungi il loop su un'altra pagina"
+                                                        >
+                                                            +Pagina
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </td>
+                                            <td>
+                                                p:{mapping.page}, x:{mapping.area.x}, y:{mapping.area.y}
+                                                {mapping.type === 'loop' && (
+                                                    <div className="badge bg-info ms-2" title="Righe in questa pagina">
+                                                        {mapping.rows || 6}r
+                                                    </div>
+                                                )}
+                                                {mapping.loop_pages && mapping.loop_pages.length > 0 && (
+                                                    <div className="badge bg-success ms-2" title={`+${mapping.loop_pages.length} pagine aggiuntive (${mapping.loop_pages.map(lp => lp.rows || '?').join(', ')} righe)`}>
+                                                        +{mapping.loop_pages.length}pag
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td>{mapping.area.width}x{mapping.area.height}</td>
+                                            <td>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleRemoveField(index); }}
+                                                    className="btn btn-danger btn-sm"
+                                                >
+                                                    Rimuovi
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    )
                                 ))}
                             </tbody>
                         </table>
@@ -1892,6 +1989,37 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                     </div>
                 </div>
             )}
+
+            {/* Modal conferma eliminazione template */}
+            <ConfirmModal
+                show={showDeleteModal}
+                onConfirm={confirmDeleteTemplate}
+                onCancel={() => setShowDeleteModal(false)}
+                title="Elimina Template"
+                message={`Sei sicuro di voler eliminare il template "${template?.name}"?`}
+                confirmText="Elimina"
+                confirmVariant="danger"
+            />
+
+            {/* Modal prompt numero righe loop */}
+            <ConfirmModal
+                show={showRowsPrompt}
+                onConfirm={handleRowsPromptConfirm}
+                onCancel={handleRowsPromptCancel}
+                title="Righe Loop"
+                confirmText="Aggiungi"
+                showInput={true}
+                inputLabel={rowsPromptData ? `Quante righe in questa pagina? (stimate: ${rowsPromptData.defaultRows})` : 'Numero righe'}
+                inputPlaceholder={rowsPromptData?.defaultRows?.toString() || '6'}
+                inputRequired={true}
+            >
+                {rowsPromptData && (
+                    <div className="text-muted small">
+                        <div>Altezza area: {rowsPromptData.selH}px</div>
+                        <div>Altezza riga: {fieldMappings[currentLoopIndex]?.area?.height || '?'}px</div>
+                    </div>
+                )}
+            </ConfirmModal>
         </div>
     );
 }

@@ -323,6 +323,8 @@ class TemplateEditorView(APIView):
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request, pk):
+        from .template_types import get_template_type_class
+
         template = get_object_or_404(Template, pk=pk)
 
         # Convert /media/ URL to /api/documents/media/ (Vite proxy workaround)
@@ -335,14 +337,28 @@ class TemplateEditorView(APIView):
             else:
                 template_file_url = url
 
+        # Leggi schema e doc dalla registry Python (fonte di verita')
+        variables_schema = {}
+        variables_doc = ''
+        if template.template_type:
+            type_class = get_template_type_class(template.template_type.code)
+            if type_class:
+                variables_schema = type_class.example_schema
+                variables_doc = type_class.variables_doc
+            else:
+                # Fallback al default_schema del DB per tipi non in registry
+                variables_schema = template.template_type.default_schema
+
         return Response({
             'id': template.id,
             'name': template.name,
+            'template_type_code': template.template_type.code if template.template_type else None,
             'template_file_url': template_file_url,
             'field_mappings': template.field_mappings,
             'loop_config': template.loop_config,
             'merge_mode': template.merge_mode,
-            'variables_schema': template.template_type.default_schema if template.template_type else {},
+            'variables_schema': variables_schema,
+            'variables_doc': variables_doc,
         })
 
     def put(self, request, pk):

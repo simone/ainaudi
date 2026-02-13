@@ -1,6 +1,7 @@
 // SectionList.js - Mobile-first redesign with wizard support
 import React, {useEffect, useState, useRef, useCallback} from "react";
 import SectionForm from "./SectionForm";
+import ConfirmModal from '../components/ConfirmModal';
 import './SectionList.css';
 
 
@@ -13,6 +14,10 @@ function SectionList({client, user, setError, referenti}) {
     const [selectedSection, setSelectedSection] = useState(null);
     const [searchText, setSearchText] = useState('');
     const [filteredSections, setFilteredSections] = useState([]);
+
+    // Conflict modal state
+    const [showConflictModal, setShowConflictModal] = useState(false);
+    const [conflictInfo, setConflictInfo] = useState(null);
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -160,13 +165,8 @@ function SectionList({client, user, setError, referenti}) {
             if (err.isConflict) {
                 const conflictData = err.conflictData || {};
                 const updatedBy = conflictData.updated_by || 'un altro utente';
-                const message = `I dati sono stati modificati da ${updatedBy}.\n\nClicca OK per ricaricare (perderai le modifiche locali) o Annulla per continuare a modificare.`;
-
-                if (window.confirm(message)) {
-                    // Reload section data
-                    await loadSections(currentPage, true);
-                    window.location.reload(); // Force full reload to reset form
-                }
+                setConflictInfo({ updatedBy });
+                setShowConflictModal(true);
                 return false;
             }
 
@@ -485,6 +485,21 @@ function SectionList({client, user, setError, referenti}) {
                     ) : null}
                 </div>
             )}
+            <ConfirmModal
+                show={showConflictModal}
+                onConfirm={async () => {
+                    setShowConflictModal(false);
+                    setConflictInfo(null);
+                    await loadSections(currentPage, true);
+                    window.location.reload();
+                }}
+                onCancel={() => { setShowConflictModal(false); setConflictInfo(null); }}
+                title="Conflitto Dati"
+                confirmText="Ricarica"
+                cancelText="Continua a modificare"
+                confirmVariant="warning"
+                message={`I dati sono stati modificati da ${conflictInfo?.updatedBy || 'un altro utente'}. Ricaricare? (perderai le modifiche locali)`}
+            />
         </>
     );
 }

@@ -59,6 +59,7 @@ class Command(BaseCommand):
 
         # Import qui per evitare import circolari
         from documents.pdf_generator import PDFGenerator, generate_pdf
+        from documents.template_types import DesignationSingleType, DesignationMultiType
         from django.core.files.base import ContentFile
         from django.utils import timezone
         from PyPDF2 import PdfWriter, PdfReader
@@ -79,24 +80,7 @@ class Command(BaseCommand):
 
                     writer = PdfWriter()
                     for designazione in designazioni:
-                        data = {
-                            'delegato': processo.dati_delegato,
-                            'designazioni': [{
-                                'effettivo_cognome': designazione.effettivo_cognome,
-                                'effettivo_nome': designazione.effettivo_nome,
-                                'effettivo_data_nascita': designazione.effettivo_data_nascita,
-                                'effettivo_luogo_nascita': designazione.effettivo_luogo_nascita,
-                                'effettivo_domicilio': designazione.effettivo_domicilio,
-                                'supplente_cognome': designazione.supplente_cognome or '',
-                                'supplente_nome': designazione.supplente_nome or '',
-                                'supplente_data_nascita': designazione.supplente_data_nascita,
-                                'supplente_luogo_nascita': designazione.supplente_luogo_nascita or '',
-                                'supplente_domicilio': designazione.supplente_domicilio or '',
-                                'sezione_numero': designazione.sezione.numero,
-                                'sezione_indirizzo': designazione.sezione.indirizzo or '',
-                                'comune_nome': designazione.sezione.comune.nome if designazione.sezione.comune else '',
-                            }]
-                        }
+                        data = DesignationSingleType.serialize(processo, designazione)
                         generator = PDFGenerator(processo.template_individuale.template_file, data)
                         pdf_bytes = generator.generate_from_template(processo.template_individuale)
                         pdf_reader = PdfReader(pdf_bytes)
@@ -122,27 +106,7 @@ class Command(BaseCommand):
                         'sezione', 'sezione__comune', 'sezione__municipio'
                     ).order_by('sezione__numero')
 
-                    data = {
-                        'delegato': processo.dati_delegato,
-                        'designazioni': [
-                            {
-                                'effettivo_cognome': d.effettivo_cognome,
-                                'effettivo_nome': d.effettivo_nome,
-                                'effettivo_data_nascita': d.effettivo_data_nascita,
-                                'effettivo_luogo_nascita': d.effettivo_luogo_nascita,
-                                'effettivo_domicilio': d.effettivo_domicilio,
-                                'supplente_cognome': d.supplente_cognome or '',
-                                'supplente_nome': d.supplente_nome or '',
-                                'supplente_data_nascita': d.supplente_data_nascita,
-                                'supplente_luogo_nascita': d.supplente_luogo_nascita or '',
-                                'supplente_domicilio': d.supplente_domicilio or '',
-                                'sezione_numero': d.sezione.numero,
-                                'sezione_indirizzo': d.sezione.indirizzo or '',
-                                'comune_nome': d.sezione.comune.nome if d.sezione.comune else '',
-                            }
-                            for d in designazioni
-                        ]
-                    }
+                    data = DesignationMultiType.serialize(processo, designazioni)
                     pdf_bytes = generate_pdf(processo.template_cumulativo, data)
                     processo.documento_cumulativo.save(
                         f'processo_{processo.id}_cumulativo.pdf',

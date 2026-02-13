@@ -177,7 +177,11 @@ class Template(models.Model):
         return self.merge_mode or self.template_type.default_merge_mode
 
     def get_variables_schema(self):
-        """Get variables schema from template_type."""
+        """Get variables schema from registry (preferred) or template_type DB."""
+        from .template_types import get_template_type_class
+        type_class = get_template_type_class(self.template_type.code)
+        if type_class:
+            return type_class.example_schema
         return self.template_type.default_schema
 
 
