@@ -151,9 +151,56 @@ if [ "$SKIP_BACKEND" = false ]; then
     python3 manage.py collectstatic --noinput --clear
     echo -e "${GREEN}✅ Static files collected${NC}"
 
-    echo -e "${YELLOW}🗄️  Esecuzione migrazioni database...${NC}"
-    python3 manage.py migrate --noinput
-    echo -e "${GREEN}✅ Migrazioni completate${NC}"
+    # Migrazioni su Cloud SQL via proxy
+    echo -e "${YELLOW}🗄️  Migrazioni database Cloud SQL...${NC}"
+
+    REGION="europe-west1"
+    INSTANCE="ainaudi-db"
+    DB_NAME_PROD="ainaudi_db"
+    DB_USER_PROD="postgres"
+    PROXY_PORT=5433
+    CONNECTION_NAME="${PROJECT}:${REGION}:${INSTANCE}"
+
+    # Trova o scarica Cloud SQL Proxy
+    PROXY_CMD=""
+    if command -v cloud-sql-proxy &> /dev/null; then
+        PROXY_CMD="cloud-sql-proxy"
+    elif command -v cloud_sql_proxy &> /dev/null; then
+        PROXY_CMD="cloud_sql_proxy"
+    elif [ -f "../cloud-sql-proxy" ]; then
+        PROXY_CMD="../cloud-sql-proxy"
+    else
+        echo -e "${RED}❌ Cloud SQL Proxy non trovato. Installalo o usa scripts/django-shell-production.sh migrate${NC}"
+        echo -e "${YELLOW}⏩ Salto migrazioni (eseguile manualmente prima del deploy)${NC}"
+        PROXY_CMD=""
+    fi
+
+    if [ -n "$PROXY_CMD" ]; then
+        # Password da Secret Manager
+        DB_PASSWORD_PROD=$(timeout 5 gcloud secrets versions access latest --secret=db-password --project=${PROJECT} 2>/dev/null || echo "")
+        if [ -z "$DB_PASSWORD_PROD" ]; then
+            echo -e "${YELLOW}⚠️  Password non trovata in Secret Manager${NC}"
+            read -sp "DB Password: " DB_PASSWORD_PROD
+            echo ""
+        fi
+
+        # Avvia proxy
+        lsof -ti:${PROXY_PORT} | xargs kill -9 2>/dev/null || true
+        $PROXY_CMD "$CONNECTION_NAME" --port ${PROXY_PORT} > /tmp/cloud-sql-proxy-deploy.log 2>&1 &
+        PROXY_PID=$!
+        sleep 2
+
+        # Migrate via proxy
+        DB_HOST="127.0.0.1" DB_PORT="${PROXY_PORT}" DB_NAME="${DB_NAME_PROD}" \
+        DB_USER="${DB_USER_PROD}" DB_PASSWORD="${DB_PASSWORD_PROD}" \
+        python3 manage.py migrate --noinput
+
+        # Chiudi proxy
+        kill $PROXY_PID 2>/dev/null || true
+        wait $PROXY_PID 2>/dev/null || true
+
+        echo -e "${GREEN}✅ Migrazioni completate su Cloud SQL${NC}"
+    fi
 
     echo -e "${YELLOW}🚀 Deploy backend su App Engine (service: api)...${NC}"
     gcloud app deploy app.yaml \
