@@ -564,7 +564,7 @@
 }
 
 [data-theme="night"] .border-primary {
-  border-color: var(--color-accent-red) !important;
+  border-color: var(--color-accent-blue) !important;
 }
 
 .border-info {

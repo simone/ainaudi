@@ -340,50 +340,39 @@ function TemplateList({ client, onEditTemplate }) {
                         </p>
                     </div>
                 ) : (
-                    <div className="table-responsive-wrapper">
-                        <table className="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>Tipo</th>
-                                <th>Descrizione</th>
-                                <th>Versione</th>
-                                <th>Campi</th>
-                                <th>Azioni</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {templates.map((template) => (
-                                <tr key={template.id}>
-                                    <td><strong>{template.name}</strong></td>
-                                    <td>
-                                        <span className="badge bg-info">
-                                            {template.template_type_details?.name || template.template_type || 'N/A'}
-                                        </span>
-                                    </td>
-                                    <td>{template.description || '-'}</td>
-                                    <td>v{template.version}</td>
-                                    <td>{template.field_mappings?.length || 0}</td>
-                                    <td>
-                                        <button
-                                            onClick={() => onEditTemplate(template.id)}
-                                            className="btn btn-primary btn-sm"
-                                            style={{ marginRight: '5px' }}
-                                        >
-                                            Configura
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteTemplate(template)}
-                                            className="btn btn-danger btn-sm"
-                                            disabled={loading}
-                                        >
-                                            Elimina
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <div className="template-list-cards">
+                        {templates.map((template) => (
+                            <div key={template.id} className="template-list-card">
+                                <div className="template-list-card-header">
+                                    <strong>{template.name}</strong>
+                                    <span className="badge bg-info">
+                                        {template.template_type_details?.name || template.template_type || 'N/A'}
+                                    </span>
+                                </div>
+                                {template.description && template.description !== '-' && (
+                                    <div className="template-list-card-desc">{template.description}</div>
+                                )}
+                                <div className="template-list-card-meta">
+                                    <span>v{template.version}</span>
+                                    <span>{template.field_mappings?.length || 0} campi</span>
+                                </div>
+                                <div className="template-list-card-actions">
+                                    <button
+                                        onClick={() => onEditTemplate(template.id)}
+                                        className="btn btn-primary btn-sm"
+                                    >
+                                        <i className="fas fa-cog me-1"></i>Configura
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteTemplate(template)}
+                                        className="btn btn-danger btn-sm"
+                                        disabled={loading}
+                                    >
+                                        <i className="fas fa-trash me-1"></i>Elimina
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>

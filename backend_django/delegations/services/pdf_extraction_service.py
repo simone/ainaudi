@@ -73,7 +73,7 @@ class PDFExtractionService:
         tutte_designazioni = list(
             processo.designazioni
             .filter(stato='CONFERMATA', is_attiva=True)
-            .order_by('sezione__numero_sezione')
+            .order_by('sezione__numero')
         )
 
         sezione_to_page = {

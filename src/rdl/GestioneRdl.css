@@ -701,7 +701,12 @@
   }
 
   .rdl-stats {
-    flex-direction: column;
+    flex-wrap: wrap;
+  }
+
+  .rdl-stats .rdl-stat-box {
+    flex: 1 1 calc(50% - var(--spacing-md));
+    min-width: 0;
   }
 
   .rdl-card-header {

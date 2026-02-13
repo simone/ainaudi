@@ -1284,7 +1284,8 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
 
         return Response(progress)
 
-    @action(detail=False, methods=['get'], url_path='mie-designazioni')
+    @action(detail=False, methods=['get'], url_path='mie-designazioni',
+            permission_classes=[permissions.IsAuthenticated])
     def mie_designazioni(self, request):
         """
         Restituisce le designazioni dell'utente loggato (RDL).
@@ -1393,7 +1394,8 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             'totale_sezioni': len(designazioni_list)
         })
 
-    @action(detail=False, methods=['get'], url_path='download-mia-nomina')
+    @action(detail=False, methods=['get'], url_path='download-mia-nomina',
+            permission_classes=[permissions.IsAuthenticated])
     def download_mia_nomina(self, request):
         """
         RDL scarica copia della propria designazione (PDF personalizzato).
@@ -1420,7 +1422,7 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             processo__stato__in=['APPROVATO', 'INVIATO'],
             stato='CONFERMATA',
             is_attiva=True
-        ).select_related('processo', 'sezione').order_by('sezione__numero_sezione')
+        ).select_related('processo', 'sezione').order_by('sezione__numero')
 
         if not designazioni.exists():
             return Response({

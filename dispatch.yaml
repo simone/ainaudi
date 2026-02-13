@@ -1,7 +1,7 @@
 dispatch:
-  # Django Admin static files (CSS/JS dell'admin)
-  - url: "*/static/admin/*"
-    service: api
+  # PDF generation (heavy, 1GB RAM, scale-to-zero)
+  - url: "*/api/deleghe/processi/*/genera_*"
+    service: pdf
 
   # Django Admin (exact match senza trailing slash)
   - url: "*/admin"
@@ -15,7 +15,7 @@ dispatch:
   - url: "*/campagna/*"
     service: api
 
-  # API backend
+  # API backend (tutto il resto delle API)
   - url: "*/api/*"
     service: api
 

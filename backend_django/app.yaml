@@ -1,9 +1,9 @@
 service: api
 runtime: python311
 env: standard
-instance_class: F2
+instance_class: F1
 
-entrypoint: gunicorn -b :$PORT config.wsgi:application --workers 2 --threads 4
+entrypoint: bash entrypoint.sh
 
 env_variables:
   DJANGO_SETTINGS_MODULE: config.settings
@@ -52,7 +52,19 @@ env_variables:
   VERTEX_AI_LOCATION: "europe-west1"  # Belgio (Gemini disponibile)
 
 handlers:
-  # Static files
+  # Admin static files (CSS/JS/fonts) - cache 6 months
+  - url: /static/admin
+    static_dir: staticfiles/admin/
+    secure: always
+    expiration: 180d
+
+  # DRF static files - cache 6 months
+  - url: /static/rest_framework
+    static_dir: staticfiles/rest_framework/
+    secure: always
+    expiration: 180d
+
+  # Other static files
   - url: /static
     static_dir: staticfiles/
     secure: always
@@ -68,9 +80,9 @@ beta_settings:
 
 # Automatic scaling
 automatic_scaling:
-  min_instances: 0
+  min_instances: 1
   max_instances: 5
-  min_idle_instances: 0
+  min_idle_instances: 1
   max_idle_instances: 1
   target_cpu_utilization: 0.65
   target_throughput_utilization: 0.65

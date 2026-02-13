@@ -114,8 +114,9 @@ echo -e "${BLUE}║              CONNESSO AL DATABASE PRODUZIONE              �
 echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Parse command argument
+# Parse command argument - first arg is command, rest are passed through
 COMMAND="${1:-shell}"
+shift 2>/dev/null || true
 
 if [ "$COMMAND" = "shell" ]; then
     echo -e "${GREEN}🐍 Avvio Django shell interattiva...${NC}"
@@ -128,9 +129,9 @@ elif [ "$COMMAND" = "dbshell" ]; then
     echo ""
     python3 manage.py dbshell --settings=config.settings
 else
-    echo -e "${GREEN}⚙️  Esecuzione comando: ${COMMAND}${NC}"
+    echo -e "${GREEN}⚙️  Esecuzione comando: ${COMMAND} $@${NC}"
     echo ""
-    python3 manage.py $COMMAND --settings=config.settings
+    python3 manage.py $COMMAND "$@" --settings=config.settings
 fi
 
 # Cleanup

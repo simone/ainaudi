@@ -173,8 +173,9 @@ def get_sezioni_for_rdl(user, consultazione_id=None):
         list[int]: Lista di sezione IDs
     """
     designazioni = DesignazioneRDL.objects.filter(
-        email=user.email,
-        is_attiva=True
+        Q(effettivo_email=user.email) | Q(supplente_email=user.email),
+        is_attiva=True,
+        stato='CONFERMATA'
     )
     if consultazione_id:
         designazioni = designazioni.filter(
@@ -249,9 +250,10 @@ def can_enter_section_data(user, sezione, consultazione_id=None):
     # RDL può inserire solo nella sua sezione
     if roles['is_rdl']:
         return DesignazioneRDL.objects.filter(
-            email=user.email,
+            Q(effettivo_email=user.email) | Q(supplente_email=user.email),
             sezione=sezione,
-            is_attiva=True
+            is_attiva=True,
+            stato='CONFERMATA'
         ).exists()
 
     return False
