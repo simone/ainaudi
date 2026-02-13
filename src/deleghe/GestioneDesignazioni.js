@@ -1,9 +1,9 @@
 // GestioneDesignazioni.js - Process-driven interface for formal RDL designations
 import React, { useState, useEffect } from 'react';
 import './GestioneDesignazioni.css';
-import WizardDesignazioni from './components/designazioni/WizardDesignazioni';
-import ConfirmModal from './ConfirmModal';
-import PDFViewer from './PDFViewer';
+import WizardDesignazioni from './WizardDesignazioni';
+import ConfirmModal from '../components/ConfirmModal';
+import PDFViewer from '../components/PDFViewer';
 
 /**
  * Workflow process-driven per designazioni formali RDL.

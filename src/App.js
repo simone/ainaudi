@@ -1,29 +1,29 @@
 // App.js
 import React, {useState, useEffect, useMemo} from "react";
-import RdlList from "./RdlList";
-import MappaturaGerarchica from "./MappaturaGerarchica";
-import Kpi from "./Kpi";
-import Client, {clearCache} from "./Client";
-import SectionList from "./SectionList";
-import logo from './assets/ainaudi_logo.png';
-import GestioneSezioni from "./GestioneSezioni";
-import EmailAutocomplete from "./EmailAutocomplete";
-import RdlSelfRegistration from "./RdlSelfRegistration";
-import CampagnaRegistration from "./CampagnaRegistration";
-import GestioneRdl from "./GestioneRdl";
-import GestioneDeleghe from "./GestioneDeleghe";
-import GestioneDesignazioni from "./GestioneDesignazioni";
-import GestioneCampagne from "./GestioneCampagne";
-import Risorse from "./Risorse";
-import Dashboard from "./Dashboard";
-import SchedaElettorale from "./SchedaElettorale";
-import GestioneTerritorio from "./GestioneTerritorio";
-import PDFConfirmPage from "./PDFConfirmPage";
-import TemplateEditor from "./TemplateEditor";
-import TemplateList from "./TemplateList";
-import ScrutinioAggregato from "./ScrutinioAggregato";
-import {AuthProvider, useAuth} from "./AuthContext";
-import ChatInterface from "./ChatInterface";
+import RdlList from "./rdl/RdlList";
+import MappaturaGerarchica from "./rdl/MappaturaGerarchica";
+import Kpi from "./kpi/Kpi";
+import Client, {clearCache} from "./auth/Client";
+import SectionList from "./scrutinio/SectionList";
+import logo from './assets/logo-m5s.png';
+import GestioneSezioni from "./rdl/GestioneSezioni";
+import EmailAutocomplete from "./components/EmailAutocomplete";
+import RdlSelfRegistration from "./rdl/RdlSelfRegistration";
+import CampagnaRegistration from "./rdl/CampagnaRegistration";
+import GestioneRdl from "./rdl/GestioneRdl";
+import GestioneDeleghe from "./deleghe/GestioneDeleghe";
+import GestioneDesignazioni from "./deleghe/GestioneDesignazioni";
+import GestioneCampagne from "./rdl/GestioneCampagne";
+import Risorse from "./risorse/Risorse";
+import Dashboard from "./dashboard/Dashboard";
+import SchedaElettorale from "./elezioni/SchedaElettorale";
+import GestioneTerritorio from "./territorio/GestioneTerritorio";
+import PDFConfirmPage from "./components/PDFConfirmPage";
+import TemplateEditor from "./templates/TemplateEditor";
+import TemplateList from "./templates/TemplateList";
+import ScrutinioAggregato from "./scrutinio/ScrutinioAggregato";
+import {AuthProvider, useAuth} from "./auth/AuthContext";
+import ChatInterface from "./chat/ChatInterface";
 
 // In development, use empty string to leverage Vite proxy (vite.config.js)
 // In production, use empty string for same-origin requests
@@ -1180,7 +1180,7 @@ function AppContent() {
                 <div className="footer-text">
                     <p>
                         <strong>AInaudi</strong><br/>
-                        © Simone Federici
+                        © Simone Federici (GT XV ROMA)
                     </p>
                 </div>
             </footer>

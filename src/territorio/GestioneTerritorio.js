@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import GestioneRegioni from './territorio/GestioneRegioni';
-import GestioneProvince from './territorio/GestioneProvince';
-import GestioneComuni from './territorio/GestioneComuni';
-import GestioneSezioniTerritoriali from './territorio/GestioneSezioniTerritoriali';
+import GestioneRegioni from './GestioneRegioni';
+import GestioneProvince from './GestioneProvince';
+import GestioneComuni from './GestioneComuni';
+import GestioneSezioniTerritoriali from './GestioneSezioniTerritoriali';
 
 /**
  * GestioneTerritorio - Main component for territory administration.

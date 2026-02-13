@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import ConfirmModal from './ConfirmModal';
+import ConfirmModal from '../components/ConfirmModal';
 import './GestioneRdl.css';
 
 /**
@@ -1406,11 +1406,11 @@ function GestioneRdl({ client, setError }) {
                                         </div>
                                     </div>
                                     <div className="d-flex gap-sm mt-md">
-                                        <button className="btn btn-success btn-sm" onClick={handleSaveEdit} className="flex-1">
+                                        <button className="btn btn-success btn-sm flex-1" onClick={handleSaveEdit}>
                                             <i className="fas fa-save me-1"></i>
                                             Salva
                                         </button>
-                                        <button className="btn btn-secondary btn-sm" onClick={handleCancelEdit} className="flex-1">
+                                        <button className="btn btn-secondary btn-sm flex-1" onClick={handleCancelEdit}>
                                             <i className="fas fa-times me-1"></i>
                                             Annulla
                                         </button>
@@ -1481,8 +1481,7 @@ function GestioneRdl({ client, setError }) {
                                                     </a>
                                                     <button
                                                         onClick={() => downloadVCard(`${reg.cognome} ${reg.nome}`, reg.telefono, reg.email)}
-                                                        className="btn btn-link btn-sm p-0 ms-2"
-                                                        className="text-sm text-muted"
+                                                        className="btn btn-link btn-sm p-0 ms-2 text-sm text-muted"
                                                         title="Salva contatto"
                                                         style={{
                                                             backgroundColor: 'transparent'
@@ -1570,8 +1569,7 @@ function GestioneRdl({ client, setError }) {
                                                                 </a>
                                                                 <button
                                                                     onClick={() => downloadVCard(`${reg.cognome} ${reg.nome}`, reg.telefono, reg.email)}
-                                                                    className="btn btn-link btn-sm p-0 ms-1"
-                                                                    className="text-xxs text-muted"
+                                                                    className="btn btn-link btn-sm p-0 ms-1 text-xxs text-muted"
                                                                     title="Salva contatto"
                                                                     style={{
                                                                         backgroundColor: 'transparent'

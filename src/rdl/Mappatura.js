@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import ConfirmModal from './ConfirmModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 /**
  * Genera un link WhatsApp per un numero di telefono

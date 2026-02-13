@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import EmailAutocomplete from './EmailAutocomplete';
+import EmailAutocomplete from '../components/EmailAutocomplete';
 
 const HighlightedText = ({ text, filter }) => {
     const regex = new RegExp(filter, 'gi');

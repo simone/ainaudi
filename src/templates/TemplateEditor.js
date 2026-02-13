@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import MarkdownModal from './MarkdownModal';
-import JSONPathAutocomplete from './JSONPathAutocomplete';
+import MarkdownModal from '../components/MarkdownModal';
+import JSONPathAutocomplete from '../components/JSONPathAutocomplete';
 import './TemplateEditor.css';
 
 // Configure PDF.js worker (use local worker from /public folder)

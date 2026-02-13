@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import PDFViewer from './PDFViewer';
+import PDFViewer from '../components/PDFViewer';
 import ReactMarkdown from 'react-markdown';
-import MarkdownModal from './MarkdownModal';
+import MarkdownModal from '../components/MarkdownModal';
 
 /**
  * Pagina Risorse: Documenti e FAQ
@@ -329,17 +329,30 @@ function Risorse({ client, consultazione, setError }) {
             const apiUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
             const url = `${apiUrl}/api/deleghe/processi/download-mia-nomina/?consultazione_id=${consultazione.id}`;
 
-            // Open PDF in viewer
+            // Fetch PDF with auth header (react-pdf can't send JWT on its own)
+            const response = await fetch(url, {
+                headers: { 'Authorization': client.authHeader }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Errore ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            // Open PDF in viewer using blob URL
             setPdfViewer({
-                url,
+                url: blobUrl,
                 titolo: 'La Tua Designazione RDL',
-                originalUrl: url
+                originalUrl: blobUrl
             });
 
         } catch (err) {
             console.error('Errore download nomina:', err);
             setError(
-                err.response?.data?.error ||
+                err.message ||
                 'Errore durante il caricamento del PDF. Verifica di avere una designazione confermata.'
             );
         } finally {

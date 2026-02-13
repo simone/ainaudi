@@ -1,8 +1,8 @@
 // WizardDesignazioni.js - Multi-step wizard for designation process
 import React, { useState, useEffect } from 'react';
 import './WizardDesignazioni.css';
-import PDFViewer from '../../PDFViewer';
-import ConfirmModal from '../../ConfirmModal';
+import PDFViewer from '../components/PDFViewer';
+import ConfirmModal from '../components/ConfirmModal';
 
 /**
  * Wizard multi-step per processo designazione con template.

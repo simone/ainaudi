@@ -2019,6 +2019,7 @@ const Client = (server, pdfServer, token) => {
     return {
         server,  // Esponi URL del server per costruire URL diretti
         pdfServer,  // Esponi URL del PDF server
+        authHeader,  // Esponi header auth per download diretti (PDF, ecc.)
         permissions,
         election,
         sections,

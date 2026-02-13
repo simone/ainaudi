@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import ComuneAutocomplete from './ComuneAutocomplete';
-import SezzionePlessAutocomplete from './SezzionePlessAutocomplete';
+import ComuneAutocomplete from '../components/ComuneAutocomplete';
+import SezzionePlessAutocomplete from '../components/SezzionePlessAutocomplete';
 
 // Use empty string to leverage Vite proxy in development (vite.config.js)
 // In production, use empty string for same-origin requests

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ComuneAutocomplete from './ComuneAutocomplete';
+import ComuneAutocomplete from '../components/ComuneAutocomplete';
 
 /**
  * Converte un numero in numeri romani

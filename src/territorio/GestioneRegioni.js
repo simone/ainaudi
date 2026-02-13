@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ConfirmModal from '../ConfirmModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 /**
  * GestioneRegioni - CRUD for Italian regions.
