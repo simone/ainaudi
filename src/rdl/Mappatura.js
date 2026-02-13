@@ -104,6 +104,15 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
         loading: false
     });
 
+    // Plessi vicini modal
+    const [plessiViciniModal, setPlessiViciniModal] = useState({
+        show: false,
+        rdl: null,
+        plessi: [],
+        selectedPlesso: null,
+        ruolo: null, // determined per-plesso based on availability
+    });
+
     // Assegna preferenze modal
     const [assegnaPreferenzeModal, setAssegnaPreferenzeModal] = useState({
         show: false,
@@ -564,6 +573,66 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
         const result = await client.mappatura.assegnaBulk(
             rdl.rdl_registration_id,
             Array.from(selectedSezioni),
+            ruolo
+        );
+
+        if (result.error) {
+            setError(result.error);
+        } else {
+            client.mappatura.invalidateCache();
+            loadData();
+        }
+    };
+
+    // Plessi vicini handlers
+    const openPlessiViciniModal = (rdl) => {
+        // Filter only plessi within 10km that have at least one free slot
+        const plessi = (rdl.sezioni_vicine || []).filter(p =>
+            p.distanza_km <= 10 && (p.has_free_effettivo || p.has_free_supplente)
+        );
+        setPlessiViciniModal({
+            show: true,
+            rdl,
+            plessi,
+            selectedPlesso: null,
+            ruolo: null,
+        });
+    };
+
+    const closePlessiViciniModal = () => {
+        setPlessiViciniModal({
+            show: false,
+            rdl: null,
+            plessi: [],
+            selectedPlesso: null,
+            ruolo: null,
+        });
+    };
+
+    const selectPlesso = (plesso, ruolo) => {
+        setPlessiViciniModal(prev => ({
+            ...prev,
+            selectedPlesso: plesso,
+            ruolo,
+        }));
+    };
+
+    const handleAssegnaPlessoVicino = async () => {
+        const { rdl, selectedPlesso, ruolo } = plessiViciniModal;
+        if (!rdl || !selectedPlesso || !ruolo) return;
+
+        // Get section IDs that are free for the chosen role
+        const sezioniIds = selectedPlesso.sezioni
+            .filter(s => ruolo === 'RDL' ? !s.effettivo : !s.supplente)
+            .map(s => s.id);
+
+        if (sezioniIds.length === 0) return;
+
+        closePlessiViciniModal();
+
+        const result = await client.mappatura.assegnaBulk(
+            rdl.rdl_registration_id,
+            sezioniIds,
             ruolo
         );
 
@@ -1202,6 +1271,16 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                         Assegna Preferita
                                     </button>
                                 )}
+                                {(rdl.sezioni_vicine || []).some(p => p.distanza_km <= 10 && (p.has_free_effettivo || p.has_free_supplente)) && (
+                                    <button
+                                        className="btn btn-sm btn-outline-info ms-2"
+                                        onClick={() => openPlessiViciniModal(rdl)}
+                                        title="Assegna plessi vicini per prossimita geografica"
+                                    >
+                                        <i className="fas fa-map-marker-alt me-1"></i>
+                                        Plessi Vicini
+                                    </button>
+                                )}
                             </div>
 
                             {/* Sezioni assegnate */}
@@ -1572,6 +1651,90 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                             )}
                         </>
                     )}
+                </div>
+            </ConfirmModal>
+
+            {/* Plessi Vicini Modal */}
+            <ConfirmModal
+                show={plessiViciniModal.show}
+                onConfirm={handleAssegnaPlessoVicino}
+                onCancel={closePlessiViciniModal}
+                title={`Plessi Vicini: ${plessiViciniModal.rdl?.cognome} ${plessiViciniModal.rdl?.nome}`}
+                confirmText={plessiViciniModal.selectedPlesso
+                    ? `Assegna ${plessiViciniModal.selectedPlesso.sezioni.filter(s => plessiViciniModal.ruolo === 'RDL' ? !s.effettivo : !s.supplente).length} sezioni come ${plessiViciniModal.ruolo === 'RDL' ? 'Effettivo' : 'Supplente'}`
+                    : 'Seleziona un plesso'}
+                confirmVariant="success"
+                confirmDisabled={!plessiViciniModal.selectedPlesso || !plessiViciniModal.ruolo}
+            >
+                <div>
+                    <div className="mappatura-modal-info mb-2">
+                        <strong>RDL:</strong> {plessiViciniModal.rdl?.cognome} {plessiViciniModal.rdl?.nome}
+                    </div>
+                    {plessiViciniModal.plessi.length === 0 ? (
+                        <div className="alert alert-warning">
+                            <i className="fas fa-exclamation-triangle me-2"></i>
+                            Nessun plesso disponibile entro 10 km.
+                        </div>
+                    ) : (
+                        <div className="plessi-vicini-list">
+                            {plessiViciniModal.plessi.map((plesso, idx) => {
+                                const isSelected = plessiViciniModal.selectedPlesso === plesso;
+                                const freeEff = plesso.sezioni.filter(s => !s.effettivo).length;
+                                const freeSup = plesso.sezioni.filter(s => !s.supplente).length;
+                                return (
+                                    <div key={idx} className={`plessi-vicini-item ${isSelected ? 'selected' : ''}`}>
+                                        <div className="plessi-vicini-header">
+                                            <div>
+                                                <i className="fas fa-map-marker-alt me-1 text-primary"></i>
+                                                <strong>{plesso.indirizzo}</strong>
+                                                <span className="badge bg-secondary ms-2">{plesso.distanza_km} km</span>
+                                                <span className="badge bg-light text-dark ms-1">{plesso.sezioni.length} sez.</span>
+                                            </div>
+                                        </div>
+                                        <div className="plessi-vicini-sezioni">
+                                            {plesso.sezioni.map(s => {
+                                                const stato = s.effettivo && s.supplente ? 'completa' : s.effettivo || s.supplente ? 'parziale' : 'libera';
+                                                return (
+                                                    <span key={s.numero}
+                                                        className={`plessi-vicini-sez ${stato}`}
+                                                        title={`Sez. ${s.numero}${s.effettivo ? ` | Eff: ${s.effettivo}` : ''}${s.supplente ? ` | Sup: ${s.supplente}` : ''}`}
+                                                    >
+                                                        {s.numero}
+                                                        {s.effettivo && <span className="text-success"> E</span>}
+                                                        {s.supplente && <span className="text-info"> S</span>}
+                                                    </span>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="plessi-vicini-actions">
+                                            {plesso.has_free_effettivo && (
+                                                <button
+                                                    className={`btn btn-sm ${isSelected && plessiViciniModal.ruolo === 'RDL' ? 'btn-success' : 'btn-outline-success'}`}
+                                                    onClick={() => selectPlesso(plesso, 'RDL')}
+                                                >
+                                                    Effettivo ({freeEff} libere)
+                                                </button>
+                                            )}
+                                            {plesso.has_free_supplente && (
+                                                <button
+                                                    className={`btn btn-sm ${isSelected && plessiViciniModal.ruolo === 'SUPPLENTE' ? 'btn-info' : 'btn-outline-info'}`}
+                                                    onClick={() => selectPlesso(plesso, 'SUPPLENTE')}
+                                                >
+                                                    Supplente ({freeSup} libere)
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                    <div className="plessi-vicini-legend">
+                        <span className="plessi-vicini-legend-swatch libera"></span> Libera
+                        <span className="plessi-vicini-legend-swatch parziale ms-2"></span> Parziale
+                        <span className="plessi-vicini-legend-swatch completa ms-2"></span> Completa
+                        &nbsp;|&nbsp; <strong>E</strong>=Effettivo <strong>S</strong>=Supplente
+                    </div>
                 </div>
             </ConfirmModal>
         </>

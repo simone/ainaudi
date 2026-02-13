@@ -28,6 +28,7 @@ django-storages[google]>=1.14,<2.0
 
 # Google Auth (for OAuth token verification)
 google-auth>=2.29,<3.0
+google-cloud-secret-manager>=2.18,<3.0  # For API key retrieval from Secret Manager
 
 # AI & RAG
 google-cloud-aiplatform>=1.38.0,<2.0  # Vertex AI (Gemini + Embeddings)

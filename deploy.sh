@@ -129,6 +129,13 @@ if [ "$SKIP_FRONTEND" = false ]; then
         fi
     fi
 
+    # Collect Django admin/DRF static files into frontend build
+    echo -e "${YELLOW}📦 Collect static Django (admin, rest_framework)...${NC}"
+    (cd backend_django && python3 manage.py collectstatic --noinput --clear)
+    cp -r backend_django/staticfiles/admin build/static/admin
+    cp -r backend_django/staticfiles/rest_framework build/static/rest_framework
+    echo -e "${GREEN}✅ Static Django copiati in build/static/${NC}"
+
     echo -e "${YELLOW}🚀 Deploy frontend su App Engine (service: default)...${NC}"
     gcloud app deploy app.yaml \
         --project=${PROJECT} \

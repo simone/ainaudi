@@ -3768,6 +3768,58 @@ class MappaturaRdlView(APIView):
                 'plesso': a.sezione.denominazione or a.sezione.indirizzo or f"Sezione {a.sezione.numero}",
             })
 
+        # ── Enrich sezioni_vicine with assignment status ──────────
+        # Collect all section numeri from all RDLs' sezioni_vicine
+        vicine_numeri_by_comune = defaultdict(set)
+        for reg in rdl_registrations:
+            for plesso in (reg.sezioni_vicine or []):
+                for num in plesso.get('sezioni', []):
+                    vicine_numeri_by_comune[reg.comune_id].add(num)
+
+        # Batch fetch section IDs
+        vicine_sez_map = {}  # (comune_id, numero) -> sezione_id
+        for cid, numeri in vicine_numeri_by_comune.items():
+            for sez in SezioneElettorale.objects.filter(
+                comune_id=cid, numero__in=numeri
+            ).only('id', 'numero', 'comune_id'):
+                vicine_sez_map[(cid, sez.numero)] = sez.id
+
+        # Fetch assignments for those sections
+        vicine_sez_ids = set(vicine_sez_map.values())
+        vicine_assign_map = {}  # sezione_id -> {'RDL': name, 'SUPPLENTE': name}
+        if vicine_sez_ids:
+            for a in SectionAssignment.objects.filter(
+                sezione_id__in=vicine_sez_ids,
+                consultazione=consultazione,
+            ).select_related('rdl_registration'):
+                entry = vicine_assign_map.setdefault(a.sezione_id, {})
+                label = f"{a.rdl_registration.cognome} {a.rdl_registration.nome}" if a.rdl_registration else "?"
+                entry[a.role] = label
+
+        def _enrich_plessi_vicini(reg):
+            plessi = []
+            for plesso in (reg.sezioni_vicine or []):
+                sezioni_detail = []
+                for num in sorted(plesso.get('sezioni', [])):
+                    sez_id = vicine_sez_map.get((reg.comune_id, num))
+                    if not sez_id:
+                        continue
+                    occ = vicine_assign_map.get(sez_id, {})
+                    sezioni_detail.append({
+                        'id': sez_id,
+                        'numero': num,
+                        'effettivo': occ.get('RDL'),
+                        'supplente': occ.get('SUPPLENTE'),
+                    })
+                plessi.append({
+                    'indirizzo': plesso.get('indirizzo', ''),
+                    'distanza_km': plesso.get('distanza_km', 0),
+                    'sezioni': sezioni_detail,
+                    'has_free_effettivo': any(s['effettivo'] is None for s in sezioni_detail),
+                    'has_free_supplente': any(s['supplente'] is None for s in sezioni_detail),
+                })
+            return plessi
+
         result = []
         for reg in rdl_registrations:
             assignments_data = assignment_map.get(reg.id, {'effettivo': [], 'supplente': []})
@@ -3788,6 +3840,7 @@ class MappaturaRdlView(APIView):
                 'sezioni_effettivo': assignments_data['effettivo'],
                 'sezioni_supplente': assignments_data['supplente'],
                 'totale_sezioni': len(assignments_data['effettivo']) + len(assignments_data['supplente']),
+                'sezioni_vicine': _enrich_plessi_vicini(reg),
             })
 
         return Response({'rdl': result})

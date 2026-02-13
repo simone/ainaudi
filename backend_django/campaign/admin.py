@@ -88,12 +88,17 @@ class CampagnaReclutamentoAdmin(admin.ModelAdmin):
 
 @admin.register(RdlRegistration)
 class RdlRegistrationAdmin(admin.ModelAdmin):
-    list_display = ['email', 'cognome', 'nome', 'comune', 'municipio', 'status', 'source', 'requested_at']
-    list_filter = ['status', 'source', 'comune__provincia__regione', 'comune']
+    list_display = ['email', 'cognome', 'nome', 'comune', 'municipio', 'status', 'source', 'geo_display', 'n_plessi_vicini', 'requested_at']
+    list_filter = ['status', 'source', 'comune__provincia__regione', 'comune', ('latitudine', admin.EmptyFieldListFilter)]
     search_fields = ['email', 'nome', 'cognome', 'comune__nome']
     raw_id_fields = ['comune', 'municipio', 'consultazione', 'campagna']
     date_hierarchy = 'requested_at'
-    readonly_fields = ['requested_at', 'approved_at']
+    readonly_fields = [
+        'requested_at', 'approved_at',
+        'latitudine', 'longitudine', 'geocoded_at', 'geocode_source',
+        'geocode_quality', 'geocode_place_id',
+        'google_maps_link', 'plessi_vicini_display',
+    ]
 
     fieldsets = (
         (None, {
@@ -102,11 +107,23 @@ class RdlRegistrationAdmin(admin.ModelAdmin):
         (_('Dati anagrafici'), {
             'fields': ('comune_nascita', 'data_nascita', 'comune_residenza', 'indirizzo_residenza')
         }),
+        (_('Fuorisede'), {
+            'fields': ('fuorisede', 'comune_domicilio', 'indirizzo_domicilio'),
+            'classes': ('collapse',),
+        }),
         (_('Ambito'), {
             'fields': ('comune', 'municipio', 'consultazione', 'seggio_preferenza')
         }),
         (_('Stato'), {
             'fields': ('status', 'source', 'campagna')
+        }),
+        (_('Geolocalizzazione'), {
+            'fields': ('latitudine', 'longitudine', 'geocode_source', 'geocode_quality', 'geocoded_at', 'geocode_place_id', 'google_maps_link'),
+            'classes': ('collapse',),
+        }),
+        (_('Plessi vicini'), {
+            'fields': ('plessi_vicini_display',),
+            'classes': ('collapse',),
         }),
         (_('Approvazione'), {
             'fields': ('approved_by_email', 'approved_at', 'rejection_reason'),
@@ -119,6 +136,55 @@ class RdlRegistrationAdmin(admin.ModelAdmin):
     )
 
     actions = ['approve_selected', 'reject_selected']
+
+    @admin.display(description=_('Geo'))
+    def geo_display(self, obj):
+        if obj.latitudine and obj.longitudine:
+            return format_html(
+                '<a href="https://www.google.com/maps?q={},{}" target="_blank" title="{} ({})">'
+                '<span style="color:green">&#x2713;</span></a>',
+                obj.latitudine, obj.longitudine,
+                obj.geocode_quality or '?', obj.geocode_source or '?',
+            )
+        return format_html('<span style="color:#ccc">&#x2717;</span>')
+
+    @admin.display(description=_('Plessi'))
+    def n_plessi_vicini(self, obj):
+        plessi = obj.sezioni_vicine or []
+        if not plessi:
+            return '-'
+        return len(plessi)
+
+    @admin.display(description=_('Google Maps'))
+    def google_maps_link(self, obj):
+        if obj.latitudine and obj.longitudine:
+            return format_html(
+                '<a href="https://www.google.com/maps?q={},{}" target="_blank">Apri in Google Maps</a>',
+                obj.latitudine, obj.longitudine,
+            )
+        return '-'
+
+    @admin.display(description=_('Plessi vicini (top 10)'))
+    def plessi_vicini_display(self, obj):
+        plessi = obj.sezioni_vicine or []
+        if not plessi:
+            return _('Nessun plesso vicino calcolato')
+        rows = []
+        for p in plessi:
+            sezioni = ', '.join(str(n) for n in p.get('sezioni', []))
+            rows.append(
+                f'<tr><td>{p.get("distanza_km", "?")} km</td>'
+                f'<td>{p.get("indirizzo", "-")}</td>'
+                f'<td>{sezioni}</td></tr>'
+            )
+        return format_html(
+            '<table style="border-collapse:collapse;width:100%">'
+            '<tr style="background:#f0f0f0"><th style="padding:4px 8px;text-align:left">Distanza</th>'
+            '<th style="padding:4px 8px;text-align:left">Indirizzo</th>'
+            '<th style="padding:4px 8px;text-align:left">Sezioni</th></tr>'
+            '{}</table>',
+            format_html(''.join(rows)),
+        )
 
     def approve_selected(self, request, queryset):
         count = 0

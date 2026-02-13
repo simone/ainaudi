@@ -216,6 +216,33 @@ class SezioneElettorale(models.Model):
         blank=True
     )
 
+    # Geocoding metadata
+    geocoded_at = models.DateTimeField(
+        _('data geocodifica'),
+        null=True,
+        blank=True
+    )
+    geocode_source = models.CharField(
+        _('sorgente geocodifica'),
+        max_length=30,
+        blank=True,
+        default='',
+        help_text=_('es. "google", "manual"')
+    )
+    geocode_quality = models.CharField(
+        _('qualità geocodifica'),
+        max_length=30,
+        blank=True,
+        default='',
+        help_text=_('ROOFTOP, RANGE_INTERPOLATED, GEOMETRIC_CENTER, APPROXIMATE')
+    )
+    geocode_place_id = models.CharField(
+        _('Google Place ID'),
+        max_length=255,
+        blank=True,
+        default=''
+    )
+
     class Meta:
         verbose_name = _('sezione elettorale')
         verbose_name_plural = _('sezioni elettorali')

@@ -291,6 +291,53 @@ class RdlRegistration(models.Model):
     rejection_reason = models.TextField(_('motivo rifiuto'), blank=True)
     notes = models.TextField(_('note'), blank=True)
 
+    # Geolocation
+    latitudine = models.DecimalField(
+        _('latitudine'),
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True
+    )
+    longitudine = models.DecimalField(
+        _('longitudine'),
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True
+    )
+    geocoded_at = models.DateTimeField(
+        _('data geocodifica'),
+        null=True,
+        blank=True
+    )
+    geocode_source = models.CharField(
+        _('sorgente geocodifica'),
+        max_length=30,
+        blank=True,
+        default='',
+        help_text=_('es. "google", "manual"')
+    )
+    geocode_quality = models.CharField(
+        _('qualità geocodifica'),
+        max_length=30,
+        blank=True,
+        default='',
+        help_text=_('ROOFTOP, RANGE_INTERPOLATED, GEOMETRIC_CENTER, APPROXIMATE')
+    )
+    geocode_place_id = models.CharField(
+        _('Google Place ID'),
+        max_length=255,
+        blank=True,
+        default=''
+    )
+    sezioni_vicine = models.JSONField(
+        _('sezioni vicine'),
+        default=list,
+        blank=True,
+        help_text=_('Top 10 plessi più vicini [{indirizzo, distanza_km, sezioni: [numeri]}]')
+    )
+
     # Source of registration
     source = models.CharField(
         _('origine'),

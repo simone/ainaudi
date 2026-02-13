@@ -2071,6 +2071,84 @@ small.text-muted {
   color: rgba(255, 255, 255, 0.9);
 }
 
+/* Plessi vicini modal */
+.plessi-vicini-list {
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+.plessi-vicini-item {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #fff;
+}
+
+.plessi-vicini-item.selected {
+  border: 2px solid #0d6efd;
+  background: #e7f1ff;
+}
+
+.plessi-vicini-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.plessi-vicini-sezioni {
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+}
+
+.plessi-vicini-sez {
+  display: inline-block;
+  padding: 1px 6px;
+  margin: 1px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.plessi-vicini-sez.libera {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.plessi-vicini-sez.parziale {
+  background: #fff3cd;
+  color: #664d03;
+}
+
+.plessi-vicini-sez.completa {
+  background: #f8d7da;
+  color: #842029;
+}
+
+.plessi-vicini-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.plessi-vicini-legend {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-top: 8px;
+}
+
+.plessi-vicini-legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.plessi-vicini-legend-swatch.libera { background: #d1e7dd; }
+.plessi-vicini-legend-swatch.parziale { background: #fff3cd; }
+.plessi-vicini-legend-swatch.completa { background: #f8d7da; }
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .mappatura-filters-grid {
@@ -2152,6 +2230,28 @@ small.text-muted {
   .mappatura-rdl-sezione-plesso {
     width: 100%;
     margin-top: var(--spacing-xs);
+  }
+
+  /* Plessi vicini modal - mobile */
+  .plessi-vicini-header > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .plessi-vicini-header strong {
+    font-size: 0.85rem;
+    display: block;
+    width: 100%;
+  }
+
+  .plessi-vicini-actions {
+    flex-direction: column;
+  }
+
+  .plessi-vicini-actions .btn {
+    width: 100%;
   }
 }
 

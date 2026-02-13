@@ -1536,6 +1536,76 @@
   color: var(--text-secondary) !important;
 }
 
+/* Sezioni assegnate (RDL card) */
+[data-theme="night"] .mappatura-rdl-sezioni {
+  background: var(--bg-dark-secondary) !important;
+}
+
+[data-theme="night"] .mappatura-rdl-sezione {
+  background: var(--bg-dark-tertiary) !important;
+  border-color: var(--border-medium) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .mappatura-rdl-sezione.effettivo {
+  border-left: 3px solid var(--color-success) !important;
+}
+
+[data-theme="night"] .mappatura-rdl-sezione.supplente {
+  border-left: 3px solid var(--color-info) !important;
+}
+
+[data-theme="night"] .mappatura-rdl-sezione-ruolo {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="night"] .mappatura-rdl-sezione-plesso {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="night"] .mappatura-rdl-sezione-remove {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="night"] .mappatura-rdl-sezione-remove:hover {
+  color: var(--color-danger) !important;
+}
+
+/* Plessi vicini modal */
+[data-theme="night"] .plessi-vicini-item {
+  background: var(--bg-dark-tertiary) !important;
+  border-color: var(--border-medium) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .plessi-vicini-item.selected {
+  background: var(--bg-navy-dark) !important;
+  border-color: var(--color-accent-blue) !important;
+}
+
+[data-theme="night"] .plessi-vicini-sez.libera {
+  background: var(--color-success-bg) !important;
+  color: var(--color-success) !important;
+}
+
+[data-theme="night"] .plessi-vicini-sez.parziale {
+  background: var(--color-warning-bg) !important;
+  color: var(--color-warning) !important;
+}
+
+[data-theme="night"] .plessi-vicini-sez.completa {
+  background: var(--color-danger-bg) !important;
+  color: var(--color-danger) !important;
+}
+
+[data-theme="night"] .plessi-vicini-legend {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="night"] .plessi-vicini-legend-swatch.libera { background: var(--color-success-bg) !important; }
+[data-theme="night"] .plessi-vicini-legend-swatch.parziale { background: var(--color-warning-bg) !important; }
+[data-theme="night"] .plessi-vicini-legend-swatch.completa { background: var(--color-danger-bg) !important; }
+
 [data-theme="night"] .mappatura-loading {
   color: var(--text-secondary) !important;
 }

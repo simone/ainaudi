@@ -2,6 +2,8 @@
 Admin configuration for Territorio app.
 """
 from django.contrib import admin
+from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 from .models import (
     Regione, Provincia, Comune, Municipio, SezioneElettorale,
     TerritorialPartitionSet, TerritorialPartitionUnit, TerritorialPartitionMembership
@@ -45,11 +47,42 @@ class MunicipioAdmin(admin.ModelAdmin):
 
 @admin.register(SezioneElettorale)
 class SezioneElettoraleAdmin(admin.ModelAdmin):
-    list_display = ['numero', 'comune', 'municipio', 'denominazione', 'n_elettori', 'is_attiva']
-    list_filter = ['is_attiva', 'comune__provincia__regione', 'comune__provincia', 'comune']
+    list_display = ['numero', 'comune', 'municipio', 'denominazione', 'indirizzo', 'n_elettori', 'is_attiva', 'geo_display']
+    list_filter = ['is_attiva', 'comune__provincia__regione', 'comune__provincia', 'comune', ('latitudine', admin.EmptyFieldListFilter)]
     search_fields = ['numero', 'denominazione', 'indirizzo', 'comune__nome']
     ordering = ['comune', 'numero']
     autocomplete_fields = ['comune', 'municipio']
+    readonly_fields = ['latitudine', 'longitudine', 'geocoded_at', 'geocode_source', 'geocode_quality', 'geocode_place_id', 'google_maps_link']
+
+    fieldsets = (
+        (None, {
+            'fields': ('numero', 'comune', 'municipio', 'denominazione', 'indirizzo', 'n_elettori', 'is_attiva')
+        }),
+        (_('Geolocalizzazione'), {
+            'fields': ('latitudine', 'longitudine', 'geocode_source', 'geocode_quality', 'geocoded_at', 'geocode_place_id', 'google_maps_link'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    @admin.display(description=_('Geo'))
+    def geo_display(self, obj):
+        if obj.latitudine and obj.longitudine:
+            return format_html(
+                '<a href="https://www.google.com/maps?q={},{}" target="_blank" title="{} ({})">'
+                '<span style="color:green">&#x2713;</span></a>',
+                obj.latitudine, obj.longitudine,
+                obj.geocode_quality or '?', obj.geocode_source or '?',
+            )
+        return format_html('<span style="color:#ccc">&#x2717;</span>')
+
+    @admin.display(description=_('Google Maps'))
+    def google_maps_link(self, obj):
+        if obj.latitudine and obj.longitudine:
+            return format_html(
+                '<a href="https://www.google.com/maps?q={},{}" target="_blank">Apri in Google Maps</a>',
+                obj.latitudine, obj.longitudine,
+            )
+        return '-'
 
 
 # =============================================================================
