@@ -12,6 +12,7 @@ from core.permissions import CanManageMappatura
 from territory.models import Regione, Provincia, Comune, Municipio, SezioneElettorale
 from elections.models import ConsultazioneElettorale
 from data.models import SectionAssignment
+from data.views import get_locked_assignments
 from campaign.models import RdlRegistration
 from delegations.permissions import get_sezioni_filter_for_user
 
@@ -495,13 +496,18 @@ class MappaturaGerarchicaView(APIView):
             'municipio'
         ).order_by('numero')
 
-        # Prefetch assignments
-        assignments_map = {}
+        # Prefetch assignments (indexed by sezione_id and role)
+        from collections import defaultdict
+        assignments_map = defaultdict(dict)
         for assignment in SectionAssignment.objects.filter(
             sezione__in=accessible_sezioni,
             consultazione=consultazione
         ).select_related('rdl_registration'):
-            assignments_map[assignment.sezione_id] = assignment
+            assignments_map[assignment.sezione_id][assignment.role] = assignment
+
+        # Compute locks from confirmed designations
+        sezioni_ids = [s.id for s in accessible_sezioni]
+        locks_map = get_locked_assignments(sezioni_ids, consultazione)
 
         result = []
         for sezione in accessible_sezioni:
@@ -515,37 +521,40 @@ class MappaturaGerarchicaView(APIView):
                 ):
                     continue
 
-            assignment = assignments_map.get(sezione.id)
+            sez_assignments = assignments_map.get(sezione.id, {})
 
             rdl_effettivo = None
             rdl_supplente = None
 
-            if assignment and assignment.rdl_registration:
-                rdl = assignment.rdl_registration
+            for role_key, label in [('RDL', 'effettivo'), ('SUPPLENTE', 'supplente')]:
+                assignment = sez_assignments.get(role_key)
+                if assignment and assignment.rdl_registration:
+                    rdl = assignment.rdl_registration
 
-                # Costruisci domicilio completo (priorità: domicilio > residenza)
-                domicilio = ''
-                if rdl.comune_domicilio and rdl.indirizzo_domicilio:
-                    domicilio = f"{rdl.indirizzo_domicilio}, {rdl.comune_domicilio}"
-                elif rdl.indirizzo_residenza and rdl.comune_residenza:
-                    domicilio = f"{rdl.indirizzo_residenza}, {rdl.comune_residenza}"
+                    # Costruisci domicilio completo (priorità: domicilio > residenza)
+                    domicilio = ''
+                    if rdl.comune_domicilio and rdl.indirizzo_domicilio:
+                        domicilio = f"{rdl.indirizzo_domicilio}, {rdl.comune_domicilio}"
+                    elif rdl.indirizzo_residenza and rdl.comune_residenza:
+                        domicilio = f"{rdl.indirizzo_residenza}, {rdl.comune_residenza}"
 
-                rdl_info = {
-                    'id': rdl.id,
-                    'nome': rdl.nome,
-                    'cognome': rdl.cognome,
-                    'email': rdl.email,
-                    'telefono': rdl.telefono or '',
-                    'data_nascita': rdl.data_nascita.strftime('%d/%m/%Y') if rdl.data_nascita else '',
-                    'luogo_nascita': rdl.comune_nascita or '',
-                    'domicilio': domicilio
-                }
+                    rdl_info = {
+                        'id': rdl.id,
+                        'nome': rdl.nome,
+                        'cognome': rdl.cognome,
+                        'email': rdl.email,
+                        'telefono': rdl.telefono or '',
+                        'data_nascita': rdl.data_nascita.strftime('%d/%m/%Y') if rdl.data_nascita else '',
+                        'luogo_nascita': rdl.comune_nascita or '',
+                        'domicilio': domicilio
+                    }
 
-                if assignment.role == 'EFFETTIVO':
-                    rdl_effettivo = rdl_info
-                elif assignment.role == 'SUPPLENTE':
-                    rdl_supplente = rdl_info
+                    if label == 'effettivo':
+                        rdl_effettivo = rdl_info
+                    else:
+                        rdl_supplente = rdl_info
 
+            sezione_locks = locks_map.get(sezione.id, {})
             result.append({
                 'id': sezione.id,
                 'tipo': 'sezione',
@@ -556,7 +565,9 @@ class MappaturaGerarchicaView(APIView):
                 'municipio': sezione.municipio.nome if sezione.municipio else None,
                 'is_assegnata': rdl_effettivo is not None,
                 'rdl_effettivo': rdl_effettivo,
-                'rdl_supplente': rdl_supplente
+                'rdl_supplente': rdl_supplente,
+                'effettivo_locked': sezione_locks.get('RDL', False),
+                'supplente_locked': sezione_locks.get('SUPPLENTE', False),
             })
 
         totale_sezioni = len(result)

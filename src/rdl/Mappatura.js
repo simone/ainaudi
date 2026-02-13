@@ -133,6 +133,7 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
 
     const loadData = useCallback(async () => {
         setLoading(true);
+        setError(null);
 
         const filters = {};
         if (comuneFilter) filters.comune_id = comuneFilter;
@@ -371,6 +372,10 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
         if (result.error) {
             setError(result.error);
         } else {
+            if (result.skipped && result.skipped.length > 0) {
+                const skippedNums = result.skipped.map(s => s.sezione_numero).join(', ');
+                setError(`Assegnate ${result.count} sezioni. Saltate ${result.skipped.length} sezioni bloccate da designazioni confermate (Sez. ${skippedNums}).`);
+            }
             setSelectedSezioni(new Set());
             client.mappatura.invalidateCache();
             loadData();
@@ -894,10 +899,13 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                                 </div>
                                                 <div className="mappatura-sezione-slots">
                                                     {/* Effettivo slot */}
-                                                    <div className={`mappatura-slot ${sez.effettivo ? 'assigned' : 'empty'}`}>
+                                                    <div className={`mappatura-slot ${sez.effettivo ? 'assigned' : 'empty'} ${sez.effettivo_locked ? 'locked' : ''}`}>
                                                         <span className="mappatura-slot-label">E:</span>
                                                         {sez.effettivo ? (
                                                             <>
+                                                                {sez.effettivo_locked && (
+                                                                    <span className="mappatura-slot-lock" title="Bloccato da designazione confermata"><i className="fas fa-lock"></i></span>
+                                                                )}
                                                                 {sez.effettivo.multi_plesso && (
                                                                     <span className="mappatura-slot-warning" title="RDL assegnato a più plessi">⚠️</span>
                                                                 )}
@@ -905,13 +913,15 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                                                     <span className="mappatura-slot-warning territorio" title="RDL registrato in altro territorio">❗</span>
                                                                 )}
                                                                 <span className="mappatura-slot-name">{sez.effettivo.user_nome}</span>
-                                                                <button
-                                                                    className="mappatura-slot-action remove"
-                                                                    onClick={() => openRemoveModal(sez.effettivo, sez)}
-                                                                    title="Rimuovi"
-                                                                >
-                                                                    ✕
-                                                                </button>
+                                                                {!sez.effettivo_locked && (
+                                                                    <button
+                                                                        className="mappatura-slot-action remove"
+                                                                        onClick={() => openRemoveModal(sez.effettivo, sez)}
+                                                                        title="Rimuovi"
+                                                                    >
+                                                                        ✕
+                                                                    </button>
+                                                                )}
                                                             </>
                                                         ) : (
                                                             <button
@@ -924,10 +934,13 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                                         )}
                                                     </div>
                                                     {/* Supplente slot */}
-                                                    <div className={`mappatura-slot ${sez.supplente ? 'assigned' : 'empty'}`}>
+                                                    <div className={`mappatura-slot ${sez.supplente ? 'assigned' : 'empty'} ${sez.supplente_locked ? 'locked' : ''}`}>
                                                         <span className="mappatura-slot-label">S:</span>
                                                         {sez.supplente ? (
                                                             <>
+                                                                {sez.supplente_locked && (
+                                                                    <span className="mappatura-slot-lock" title="Bloccato da designazione confermata"><i className="fas fa-lock"></i></span>
+                                                                )}
                                                                 {sez.supplente.multi_plesso && (
                                                                     <span className="mappatura-slot-warning" title="RDL assegnato a più plessi">⚠️</span>
                                                                 )}
@@ -935,13 +948,15 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                                                     <span className="mappatura-slot-warning territorio" title="RDL registrato in altro territorio">❗</span>
                                                                 )}
                                                                 <span className="mappatura-slot-name">{sez.supplente.user_nome}</span>
-                                                                <button
-                                                                    className="mappatura-slot-action remove"
-                                                                    onClick={() => openRemoveModal(sez.supplente, sez)}
-                                                                    title="Rimuovi"
-                                                                >
-                                                                    ✕
-                                                                </button>
+                                                                {!sez.supplente_locked && (
+                                                                    <button
+                                                                        className="mappatura-slot-action remove"
+                                                                        onClick={() => openRemoveModal(sez.supplente, sez)}
+                                                                        title="Rimuovi"
+                                                                    >
+                                                                        ✕
+                                                                    </button>
+                                                                )}
                                                             </>
                                                         ) : (
                                                             <button
@@ -981,10 +996,13 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                     </div>
                                     <span className="plesso-tag">{sez.plesso}</span>
                                     <div className="mappatura-sezione-slots">
-                                        <div className={`mappatura-slot ${sez.effettivo ? 'assigned' : 'empty'}`}>
+                                        <div className={`mappatura-slot ${sez.effettivo ? 'assigned' : 'empty'} ${sez.effettivo_locked ? 'locked' : ''}`}>
                                             <span className="mappatura-slot-label">E:</span>
                                             {sez.effettivo ? (
                                                 <>
+                                                    {sez.effettivo_locked && (
+                                                        <span className="mappatura-slot-lock" title="Bloccato da designazione confermata"><i className="fas fa-lock"></i></span>
+                                                    )}
                                                     {sez.effettivo.multi_plesso && (
                                                         <span className="mappatura-slot-warning" title="RDL assegnato a più plessi">⚠️</span>
                                                     )}
@@ -992,13 +1010,15 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                                         <span className="mappatura-slot-warning territorio" title="RDL registrato in altro territorio">❗</span>
                                                     )}
                                                     <span className="mappatura-slot-name">{sez.effettivo.user_nome}</span>
-                                                    <button
-                                                        className="mappatura-slot-action remove"
-                                                        onClick={() => openRemoveModal(sez.effettivo, sez)}
-                                                        title="Rimuovi"
-                                                    >
-                                                        ✕
-                                                    </button>
+                                                    {!sez.effettivo_locked && (
+                                                        <button
+                                                            className="mappatura-slot-action remove"
+                                                            onClick={() => openRemoveModal(sez.effettivo, sez)}
+                                                            title="Rimuovi"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    )}
                                                 </>
                                             ) : (
                                                 <button
@@ -1010,10 +1030,13 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                                 </button>
                                             )}
                                         </div>
-                                        <div className={`mappatura-slot ${sez.supplente ? 'assigned' : 'empty'}`}>
+                                        <div className={`mappatura-slot ${sez.supplente ? 'assigned' : 'empty'} ${sez.supplente_locked ? 'locked' : ''}`}>
                                             <span className="mappatura-slot-label">S:</span>
                                             {sez.supplente ? (
                                                 <>
+                                                    {sez.supplente_locked && (
+                                                        <span className="mappatura-slot-lock" title="Bloccato da designazione confermata"><i className="fas fa-lock"></i></span>
+                                                    )}
                                                     {sez.supplente.multi_plesso && (
                                                         <span className="mappatura-slot-warning" title="RDL assegnato a più plessi">⚠️</span>
                                                     )}
@@ -1021,13 +1044,15 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                                         <span className="mappatura-slot-warning territorio" title="RDL registrato in altro territorio">❗</span>
                                                     )}
                                                     <span className="mappatura-slot-name">{sez.supplente.user_nome}</span>
-                                                    <button
-                                                        className="mappatura-slot-action remove"
-                                                        onClick={() => openRemoveModal(sez.supplente, sez)}
-                                                        title="Rimuovi"
-                                                    >
-                                                        ✕
-                                                    </button>
+                                                    {!sez.supplente_locked && (
+                                                        <button
+                                                            className="mappatura-slot-action remove"
+                                                            onClick={() => openRemoveModal(sez.supplente, sez)}
+                                                            title="Rimuovi"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    )}
                                                 </>
                                             ) : (
                                                 <button
@@ -1243,6 +1268,9 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                 </span>
                 <span className="mappatura-legend-item">
                     <span className="empty"></span> Non assegnato
+                </span>
+                <span className="mappatura-legend-item">
+                    <i className="fas fa-lock"></i> Designazione confermata
                 </span>
                 <span className="mappatura-legend-item">
                     ⚠️ Più plessi

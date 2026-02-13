@@ -1,17 +1,81 @@
 const cache = new Map();
 
+/**
+ * Decode JWT payload to read exp claim.
+ * Returns expiry as Unix timestamp (seconds) or 0 if unreadable.
+ */
+const getTokenExpiry = (token) => {
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.exp || 0;
+    } catch {
+        return 0;
+    }
+};
+
+/**
+ * Token refresh state: shared across all requests to avoid concurrent refreshes.
+ */
+let _refreshPromise = null;
+let _getValidToken = null;
+let _onAuthFailure = null;
+let _currentToken = null;
+
+/**
+ * Get the current auth header. The AuthContext timer handles proactive refresh,
+ * so this just returns the latest token.
+ */
+const getAuthHeader = () => {
+    return _currentToken ? `Bearer ${_currentToken}` : '';
+};
+
+/**
+ * Handle a 401 response: refresh token and return new auth header.
+ * Returns null if refresh fails (caller should not retry).
+ */
+const handleUnauthorized = async () => {
+    try {
+        if (!_refreshPromise) {
+            _refreshPromise = _getValidToken().finally(() => { _refreshPromise = null; });
+        }
+        const newToken = await _refreshPromise;
+        if (newToken) {
+            _currentToken = newToken;
+            return `Bearer ${newToken}`;
+        }
+    } catch { /* fall through */ }
+    _onAuthFailure?.();
+    return null;
+};
+
 const fetchWithCacheAndRetry = (key, ttl = 60) => async (url, options, retries = 10, delay = 1000) => {
     const now = Date.now();
     const cacheEntry = cache.get(key);
 
     if (cacheEntry && (now - cacheEntry.timestamp < ttl * 1000)) {
-        console.log('Cache hit', key);
         return cacheEntry.data;
     }
+
+    // Get fresh auth header before request
+    const authHeader = getAuthHeader();
+    options = { ...options, headers: { ...options.headers, 'Authorization': authHeader } };
 
     for (let i = 0; i < retries; i++) {
         try {
             const response = await fetch(url, options);
+
+            // Handle 401: refresh token and retry once
+            if (response.status === 401 && i === 0) {
+                const newAuth = await handleUnauthorized();
+                if (newAuth) {
+                    options = { ...options, headers: { ...options.headers, 'Authorization': newAuth } };
+                    continue; // retry with new token
+                }
+                const error = new Error('Sessione scaduta');
+                error.status = 401;
+                error.isAuthError = true;
+                throw error;
+            }
 
             // Handle permission errors (403) without retry
             if (response.status === 403) {
@@ -29,8 +93,8 @@ const fetchWithCacheAndRetry = (key, ttl = 60) => async (url, options, retries =
             cache.set(key, { data, timestamp: now });
             return data;
         } catch (error) {
-            // Don't retry permission errors
-            if (error.isPermissionError) {
+            // Don't retry auth/permission errors
+            if (error.isPermissionError || error.isAuthError) {
                 throw error;
             }
 
@@ -48,8 +112,27 @@ const fetchAndInvalidate = (keys) => async (url, options) => {
     if (typeof keys === 'string') {
         keys = [keys];
     }
+
+    // Get fresh auth header before request
+    const authHeader = getAuthHeader();
+    options = { ...options, headers: { ...options.headers, 'Authorization': authHeader } };
+
     try {
-        const response = await fetch(url, options);
+        let response = await fetch(url, options);
+
+        // Handle 401: refresh token and retry once
+        if (response.status === 401) {
+            const newAuth = await handleUnauthorized();
+            if (newAuth) {
+                options = { ...options, headers: { ...options.headers, 'Authorization': newAuth } };
+                response = await fetch(url, options);
+            } else {
+                const error = new Error('Sessione scaduta');
+                error.status = 401;
+                error.isAuthError = true;
+                throw error;
+            }
+        }
 
         // Handle permission errors (403)
         if (response.status === 403) {
@@ -76,7 +159,12 @@ export const clearCache = () => {
     cache.clear();
 };
 
-const Client = (server, pdfServer, token) => {
+const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
+    // Store callbacks for token refresh
+    _currentToken = token;
+    _getValidToken = getValidToken;
+    _onAuthFailure = onAuthFailure;
+
     // Use Bearer token format for JWT
     const authHeader = token ? `Bearer ${token}` : '';
 

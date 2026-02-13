@@ -20,6 +20,7 @@ from .models import SectionAssignment, DatiSezione, DatiScheda
 from campaign.models import RdlRegistration
 from elections.models import ConsultazioneElettorale
 from territory.models import SezioneElettorale, Comune, Municipio
+from delegations.models import DesignazioneRDL
 
 
 def get_consultazione_attiva():
@@ -49,6 +50,83 @@ def resolve_comune_id(value):
         return comune.id
 
     return None
+
+
+def get_locked_assignments(sezione_ids, consultazione):
+    """
+    Restituisce un dict {sezione_id: {'RDL': bool, 'SUPPLENTE': bool}}
+    indicando quali ruoli sono bloccati da designazioni confermate.
+    Un assignment è bloccato se corrisponde a una designazione CONFERMATA attiva.
+    """
+    if not sezione_ids:
+        return {}
+
+    designazioni = DesignazioneRDL.objects.filter(
+        sezione_id__in=sezione_ids,
+        stato='CONFERMATA',
+        is_attiva=True,
+    ).filter(
+        Q(delegato__consultazione=consultazione) |
+        Q(sub_delega__delegato__consultazione=consultazione)
+    ).values('sezione_id', 'effettivo_email', 'supplente_email')
+
+    # Carica gli assignment correnti per queste sezioni
+    assignments = SectionAssignment.objects.filter(
+        sezione_id__in=sezione_ids,
+        consultazione=consultazione,
+    ).select_related('rdl_registration')
+
+    # Mappa: sezione_id -> {role -> email}
+    assignment_emails = {}
+    for a in assignments:
+        if a.rdl_registration:
+            assignment_emails.setdefault(a.sezione_id, {})[a.role] = a.rdl_registration.email.lower()
+
+    locks = {}
+    for d in designazioni:
+        sid = d['sezione_id']
+        curr = assignment_emails.get(sid, {})
+        eff_locked = bool(
+            d['effettivo_email'] and
+            curr.get('RDL', '').lower() == d['effettivo_email'].lower()
+        )
+        sup_locked = bool(
+            d['supplente_email'] and
+            curr.get('SUPPLENTE', '').lower() == d['supplente_email'].lower()
+        )
+        # Merge: if multiple designazioni exist, any lock wins
+        existing = locks.get(sid, {'RDL': False, 'SUPPLENTE': False})
+        locks[sid] = {
+            'RDL': existing['RDL'] or eff_locked,
+            'SUPPLENTE': existing['SUPPLENTE'] or sup_locked,
+        }
+    return locks
+
+
+def is_assignment_locked(sezione, consultazione, role, rdl_registration):
+    """
+    Check if a specific assignment is locked by a confirmed designation.
+    Returns (bool, designated_email) tuple.
+    """
+    email_field = 'effettivo_email' if role == 'RDL' else 'supplente_email'
+
+    designazione = DesignazioneRDL.objects.filter(
+        sezione=sezione,
+        stato='CONFERMATA',
+        is_attiva=True,
+    ).filter(
+        Q(delegato__consultazione=consultazione) |
+        Q(sub_delega__delegato__consultazione=consultazione)
+    ).exclude(**{email_field: ''}).exclude(**{email_field: None}).first()
+
+    if not designazione:
+        return False, None
+
+    designated_email = getattr(designazione, email_field, '')
+    if designated_email and rdl_registration and rdl_registration.email.lower() == designated_email.lower():
+        return True, designated_email
+
+    return False, None
 
 
 def parse_municipio_number(value):
@@ -894,12 +972,17 @@ class ScrutinioSezioniView(APIView):
         my_sezioni_ids = set()  # Sections assigned to me as RDL
         territory_sezioni_ids = set()  # Sections visible due to delegation territory
 
-        # 1. RDL: sections from SectionAssignment (these are "mine")
-        assignments = SectionAssignment.objects.filter(
-            rdl_registration__email=request.user.email,
-            consultazione=consultazione,
+        # 1. RDL: sections from DesignazioneRDL (these are "mine")
+        from delegations.models import DesignazioneRDL
+        designazioni = DesignazioneRDL.objects.filter(
+            Q(effettivo_email=request.user.email) | Q(supplente_email=request.user.email),
+            is_attiva=True,
+            stato='CONFERMATA',
+        ).filter(
+            Q(delegato__consultazione=consultazione) |
+            Q(sub_delega__delegato__consultazione=consultazione)
         ).values_list('sezione_id', flat=True)
-        my_sezioni_ids.update(assignments)
+        my_sezioni_ids.update(designazioni)
 
         # 2. Delegato/SubDelegato: sections from their territory
         roles = get_user_delegation_roles(request.user, consultazione.id)
@@ -927,10 +1010,17 @@ class ScrutinioSezioniView(APIView):
         # Total count
         total = len(sezioni_ids)
 
-        # Load sezioni with pagination
+        # Load sezioni with pagination - "my" sections always first
+        from django.db.models import Case, When, Value, IntegerField
         sezioni_qs = SezioneElettorale.objects.filter(
             id__in=sezioni_ids
-        ).select_related('comune', 'municipio').order_by('comune__nome', 'numero')
+        ).select_related('comune', 'municipio').annotate(
+            is_mine_order=Case(
+                When(id__in=my_sezioni_ids, then=Value(0)),
+                default=Value(1),
+                output_field=IntegerField()
+            )
+        ).order_by('is_mine_order', 'comune__nome', 'numero')
 
         # Apply pagination
         offset = (page - 1) * page_size
@@ -3327,6 +3417,9 @@ class MappaturaSezioniView(APIView):
             r.id: r for r in RdlRegistration.objects.filter(id__in=rdl_reg_ids).select_related('municipio')
         }
 
+        # Compute locks from confirmed designations
+        locks_map = get_locked_assignments(sezioni_ids, consultazione)
+
         # Index assignments by sezione_id and role
         # Also track which plessi each RDL is assigned to
         assignment_map = defaultdict(dict)
@@ -3440,6 +3533,7 @@ class MappaturaSezioniView(APIView):
             if filter_status == 'assigned' and not is_complete:
                 continue
 
+            sezione_locks = locks_map.get(sezione.id, {})
             plesso_data['sezioni'].append({
                 'id': sezione.id,
                 'numero': sezione.numero,
@@ -3449,6 +3543,8 @@ class MappaturaSezioniView(APIView):
                 'effettivo': effettivo,
                 'supplente': supplente,
                 'warning': has_warning,  # supplente senza effettivo
+                'effettivo_locked': sezione_locks.get('RDL', False),
+                'supplente_locked': sezione_locks.get('SUPPLENTE', False),
             })
             plesso_data['totale'] += 1
             if is_complete:
@@ -3792,7 +3888,27 @@ class MappaturaAssegnaView(APIView):
             }
         )
 
+        # Check if existing assignment for this role is locked by confirmed designation
+        existing = SectionAssignment.objects.filter(
+            sezione=sezione,
+            consultazione=consultazione,
+            role=ruolo
+        ).select_related('rdl_registration').first()
+
+        if existing:
+            locked, designated_email = is_assignment_locked(
+                sezione, consultazione, ruolo, existing.rdl_registration
+            )
+            if locked:
+                return Response({
+                    'error': f'Questa assegnazione è bloccata da una designazione confermata '
+                             f'({designated_email}). Revoca prima la designazione.'
+                }, status=409)
+
         # Delete existing assignment for this role on this sezione
+        if existing:
+            existing.delete()
+        # Also delete any leftover for different role
         SectionAssignment.objects.filter(
             sezione=sezione,
             consultazione=consultazione,
@@ -3839,12 +3955,22 @@ class MappaturaAssegnaView(APIView):
             return Response({'error': 'Non autorizzato'}, status=403)
 
         try:
-            assignment = SectionAssignment.objects.get(
+            assignment = SectionAssignment.objects.select_related('rdl_registration').get(
                 pk=assignment_id,
                 consultazione=consultazione
             )
         except SectionAssignment.DoesNotExist:
             return Response({'error': 'Assegnazione non trovata'}, status=404)
+
+        # Check if assignment is locked by confirmed designation
+        locked, designated_email = is_assignment_locked(
+            assignment.sezione, consultazione, assignment.role, assignment.rdl_registration
+        )
+        if locked:
+            return Response({
+                'error': f'Assegnazione bloccata da designazione confermata ({designated_email}). '
+                         f'Revoca prima la designazione.'
+            }, status=409)
 
         assignment.delete()
 
@@ -3916,9 +4042,24 @@ class MappaturaAssegnaBulkView(APIView):
         if sezioni.count() != len(sezioni_ids):
             return Response({'error': 'Alcune sezioni non trovate'}, status=404)
 
+        # Pre-compute locks for all requested sezioni
+        locks_map = get_locked_assignments(sezioni_ids, consultazione)
+
         assigned = []
+        skipped = []
         with transaction.atomic():
             for sezione in sezioni:
+                # Check if existing assignment is locked
+                sezione_locks = locks_map.get(sezione.id, {})
+                role_key = ruolo  # 'RDL' or 'SUPPLENTE'
+                if sezione_locks.get(role_key, False):
+                    skipped.append({
+                        'sezione_id': sezione.id,
+                        'sezione_numero': sezione.numero,
+                        'motivo': 'Designazione confermata',
+                    })
+                    continue
+
                 # Delete existing assignment for this role
                 SectionAssignment.objects.filter(
                     sezione=sezione,
@@ -3955,6 +4096,7 @@ class MappaturaAssegnaBulkView(APIView):
             'user_email': user.email,
             'ruolo': ruolo,
             'assigned': assigned,
+            'skipped': skipped,
             'count': len(assigned),
         })
 

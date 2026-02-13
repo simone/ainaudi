@@ -205,6 +205,26 @@ function ScrutinioAggregato({ client, consultazione, setError }) {
                                 </div>
                                 <div style={{ ...styles.statLabel, color: 'rgba(255,255,255,0.8)' }}>Complete</div>
                             </div>
+
+                            {/* Sezioni Mappate */}
+                            {data.summary.sezioni_mappate !== undefined && (
+                                <div style={{ ...styles.statBox, backgroundColor: 'rgba(255,255,255,0.2)' }}>
+                                    <div style={{ ...styles.statValue, color: '#fff' }}>
+                                        {data.summary.sezioni_mappate || 0}
+                                    </div>
+                                    <div style={{ ...styles.statLabel, color: 'rgba(255,255,255,0.8)' }}>Mappate</div>
+                                </div>
+                            )}
+
+                            {/* Designazioni confermate */}
+                            {data.summary.designazioni_confermate > 0 && (
+                                <div style={{ ...styles.statBox, backgroundColor: 'rgba(255,255,255,0.2)' }}>
+                                    <div style={{ ...styles.statValue, color: '#fff' }}>
+                                        {data.summary.designazioni_confermate}
+                                    </div>
+                                    <div style={{ ...styles.statLabel, color: 'rgba(255,255,255,0.8)' }}>Designate</div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Risultati Schede (compact) */}
@@ -375,6 +395,26 @@ function ScrutinioAggregato({ client, consultazione, setError }) {
                                         <div style={styles.statLabel}>Complete</div>
                                     </div>
                                 )}
+
+                                {/* Sezioni Mappate (solo per aggregati) */}
+                                {item.sezioni_mappate !== undefined && (
+                                    <div style={styles.statBox}>
+                                        <div style={styles.statValue}>
+                                            {item.sezioni_mappate || 0}
+                                        </div>
+                                        <div style={styles.statLabel}>Mappate</div>
+                                    </div>
+                                )}
+
+                                {/* Designazioni confermate (solo per aggregati) */}
+                                {item.designazioni_confermate > 0 && (
+                                    <div style={styles.statBox}>
+                                        <div style={styles.statValue}>
+                                            {item.designazioni_confermate}
+                                        </div>
+                                        <div style={styles.statLabel}>Designate</div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Status Badge (solo per sezioni) */}
@@ -390,6 +430,27 @@ function ScrutinioAggregato({ client, consultazione, setError }) {
                                             <i className="fas fa-clock me-1"></i>
                                             In corso
                                         </span>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Designazione confermata (solo per sezioni) */}
+                            {item.designazione && (
+                                <div style={styles.designazioneSection}>
+                                    <div style={styles.designazioneTitle}>
+                                        <i className="fas fa-user-check me-1"></i>Designazione
+                                    </div>
+                                    {item.designazione.effettivo && (
+                                        <div style={styles.designazioneRow}>
+                                            <span style={styles.designazioneLabel}>E:</span>
+                                            <span>{item.designazione.effettivo}</span>
+                                        </div>
+                                    )}
+                                    {item.designazione.supplente && (
+                                        <div style={styles.designazioneRow}>
+                                            <span style={styles.designazioneLabel}>S:</span>
+                                            <span>{item.designazione.supplente}</span>
+                                        </div>
                                     )}
                                 </div>
                             )}
@@ -665,6 +726,31 @@ const styles = {
     votoValue: {
         fontWeight: 'bold',
         color: '#212529'
+    },
+    designazioneSection: {
+        marginTop: '10px',
+        paddingTop: '10px',
+        borderTop: '1px solid #e9ecef',
+        fontSize: '0.8rem',
+    },
+    designazioneTitle: {
+        fontSize: '0.7rem',
+        fontWeight: 'bold',
+        color: '#198754',
+        marginBottom: '4px',
+        textTransform: 'uppercase',
+    },
+    designazioneRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        color: '#495057',
+        marginBottom: '2px',
+    },
+    designazioneLabel: {
+        fontWeight: 'bold',
+        color: '#6c757d',
+        minWidth: '18px',
     },
     footer: {
         position: 'fixed',

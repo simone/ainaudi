@@ -662,6 +662,8 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
     };
 
     const filteredItems = data?.items?.filter(item => {
+        // Nascondi territori senza sezioni mappate
+        if (item.sezioni_assegnate !== undefined && item.sezioni_assegnate === 0) return false;
         if (!searchQuery) return true;
         return item.nome.toLowerCase().includes(searchQuery.toLowerCase());
     }) || [];

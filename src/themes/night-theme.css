@@ -25,9 +25,13 @@
   --text-inverse: #1a1d29;         /* Nero (per badges) */
 
   /* Accent colors - BRILLANTI per visibilità */
-  --color-accent-red: #ff6b6b;     /* Rosso brillante */
+  --color-accent-red: #ff6b6b;     /* Rosso brillante (decorativo) */
   --color-accent-red-light: #ff8787;
   --color-accent-red-dark: #ff5252;
+
+  --color-accent-blue: #4a9eff;    /* Blu brillante (primary actions) */
+  --color-accent-blue-light: #6bb1ff;
+  --color-accent-blue-dark: #3a8fd4;
 
   /* Semantic colors - BRILLANTI */
   --color-info: #4fc3f7;           /* Ciano brillante */
@@ -75,7 +79,7 @@
    -------------------------------------------------------------------------- */
 [data-theme="night"] .navbar {
   background: linear-gradient(135deg, var(--bg-navy-dark) 0%, var(--bg-navy-medium) 100%) !important;
-  border-bottom: 2px solid var(--color-accent-red);
+  border-bottom: 2px solid var(--color-accent-blue);
   box-shadow: var(--shadow-md);
 }
 
@@ -184,7 +188,7 @@
 
 [data-theme="night"] .accordion-button:not(.collapsed) {
   background: var(--bg-dark-tertiary) !important;
-  color: var(--color-accent-red) !important;
+  color: var(--color-accent-blue) !important;
   box-shadow: inset 0 -1px 0 var(--border-medium) !important;
 }
 
@@ -193,8 +197,8 @@
 }
 
 [data-theme="night"] .accordion-button:focus {
-  border-color: var(--color-accent-red) !important;
-  box-shadow: 0 0 0 0.25rem rgba(255, 107, 107, 0.25) !important;
+  border-color: var(--color-accent-blue) !important;
+  box-shadow: 0 0 0 0.25rem rgba(74, 158, 255, 0.25) !important;
 }
 
 [data-theme="night"] .accordion-body {
@@ -243,23 +247,23 @@
 /* Dashboard cards - preserve colors naturally */
 [data-theme="night"] .card .card-header[style*="background"] {
   /* Removed opacity hack - let colors be natural */
-  border-bottom: 2px solid var(--color-accent-red);
+  border-bottom: 2px solid var(--color-accent-blue);
 }
 
 /* --------------------------------------------------------------------------
    Buttons - Bright accents
    -------------------------------------------------------------------------- */
 [data-theme="night"] .btn-primary {
-  background: linear-gradient(135deg, var(--color-accent-red) 0%, var(--color-accent-red-dark) 100%);
+  background: linear-gradient(135deg, var(--color-accent-blue) 0%, var(--color-accent-blue-dark) 100%);
   border: none;
   color: #ffffff;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+  box-shadow: 0 4px 12px rgba(74, 158, 255, 0.4);
 }
 
 [data-theme="night"] .btn-primary:hover {
-  background: linear-gradient(135deg, var(--color-accent-red-light) 0%, var(--color-accent-red) 100%);
-  box-shadow: 0 6px 16px rgba(255, 107, 107, 0.6);
+  background: linear-gradient(135deg, var(--color-accent-blue-light) 0%, var(--color-accent-blue) 100%);
+  box-shadow: 0 6px 16px rgba(74, 158, 255, 0.6);
   transform: translateY(-2px);
 }
 
@@ -322,13 +326,13 @@
 }
 
 [data-theme="night"] .btn-outline-primary {
-  border-color: var(--color-accent-red) !important;
-  color: var(--color-accent-red) !important;
+  border-color: var(--color-accent-blue) !important;
+  color: var(--color-accent-blue) !important;
   background: transparent !important;
 }
 
 [data-theme="night"] .btn-outline-primary:hover {
-  background: var(--color-accent-red) !important;
+  background: var(--color-accent-blue) !important;
   color: white !important;
 }
 
@@ -397,8 +401,8 @@
 [data-theme="night"] .form-control:focus,
 [data-theme="night"] .form-select:focus {
   background: var(--bg-dark-elevated);
-  border-color: var(--color-accent-red);
-  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.25);
+  border-color: var(--color-accent-blue);
+  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.25);
   color: var(--text-primary);
 }
 
@@ -439,8 +443,8 @@
 [data-theme="night"] input[type="search"]:focus,
 [data-theme="night"] textarea:focus {
   background: var(--bg-dark-elevated) !important;
-  border-color: var(--color-accent-red) !important;
-  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.25) !important;
+  border-color: var(--color-accent-blue) !important;
+  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.25) !important;
   outline: none !important;
 }
 
@@ -463,8 +467,8 @@
 }
 
 [data-theme="night"] .form-check-input:checked {
-  background-color: var(--color-accent-red);
-  border-color: var(--color-accent-red);
+  background-color: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
 }
 
 [data-theme="night"] .form-check-label {
@@ -478,12 +482,12 @@
 [data-theme="night"] .progress-stacked {
   background-color: var(--bg-dark-tertiary) !important;
   --bs-progress-bg: var(--bg-dark-tertiary) !important;
-  --bs-progress-bar-bg: var(--color-accent-red) !important;
+  --bs-progress-bar-bg: var(--color-accent-blue) !important;
   --bs-progress-bar-color: #ffffff !important;
 }
 
 [data-theme="night"] .progress-bar {
-  background-color: var(--color-accent-red) !important;
+  background-color: var(--color-accent-blue) !important;
 }
 
 [data-theme="night"] .progress-bar-striped {
@@ -534,7 +538,7 @@
 
 [data-theme="night"] .alert-primary {
   background: var(--bg-dark-tertiary) !important;
-  border-color: var(--color-accent-red) !important;
+  border-color: var(--color-accent-blue) !important;
   color: var(--text-primary) !important;
 }
 
@@ -566,7 +570,7 @@
 }
 
 [data-theme="night"] .badge.bg-primary {
-  background: var(--color-accent-red) !important;
+  background: var(--color-accent-blue) !important;
   color: #ffffff !important;
 }
 
@@ -726,7 +730,7 @@
 
 [data-theme="night"] .modal-custom {
   background: var(--bg-dark-elevated);
-  border: 2px solid var(--color-accent-red);
+  border: 2px solid var(--color-accent-blue);
   border-radius: 16px;
   box-shadow: var(--shadow-lg);
   color: var(--text-primary);
@@ -735,7 +739,7 @@
 [data-theme="night"] .modal-custom-header {
   background: var(--bg-dark-tertiary);
   color: var(--text-primary);
-  border-bottom: 2px solid var(--color-accent-red);
+  border-bottom: 2px solid var(--color-accent-blue);
 }
 
 [data-theme="night"] .modal-custom-body {
@@ -771,7 +775,7 @@
 [data-theme="night"] .page-header {
   box-shadow: var(--shadow-md);
   border-left-width: 4px;
-  border-left-color: var(--color-accent-red);
+  border-left-color: var(--color-accent-blue);
 }
 
 /* --------------------------------------------------------------------------
@@ -795,7 +799,7 @@
    -------------------------------------------------------------------------- */
 [data-theme="night"] .custom-footer {
   background: var(--bg-dark-tertiary);
-  border-top: 2px solid var(--color-accent-red);
+  border-top: 2px solid var(--color-accent-blue);
   color: var(--text-secondary);
 }
 
@@ -812,13 +816,13 @@
 }
 
 [data-theme="night"] ::-webkit-scrollbar-thumb {
-  background: var(--color-accent-red);
+  background: var(--color-accent-blue);
   border-radius: 6px;
   border: 2px solid var(--bg-dark-primary);
 }
 
 [data-theme="night"] ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-accent-red-light);
+  background: var(--color-accent-blue-light);
 }
 
 /* --------------------------------------------------------------------------
@@ -857,11 +861,11 @@
 
 /* Links - bright accent */
 [data-theme="night"] a {
-  color: var(--color-accent-red);
+  color: var(--color-accent-blue);
 }
 
 [data-theme="night"] a:hover {
-  color: var(--color-accent-red-light);
+  color: var(--color-accent-blue-light);
 }
 
 /* --------------------------------------------------------------------------
@@ -934,8 +938,8 @@
 }
 
 [data-theme="night"] .rdl-badge-primary {
-  background: rgba(255, 107, 107, 0.15) !important;
-  color: var(--color-accent-red) !important;
+  background: rgba(74, 158, 255, 0.15) !important;
+  color: var(--color-accent-blue) !important;
 }
 
 [data-theme="night"] .rdl-badge-muted {
@@ -1448,6 +1452,11 @@
   border-color: var(--border-medium) !important;
 }
 
+[data-theme="night"] .mappatura-slot.locked {
+  background: rgba(255, 193, 7, 0.1) !important;
+  border-color: var(--color-warning, #ffc107) !important;
+}
+
 [data-theme="night"] .mappatura-rdl-card {
   background: var(--bg-dark-secondary) !important;
   border-color: var(--border-medium) !important;
@@ -1476,7 +1485,7 @@
 }
 
 [data-theme="night"] .mappatura-add-sezione-item.selected {
-  background: var(--color-accent-red) !important;
+  background: var(--color-accent-blue) !important;
   color: white !important;
 }
 
@@ -1518,7 +1527,7 @@
 
 [data-theme="night"] .mappatura-bulk-actions {
   background: var(--bg-dark-secondary) !important;
-  border-top-color: var(--color-accent-red) !important;
+  border-top-color: var(--color-accent-blue) !important;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5) !important;
 }
 

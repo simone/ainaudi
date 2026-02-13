@@ -170,6 +170,12 @@ input, textarea, [contenteditable="true"] {
 html, body {
   height: 100%;
   margin: 0;
+  scrollbar-width: none;          /* Firefox */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;                  /* Chrome, Safari, Edge */
 }
 
 #root {
@@ -509,6 +515,7 @@ small.text-muted {
   font-weight: 500;
   font-size: 0.8rem;
   border-radius: var(--radius-sm);
+  white-space: normal;
 }
 
 .badge.bg-success { background-color: var(--color-success) !important; }
@@ -1484,6 +1491,18 @@ small.text-muted {
 
 .mappatura-slot-warning.territorio {
   color: #dc3545;
+}
+
+.mappatura-slot.locked {
+  background: rgba(255, 193, 7, 0.08);
+  border-color: var(--color-warning, #ffc107);
+}
+
+.mappatura-slot-lock {
+  flex-shrink: 0;
+  margin-right: 4px;
+  color: var(--color-warning, #ffc107);
+  font-size: 0.7rem;
 }
 
 .mappatura-slot-action {
@@ -2724,6 +2743,9 @@ small.text-muted {
   .navbar-collapse {
     max-height: calc(100vh - 56px);
     overflow-y: auto;
+    background: var(--bs-dark, #212529);
+    margin: 0 -12px;
+    padding: 0 12px;
   }
 
   .user-menu-dropdown {

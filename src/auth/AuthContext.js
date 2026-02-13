@@ -1,5 +1,5 @@
 // AuthContext.js
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 
 const AuthContext = createContext(null);
 
@@ -16,6 +16,19 @@ const ORIGINAL_ACCESS_TOKEN_KEY = 'rdl_original_access_token';
 const ORIGINAL_REFRESH_TOKEN_KEY = 'rdl_original_refresh_token';
 const ORIGINAL_USER_KEY = 'rdl_original_user';
 
+/**
+ * Decode JWT payload to read exp claim.
+ * Returns expiry as Unix timestamp (seconds) or 0 if unreadable.
+ */
+const getTokenExpiry = (token) => {
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.exp || 0;
+    } catch {
+        return 0;
+    }
+};
+
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [accessToken, setAccessToken] = useState(null);
@@ -23,6 +36,7 @@ export function AuthProvider({ children }) {
     const [error, setError] = useState(null);
     const [isImpersonating, setIsImpersonating] = useState(false);
     const [originalUser, setOriginalUser] = useState(null);
+    const refreshTimerRef = useRef(null);
 
     // Load stored auth on mount
     useEffect(() => {
@@ -54,6 +68,38 @@ export function AuthProvider({ children }) {
             setLoading(false);
         }
     }, []);
+
+    // Auto-refresh token 10 seconds before expiry
+    useEffect(() => {
+        if (refreshTimerRef.current) {
+            clearTimeout(refreshTimerRef.current);
+            refreshTimerRef.current = null;
+        }
+
+        if (!accessToken) return;
+
+        const exp = getTokenExpiry(accessToken);
+        if (!exp) return;
+
+        const now = Math.floor(Date.now() / 1000);
+        const timeUntilRefresh = (exp - now - 10) * 1000; // 10s before expiry, in ms
+
+        if (timeUntilRefresh <= 0) {
+            // Token already expired or about to, refresh now
+            refreshToken().catch(() => { /* logout handled inside */ });
+            return;
+        }
+
+        refreshTimerRef.current = setTimeout(() => {
+            refreshToken().catch(() => { /* logout handled inside */ });
+        }, timeUntilRefresh);
+
+        return () => {
+            if (refreshTimerRef.current) {
+                clearTimeout(refreshTimerRef.current);
+            }
+        };
+    }, [accessToken]);
 
     // Verify token with backend
     const verifyToken = async (token) => {
@@ -245,7 +291,7 @@ export function AuthProvider({ children }) {
         setOriginalUser(null);
     }, []);
 
-    // Get valid token (refresh if needed)
+    // Get valid token (refresh if needed) - used on app startup
     const getValidToken = useCallback(async () => {
         if (!accessToken) return null;
 
@@ -260,6 +306,16 @@ export function AuthProvider({ children }) {
         }
     }, [accessToken, logout]);
 
+    // Refresh access token directly (no verify round-trip) - used by API client
+    const refreshAccessToken = useCallback(async () => {
+        try {
+            return await refreshToken();
+        } catch {
+            logout();
+            return null;
+        }
+    }, [logout]);
+
     const value = {
         user,
         accessToken,
@@ -272,6 +328,7 @@ export function AuthProvider({ children }) {
         verifyMagicLink,
         logout,
         getValidToken,
+        refreshAccessToken,
         setError,
         impersonate,
         stopImpersonating,

@@ -13,9 +13,10 @@ from django.db.models import Sum, Count, Q, F, Case, When, FloatField
 from django.db.models.functions import Coalesce
 
 from core.permissions import CanViewLiveResults
-from .models import DatiSezione, DatiScheda
+from .models import DatiSezione, DatiScheda, SectionAssignment
 from elections.models import ConsultazioneElettorale, SchedaElettorale
 from territory.models import Regione, Provincia, Comune, Municipio, SezioneElettorale
+from delegations.models import DesignazioneRDL
 from delegations.permissions import get_sezioni_filter_for_user, get_user_delegation_roles
 
 
@@ -117,6 +118,10 @@ class ScrutinioAggregatoView(APIView):
             sezioni_in_regione = sezioni_qs.filter(comune__provincia__regione=regione)
             aggregated = self._aggregate_sezioni(sezioni_in_regione, consultazione)
 
+            # Nascondi regioni senza sezioni mappate
+            if aggregated['sezioni_mappate'] == 0:
+                continue
+
             data.append({
                 'id': regione.id,
                 'tipo': 'regione',
@@ -166,6 +171,10 @@ class ScrutinioAggregatoView(APIView):
         for provincia in province:
             sezioni_in_provincia = sezioni_in_regione.filter(comune__provincia=provincia)
             aggregated = self._aggregate_sezioni(sezioni_in_provincia, consultazione)
+
+            # Nascondi province senza sezioni mappate
+            if aggregated['sezioni_mappate'] == 0:
+                continue
 
             data.append({
                 'id': provincia.id,
@@ -223,6 +232,10 @@ class ScrutinioAggregatoView(APIView):
         for comune in comuni:
             sezioni_in_comune = sezioni_in_provincia.filter(comune=comune)
             aggregated = self._aggregate_sezioni(sezioni_in_comune, consultazione)
+
+            # Nascondi comuni senza sezioni mappate
+            if aggregated['sezioni_mappate'] == 0:
+                continue
 
             data.append({
                 'id': comune.id,
@@ -284,6 +297,10 @@ class ScrutinioAggregatoView(APIView):
             for municipio in municipi:
                 sezioni_in_municipio = sezioni_in_comune.filter(municipio=municipio)
                 aggregated = self._aggregate_sezioni(sezioni_in_municipio, consultazione)
+
+                # Nascondi municipi senza sezioni mappate
+                if aggregated['sezioni_mappate'] == 0:
+                    continue
 
                 data.append({
                     'id': municipio.id,
@@ -347,8 +364,28 @@ class ScrutinioAggregatoView(APIView):
 
         sezioni = sezioni_qs.order_by('numero')
 
+        # Prefetch designazioni confermate per queste sezioni
+        designazioni_map = {}
+        designazioni = DesignazioneRDL.objects.filter(
+            sezione__in=sezioni,
+            stato='CONFERMATA',
+            is_attiva=True,
+        ).filter(
+            Q(delegato__consultazione=consultazione) |
+            Q(sub_delega__delegato__consultazione=consultazione)
+        )
+        for d in designazioni:
+            designazioni_map[d.sezione_id] = {
+                'effettivo': f"{d.effettivo_cognome} {d.effettivo_nome}".strip() if d.effettivo_cognome else None,
+                'effettivo_email': d.effettivo_email or None,
+                'supplente': f"{d.supplente_cognome} {d.supplente_nome}".strip() if d.supplente_cognome else None,
+                'supplente_email': d.supplente_email or None,
+            }
+
         data = []
         for sezione in sezioni:
+            designazione = designazioni_map.get(sezione.id)
+
             # Get DatiSezione
             try:
                 dati_sezione = DatiSezione.objects.get(sezione=sezione, consultazione=consultazione)
@@ -376,7 +413,8 @@ class ScrutinioAggregatoView(APIView):
                     'totale_votanti': totale_votanti,
                     'affluenza_percentuale': affluenza,
                     'is_complete': dati_sezione.is_complete,
-                    'schede': schede_data
+                    'schede': schede_data,
+                    'designazione': designazione,
                 })
             except DatiSezione.DoesNotExist:
                 # No data yet
@@ -390,7 +428,8 @@ class ScrutinioAggregatoView(APIView):
                     'totale_votanti': 0,
                     'affluenza_percentuale': 0,
                     'is_complete': False,
-                    'schede': []
+                    'schede': [],
+                    'designazione': designazione,
                 })
 
         breadcrumbs = [
@@ -438,6 +477,22 @@ class ScrutinioAggregatoView(APIView):
         totale_votanti = aggregated['totale_votanti_m'] + aggregated['totale_votanti_f']
         affluenza = round((totale_votanti / totale_elettori * 100), 2) if totale_elettori > 0 else 0
 
+        # Count sezioni mappate (con almeno un SectionAssignment)
+        sezioni_mappate = SectionAssignment.objects.filter(
+            sezione__in=sezioni_qs,
+            consultazione=consultazione,
+        ).values('sezione_id').distinct().count()
+
+        # Count sezioni con designazione confermata
+        designazioni_confermate = DesignazioneRDL.objects.filter(
+            sezione__in=sezioni_qs,
+            stato='CONFERMATA',
+            is_attiva=True,
+        ).filter(
+            Q(delegato__consultazione=consultazione) |
+            Q(sub_delega__delegato__consultazione=consultazione)
+        ).values('sezione_id').distinct().count()
+
         # Aggregate schede results
         schede = SchedaElettorale.objects.filter(tipo_elezione__consultazione=consultazione)
         schede_aggregate = []
@@ -476,6 +531,8 @@ class ScrutinioAggregatoView(APIView):
         return {
             'totale_sezioni': sezioni_qs.count(),
             'sezioni_complete': aggregated['sezioni_complete'],
+            'sezioni_mappate': sezioni_mappate,
+            'designazioni_confermate': designazioni_confermate,
             'totale_elettori': totale_elettori,
             'totale_votanti': totale_votanti,
             'affluenza_percentuale': affluenza,

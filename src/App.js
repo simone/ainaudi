@@ -31,7 +31,7 @@ const SERVER_API = '';
 const SERVER_PDF = '';
 
 function AppContent() {
-    const {user, accessToken, isAuthenticated, requestMagicLink, verifyMagicLink, logout, loading: authLoading, error: authError, impersonate, isImpersonating, originalUser, stopImpersonating} = useAuth();
+    const {user, accessToken, isAuthenticated, requestMagicLink, verifyMagicLink, logout, refreshAccessToken, loading: authLoading, error: authError, impersonate, isImpersonating, originalUser, stopImpersonating} = useAuth();
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -107,10 +107,10 @@ function AppContent() {
     // Create client when we have a token
     const client = useMemo(() => {
         if (accessToken) {
-            return Client(SERVER_API, SERVER_PDF, accessToken);
+            return Client(SERVER_API, SERVER_PDF, accessToken, refreshAccessToken, logout);
         }
         return null;
-    }, [accessToken]);
+    }, [accessToken, refreshAccessToken, logout]);
 
     // Check for magic link token in URL
     useEffect(() => {
@@ -347,8 +347,14 @@ function AppContent() {
     };
 
     const toggleMenu = () => {
-        setIsMenuOpen(!isMenuOpen);
+        setIsMenuOpen(prev => !prev);
     };
+
+    // Lock body scroll when mobile menu is open
+    useEffect(() => {
+        document.body.style.overflow = isMenuOpen ? 'hidden' : '';
+        return () => { document.body.style.overflow = ''; };
+    }, [isMenuOpen]);
 
     // Close dropdowns when clicking outside
     useEffect(() => {
@@ -382,6 +388,7 @@ function AppContent() {
         }
         setActiveTab(tab);
         setIsMenuOpen(false);
+        setError(null);
 
         // Scroll to top quando si cambia pagina (importante per mobile)
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -675,6 +682,7 @@ function AppContent() {
                                                        e.preventDefault();
                                                        toggleTheme();
                                                        closeAllDropdowns();
+                                                       setIsMenuOpen(false);
                                                    }}>
                                                     <span>
                                                         <i className={`fas ${theme === 'night' ? 'fa-sun' : 'fa-moon'} me-2`}></i>
@@ -695,6 +703,7 @@ function AppContent() {
                                                                e.preventDefault();
                                                                setShowImpersonate(!showImpersonate);
                                                                closeAllDropdowns();
+                                                               setIsMenuOpen(false);
                                                            }}>
                                                             <i className="fas fa-user-secret me-2 text-warning"></i>
                                                             Impersona utente
@@ -713,6 +722,7 @@ function AppContent() {
                                                            e.preventDefault();
                                                            handleStopImpersonating();
                                                            closeAllDropdowns();
+                                                           setIsMenuOpen(false);
                                                        }}>
                                                         <i className="fas fa-user-check me-2"></i>
                                                         Torna al tuo account
@@ -724,6 +734,7 @@ function AppContent() {
                                                            e.preventDefault();
                                                            handleSignoutClick();
                                                            closeAllDropdowns();
+                                                           setIsMenuOpen(false);
                                                        }}>
                                                         <i className="fas fa-sign-out-alt me-2"></i>
                                                         Esci
@@ -820,7 +831,12 @@ function AppContent() {
                 {consultazioneLoaded && !consultazione && isAuthenticated && (
                     <div className="alert alert-info">Nessuna consultazione elettorale attiva</div>
                 )}
-                {error && <div className="alert alert-danger mt-3">{error}</div>}
+                {error && (
+                    <div className="alert alert-danger mt-3 d-flex align-items-center justify-content-between">
+                        <span>{error}</span>
+                        <button type="button" className="btn-close" aria-label="Chiudi" onClick={() => setError(null)}></button>
+                    </div>
+                )}
                 {showPdfConfirm ? (
                     <PDFConfirmPage serverApi={SERVER_API} />
                 ) : campagnaSlug ? (
