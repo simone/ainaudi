@@ -71,10 +71,10 @@ class PDFGenerator:
         # Crea overlay con testo
         overlay = self._create_overlay(field_mappings, page_type='first')
 
-        # Merge: overlay sopra template (non il contrario!)
+        # Merge: testo overlay SOPRA il template (template come base)
         overlay_page = overlay.pages[0]
-        overlay_page.merge_page(template_page)
-        writer.add_page(overlay_page)
+        template_page.merge_page(overlay_page)
+        writer.add_page(template_page)
 
         # Scrivi output
         output = io.BytesIO()
@@ -139,10 +139,10 @@ class PDFGenerator:
                 loop_items[start_idx:end_idx],
                 page_type
             )
-            # Merge: overlay sopra template (non il contrario!)
+            # Merge: testo overlay SOPRA il template (template come base)
             overlay_page = overlay.pages[0]
-            overlay_page.merge_page(template_page)
-            writer.add_page(overlay_page)
+            template_page.merge_page(overlay_page)
+            writer.add_page(template_page)
 
         # Scrivi output
         output = io.BytesIO()
