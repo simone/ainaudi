@@ -1,4 +1,8 @@
 dispatch:
+  # PDF generation (heavy, 1GB RAM, scale-to-zero)
+  - url: "*/api/deleghe/processi/*"
+    service: pdf
+
   # Django Admin
   - url: "*/admin/*"
     service: api
