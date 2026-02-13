@@ -221,6 +221,10 @@ class SezioneElettorale(models.Model):
         verbose_name_plural = _('sezioni elettorali')
         unique_together = ['comune', 'numero']
         ordering = ['comune', 'numero']
+        indexes = [
+            models.Index(fields=['is_attiva', 'comune'], name='terr_sez_attiva_comune_idx'),
+            models.Index(fields=['is_attiva', 'municipio'], name='terr_sez_attiva_mun_idx'),
+        ]
 
     def __str__(self):
         return f'Sezione {self.numero} - {self.comune.nome}'
