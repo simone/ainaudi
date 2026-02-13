@@ -28,6 +28,7 @@ function ChatInterface({ client, show, onClose }) {
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const recognitionRef = useRef(null);
+    const prePrefixRef = useRef('');  // Testo esistente prima della registrazione
     const speechSynthesisRef = useRef(null);
 
     // Scroll to bottom helper
@@ -97,7 +98,7 @@ function ChatInterface({ client, show, onClose }) {
             recognitionRef.current.interimResults = true;  // Mostra risultati parziali
 
             recognitionRef.current.onresult = (event) => {
-                // Accumula tutti i risultati finali
+                // Accumula tutti i risultati della sessione corrente
                 let transcript = '';
 
                 for (let i = 0; i < event.results.length; i++) {
@@ -107,8 +108,10 @@ function ChatInterface({ client, show, onClose }) {
                     }
                 }
 
-                // Aggiorna il campo di testo con tutto il trascritto
-                setInputText(transcript.trim());
+                // Accoda al testo esistente (salvato all'avvio della registrazione)
+                const prefix = prePrefixRef.current;
+                const separator = prefix && transcript.trim() ? ' ' : '';
+                setInputText(prefix + separator + transcript.trim());
             };
 
             recognitionRef.current.onerror = (event) => {
@@ -179,6 +182,8 @@ function ChatInterface({ client, show, onClose }) {
         if (isRecording) {
             recognitionRef.current.stop();
         } else {
+            // Salva il testo esistente come prefisso
+            prePrefixRef.current = inputText.trim();
             recognitionRef.current.start();
             setIsRecording(true);
         }
