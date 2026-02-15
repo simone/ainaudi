@@ -2028,6 +2028,43 @@ class RdlRegistrationApproveView(APIView):
         if not self._has_permission(request.user, registration.comune, registration.municipio):
             return Response({'error': 'Non autorizzato per questo comune'}, status=403)
 
+        if action == 'withdraw':
+            # Ritiro: funziona solo su APPROVED
+            if registration.status != 'APPROVED':
+                return Response({
+                    'error': f'Solo registrazioni approvate possono essere ritirate (stato attuale: {registration.get_status_display()})'
+                }, status=400)
+
+            # 1. Rimuovi tutte le assegnazioni sezione
+            from data.models import SectionAssignment
+            deleted_assignments = SectionAssignment.objects.filter(
+                rdl_registration=registration
+            ).delete()[0]
+
+            # 2. Cancella utente e relativi RoleAssignment
+            from core.models import User
+            deleted_user = False
+            try:
+                user = User.objects.get(email=registration.email.lower())
+                # Cancella solo i RoleAssignment RDL per questo utente
+                RoleAssignment.objects.filter(user=user, role='RDL').delete()
+                # Se l'utente non ha più nessun ruolo, cancellalo
+                if not user.role_assignments.exists():
+                    user.delete()
+                    deleted_user = True
+            except User.DoesNotExist:
+                pass
+
+            # 3. Metti in REJECTED con motivo "Ritirato"
+            registration.reject(request.user, 'Ritirato')
+
+            return Response({
+                'success': True,
+                'message': f'RDL {registration.full_name} ritirato',
+                'deleted_assignments': deleted_assignments,
+                'deleted_user': deleted_user
+            })
+
         if registration.status != 'PENDING':
             return Response({
                 'error': f'Registrazione già {registration.get_status_display()}'

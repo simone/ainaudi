@@ -646,6 +646,16 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 return { error: error.message };
             }),
 
+        // Withdraw registration (ritiro RDL approvato)
+        withdraw: async (id) =>
+            fetch(`${server}/api/rdl/registrations/${id}/withdraw`, {
+                method: 'POST',
+                headers: { 'Authorization': authHeader }
+            }).then(response => response.json()).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
         // Update registration
         update: async (id, data) =>
             fetch(`${server}/api/rdl/registrations/${id}`, {

@@ -658,6 +658,23 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
     const [copiedPlessiMsg, setCopiedPlessiMsg] = useState(false);
     const [copiedRdlMsgId, setCopiedRdlMsgId] = useState(null);
 
+    // Withdraw (ritiro) modal
+    const [withdrawModal, setWithdrawModal] = useState({ show: false, rdl: null });
+
+    const handleWithdraw = async () => {
+        const { rdl } = withdrawModal;
+        if (!rdl) return;
+        setWithdrawModal({ show: false, rdl: null });
+
+        const result = await client.rdlRegistrations.withdraw(rdl.rdl_registration_id);
+        if (result.error) {
+            setError(result.error);
+        } else {
+            client.mappatura.invalidateCache();
+            loadData();
+        }
+    };
+
     const copyAssignmentMessage = (rdl) => {
         const allSez = [
             ...rdl.sezioni_effettivo.map(s => ({ ...s, ruolo: 'Effettivo' })),
@@ -1423,6 +1440,14 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                         {copiedRdlMsgId === rdl.rdl_registration_id ? 'Copiato!' : 'Copia Messaggio'}
                                     </button>
                                 )}
+                                <button
+                                    className="btn btn-sm btn-outline-danger ms-2"
+                                    onClick={() => setWithdrawModal({ show: true, rdl })}
+                                    title="L'RDL si ritira dalla candidatura"
+                                >
+                                    <i className="fas fa-user-times me-1"></i>
+                                    Si Ritira
+                                </button>
                             </div>
 
                             {/* Sezioni assegnate */}
@@ -1898,6 +1923,26 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                         <span className="plessi-vicini-legend-swatch completa ms-2"></span> Completa
                         &nbsp;|&nbsp; <strong>E</strong>=Effettivo <strong>S</strong>=Supplente
                     </div>
+                </div>
+            </ConfirmModal>
+
+            {/* Withdraw (Ritiro) Modal */}
+            <ConfirmModal
+                show={withdrawModal.show}
+                onConfirm={handleWithdraw}
+                onCancel={() => setWithdrawModal({ show: false, rdl: null })}
+                title="Conferma ritiro RDL"
+                confirmText="Conferma ritiro"
+                confirmVariant="danger"
+            >
+                <div>
+                    <p>
+                        Sei sicuro che <strong>{withdrawModal.rdl?.cognome} {withdrawModal.rdl?.nome}</strong> vuole
+                        ritirare la candidatura?
+                    </p>
+                    <p className="text-muted" style={{ fontSize: '0.85rem' }}>
+                        Verranno rimossi tutti gli incarichi assegnati e l'account utente associato.
+                    </p>
                 </div>
             </ConfirmModal>
         </>
