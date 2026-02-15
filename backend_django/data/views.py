@@ -3936,16 +3936,9 @@ class MappaturaAssegnaView(APIView):
         except RdlRegistration.DoesNotExist:
             return Response({'error': 'RDL registration non trovata o non approvata'}, status=404)
 
-        # Validate territory match: RDL must be in same territory as sezione
-        # If RDL has municipio, sezione must be in same municipio
-        if rdl_reg.municipio:
-            if not sezione.municipio or sezione.municipio_id != rdl_reg.municipio_id:
-                return Response({
-                    'error': f'L\'RDL è registrato per il Municipio {rdl_reg.municipio.numero}, '
-                             f'ma la sezione appartiene a un municipio diverso'
-                }, status=400)
-        # If RDL has only comune (no municipio), sezione must be in same comune
-        elif rdl_reg.comune_id != sezione.comune_id:
+        # Validate territory match: RDL must be in same comune as sezione
+        # Cross-municipio assignments within the same comune are allowed
+        if rdl_reg.comune_id != sezione.comune_id:
             return Response({
                 'error': f'L\'RDL è registrato per il comune di {rdl_reg.comune.nome}, '
                          f'ma la sezione appartiene al comune di {sezione.comune.nome}'

@@ -56,6 +56,7 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
     const [searchFilter, setSearchFilter] = useState('');
     const [sezioneSearchFilter, setSezioneSearchFilter] = useState('');
     const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'assigned' | 'unassigned'
+    const [cercaTuttoComune, setCercaTuttoComune] = useState(false);
 
     // Totals for stats bar
     const [totals, setTotals] = useState({ sezioni: 0, assigned: 0, unassigned: 0 });
@@ -127,7 +128,7 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
     // Load data when filters change (or on mount)
     useEffect(() => {
         loadData();
-    }, [comuneFilter, municipioFilter, filterStatus, activeTab]);
+    }, [comuneFilter, municipioFilter, filterStatus, activeTab, cercaTuttoComune]);
 
     // Clear selection when filters change or tab changes
     useEffect(() => {
@@ -146,8 +147,13 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
 
         const filters = {};
         if (comuneFilter) filters.comune_id = comuneFilter;
-        if (municipioFilter) filters.municipio_id = municipioFilter;
         if (filterStatus !== 'all') filters.filter_status = filterStatus;
+        // Municipio: sempre per sezioni, condizionale per RDL
+        if (activeTab === 'sezioni') {
+            if (municipioFilter) filters.municipio_id = municipioFilter;
+        } else {
+            if (municipioFilter && !cercaTuttoComune) filters.municipio_id = municipioFilter;
+        }
 
         try {
             if (activeTab === 'sezioni') {
@@ -177,7 +183,7 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
         }
 
         setLoading(false);
-    }, [comuneFilter, municipioFilter, filterStatus, activeTab, searchFilter, client, setError]);
+    }, [comuneFilter, municipioFilter, filterStatus, activeTab, searchFilter, cercaTuttoComune, client, setError]);
 
     // Toggle plesso expansion
     const togglePlesso = (denominazione) => {
@@ -226,13 +232,40 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
         }
     };
 
+    // Reload RDL list in modal when "cerca in tutto il comune" toggle changes
+    const reloadModalRdl = async (cercaTutto) => {
+        setModal(prev => ({ ...prev, loading: true, cercaTuttoComune: cercaTutto }));
+        const filters = {};
+        if (comuneFilter) filters.comune_id = comuneFilter;
+        if (!cercaTutto) {
+            if (modal.sezione?.municipio) {
+                filters.municipio = modal.sezione.municipio;
+            } else if (municipioFilter) {
+                filters.municipio_id = municipioFilter;
+            }
+        }
+        const result = await client.mappatura.rdl(filters);
+        if (result.error) {
+            setError(result.error);
+        } else {
+            setModal(prev => ({
+                ...prev,
+                rdlList: result.rdl || [],
+                filteredRdl: undefined,
+                selectedRdl: null,
+                loading: false
+            }));
+        }
+    };
+
     const closeModal = () => {
         setModal({
             show: false,
             sezione: null,
             ruolo: null,
             rdlList: [],
-            selectedRdl: null
+            selectedRdl: null,
+            cercaTuttoComune: false
         });
     };
 
@@ -362,8 +395,31 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
             ruolo: null,
             rdlList: [],
             selectedRdl: null,
-            loading: false
+            loading: false,
+            cercaTuttoComune: false
         });
+    };
+
+    // Reload RDL list in bulk modal when "cerca in tutto il comune" toggle changes
+    const reloadBulkModalRdl = async (cercaTutto) => {
+        setBulkModal(prev => ({ ...prev, loading: true, cercaTuttoComune: cercaTutto }));
+        const filters = {};
+        if (comuneFilter) filters.comune_id = comuneFilter;
+        if (!cercaTutto && municipioFilter) {
+            filters.municipio_id = municipioFilter;
+        }
+        const result = await client.mappatura.rdl(filters);
+        if (result.error) {
+            setError(result.error);
+        } else {
+            setBulkModal(prev => ({
+                ...prev,
+                rdlList: result.rdl || [],
+                filteredRdl: undefined,
+                selectedRdl: null,
+                loading: false
+            }));
+        }
     };
 
     const handleBulkAssign = async () => {
@@ -599,6 +655,55 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
         });
     };
 
+    const [copiedPlessiMsg, setCopiedPlessiMsg] = useState(false);
+    const [copiedRdlMsgId, setCopiedRdlMsgId] = useState(null);
+
+    const copyAssignmentMessage = (rdl) => {
+        const allSez = [
+            ...rdl.sezioni_effettivo.map(s => ({ ...s, ruolo: 'Effettivo' })),
+            ...rdl.sezioni_supplente.map(s => ({ ...s, ruolo: 'Supplente' })),
+        ];
+        if (allSez.length === 0) return;
+
+        // Group by plesso
+        const byPlesso = {};
+        for (const s of allSez) {
+            const key = s.plesso || 'Sezione';
+            if (!byPlesso[key]) byPlesso[key] = [];
+            byPlesso[key].push(s);
+        }
+
+        const plessoLines = Object.entries(byPlesso).map(([plesso, sezioni]) => {
+            const nums = sezioni.map(s => `Sez. ${s.numero} (${s.ruolo})`).join(', ');
+            return `- ${plesso}: ${nums}`;
+        }).join('\n');
+
+        const msg = `Ciao ${rdl.nome}, ti ho assegnato queste sezioni:\n\n${plessoLines}\n\nFammi sapere se va bene.`;
+
+        navigator.clipboard.writeText(msg).then(() => {
+            setCopiedRdlMsgId(rdl.rdl_registration_id);
+            setTimeout(() => setCopiedRdlMsgId(null), 2000);
+        });
+    };
+
+    const copyPlessiViciniMessage = () => {
+        const { rdl, plessi } = plessiViciniModal;
+        if (!rdl || plessi.length === 0) return;
+
+        // First 3 plessi with free sections (already filtered on open)
+        const top3 = plessi.slice(0, 3);
+        const plessiText = top3.map((p, i) =>
+            `${i + 1}. ${p.indirizzo} (${p.distanza_km} km)`
+        ).join('\n');
+
+        const msg = `Ciao ${rdl.nome}, non hai espresso preferenze per il seggio. Ci sono questi plessi vicino a te con posti liberi:\n\n${plessiText}\n\nQuale preferisci?`;
+
+        navigator.clipboard.writeText(msg).then(() => {
+            setCopiedPlessiMsg(true);
+            setTimeout(() => setCopiedPlessiMsg(false), 2000);
+        });
+    };
+
     const closePlessiViciniModal = () => {
         setPlessiViciniModal({
             show: false,
@@ -700,8 +805,21 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                         <strong>Ruolo:</strong> {modal.ruolo === 'RDL' ? 'Effettivo' : 'Supplente'}
                     </div>
                     <div className="mappatura-modal-territorio-hint">
-                        Mostra solo RDL di {modal.sezione?.comune || 'questo comune'}
-                        {modal.sezione?.municipio && ` - Municipio ${modal.sezione.municipio}`}
+                        {modal.cercaTuttoComune
+                            ? `Mostra RDL di tutto il comune di ${modal.sezione?.comune || 'questo comune'}`
+                            : `Mostra solo RDL di ${modal.sezione?.comune || 'questo comune'}${modal.sezione?.municipio ? ` - Municipio ${modal.sezione.municipio}` : ''}`
+                        }
+                        {municipioFilter && (
+                            <label style={{ display: 'block', marginTop: '4px', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={modal.cercaTuttoComune || false}
+                                    onChange={(e) => reloadModalRdl(e.target.checked)}
+                                    style={{ marginRight: '6px' }}
+                                />
+                                Cerca in tutto il comune
+                            </label>
+                        )}
                     </div>
 
                     {modal.loading ? (
@@ -851,13 +969,27 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                     </>
                 )}
                 {activeTab === 'rdl' && (
-                    <input
-                        type="search"
-                        className="form-control form-control-sm"
-                        placeholder="Cerca RDL..."
-                        value={searchFilter}
-                        onChange={(e) => setSearchFilter(e.target.value)}
-                    />
+                    <>
+                        <input
+                            type="search"
+                            className="form-control form-control-sm"
+                            placeholder="Cerca RDL..."
+                            value={searchFilter}
+                            onChange={(e) => setSearchFilter(e.target.value)}
+                        />
+                        {municipioFilter && (
+                            <label style={{ display: 'flex', alignItems: 'center', marginTop: '6px',
+                                            cursor: 'pointer', fontSize: '0.85rem' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={cercaTuttoComune}
+                                    onChange={(e) => setCercaTuttoComune(e.target.checked)}
+                                    style={{ marginRight: '6px' }}
+                                />
+                                Cerca in tutto il comune
+                            </label>
+                        )}
+                    </>
                 )}
             </div>
 
@@ -1281,6 +1413,16 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                         Plessi Vicini
                                     </button>
                                 )}
+                                {(rdl.sezioni_effettivo.length > 0 || rdl.sezioni_supplente.length > 0) && (
+                                    <button
+                                        className={`btn btn-sm ${copiedRdlMsgId === rdl.rdl_registration_id ? 'btn-success' : 'btn-outline-secondary'} ms-2`}
+                                        onClick={() => copyAssignmentMessage(rdl)}
+                                        title="Copia messaggio con le sezioni assegnate"
+                                    >
+                                        <i className={`fas ${copiedRdlMsgId === rdl.rdl_registration_id ? 'fa-check' : 'fa-copy'} me-1`}></i>
+                                        {copiedRdlMsgId === rdl.rdl_registration_id ? 'Copiato!' : 'Copia Messaggio'}
+                                    </button>
+                                )}
                             </div>
 
                             {/* Sezioni assegnate */}
@@ -1405,6 +1547,18 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                     <div className="mappatura-modal-info">
                         <strong>Ruolo:</strong> {bulkModal.ruolo === 'RDL' ? 'Effettivo' : 'Supplente'}
                     </div>
+                    {municipioFilter && (
+                        <label className="mappatura-modal-territorio-hint"
+                               style={{ display: 'block', marginTop: '8px', cursor: 'pointer' }}>
+                            <input
+                                type="checkbox"
+                                checked={bulkModal.cercaTuttoComune || false}
+                                onChange={(e) => reloadBulkModalRdl(e.target.checked)}
+                                style={{ marginRight: '6px' }}
+                            />
+                            Cerca in tutto il comune
+                        </label>
+                    )}
 
                     {bulkModal.loading ? (
                         <div style={{ padding: '20px', textAlign: 'center' }}>
@@ -1728,6 +1882,15 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                 );
                             })}
                         </div>
+                    )}
+                    {plessiViciniModal.plessi.length > 0 && (
+                        <button
+                            className={`btn btn-sm ${copiedPlessiMsg ? 'btn-success' : 'btn-outline-secondary'} w-100 mt-2 mb-2`}
+                            onClick={copyPlessiViciniMessage}
+                        >
+                            <i className={`fas ${copiedPlessiMsg ? 'fa-check' : 'fa-copy'} me-1`}></i>
+                            {copiedPlessiMsg ? 'Copiato!' : 'Copia messaggio WhatsApp (primi 3 plessi)'}
+                        </button>
                     )}
                     <div className="plessi-vicini-legend">
                         <span className="plessi-vicini-legend-swatch libera"></span> Libera
