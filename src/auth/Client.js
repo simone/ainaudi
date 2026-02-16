@@ -1937,17 +1937,22 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             }
         },
 
-        // Download report XLSX per comune (returns blob)
+        // Download report XLSX per comune (returns blob, POST to avoid URL length limits)
         reportXlsx: async (comuneId, { sezioneIds, includiConfermati = true } = {}) => {
-            const params = new URLSearchParams();
-            params.append('comune_id', comuneId);
+            const body = {
+                comune_id: comuneId,
+                includi_confermati: includiConfermati,
+            };
             if (sezioneIds && sezioneIds.length > 0) {
-                params.append('sezione_ids', sezioneIds.join(','));
+                body.sezione_ids = sezioneIds;
             }
-            params.append('includi_confermati', includiConfermati ? 'true' : 'false');
-            const url = `${server}/api/mappatura/report-xlsx/?${params.toString()}`;
-            const response = await fetch(url, {
-                headers: { 'Authorization': authHeader }
+            const response = await fetch(`${server}/api/mappatura/report-xlsx/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': authHeader,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
             });
             if (!response.ok) {
                 const err = await response.json().catch(() => ({}));

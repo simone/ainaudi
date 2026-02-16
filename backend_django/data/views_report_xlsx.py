@@ -32,7 +32,7 @@ class MappaturaReportXlsxView(APIView):
     """
     permission_classes = [permissions.IsAuthenticated, CanManageMappatura]
 
-    def get(self, request):
+    def post(self, request):
         from delegations.permissions import get_sezioni_filter_for_user, has_referenti_permission
         import openpyxl
         from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
@@ -44,7 +44,7 @@ class MappaturaReportXlsxView(APIView):
         if not has_referenti_permission(request.user, consultazione.id):
             return Response({'error': 'Non autorizzato'}, status=403)
 
-        comune_param = request.query_params.get('comune_id')
+        comune_param = request.data.get('comune_id')
         if not comune_param:
             return Response({'error': 'comune_id è obbligatorio'}, status=400)
 
@@ -52,16 +52,12 @@ class MappaturaReportXlsxView(APIView):
         if not comune_id:
             return Response({'error': 'Comune non trovato'}, status=404)
 
-        # Optional: filter to specific sezione IDs
-        sezione_ids_param = request.query_params.get('sezione_ids')
-        specific_ids = None
-        if sezione_ids_param:
-            try:
-                specific_ids = [int(x) for x in sezione_ids_param.split(',') if x.strip()]
-            except ValueError:
-                pass
+        # Optional: filter to specific sezione IDs (sent in body, no URL limit)
+        specific_ids = request.data.get('sezione_ids')
+        if specific_ids and not isinstance(specific_ids, list):
+            specific_ids = None
 
-        includi_confermati = request.query_params.get('includi_confermati', 'true').lower() == 'true'
+        includi_confermati = request.data.get('includi_confermati', True)
 
         # Get user's allowed sezioni filter
         sezioni_filter = get_sezioni_filter_for_user(request.user, consultazione.id)
