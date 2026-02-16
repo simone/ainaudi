@@ -36,6 +36,7 @@ function WizardDesignazioni({
     const [useDelegato, setUseDelegato] = useState(true);
     const [selectedDelegato, setSelectedDelegato] = useState(null);
     const [selectedSubDelegato, setSelectedSubDelegato] = useState(null);
+    const [isSuperuser, setIsSuperuser] = useState(false);
 
     // Step 2: Templates
     const [templatesIndividuali, setTemplatesIndividuali] = useState([]);
@@ -90,6 +91,7 @@ function WizardDesignazioni({
             setProcessoId(avviaResult.processo_id);
             setDelegati(avviaResult.delegati_disponibili || []);
             setSubdelegati(avviaResult.subdelegati_disponibili || []);
+            setIsSuperuser(avviaResult.is_superuser || false);
 
             const templatesInd = avviaResult.template_choices?.individuali || [];
             const templatesCum = avviaResult.template_choices?.cumulativi || [];
@@ -106,19 +108,18 @@ function WizardDesignazioni({
                 setSelectedTemplateCum(templatesCum[0].id);
             }
 
-            // PRE-SELEZIONA utente corrente (modificabile dall'utente)
+            // AUTO-SELEZIONA utente corrente
             const currentUserDelegato = avviaResult.delegati_disponibili?.find(d => d.is_current_user);
+            const currentUserSubDelegato = avviaResult.subdelegati_disponibili?.find(sd => sd.is_current_user);
+
             if (currentUserDelegato) {
-                console.log('[Wizard] Pre-selezionato delegato corrente:', currentUserDelegato);
+                console.log('[Wizard] Auto-selezionato delegato corrente:', currentUserDelegato);
                 setSelectedDelegato(currentUserDelegato.id);
                 setUseDelegato(true);
-            } else {
-                const currentUserSubDelegato = avviaResult.subdelegati_disponibili?.find(sd => sd.is_current_user);
-                if (currentUserSubDelegato) {
-                    console.log('[Wizard] Pre-selezionato subdelegato corrente:', currentUserSubDelegato);
-                    setSelectedSubDelegato(currentUserSubDelegato.id);
-                    setUseDelegato(false);
-                }
+            } else if (currentUserSubDelegato) {
+                console.log('[Wizard] Auto-selezionato subdelegato corrente:', currentUserSubDelegato);
+                setSelectedSubDelegato(currentUserSubDelegato.id);
+                setUseDelegato(false);
             }
 
         } catch (err) {
@@ -386,6 +387,7 @@ function WizardDesignazioni({
         setSubdelegati([]);
         setSelectedDelegato(null);
         setSelectedSubDelegato(null);
+        setIsSuperuser(false);
         setSelectedTemplateInd(null);
         setSelectedTemplateCum(null);
         setCampiRichiesti([]);
@@ -472,6 +474,7 @@ function WizardDesignazioni({
                             setSelectedDelegato={setSelectedDelegato}
                             selectedSubDelegato={selectedSubDelegato}
                             setSelectedSubDelegato={setSelectedSubDelegato}
+                            isSuperuser={isSuperuser}
                         />
                     )}
 
@@ -601,73 +604,115 @@ function WizardDesignazioni({
 
 // Step components
 
-function StepDelegato({ delegati, subdelegati, useDelegato, setUseDelegato, selectedDelegato, setSelectedDelegato, selectedSubDelegato, setSelectedSubDelegato }) {
+function StepDelegato({ delegati, subdelegati, useDelegato, setUseDelegato, selectedDelegato, setSelectedDelegato, selectedSubDelegato, setSelectedSubDelegato, isSuperuser }) {
+    // Per utenti normali: mostra solo se stessi
+    const myDelegati = isSuperuser ? delegati : delegati.filter(d => d.is_current_user);
+    const mySubdelegati = isSuperuser ? subdelegati : subdelegati.filter(sd => sd.is_current_user);
+    const hasDelegato = myDelegati.length > 0;
+    const hasSubdelegato = mySubdelegati.length > 0;
+
+    // Trova il nome selezionato per la visualizzazione read-only
+    const selectedDelegatoObj = delegati.find(d => d.id === selectedDelegato);
+    const selectedSubDelegatoObj = subdelegati.find(sd => sd.id === selectedSubDelegato);
+
     return (
         <div className="step-container">
             <h5 className="mb-4">Chi effettua la designazione?</h5>
-            <p className="text-muted mb-4">
-                Di default è pre-selezionato l'utente loggato, ma puoi modificarlo se necessario.
-            </p>
+            {isSuperuser ? (
+                <p className="text-muted mb-4">
+                    Come amministratore puoi selezionare qualsiasi delegato o subdelegato.
+                </p>
+            ) : (
+                <p className="text-muted mb-4">
+                    La designazione verrà effettuata a tuo nome.
+                </p>
+            )}
 
-            <div className="mb-4">
-                <div className="form-check mb-3">
-                    <input
-                        className="form-check-input"
-                        type="radio"
-                        id="radio-delegato"
-                        checked={useDelegato}
-                        onChange={() => setUseDelegato(true)}
-                    />
-                    <label className="form-check-label" htmlFor="radio-delegato">
-                        <strong>Delegato di Lista</strong>
-                    </label>
+            {hasDelegato && (
+                <div className="mb-4">
+                    <div className="form-check mb-3">
+                        <input
+                            className="form-check-input"
+                            type="radio"
+                            id="radio-delegato"
+                            checked={useDelegato}
+                            onChange={() => setUseDelegato(true)}
+                            disabled={!hasDelegato || (!hasSubdelegato && hasDelegato)}
+                        />
+                        <label className="form-check-label" htmlFor="radio-delegato">
+                            <strong>Delegato di Lista</strong>
+                        </label>
+                    </div>
+
+                    {useDelegato && (
+                        isSuperuser ? (
+                            <select
+                                className="form-select"
+                                value={selectedDelegato || ''}
+                                onChange={(e) => setSelectedDelegato(parseInt(e.target.value))}
+                            >
+                                <option value="">Seleziona delegato...</option>
+                                {myDelegati.map(d => (
+                                    <option key={d.id} value={d.id}>
+                                        {d.nome_completo} {d.carica && `(${d.carica})`} {d.is_current_user && '(Tu)'}
+                                    </option>
+                                ))}
+                            </select>
+                        ) : (
+                            <div className="form-control bg-light">
+                                {selectedDelegatoObj?.nome_completo || 'Non selezionato'}
+                                {selectedDelegatoObj?.carica && ` (${selectedDelegatoObj.carica})`}
+                            </div>
+                        )
+                    )}
                 </div>
+            )}
 
-                {useDelegato && (
-                    <select
-                        className="form-select"
-                        value={selectedDelegato || ''}
-                        onChange={(e) => setSelectedDelegato(parseInt(e.target.value))}
-                    >
-                        <option value="">Seleziona delegato...</option>
-                        {delegati.map(d => (
-                            <option key={d.id} value={d.id}>
-                                {d.nome_completo} {d.carica && `(${d.carica})`} {d.is_current_user && '✓ (Tu)'}
-                            </option>
-                        ))}
-                    </select>
-                )}
-            </div>
+            {hasSubdelegato && (
+                <div>
+                    <div className="form-check mb-3">
+                        <input
+                            className="form-check-input"
+                            type="radio"
+                            id="radio-subdelegato"
+                            checked={!useDelegato}
+                            onChange={() => setUseDelegato(false)}
+                            disabled={(!hasDelegato && hasSubdelegato) || !hasSubdelegato}
+                        />
+                        <label className="form-check-label" htmlFor="radio-subdelegato">
+                            <strong>Sub-Delegato</strong>
+                        </label>
+                    </div>
 
-            <div>
-                <div className="form-check mb-3">
-                    <input
-                        className="form-check-input"
-                        type="radio"
-                        id="radio-subdelegato"
-                        checked={!useDelegato}
-                        onChange={() => setUseDelegato(false)}
-                    />
-                    <label className="form-check-label" htmlFor="radio-subdelegato">
-                        <strong>Sub-Delegato</strong>
-                    </label>
+                    {!useDelegato && (
+                        isSuperuser ? (
+                            <select
+                                className="form-select"
+                                value={selectedSubDelegato || ''}
+                                onChange={(e) => setSelectedSubDelegato(parseInt(e.target.value))}
+                            >
+                                <option value="">Seleziona sub-delegato...</option>
+                                {mySubdelegati.map(sd => (
+                                    <option key={sd.id} value={sd.id}>
+                                        {sd.nome_completo} {sd.is_current_user && '(Tu)'}
+                                    </option>
+                                ))}
+                            </select>
+                        ) : (
+                            <div className="form-control bg-light">
+                                {selectedSubDelegatoObj?.nome_completo || 'Non selezionato'}
+                            </div>
+                        )
+                    )}
                 </div>
+            )}
 
-                {!useDelegato && (
-                    <select
-                        className="form-select"
-                        value={selectedSubDelegato || ''}
-                        onChange={(e) => setSelectedSubDelegato(parseInt(e.target.value))}
-                    >
-                        <option value="">Seleziona sub-delegato...</option>
-                        {subdelegati.map(sd => (
-                            <option key={sd.id} value={sd.id}>
-                                {sd.nome_completo} {sd.is_current_user && '✓ (Tu)'}
-                            </option>
-                        ))}
-                    </select>
-                )}
-            </div>
+            {!hasDelegato && !hasSubdelegato && (
+                <div className="alert alert-warning">
+                    <i className="fas fa-exclamation-triangle me-2"></i>
+                    Non risulti come delegato o subdelegato per questa consultazione.
+                </div>
+            )}
         </div>
     );
 }

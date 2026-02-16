@@ -1937,6 +1937,25 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             }
         },
 
+        // Download report XLSX per comune (returns blob)
+        reportXlsx: async (comuneId, { sezioneIds, includiConfermati = true } = {}) => {
+            const params = new URLSearchParams();
+            params.append('comune_id', comuneId);
+            if (sezioneIds && sezioneIds.length > 0) {
+                params.append('sezione_ids', sezioneIds.join(','));
+            }
+            params.append('includi_confermati', includiConfermati ? 'true' : 'false');
+            const url = `${server}/api/mappatura/report-xlsx/?${params.toString()}`;
+            const response = await fetch(url, {
+                headers: { 'Authorization': authHeader }
+            });
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.error || 'Errore download XLSX');
+            }
+            return response.blob();
+        },
+
         // Navigazione gerarchica per mappatura (Regione → Provincia → Comune → Municipio → Sezione)
         gerarchica: async (params = {}) => {
             const queryParams = new URLSearchParams();

@@ -33,6 +33,12 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
     const [processoInCorso, setProcessoInCorso] = useState(null); // Processo attivo {batch_ind, batch_riep, designazioni}
     const [processiCompletati, setProcessiCompletati] = useState([]); // Archivio processi confermati
 
+    // Export XLSX modal
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [exportMode, setExportMode] = useState('all'); // 'selected' | 'all'
+    const [exportIncludiConfermati, setExportIncludiConfermati] = useState(true);
+    const [exporting, setExporting] = useState(false);
+
     // Loading states
     const [loadingData, setLoadingData] = useState(false);
     const [avviandoProcesso, setAvviandoProcesso] = useState(false);
@@ -377,6 +383,33 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
         console.log('[GestioneDesignazioni] showWizard dopo:', showWizard);
     };
 
+    const handleExportXlsx = async () => {
+        setExporting(true);
+        try {
+            const opts = {
+                includiConfermati: exportIncludiConfermati,
+            };
+            if (exportMode === 'selected' && selectedSezioni.size > 0) {
+                opts.sezioneIds = Array.from(selectedSezioni);
+            }
+            const blob = await client.mappatura.reportXlsx(path.comune_id, opts);
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            const comune = (data?.summary?.nome || 'comune').replace(/\s+/g, '_').toLowerCase();
+            link.download = `mappatura_rdl_${comune}.xlsx`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(blobUrl);
+            setShowExportModal(false);
+        } catch (err) {
+            setError?.('Errore download XLSX: ' + err.message);
+        } finally {
+            setExporting(false);
+        }
+    };
+
     const handleWizardSuccess = () => {
         console.log('[GestioneDesignazioni] Wizard completato con successo');
         setSuccessMessage('✓ Atto di designazione completato con successo!');
@@ -687,24 +720,36 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
         console.log('[GestioneDesignazioni] Render vista comune, showWizard:', showWizard);
         return (
             <div className="gd-container">
-                {/* Breadcrumb */}
-                <nav aria-label="breadcrumb" className="gd-breadcrumb">
-                    <ol className="breadcrumb mb-0">
-                        <li className="breadcrumb-item">
-                            <a
-                                href="#"
-                                onClick={(e) => { e.preventDefault(); handleBack(); }}
-                                className="gd-breadcrumb-link"
-                            >
-                                <i className="fas fa-arrow-left"></i>
-                                <span>Indietro</span>
-                            </a>
-                        </li>
-                        <li className="breadcrumb-item active gd-breadcrumb-current">
-                            {data?.summary?.nome || 'Comune'}
-                        </li>
-                    </ol>
-                </nav>
+                {/* Breadcrumb + Actions */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <nav aria-label="breadcrumb" className="gd-breadcrumb" style={{ marginBottom: 0 }}>
+                        <ol className="breadcrumb mb-0">
+                            <li className="breadcrumb-item">
+                                <a
+                                    href="#"
+                                    onClick={(e) => { e.preventDefault(); handleBack(); }}
+                                    className="gd-breadcrumb-link"
+                                >
+                                    <i className="fas fa-arrow-left"></i>
+                                    <span>Indietro</span>
+                                </a>
+                            </li>
+                            <li className="breadcrumb-item active gd-breadcrumb-current">
+                                {data?.summary?.nome || 'Comune'}
+                            </li>
+                        </ol>
+                    </nav>
+                    <button
+                        className="btn btn-sm btn-outline-success"
+                        onClick={() => {
+                            setExportMode(selectedSezioni.size > 0 ? 'selected' : 'all');
+                            setShowExportModal(true);
+                        }}
+                    >
+                        <i className="fas fa-file-excel me-1"></i>
+                        Scarica XLSX
+                    </button>
+                </div>
 
                 {/* Success message */}
                 {successMessage && (
@@ -1233,6 +1278,58 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                         <p className="text-muted mb-0">
                             Questa operazione puo' richiedere alcuni minuti per comuni grandi.
                             Riceverai una notifica al completamento.
+                        </p>
+                    </div>
+                </ConfirmModal>
+
+                {/* Export XLSX Modal */}
+                <ConfirmModal
+                    show={showExportModal}
+                    onConfirm={handleExportXlsx}
+                    onCancel={() => setShowExportModal(false)}
+                    title="Esporta Report XLSX"
+                    confirmText={exporting ? 'Download...' : 'Scarica XLSX'}
+                    confirmVariant="success"
+                    confirmDisabled={exporting}
+                >
+                    <div>
+                        <p style={{ marginBottom: '12px' }}><strong>Cosa vuoi esportare?</strong></p>
+                        {selectedSezioni.size > 0 && (
+                            <label style={{ display: 'block', marginBottom: '8px', cursor: 'pointer' }}>
+                                <input
+                                    type="radio"
+                                    name="exportMode"
+                                    checked={exportMode === 'selected'}
+                                    onChange={() => setExportMode('selected')}
+                                    style={{ marginRight: '8px' }}
+                                />
+                                Solo le {selectedSezioni.size} sezioni selezionate
+                            </label>
+                        )}
+                        <label style={{ display: 'block', marginBottom: '16px', cursor: 'pointer' }}>
+                            <input
+                                type="radio"
+                                name="exportMode"
+                                checked={exportMode === 'all'}
+                                onChange={() => setExportMode('all')}
+                                style={{ marginRight: '8px' }}
+                            />
+                            Tutte le sezioni del comune di {data?.summary?.nome || 'questo comune'}
+                        </label>
+
+                        <hr style={{ margin: '12px 0' }} />
+
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                            <input
+                                type="checkbox"
+                                checked={exportIncludiConfermati}
+                                onChange={(e) => setExportIncludiConfermati(e.target.checked)}
+                                style={{ marginRight: '8px' }}
+                            />
+                            Includi atti confermati
+                        </label>
+                        <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: '4px', marginBottom: 0 }}>
+                            Le righe mostreranno lo stato CONFERMATO o MAPPATO
                         </p>
                     </div>
                 </ConfirmModal>

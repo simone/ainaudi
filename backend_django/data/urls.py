@@ -43,6 +43,8 @@ from .views_scrutinio_aggregato import ScrutinioAggregatoView
 from .views_mappatura_gerarchica import MappaturaGerarchicaView
 # Import mappatura analizza preferenze view
 from .views_analizza_preferenze import MappaturaAnalizzaPreferenzeView
+# Import mappatura report XLSX view
+from .views_report_xlsx import MappaturaReportXlsxView
 
 urlpatterns = [
     path('stats', SectionsStatsView.as_view(), name='sections-stats'),
@@ -79,6 +81,8 @@ mappatura_urlpatterns = [
     path('analizza-preferenze/', MappaturaAnalizzaPreferenzeView.as_view(), name='mappatura-analizza-preferenze'),
     # Hierarchical navigation
     path('gerarchica/', MappaturaGerarchicaView.as_view(), name='mappatura-gerarchica'),
+    # XLSX report
+    path('report-xlsx/', MappaturaReportXlsxView.as_view(), name='mappatura-report-xlsx'),
 ]
 
 # Scrutinio URLs (mounted at /api/scrutinio/ in main urls.py)

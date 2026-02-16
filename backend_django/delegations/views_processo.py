@@ -205,7 +205,8 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             'processo_id': processo.id,
             'template_choices': template_choices,
             'delegati_disponibili': delegati_disponibili,
-            'subdelegati_disponibili': subdelegati_disponibili
+            'subdelegati_disponibili': subdelegati_disponibili,
+            'is_superuser': request.user.is_superuser
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'])
