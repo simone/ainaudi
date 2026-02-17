@@ -210,11 +210,13 @@ function AppContent() {
                     }, 2000);
                 } else if (perms.can_view_dashboard || perms.is_superuser) {
                     // Delegati/Sub-delegati/Admin vedono la dashboard
-                    window.history.replaceState({ tab: 'dashboard' }, '');
+                    // pushState (non replaceState) crea una entry "guardia" sotto,
+                    // così il popstate handler può intercettare il Back e impedire l'uscita dall'app
+                    window.history.pushState({ tab: 'dashboard' }, '');
                     setActiveTab('dashboard');
                 } else if (perms.has_scrutinio_access) {
                     // RDL semplici vanno direttamente a Scrutinio
-                    window.history.replaceState({ tab: 'sections' }, '');
+                    window.history.pushState({ tab: 'sections' }, '');
                     setActiveTab('sections');
 
                     // Preload seggi in background per UX ottimizzato
