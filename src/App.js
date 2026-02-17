@@ -1,5 +1,5 @@
 // App.js
-import React, {useState, useEffect, useMemo} from "react";
+import React, {useState, useEffect, useMemo, useRef} from "react";
 import RdlList from "./rdl/RdlList";
 import MappaturaGerarchica from "./rdl/MappaturaGerarchica";
 import Kpi from "./kpi/Kpi";
@@ -36,6 +36,8 @@ function AppContent() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState(null);
+    const activeTabRef = useRef(null);
+    useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [permissions, setPermissions] = useState({
         // Permessi granulari (uno per voce menu)
@@ -382,17 +384,33 @@ function AppContent() {
         setIsConsultazioneDropdownOpen(false);
     };
 
-    // Browser back button support: listen for popstate events
+    // Browser back/forward button support
     useEffect(() => {
         const onPopState = (event) => {
             if (event.state && event.state.tab) {
                 setActiveTab(event.state.tab);
                 setIsMenuOpen(false);
                 setError(null);
+            } else {
+                // Prevent exiting the app - stay on current tab
+                const tab = activeTabRef.current || 'dashboard';
+                window.history.pushState({ tab }, '');
             }
         };
+
+        // Prevent href="#" from adding extra history entries
+        const preventHashNav = (e) => {
+            if (e.target.closest('a[href="#"]')) {
+                e.preventDefault();
+            }
+        };
+
         window.addEventListener('popstate', onPopState);
-        return () => window.removeEventListener('popstate', onPopState);
+        document.addEventListener('click', preventHashNav);
+        return () => {
+            window.removeEventListener('popstate', onPopState);
+            document.removeEventListener('click', preventHashNav);
+        };
     }, []);
 
     const activate = (tab) => {
