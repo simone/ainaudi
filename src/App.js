@@ -208,9 +208,11 @@ function AppContent() {
                     }, 2000);
                 } else if (perms.can_view_dashboard || perms.is_superuser) {
                     // Delegati/Sub-delegati/Admin vedono la dashboard
+                    window.history.replaceState({ tab: 'dashboard' }, '');
                     setActiveTab('dashboard');
                 } else if (perms.has_scrutinio_access) {
                     // RDL semplici vanno direttamente a Scrutinio
+                    window.history.replaceState({ tab: 'sections' }, '');
                     setActiveTab('sections');
 
                     // Preload seggi in background per UX ottimizzato
@@ -380,12 +382,26 @@ function AppContent() {
         setIsConsultazioneDropdownOpen(false);
     };
 
+    // Browser back button support: listen for popstate events
+    useEffect(() => {
+        const onPopState = (event) => {
+            if (event.state && event.state.tab) {
+                setActiveTab(event.state.tab);
+                setIsMenuOpen(false);
+                setError(null);
+            }
+        };
+        window.addEventListener('popstate', onPopState);
+        return () => window.removeEventListener('popstate', onPopState);
+    }, []);
+
     const activate = (tab) => {
         // Close campaign registration if open
         if (campagnaSlug) {
             setCampagnaSlug(null);
             window.history.replaceState({}, document.title, '/');
         }
+        window.history.pushState({ tab }, '');
         setActiveTab(tab);
         setIsMenuOpen(false);
         setError(null);
@@ -983,6 +999,7 @@ function AppContent() {
                                         client={client}
                                         onEditTemplate={(id) => {
                                             setTemplateIdToEdit(id);
+                                            window.history.pushState({ tab: 'template_editor' }, '');
                                             setActiveTab('template_editor');
                                         }}
                                     />
@@ -994,7 +1011,7 @@ function AppContent() {
                                         <button
                                             className="btn btn-secondary"
                                             onClick={() => {
-                                                setActiveTab('template_list');
+                                                window.history.back();
                                                 setTemplateIdToEdit(null);
                                             }}
                                         >
