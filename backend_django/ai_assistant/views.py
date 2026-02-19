@@ -117,6 +117,8 @@ class ChatView(APIView):
         message = request.data.get('message')
         context = request.data.get('context')
 
+        logger.info(f"ChatView.post: user={request.user.email} session_id={session_id} context={context} message='{message[:80] if message else None}'")
+
         if not message:
             return Response(
                 {'error': 'message required'},
@@ -137,13 +139,16 @@ class ChatView(APIView):
                     id=session_id,
                     user_email=request.user.email
                 )
+                logger.debug(f"ChatView.post: existing session={session.id}")
             except ChatSession.DoesNotExist:
+                logger.warning(f"ChatView.post: session {session_id} not found for user={request.user.email}")
                 return Response({'error': 'Session not found'}, status=404)
         else:
             session = ChatSession.objects.create(
                 user_email=request.user.email,
                 context=context
             )
+            logger.info(f"ChatView.post: new session={session.id}")
 
         # Save user message
         user_message = ChatMessage.objects.create(
@@ -154,7 +159,9 @@ class ChatView(APIView):
 
         # === RAG IMPLEMENTATION ===
         try:
+            logger.debug(f"ChatView.post: calling RAG for session={session.id}")
             rag_result = rag_service.answer_question(message, context, session=session)
+            logger.debug(f"ChatView.post: RAG returned {rag_result['retrieved_docs']} docs, answer_len={len(rag_result['answer'])}")
 
             # Save assistant response with sources
             assistant_message = ChatMessage.objects.create(
@@ -171,8 +178,9 @@ class ChatView(APIView):
                     session.title = title
                     session.save(update_fields=['title'])
                 except Exception as e:
-                    logger.warning(f"Failed to generate session title: {e}")
+                    logger.warning(f"ChatView.post: title generation failed: {e}")
 
+            logger.info(f"ChatView.post: OK session={session.id} assistant_msg={assistant_message.id}")
             return Response({
                 'session_id': session.id,
                 'title': session.title,
@@ -191,7 +199,10 @@ class ChatView(APIView):
             })
 
         except Exception as e:
-            logger.error(f"RAG error in chat: {e}", exc_info=True)
+            logger.error(
+                f"ChatView.post FAILED: user={request.user.email} session={session.id} message='{message[:100]}' error={e}",
+                exc_info=True
+            )
             return Response(
                 {'error': 'Errore durante la generazione della risposta'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -221,6 +232,11 @@ class ChatBranchView(APIView):
         message_id = request.data.get('message_id')
         new_message = request.data.get('new_message')
 
+        logger.info(
+            f"ChatBranchView.post: user={request.user.email} session_id={session_id} "
+            f"message_id={message_id} new_message='{new_message[:80] if new_message else None}'"
+        )
+
         if not all([session_id, message_id, new_message]):
             return Response(
                 {'error': 'session_id, message_id, and new_message required'},
@@ -228,29 +244,29 @@ class ChatBranchView(APIView):
             )
 
         try:
-            # Get original session
             original_session = ChatSession.objects.get(
                 id=session_id,
                 user_email=request.user.email
             )
         except ChatSession.DoesNotExist:
+            logger.warning(f"ChatBranchView.post: session {session_id} not found for user={request.user.email}")
             return Response({'error': 'Session not found'}, status=404)
 
         try:
-            # Get the message to edit (must be USER message)
             edit_message = ChatMessage.objects.get(
                 id=message_id,
                 session=original_session,
                 role=ChatMessage.Role.USER
             )
         except ChatMessage.DoesNotExist:
+            logger.warning(f"ChatBranchView.post: message {message_id} not found in session {session_id}")
             return Response({'error': 'Message not found or not a user message'}, status=404)
 
         # Generate title for new branch based on edited message
         try:
             new_title = generate_session_title(new_message)
         except Exception as e:
-            logger.warning(f"Failed to generate branch title: {e}")
+            logger.warning(f"ChatBranchView.post: title generation failed: {e}")
             new_title = f"Branch: {new_message[:50]}..."
 
         # Create new branch session
@@ -260,11 +276,13 @@ class ChatBranchView(APIView):
             context=original_session.context,
             parent_session=original_session
         )
+        logger.debug(f"ChatBranchView.post: created branch session={new_session.id} from session={session_id}")
 
         # Copy all messages BEFORE the edited one
         messages_before = original_session.messages.filter(
             created_at__lt=edit_message.created_at
         ).order_by('created_at')
+        logger.debug(f"ChatBranchView.post: copying {messages_before.count()} messages before message_id={message_id}")
 
         for msg in messages_before:
             ChatMessage.objects.create(
@@ -283,7 +301,9 @@ class ChatBranchView(APIView):
 
         # Generate AI response for the edited message
         try:
+            logger.debug(f"ChatBranchView.post: calling RAG for branch session={new_session.id}")
             rag_result = rag_service.answer_question(new_message, original_session.context, session=new_session)
+            logger.debug(f"ChatBranchView.post: RAG returned {rag_result['retrieved_docs']} docs, answer_len={len(rag_result['answer'])}")
 
             assistant_message = ChatMessage.objects.create(
                 session=new_session,
@@ -292,6 +312,7 @@ class ChatBranchView(APIView):
                 sources_cited=[s['id'] for s in rag_result['sources']]
             )
 
+            logger.info(f"ChatBranchView.post: OK branch session={new_session.id} assistant_msg={assistant_message.id}")
             return Response({
                 'session_id': new_session.id,
                 'title': new_session.title,
@@ -306,8 +327,12 @@ class ChatBranchView(APIView):
             })
 
         except Exception as e:
-            logger.error(f"RAG error in branch: {e}", exc_info=True)
-            # Cleanup failed branch
+            logger.error(
+                f"ChatBranchView.post FAILED: user={request.user.email} original_session={session_id} "
+                f"branch_session={new_session.id} message_id={message_id} "
+                f"new_message='{new_message[:100]}' error={e}",
+                exc_info=True
+            )
             new_session.delete()
             return Response(
                 {'error': 'Errore durante la generazione della risposta'},

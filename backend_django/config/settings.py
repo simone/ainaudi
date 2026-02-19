@@ -342,6 +342,10 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
+        'console_verbose': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
     },
     'root': {
         'handlers': ['console'],
@@ -361,6 +365,11 @@ LOGGING = {
         'data.signals': {
             'handlers': ['console'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        'ai_assistant': {
+            'handlers': ['console_verbose'],
+            'level': 'DEBUG',
             'propagate': False,
         },
     },
