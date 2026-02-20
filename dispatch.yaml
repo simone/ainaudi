@@ -7,15 +7,23 @@ dispatch:
   - url: "*/api/ai/*"
     service: ai
 
-  # Django Admin
+  # RDL scrutinio + risorse (high traffic on election day)
+  - url: "*/api/scrutinio/*"
+    service: rdl
+  - url: "*/api/risorse/*"
+    service: rdl
+  - url: "*/api/resources/*"
+    service: rdl
+
+  # Django Admin (scale-to-zero, full Django)
   - url: "*/admin/*"
-    service: api
+    service: admin
 
   # Campagna Open Graph
   - url: "*/campagna/*"
     service: api
 
-  # API backend
+  # API backend (management, auth, elections, delegations, etc.)
   - url: "*/api/*"
     service: api
 

@@ -1,7 +1,7 @@
 service: ai
 runtime: python311
 env: standard
-instance_class: F2
+instance_class: F1
 
 entrypoint: bash entrypoint_ai.sh
 
@@ -40,7 +40,7 @@ beta_settings:
 # Automatic scaling - scale to zero when idle
 automatic_scaling:
   min_instances: 0
-  max_instances: 3
+  max_instances: 20
   min_idle_instances: 0
   max_idle_instances: 0
   target_cpu_utilization: 0.65
