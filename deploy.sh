@@ -234,7 +234,7 @@ if [ "$SKIP_BACKEND" = false ]; then
 
     if [ -n "$PROXY_CMD" ]; then
         # Password da Secret Manager
-        DB_PASSWORD_PROD=$(timeout 5 gcloud secrets versions access latest --secret=db-password --project=${PROJECT} 2>/dev/null || echo "")
+        DB_PASSWORD_PROD=$(gcloud secrets versions access latest --secret=db-password --project=${PROJECT} 2>/dev/null || echo "")
         if [ -z "$DB_PASSWORD_PROD" ]; then
             echo -e "${YELLOW}⚠️  Password non trovata in Secret Manager${NC}"
             read -sp "DB Password: " DB_PASSWORD_PROD
