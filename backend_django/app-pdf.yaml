@@ -3,10 +3,10 @@ runtime: python311
 env: standard
 instance_class: B4
 
-entrypoint: gunicorn -b :$PORT config.wsgi:application --workers 2 --threads 4
+entrypoint: gunicorn -b :$PORT config.wsgi_pdf:application --workers 2 --threads 4
 
 env_variables:
-  DJANGO_SETTINGS_MODULE: config.settings
+  DJANGO_SETTINGS_MODULE: config.settings_pdf
   GOOGLE_CLOUD_PROJECT: ainaudi-prod
   DEBUG: "false"
   ALLOWED_HOSTS: ".appspot.com,.run.app"
@@ -31,10 +31,6 @@ env_variables:
 
   # Feature Flags
   FEATURE_TEMPLATES_ENGINE: "true"
-
-  # Vertex AI Configuration
-  VERTEX_AI_PROJECT: "ainaudi-prod"
-  VERTEX_AI_LOCATION: "europe-west1"
 
 handlers:
   - url: /.*
