@@ -1,6 +1,21 @@
 const cache = new Map();
 
 /**
+ * Safe JSON parser: handles HTML error pages, network errors, etc.
+ * Returns {error: message} instead of throwing on non-JSON responses.
+ * Fires a global 'api-error' event for the toast notification.
+ */
+const safeJson = async (response) => {
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+        const msg = `Woops... servizio temporaneamente non disponibile (${response.status})`;
+        window.dispatchEvent(new CustomEvent('api-error', { detail: msg }));
+        return { error: msg };
+    }
+    return response.json();
+};
+
+/**
  * Decode JWT payload to read exp claim.
  * Returns expiry as Unix timestamp (seconds) or 0 if unreadable.
  */
@@ -79,7 +94,7 @@ const fetchWithCacheAndRetry = (key, ttl = 60) => async (url, options, retries =
 
             // Handle permission errors (403) without retry
             if (response.status === 403) {
-                const errorData = await response.json().catch(() => ({}));
+                const errorData = await safeJson(response).catch(() => ({}));
                 const error = new Error(errorData.error || errorData.detail || 'Non hai i permessi necessari per questa operazione');
                 error.status = 403;
                 error.isPermissionError = true;
@@ -89,7 +104,8 @@ const fetchWithCacheAndRetry = (key, ttl = 60) => async (url, options, retries =
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            const data = await response.json();
+            const data = await safeJson(response);
+            if (data.error) throw new Error(data.error);
             cache.set(key, { data, timestamp: now });
             return data;
         } catch (error) {
@@ -136,7 +152,7 @@ const fetchAndInvalidate = (keys) => async (url, options) => {
 
         // Handle permission errors (403)
         if (response.status === 403) {
-            const errorData = await response.json().catch(() => ({}));
+            const errorData = await safeJson(response).catch(() => ({}));
             const error = new Error(errorData.error || errorData.detail || 'Non hai i permessi necessari per questa operazione');
             error.status = 403;
             error.isPermissionError = true;
@@ -155,6 +171,8 @@ const fetchAndInvalidate = (keys) => async (url, options) => {
 };
 
 // Clear all cache (useful on logout)
+export { safeJson };
+
 export const clearCache = () => {
     cache.clear();
 };
@@ -196,7 +214,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     'Authorization': authHeader
                 },
                 body: JSON.stringify(data)
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return {error: error.message};
             }),
@@ -218,7 +236,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     'Authorization': authHeader
                 },
                 body: formData
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return {error: error.message};
             });
@@ -231,7 +249,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     'Authorization': authHeader
                 },
                 body: JSON.stringify(data)
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return {error: error.message};
             });
@@ -246,7 +264,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 headers: {
                     'Authorization': authHeader
                 }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return {error: error.message};
             });
@@ -283,7 +301,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             // No cache for subsequent pages
             return fetch(url, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message, sezioni: [], total: 0, has_more: false };
             });
@@ -298,7 +316,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     'Authorization': authHeader
                 },
                 body: JSON.stringify(data)
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -332,7 +350,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                const responseData = await response.json();
+                const responseData = await safeJson(response);
 
                 // Cache in localStorage with version and timestamp
                 localStorage.setItem(cacheKey, JSON.stringify({
@@ -357,7 +375,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                return response.json();
+                return safeJson(response);
             }).catch(error => {
                 console.error(error);
                 return { error: error.message };
@@ -374,7 +392,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 },
                 body: JSON.stringify(data)
             }).then(async response => {
-                const responseData = await response.json();
+                const responseData = await safeJson(response);
 
                 if (response.status === 409) {
                     // Conflict: throw custom error
@@ -416,7 +434,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                return response.json();
+                return safeJson(response);
             }).catch(error => {
                 console.error('Error fetching aggregated scrutinio:', error);
                 return { error: error.message };
@@ -451,7 +469,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     'Authorization': authHeader
                 },
                 body: JSON.stringify({comune, sezione, email})
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return {error: error.message};
             }),
@@ -463,7 +481,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     'Authorization': authHeader
                 },
                 body: JSON.stringify({comune, sezione})
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return {error: error.message};
             }),
@@ -495,7 +513,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
         list: async () =>
             fetch(`${server}/api/elections/`, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -515,7 +533,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
         get: async (id) =>
             fetch(`${server}/api/elections/${id}/`, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -524,7 +542,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
         ballot: async (id) =>
             fetch(`${server}/api/elections/ballots/${id}/`, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -538,7 +556,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     'Authorization': authHeader
                 },
                 body: JSON.stringify(data)
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -586,7 +604,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 headers: {
                     'Authorization': authHeader
                 }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { emails: [] };
             });
@@ -600,7 +618,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -616,7 +634,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             const queryString = params.toString();
             return fetch(`${server}/api/rdl/registrations${queryString ? `?${queryString}` : ''}`, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             });
@@ -627,7 +645,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             fetch(`${server}/api/rdl/registrations/${id}/approve`, {
                 method: 'POST',
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -641,7 +659,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     'Authorization': authHeader
                 },
                 body: JSON.stringify({ reason })
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -651,7 +669,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             fetch(`${server}/api/rdl/registrations/${id}/withdraw`, {
                 method: 'POST',
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -665,7 +683,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     'Authorization': authHeader
                 },
                 body: JSON.stringify(data)
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -675,7 +693,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             fetch(`${server}/api/rdl/registrations/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -688,7 +706,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 method: 'POST',
                 headers: { 'Authorization': authHeader },
                 body: formData
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             });
@@ -703,7 +721,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 method: 'POST',
                 headers: { 'Authorization': authHeader },
                 body: formData
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             });
@@ -718,7 +736,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ records })
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             });
@@ -728,7 +746,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
         searchComuni: async (query) => {
             return fetch(`${server}/api/rdl/comuni/search?q=${encodeURIComponent(query)}`, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             });
@@ -744,7 +762,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 : `${server}/api/delegations/mia-catena/`;
             return fetch(url, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             });
@@ -758,7 +776,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     : `${server}/api/delegations/sub-deleghe/`;
                 return fetch(url, {
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 });
@@ -767,7 +785,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             get: async (id) =>
                 fetch(`${server}/api/delegations/sub-deleghe/${id}/`, {
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -780,7 +798,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         'Authorization': authHeader
                     },
                     body: JSON.stringify(data)
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -789,7 +807,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 fetch(`${server}/api/delegations/sub-deleghe/${id}/`, {
                     method: 'DELETE',
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.ok ? {} : response.json()).catch(error => {
+                }).then(response => response.ok ? {} : safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -803,7 +821,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     : `${server}/api/deleghe/designazioni/`;
                 return fetch(url, {
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 });
@@ -817,7 +835,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         'Authorization': authHeader
                     },
                     body: JSON.stringify(data)
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -826,7 +844,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 fetch(`${server}/api/deleghe/designazioni/${id}/`, {
                     method: 'DELETE',
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.ok ? {} : response.json()).catch(error => {
+                }).then(response => response.ok ? {} : safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -838,7 +856,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 const queryString = params.toString();
                 return fetch(`${server}/api/deleghe/designazioni/sezioni_disponibili/${queryString ? `?${queryString}` : ''}`, {
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 });
@@ -852,7 +870,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 const queryString = params.toString();
                 return fetch(`${server}/api/deleghe/designazioni/rdl_disponibili/${queryString ? `?${queryString}` : ''}`, {
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 });
@@ -871,7 +889,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         sezione_id: sezioneId,
                         ruolo: ruolo
                     })
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -884,7 +902,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     method: 'POST',
                     headers: { 'Authorization': authHeader },
                     body: formData
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 });
@@ -899,7 +917,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         'Authorization': authHeader
                     },
                     body: JSON.stringify({ consultazione_id: consultazioneId })
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 });
@@ -913,7 +931,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 const queryString = params.toString();
                 return fetch(`${server}/api/deleghe/designazioni/bozze_da_confermare/${queryString ? `?${queryString}` : ''}`, {
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 });
@@ -924,7 +942,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 fetch(`${server}/api/deleghe/designazioni/${id}/conferma/`, {
                     method: 'POST',
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -938,7 +956,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         'Authorization': authHeader
                     },
                     body: JSON.stringify({ motivo })
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -952,7 +970,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 if (consultazioneId) params.append('consultazione', consultazioneId);
                 return fetch(`${server}/api/deleghe/batch/?${params.toString()}`, {
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 });
@@ -967,7 +985,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         'Authorization': authHeader
                     },
                     body: JSON.stringify(data)
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -977,7 +995,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 fetch(`${server}/api/deleghe/batch/${batchId}/genera/`, {
                     method: 'POST',
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -987,7 +1005,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 fetch(`${server}/api/deleghe/batch/${batchId}/approva/`, {
                     method: 'POST',
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -1018,12 +1036,12 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     headers: { 'Authorization': authHeader }
                 }).then(async response => {
                     if (response.ok) {
-                        return response.json();
+                        return safeJson(response);
                     } else if (response.status === 404) {
                         // Batch già eliminato, tratta come successo
                         return { message: 'Batch già eliminato', deleted: true };
                     } else {
-                        const error = await response.json();
+                        const error = await safeJson(response);
                         return { error: error.error || 'Errore eliminazione batch' };
                     }
                 }).catch(error => {
@@ -1043,7 +1061,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         'Authorization': authHeader
                     },
                     body: JSON.stringify(data)
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -1064,7 +1082,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         'Authorization': authHeader
                     },
                     body: JSON.stringify(body)
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 });
@@ -1079,7 +1097,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         'Authorization': authHeader
                     },
                     body: JSON.stringify(data)
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -1089,7 +1107,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 fetch(`${server}/api/deleghe/processi/${processoId}/genera_individuale/`, {
                     method: 'POST',
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -1099,7 +1117,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 fetch(`${server}/api/deleghe/processi/${processoId}/genera_cumulativo/`, {
                     method: 'POST',
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -1173,7 +1191,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 fetch(`${server}/api/deleghe/processi/${processoId}/conferma/`, {
                     method: 'POST',
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -1183,7 +1201,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 fetch(`${server}/api/deleghe/processi/${processoId}/annulla/`, {
                     method: 'POST',
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -1196,7 +1214,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 if (tipo) params.append('tipo', tipo);
                 return fetch(`${server}/api/deleghe/processi/archivio/?${params.toString()}`, {
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 });
@@ -1208,7 +1226,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 if (consultazioneId) params.append('consultazione_id', consultazioneId);
                 return fetch(`${server}/api/deleghe/processi/mie-designazioni/?${params.toString()}`, {
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 });
@@ -1223,7 +1241,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     : `${server}/api/delegations/campagne/`;
                 return fetch(url, {
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 });
@@ -1232,7 +1250,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             get: async (id) =>
                 fetch(`${server}/api/delegations/campagne/${id}/`, {
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -1245,7 +1263,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         'Authorization': authHeader
                     },
                     body: JSON.stringify(data)
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -1258,7 +1276,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         'Authorization': authHeader
                     },
                     body: JSON.stringify(data)
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -1267,7 +1285,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 fetch(`${server}/api/delegations/campagne/${id}/`, {
                     method: 'DELETE',
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.ok ? {} : response.json()).catch(error => {
+                }).then(response => response.ok ? {} : safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -1277,7 +1295,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 fetch(`${server}/api/delegations/campagne/${id}/attiva/`, {
                     method: 'POST',
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -1287,7 +1305,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 fetch(`${server}/api/delegations/campagne/${id}/chiudi/`, {
                     method: 'POST',
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -1302,7 +1320,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             if (consultazioneId) params.append('consultazione', consultazioneId);
             return fetch(`${server}/api/documents/templates/?${params.toString()}`, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             });
@@ -1326,7 +1344,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
         visibleDelegates: async (consultazioneId) =>
             fetch(`${server}/api/documents/visible-delegates/?consultazione=${consultazioneId}`, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -1341,7 +1359,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 : `${server}/api/risorse/`;
             return fetch(url, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             });
@@ -1354,7 +1372,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 if (categoriaId) url += `categoria=${categoriaId}`;
                 return fetch(url, {
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 });
@@ -1369,7 +1387,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 if (search) url += `search=${encodeURIComponent(search)}`;
                 return fetch(url, {
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 });
@@ -1378,7 +1396,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             get: async (id) =>
                 fetch(`${server}/api/risorse/faqs/${id}/`, {
                     headers: { 'Authorization': authHeader }
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -1391,7 +1409,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         'Authorization': authHeader
                     },
                     body: JSON.stringify({ utile })
-                }).then(response => response.json()).catch(error => {
+                }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
                 }),
@@ -1402,7 +1420,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
         regioni: async () =>
             fetch(`${server}/api/territory/regioni/`, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -1411,7 +1429,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             const params = regioneId ? `?regione=${regioneId}` : '';
             return fetch(`${server}/api/territory/province/${params}`, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             });
@@ -1421,7 +1439,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             const params = provinciaId ? `?provincia=${provinciaId}` : '';
             return fetch(`${server}/api/territory/comuni/${params}`, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             });
@@ -1430,7 +1448,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
         municipi: async (comuneId) =>
             fetch(`${server}/api/territory/comuni/${comuneId}/`, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -1442,7 +1460,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 list: async () =>
                     fetch(`${server}/api/territory/regioni/`, {
                         headers: { 'Authorization': authHeader }
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1450,7 +1468,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 get: async (id) =>
                     fetch(`${server}/api/territory/regioni/${id}/`, {
                         headers: { 'Authorization': authHeader }
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1463,7 +1481,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                             'Authorization': authHeader
                         },
                         body: JSON.stringify(data)
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1476,7 +1494,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                             'Authorization': authHeader
                         },
                         body: JSON.stringify(data)
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1485,7 +1503,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     fetch(`${server}/api/territory/regioni/${id}/`, {
                         method: 'DELETE',
                         headers: { 'Authorization': authHeader }
-                    }).then(response => response.ok ? {} : response.json()).catch(error => {
+                    }).then(response => response.ok ? {} : safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1497,7 +1515,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         method: 'POST',
                         headers: { 'Authorization': authHeader },
                         body: formData
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     });
@@ -1512,7 +1530,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     const queryString = params.toString();
                     return fetch(`${server}/api/territory/province/${queryString ? `?${queryString}` : ''}`, {
                         headers: { 'Authorization': authHeader }
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     });
@@ -1521,7 +1539,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 get: async (id) =>
                     fetch(`${server}/api/territory/province/${id}/`, {
                         headers: { 'Authorization': authHeader }
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1534,7 +1552,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                             'Authorization': authHeader
                         },
                         body: JSON.stringify(data)
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1547,7 +1565,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                             'Authorization': authHeader
                         },
                         body: JSON.stringify(data)
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1556,7 +1574,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     fetch(`${server}/api/territory/province/${id}/`, {
                         method: 'DELETE',
                         headers: { 'Authorization': authHeader }
-                    }).then(response => response.ok ? {} : response.json()).catch(error => {
+                    }).then(response => response.ok ? {} : safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1568,7 +1586,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         method: 'POST',
                         headers: { 'Authorization': authHeader },
                         body: formData
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     });
@@ -1586,7 +1604,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     const queryString = params.toString();
                     return fetch(`${server}/api/territory/comuni/${queryString ? `?${queryString}` : ''}`, {
                         headers: { 'Authorization': authHeader }
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     });
@@ -1595,7 +1613,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 get: async (id) =>
                     fetch(`${server}/api/territory/comuni/${id}/`, {
                         headers: { 'Authorization': authHeader }
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1609,7 +1627,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         },
                         body: JSON.stringify(data)
                     }).then(async response => {
-                        const json = await response.json();
+                        const json = await safeJson(response);
                         if (!response.ok) {
                             const errorMsg = Object.entries(json).map(([k, v]) => `${k}: ${v}`).join(', ');
                             return { error: errorMsg };
@@ -1629,7 +1647,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         },
                         body: JSON.stringify(data)
                     }).then(async response => {
-                        const json = await response.json();
+                        const json = await safeJson(response);
                         if (!response.ok) {
                             const errorMsg = Object.entries(json).map(([k, v]) => `${k}: ${v}`).join(', ');
                             return { error: errorMsg };
@@ -1644,7 +1662,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     fetch(`${server}/api/territory/comuni/${id}/`, {
                         method: 'DELETE',
                         headers: { 'Authorization': authHeader }
-                    }).then(response => response.ok ? {} : response.json()).catch(error => {
+                    }).then(response => response.ok ? {} : safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1656,7 +1674,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         method: 'POST',
                         headers: { 'Authorization': authHeader },
                         body: formData
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     });
@@ -1671,7 +1689,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     const queryString = params.toString();
                     return fetch(`${server}/api/territory/municipi/${queryString ? `?${queryString}` : ''}`, {
                         headers: { 'Authorization': authHeader }
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     });
@@ -1680,7 +1698,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 get: async (id) =>
                     fetch(`${server}/api/territory/municipi/${id}/`, {
                         headers: { 'Authorization': authHeader }
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1694,7 +1712,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         },
                         body: JSON.stringify(data)
                     }).then(async response => {
-                        const json = await response.json();
+                        const json = await safeJson(response);
                         if (!response.ok) {
                             const errorMsg = Object.entries(json).map(([k, v]) => `${k}: ${v}`).join(', ');
                             return { error: errorMsg };
@@ -1713,7 +1731,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                             'Authorization': authHeader
                         },
                         body: JSON.stringify(data)
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1722,7 +1740,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     fetch(`${server}/api/territory/municipi/${id}/`, {
                         method: 'DELETE',
                         headers: { 'Authorization': authHeader }
-                    }).then(response => response.ok ? {} : response.json()).catch(error => {
+                    }).then(response => response.ok ? {} : safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1734,7 +1752,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         method: 'POST',
                         headers: { 'Authorization': authHeader },
                         body: formData
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     });
@@ -1753,7 +1771,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     const queryString = params.toString();
                     return fetch(`${server}/api/territory/sezioni/${queryString ? `?${queryString}` : ''}`, {
                         headers: { 'Authorization': authHeader }
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     });
@@ -1762,7 +1780,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 get: async (id) =>
                     fetch(`${server}/api/territory/sezioni/${id}/`, {
                         headers: { 'Authorization': authHeader }
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1775,7 +1793,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                             'Authorization': authHeader
                         },
                         body: JSON.stringify(data)
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1788,7 +1806,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                             'Authorization': authHeader
                         },
                         body: JSON.stringify(data)
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1797,7 +1815,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     fetch(`${server}/api/territory/sezioni/${id}/`, {
                         method: 'DELETE',
                         headers: { 'Authorization': authHeader }
-                    }).then(response => response.ok ? {} : response.json()).catch(error => {
+                    }).then(response => response.ok ? {} : safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     }),
@@ -1809,7 +1827,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                         method: 'POST',
                         headers: { 'Authorization': authHeader },
                         body: formData
-                    }).then(response => response.json()).catch(error => {
+                    }).then(response => safeJson(response)).catch(error => {
                         console.error(error);
                         return { error: error.message };
                     });
@@ -1871,7 +1889,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     rdl_registration_id: rdlRegistrationId,
                     ruolo: ruolo
                 })
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -1884,7 +1902,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             ])(`${server}/api/mapping/assegna/${assignmentId}/`, {
                 method: 'DELETE',
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -1905,7 +1923,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     sezioni_ids: sezioniIds,
                     ruolo: ruolo
                 })
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -1922,7 +1940,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     rdl_registration_id: rdlRegistrationId,
                     preferenza: preferenza
                 })
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -1955,7 +1973,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 body: JSON.stringify(body)
             });
             if (!response.ok) {
-                const err = await response.json().catch(() => ({}));
+                const err = await safeJson(response).catch(() => ({}));
                 throw new Error(err.error || 'Errore download XLSX');
             }
             return response.blob();
@@ -2000,7 +2018,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            return response.json();
+            return safeJson(response);
         }).catch(error => {
             console.error('GET request failed:', error);
             throw error;
@@ -2021,7 +2039,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            return response.json();
+            return safeJson(response);
         }).catch(error => {
             console.error('POST request failed:', error);
             throw error;
@@ -2042,7 +2060,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            return response.json();
+            return safeJson(response);
         }).catch(error => {
             console.error('PUT request failed:', error);
             throw error;
@@ -2062,7 +2080,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            return response.json();
+            return safeJson(response);
         }).catch(error => {
             console.error('DELETE request failed:', error);
             throw error;
@@ -2082,7 +2100,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            return response.json();
+            return safeJson(response);
         }).catch(error => {
             console.error('Upload failed:', error);
             throw error;
@@ -2100,7 +2118,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     'Authorization': authHeader
                 },
                 body: JSON.stringify(data)
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -2109,7 +2127,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
         getSession: async (sessionId) =>
             fetch(`${server}/api/ai/chat/?session_id=${sessionId}`, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -2123,7 +2141,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     'Authorization': authHeader
                 },
                 body: JSON.stringify(data)
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),
@@ -2132,7 +2150,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
         sessions: async () =>
             fetch(`${server}/api/ai/sessions/`, {
                 headers: { 'Authorization': authHeader }
-            }).then(response => response.json()).catch(error => {
+            }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
             }),

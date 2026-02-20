@@ -35,9 +35,20 @@ function AppContent() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [apiToast, setApiToast] = useState(null);
     const [activeTab, setActiveTab] = useState(null);
     const activeTabRef = useRef(null);
     useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+    // Global API error toast
+    useEffect(() => {
+        const handler = (e) => {
+            setApiToast(e.detail);
+            setTimeout(() => setApiToast(null), 5000);
+        };
+        window.addEventListener('api-error', handler);
+        return () => window.removeEventListener('api-error', handler);
+    }, []);
+
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [permissions, setPermissions] = useState({
         // Permessi granulari (uno per voce menu)
@@ -1256,6 +1267,19 @@ function AppContent() {
                     show={showChat}
                     onClose={() => setShowChat(false)}
                 />
+            )}
+
+            {/* Global API error toast */}
+            {apiToast && (
+                <div style={{
+                    position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)',
+                    background: '#dc3545', color: '#fff', padding: '10px 24px',
+                    borderRadius: 8, fontSize: '0.9rem', zIndex: 9999,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)', cursor: 'pointer',
+                    maxWidth: '90vw', textAlign: 'center'
+                }} onClick={() => setApiToast(null)}>
+                    {apiToast}
+                </div>
             )}
         </>
     );
