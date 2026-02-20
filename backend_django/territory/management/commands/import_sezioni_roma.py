@@ -4,9 +4,14 @@ Management command to import/update electoral sections for Roma from CSV.
 CSV format (comma-separated):
 SEZIONE,COMUNE,MUNICIPIO,INDIRIZZO,
 
+Updates municipio and indirizzo for existing sections. When indirizzo changes,
+geocoding fields are invalidated to force re-geocoding. Sections present in DB
+but absent from CSV are deleted.
+
 Usage:
     python manage.py import_sezioni_roma
     python manage.py import_sezioni_roma --file=fixtures/roma_sezioni.csv
+    python manage.py import_sezioni_roma --dry-run
     python manage.py import_sezioni_roma --clear-denominazione
 """
 import csv
@@ -132,10 +137,6 @@ class Command(BaseCommand):
             for err in errors[:20]:
                 self.stdout.write(f'  - {err}')
 
-        if dry_run:
-            self.stdout.write(self.style.SUCCESS('[DRY RUN] No changes made'))
-            return
-
         # Prefetch all Roma sections for efficient lookup
         self.stdout.write('Loading existing Roma sections...')
         sezioni_map = {}
@@ -144,10 +145,18 @@ class Command(BaseCommand):
 
         self.stdout.write(f'Loaded {len(sezioni_map)} existing sections')
 
-        # Update municipio for existing sections, create missing ones
-        updated_count = 0
+        # Track CSV section numbers for deletion check
+        csv_numeri = {data['numero'] for data in sections_data}
+
+        # Find sections in DB but not in CSV
+        sezioni_to_delete = [
+            sezione for numero, sezione in sezioni_map.items()
+            if numero not in csv_numeri
+        ]
+
+        # Update municipio+indirizzo for existing sections, create missing ones
         skipped_count = 0
-        created_count = 0
+        geocode_invalidated_count = 0
         sezioni_to_update = []
         sezioni_to_create = []
 
@@ -163,78 +172,111 @@ class Command(BaseCommand):
                     municipio=data['municipio'],
                     is_attiva=True
                 ))
-                # Always print details for missing sections to be created
                 mun_str = f"Municipio {data['municipio'].numero}" if data['municipio'] else "N/A"
                 addr_str = data['indirizzo'] if data['indirizzo'] else "N/A"
                 self.stdout.write(
-                    f'  ✓ CREATE Sezione {data["numero"]:4d} - {mun_str:13s} - {addr_str}'
+                    f'  + CREATE Sezione {data["numero"]:4d} - {mun_str:13s} - {addr_str}'
                 )
                 continue
 
-            # Check if sezione has denominazione OR indirizzo (at least one)
-            has_data = bool(sezione.denominazione or sezione.indirizzo)
+            changed = False
 
-            if not has_data:
-                skipped_count += 1
-                if dry_run:
-                    self.stdout.write(
-                        f'  ⊘ Sezione {data["numero"]}: skipped (no denominazione/indirizzo)'
-                    )
-                continue
-
-            # Only update municipio if different
-            old_municipio = sezione.municipio
-            if old_municipio != data['municipio']:
-                sezione.municipio = data['municipio']
-                sezioni_to_update.append(sezione)
-                old_mun_str = f"Mun {old_municipio.numero}" if old_municipio else "NULL"
+            # Update municipio if different
+            if sezione.municipio != data['municipio']:
+                old_mun_str = f"Mun {sezione.municipio.numero}" if sezione.municipio else "NULL"
                 new_mun_str = f"Mun {data['municipio'].numero}" if data['municipio'] else "NULL"
-                if dry_run or len(sezioni_to_update) <= 20:
-                    self.stdout.write(
-                        f'  ↻ Sezione {data["numero"]}: {old_mun_str} → {new_mun_str}'
-                    )
+                self.stdout.write(
+                    f'  ~ Sezione {data["numero"]:4d}: municipio {old_mun_str} -> {new_mun_str}'
+                )
+                sezione.municipio = data['municipio']
+                changed = True
+
+            # Update indirizzo if different
+            old_indirizzo = sezione.indirizzo or ''
+            new_indirizzo = data['indirizzo'] or ''
+            if old_indirizzo != new_indirizzo:
+                self.stdout.write(
+                    f'  ~ Sezione {data["numero"]:4d}: indirizzo "{old_indirizzo}" -> "{new_indirizzo}"'
+                )
+                sezione.indirizzo = data['indirizzo']
+                # Invalidate geocoding to force re-geocoding
+                sezione.latitudine = None
+                sezione.longitudine = None
+                sezione.geocoded_at = None
+                sezione.geocode_source = ''
+                sezione.geocode_quality = ''
+                sezione.geocode_place_id = ''
+                geocode_invalidated_count += 1
+                changed = True
+
+            if changed:
+                sezioni_to_update.append(sezione)
             else:
                 skipped_count += 1
 
         updated_count = len(sezioni_to_update)
         created_count = len(sezioni_to_create)
+        deleted_count = len(sezioni_to_delete)
+
+        if sezioni_to_delete:
+            for sez in sezioni_to_delete:
+                self.stdout.write(self.style.WARNING(
+                    f'  - DELETE Sezione {sez.numero:4d} (in DB but not in CSV)'
+                ))
 
         if dry_run:
             self.stdout.write(self.style.SUCCESS(f'\n[DRY RUN]'))
             self.stdout.write('')
             self.stdout.write(self.style.SUCCESS('=== SUMMARY ==='))
-            self.stdout.write(f'Would create:      {created_count}')
-            self.stdout.write(f'Would update:      {updated_count}')
-            self.stdout.write(f'Skipped:           {skipped_count}')
-            self.stdout.write(f'Total in CSV:      {len(sections_data)}')
+            self.stdout.write(f'Would create:              {created_count}')
+            self.stdout.write(f'Would update:              {updated_count}')
+            self.stdout.write(f'  (geocoding invalidated): {geocode_invalidated_count}')
+            self.stdout.write(f'Would delete:              {deleted_count}')
+            self.stdout.write(f'Unchanged:                 {skipped_count}')
+            self.stdout.write(f'Total in CSV:              {len(sections_data)}')
+            self.stdout.write(f'Total in DB:               {len(sezioni_map)}')
             return
 
         # Bulk operations
         with transaction.atomic():
+            # Delete sections not in CSV
+            if sezioni_to_delete:
+                delete_ids = [sez.id for sez in sezioni_to_delete]
+                SezioneElettorale.objects.filter(id__in=delete_ids).delete()
+                self.stdout.write(self.style.SUCCESS(
+                    f'Deleted {deleted_count} sezioni not in CSV'
+                ))
+
             # Create missing sections
             if sezioni_to_create:
-                self.stdout.write(f'\nBulk creating {len(sezioni_to_create)} sezioni...')
                 SezioneElettorale.objects.bulk_create(
                     sezioni_to_create,
                     batch_size=500
                 )
-                self.stdout.write(self.style.SUCCESS(f'✓ Created {len(sezioni_to_create)} sezioni'))
+                self.stdout.write(self.style.SUCCESS(
+                    f'Created {created_count} sezioni'
+                ))
 
             # Update existing sections
             if sezioni_to_update:
-                self.stdout.write(f'\nBulk updating {len(sezioni_to_update)} sezioni...')
                 SezioneElettorale.objects.bulk_update(
                     sezioni_to_update,
-                    ['municipio'],
+                    ['municipio', 'indirizzo', 'latitudine', 'longitudine',
+                     'geocoded_at', 'geocode_source', 'geocode_quality',
+                     'geocode_place_id'],
                     batch_size=500
                 )
-                self.stdout.write(self.style.SUCCESS(f'✓ Updated {len(sezioni_to_update)} sezioni'))
+                self.stdout.write(self.style.SUCCESS(
+                    f'Updated {updated_count} sezioni'
+                ))
 
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS('=== SUMMARY ==='))
-        self.stdout.write(f'Sezioni created:   {created_count}')
-        self.stdout.write(f'Municipio updated: {updated_count}')
-        self.stdout.write(f'Skipped:           {skipped_count}')
-        self.stdout.write(f'Total in CSV:      {len(sections_data)}')
+        self.stdout.write(f'Sezioni created:           {created_count}')
+        self.stdout.write(f'Sezioni updated:           {updated_count}')
+        self.stdout.write(f'  (geocoding invalidated): {geocode_invalidated_count}')
+        self.stdout.write(f'Sezioni deleted:           {deleted_count}')
+        self.stdout.write(f'Unchanged:                 {skipped_count}')
+        self.stdout.write(f'Total in CSV:              {len(sections_data)}')
         self.stdout.write('')
-        self.stdout.write(self.style.SUCCESS('✓ Import completed'))
+        self.stdout.write(self.style.SUCCESS('Import completed'))
