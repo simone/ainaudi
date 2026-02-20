@@ -40,7 +40,7 @@ AInaudi è l'applicazione ufficiale del Movimento 5 Stelle per:
 ### 1. Primo Accesso
 
 1. **Apri il browser** sul tuo smartphone, tablet o computer
-2. Vai su: `https://ainaudi.appspot.com` *(URL di esempio)*
+2. Vai su: `https://ainaudi-prod.appspot.com`
 3. Inserisci la tua **email** (quella con cui sei stato registrato)
 4. Clicca su **"Invia Magic Link"**
 
@@ -202,16 +202,6 @@ Vedrai due sezioni:
 2. Sfoglia le **domande**
 3. Clicca per **espandere** la risposta
 4. Usa **Ctrl+F** (o ricerca del browser) per trovare parole chiave
-
-#### Esempio FAQ
-
-**Q: Cosa devo fare se un elettore non ha il documento?**
-
-**A:** Secondo l'art. 58 del DPR 361/1957:
-1. Verifica l'identità con altri mezzi (tessera sanitaria, patente)
-2. Se l'elettore è identificabile, può votare
-3. Annota la situazione sul verbale
-4. In caso di dubbi, consulta il presidente di seggio
 
 ---
 
@@ -467,10 +457,7 @@ L'assistente IA **non può:**
 ### Contatti di Supporto
 
 **In caso di problemi tecnici:**
-
-📧 **Email:** supporto@ainaudi.it *(esempio)*
-📱 **Telegram:** @AInaudiSupport *(esempio)*
-📞 **Hotline:** +39 06 1234 5678 *(esempio)* - attiva durante le elezioni
+📱 **Email:** s.federici@gmail.com
 
 **Per questioni operative (non tecniche):**
 - Rivolgiti al tuo **Sub-Delegato**
