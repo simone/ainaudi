@@ -2263,6 +2263,12 @@ class RdlRegistrationEditView(APIView):
             registration.seggio_preferenza = request.data['seggio_preferenza']
         if 'notes' in request.data:
             registration.notes = request.data['notes']
+        if 'fuorisede' in request.data:
+            registration.fuorisede = bool(request.data['fuorisede'])
+        if 'comune_domicilio' in request.data:
+            registration.comune_domicilio = request.data['comune_domicilio']
+        if 'indirizzo_domicilio' in request.data:
+            registration.indirizzo_domicilio = request.data['indirizzo_domicilio']
         if 'municipio' in request.data:
             municipio_num = request.data['municipio']
             if municipio_num:
@@ -3867,6 +3873,13 @@ class MappaturaRdlView(APIView):
                 'cognome': reg.cognome,
                 'full_name': f"{reg.cognome} {reg.nome}",
                 'telefono': reg.telefono,
+                'comune_nascita': reg.comune_nascita,
+                'data_nascita': str(reg.data_nascita) if reg.data_nascita else None,
+                'comune_residenza': reg.comune_residenza,
+                'indirizzo_residenza': reg.indirizzo_residenza,
+                'fuorisede': reg.fuorisede or False,
+                'comune_domicilio': reg.comune_domicilio or '',
+                'indirizzo_domicilio': reg.indirizzo_domicilio or '',
                 'seggio_preferenza': reg.seggio_preferenza,
                 'notes': reg.notes,
                 'comune': reg.comune.nome,

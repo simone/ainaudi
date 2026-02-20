@@ -114,6 +114,14 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
         ruolo: null, // determined per-plesso based on availability
     });
 
+    // Edit RDL modal
+    const [editRdlModal, setEditRdlModal] = useState({
+        show: false,
+        rdl: null,
+        editData: {},
+        saving: false
+    });
+
     // Assegna preferenze modal
     const [assegnaPreferenzeModal, setAssegnaPreferenzeModal] = useState({
         show: false,
@@ -670,6 +678,51 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
         if (result.error) {
             setError(result.error);
         } else {
+            client.mappatura.invalidateCache();
+            loadData();
+        }
+    };
+
+    const openEditRdlModal = (rdl) => {
+        setEditRdlModal({
+            show: true,
+            rdl,
+            editData: {
+                email: rdl.email,
+                nome: rdl.nome,
+                cognome: rdl.cognome,
+                telefono: rdl.telefono || '',
+                comune_nascita: rdl.comune_nascita || '',
+                data_nascita: rdl.data_nascita || '',
+                comune_residenza: rdl.comune_residenza || '',
+                indirizzo_residenza: rdl.indirizzo_residenza || '',
+                municipio: rdl.municipio_numero || '',
+                fuorisede: rdl.fuorisede || false,
+                comune_domicilio: rdl.comune_domicilio || '',
+                indirizzo_domicilio: rdl.indirizzo_domicilio || '',
+                seggio_preferenza: rdl.seggio_preferenza || '',
+                notes: rdl.notes || ''
+            },
+            saving: false
+        });
+    };
+
+    const handleSaveEditRdl = async () => {
+        const { rdl, editData } = editRdlModal;
+        if (!rdl) return;
+
+        setEditRdlModal(prev => ({ ...prev, saving: true }));
+
+        const result = await client.rdlRegistrations.update(rdl.rdl_registration_id, {
+            ...editData,
+            municipio: editData.municipio || null
+        });
+
+        if (result.error) {
+            setError(result.error);
+            setEditRdlModal(prev => ({ ...prev, saving: false }));
+        } else {
+            setEditRdlModal({ show: false, rdl: null, editData: {}, saving: false });
             client.mappatura.invalidateCache();
             loadData();
         }
@@ -1407,46 +1460,56 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                                 <button
                                     className="btn btn-sm btn-outline-primary"
                                     onClick={() => openAddSezioniModal(rdl)}
+                                    title="Aggiungi sezione"
                                 >
-                                    + Aggiungi Sezione
+                                    <i className="fas fa-plus"></i>
+                                    <span className="btn-label">Aggiungi Sezione</span>
                                 </button>
                                 {rdl.seggio_preferenza && hasPrefenzaNonAssegnata && (
                                     <button
-                                        className="btn btn-sm btn-outline-success ms-2"
+                                        className="btn btn-sm btn-outline-success"
                                         onClick={() => openAssegnaPreferenzeModal(rdl)}
                                         title="Analizza la preferenza e assegna automaticamente"
                                     >
-                                        <i className="fas fa-magic me-1"></i>
-                                        Assegna Preferita
+                                        <i className="fas fa-magic"></i>
+                                        <span className="btn-label">Assegna Preferita</span>
                                     </button>
                                 )}
                                 {(rdl.sezioni_vicine || []).some(p => p.distanza_km <= 10 && (p.has_free_effettivo || p.has_free_supplente)) && (
                                     <button
-                                        className="btn btn-sm btn-outline-info ms-2"
+                                        className="btn btn-sm btn-outline-info"
                                         onClick={() => openPlessiViciniModal(rdl)}
                                         title="Assegna plessi vicini per prossimita geografica"
                                     >
-                                        <i className="fas fa-map-marker-alt me-1"></i>
-                                        Plessi Vicini
+                                        <i className="fas fa-map-marker-alt"></i>
+                                        <span className="btn-label">Plessi Vicini</span>
                                     </button>
                                 )}
                                 {(rdl.sezioni_effettivo.length > 0 || rdl.sezioni_supplente.length > 0) && (
                                     <button
-                                        className={`btn btn-sm ${copiedRdlMsgId === rdl.rdl_registration_id ? 'btn-success' : 'btn-outline-secondary'} ms-2`}
+                                        className={`btn btn-sm ${copiedRdlMsgId === rdl.rdl_registration_id ? 'btn-success' : 'btn-outline-secondary'}`}
                                         onClick={() => copyAssignmentMessage(rdl)}
                                         title="Copia messaggio con le sezioni assegnate"
                                     >
-                                        <i className={`fas ${copiedRdlMsgId === rdl.rdl_registration_id ? 'fa-check' : 'fa-copy'} me-1`}></i>
-                                        {copiedRdlMsgId === rdl.rdl_registration_id ? 'Copiato!' : 'Copia Messaggio'}
+                                        <i className={`fas ${copiedRdlMsgId === rdl.rdl_registration_id ? 'fa-check' : 'fa-copy'}`}></i>
+                                        <span className="btn-label">{copiedRdlMsgId === rdl.rdl_registration_id ? 'Copiato!' : 'Copia Msg'}</span>
                                     </button>
                                 )}
                                 <button
-                                    className="btn btn-sm btn-outline-danger ms-2"
+                                    className="btn btn-sm btn-outline-warning"
+                                    onClick={() => openEditRdlModal(rdl)}
+                                    title="Modifica dati RDL"
+                                >
+                                    <i className="fas fa-edit"></i>
+                                    <span className="btn-label">Modifica</span>
+                                </button>
+                                <button
+                                    className="btn btn-sm btn-outline-danger"
                                     onClick={() => setWithdrawModal({ show: true, rdl })}
                                     title="L'RDL si ritira dalla candidatura"
                                 >
-                                    <i className="fas fa-user-times me-1"></i>
-                                    Si Ritira
+                                    <i className="fas fa-user-times"></i>
+                                    <span className="btn-label">Si Ritira</span>
                                 </button>
                             </div>
 
@@ -1922,6 +1985,142 @@ function Mappatura({ client, setError, initialComuneId, initialMunicipioId }) {
                         <span className="plessi-vicini-legend-swatch parziale ms-2"></span> Parziale
                         <span className="plessi-vicini-legend-swatch completa ms-2"></span> Completa
                         &nbsp;|&nbsp; <strong>E</strong>=Effettivo <strong>S</strong>=Supplente
+                    </div>
+                </div>
+            </ConfirmModal>
+
+            {/* Edit RDL Modal */}
+            <ConfirmModal
+                show={editRdlModal.show}
+                onConfirm={handleSaveEditRdl}
+                onCancel={() => setEditRdlModal({ show: false, rdl: null, editData: {}, saving: false })}
+                title={`Modifica RDL: ${editRdlModal.rdl?.cognome || ''} ${editRdlModal.rdl?.nome || ''}`}
+                confirmText={editRdlModal.saving ? 'Salvataggio...' : 'Salva'}
+                confirmVariant="success"
+                confirmDisabled={editRdlModal.saving}
+            >
+                <div className="grid-2-col gap-md" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div>
+                        <label className="form-label mb-1" style={{ fontSize: '0.75rem', color: '#6c757d' }}>Nome</label>
+                        <input type="text" className="form-control form-control-sm"
+                            value={editRdlModal.editData.nome || ''}
+                            onChange={(e) => setEditRdlModal(prev => ({ ...prev, editData: { ...prev.editData, nome: e.target.value } }))}
+                        />
+                    </div>
+                    <div>
+                        <label className="form-label mb-1" style={{ fontSize: '0.75rem', color: '#6c757d' }}>Cognome</label>
+                        <input type="text" className="form-control form-control-sm"
+                            value={editRdlModal.editData.cognome || ''}
+                            onChange={(e) => setEditRdlModal(prev => ({ ...prev, editData: { ...prev.editData, cognome: e.target.value } }))}
+                        />
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label mb-1" style={{ fontSize: '0.75rem', color: '#6c757d' }}>Email</label>
+                        <input type="email" className="form-control form-control-sm"
+                            value={editRdlModal.editData.email || ''}
+                            onChange={(e) => setEditRdlModal(prev => ({ ...prev, editData: { ...prev.editData, email: e.target.value } }))}
+                        />
+                    </div>
+                    <div>
+                        <label className="form-label mb-1" style={{ fontSize: '0.75rem', color: '#6c757d' }}>Telefono</label>
+                        <input type="tel" className="form-control form-control-sm"
+                            value={editRdlModal.editData.telefono || ''}
+                            onChange={(e) => setEditRdlModal(prev => ({ ...prev, editData: { ...prev.editData, telefono: e.target.value } }))}
+                        />
+                    </div>
+                    <div>
+                        <label className="form-label mb-1" style={{ fontSize: '0.75rem', color: '#6c757d' }}>Data nascita</label>
+                        <input type="date" className="form-control form-control-sm"
+                            value={editRdlModal.editData.data_nascita || ''}
+                            onChange={(e) => setEditRdlModal(prev => ({ ...prev, editData: { ...prev.editData, data_nascita: e.target.value } }))}
+                        />
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label mb-1" style={{ fontSize: '0.75rem', color: '#6c757d' }}>Comune nascita</label>
+                        <input type="text" className="form-control form-control-sm"
+                            value={editRdlModal.editData.comune_nascita || ''}
+                            onChange={(e) => setEditRdlModal(prev => ({ ...prev, editData: { ...prev.editData, comune_nascita: e.target.value } }))}
+                        />
+                    </div>
+
+                    {/* Residenza */}
+                    <div style={{ gridColumn: '1 / -1', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid #dee2e6' }}>
+                        <strong style={{ fontSize: '0.8rem' }}>Residenza</strong>
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label mb-1" style={{ fontSize: '0.75rem', color: '#6c757d' }}>Comune residenza</label>
+                        <input type="text" className="form-control form-control-sm"
+                            value={editRdlModal.editData.comune_residenza || ''}
+                            onChange={(e) => setEditRdlModal(prev => ({ ...prev, editData: { ...prev.editData, comune_residenza: e.target.value } }))}
+                        />
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label mb-1" style={{ fontSize: '0.75rem', color: '#6c757d' }}>Indirizzo residenza</label>
+                        <input type="text" className="form-control form-control-sm"
+                            value={editRdlModal.editData.indirizzo_residenza || ''}
+                            onChange={(e) => setEditRdlModal(prev => ({ ...prev, editData: { ...prev.editData, indirizzo_residenza: e.target.value } }))}
+                        />
+                    </div>
+                    <div>
+                        <label className="form-label mb-1" style={{ fontSize: '0.75rem', color: '#6c757d' }}>Municipio</label>
+                        <input type="number" className="form-control form-control-sm"
+                            value={editRdlModal.editData.municipio || ''}
+                            onChange={(e) => setEditRdlModal(prev => ({ ...prev, editData: { ...prev.editData, municipio: e.target.value } }))}
+                            min="1" max="15"
+                        />
+                    </div>
+
+                    {/* Fuorisede */}
+                    <div style={{ gridColumn: '1 / -1', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid #dee2e6' }}>
+                        <strong style={{ fontSize: '0.8rem' }}>Fuorisede</strong>
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                        <div className="form-check">
+                            <input type="checkbox" className="form-check-input" id="edit-rdl-fuorisede"
+                                checked={editRdlModal.editData.fuorisede || false}
+                                onChange={(e) => setEditRdlModal(prev => ({ ...prev, editData: { ...prev.editData, fuorisede: e.target.checked } }))}
+                            />
+                            <label className="form-check-label" htmlFor="edit-rdl-fuorisede" style={{ fontSize: '0.8rem' }}>
+                                Lavora o studia in un comune diverso dalla residenza
+                            </label>
+                        </div>
+                    </div>
+                    {editRdlModal.editData.fuorisede && (
+                        <>
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <label className="form-label mb-1" style={{ fontSize: '0.75rem', color: '#6c757d' }}>Comune domicilio</label>
+                                <input type="text" className="form-control form-control-sm"
+                                    value={editRdlModal.editData.comune_domicilio || ''}
+                                    onChange={(e) => setEditRdlModal(prev => ({ ...prev, editData: { ...prev.editData, comune_domicilio: e.target.value } }))}
+                                />
+                            </div>
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <label className="form-label mb-1" style={{ fontSize: '0.75rem', color: '#6c757d' }}>Indirizzo domicilio</label>
+                                <input type="text" className="form-control form-control-sm"
+                                    value={editRdlModal.editData.indirizzo_domicilio || ''}
+                                    onChange={(e) => setEditRdlModal(prev => ({ ...prev, editData: { ...prev.editData, indirizzo_domicilio: e.target.value } }))}
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {/* Preferenze */}
+                    <div style={{ gridColumn: '1 / -1', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid #dee2e6' }}>
+                        <strong style={{ fontSize: '0.8rem' }}>Preferenze</strong>
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label mb-1" style={{ fontSize: '0.75rem', color: '#6c757d' }}>Seggio preferenza</label>
+                        <input type="text" className="form-control form-control-sm"
+                            value={editRdlModal.editData.seggio_preferenza || ''}
+                            onChange={(e) => setEditRdlModal(prev => ({ ...prev, editData: { ...prev.editData, seggio_preferenza: e.target.value } }))}
+                        />
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label mb-1" style={{ fontSize: '0.75rem', color: '#6c757d' }}>Note</label>
+                        <textarea className="form-control form-control-sm" rows="2"
+                            value={editRdlModal.editData.notes || ''}
+                            onChange={(e) => setEditRdlModal(prev => ({ ...prev, editData: { ...prev.editData, notes: e.target.value } }))}
+                        />
                     </div>
                 </div>
             </ConfirmModal>
