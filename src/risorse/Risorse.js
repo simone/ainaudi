@@ -317,6 +317,42 @@ function Risorse({ client, consultazione, setError }) {
         // Altrimenti lascia che il link apra in nuova scheda
     };
 
+    // IndexedDB cache for nomination PDF (avoids re-hitting PDF backend)
+    const getCachedNomina = async (consultazioneId) => {
+        try {
+            const db = await new Promise((resolve, reject) => {
+                const req = indexedDB.open('ainaudi_cache', 1);
+                req.onupgradeneeded = () => req.result.createObjectStore('pdf_cache');
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+            const tx = db.transaction('pdf_cache', 'readonly');
+            const store = tx.objectStore('pdf_cache');
+            const result = await new Promise((resolve, reject) => {
+                const req = store.get(`nomina_${consultazioneId}`);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+            db.close();
+            return result ? new Blob([result], { type: 'application/pdf' }) : null;
+        } catch { return null; }
+    };
+
+    const setCachedNomina = async (consultazioneId, blob) => {
+        try {
+            const buffer = await blob.arrayBuffer();
+            const db = await new Promise((resolve, reject) => {
+                const req = indexedDB.open('ainaudi_cache', 1);
+                req.onupgradeneeded = () => req.result.createObjectStore('pdf_cache');
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+            const tx = db.transaction('pdf_cache', 'readwrite');
+            tx.objectStore('pdf_cache').put(buffer, `nomina_${consultazioneId}`);
+            db.close();
+        } catch (e) { console.warn('Cache nomina failed:', e); }
+    };
+
     const handleDownloadNomina = async () => {
         if (!consultazione?.id) {
             setError('Nessuna consultazione attiva');
@@ -326,20 +362,28 @@ function Risorse({ client, consultazione, setError }) {
         setLoadingNomina(true);
 
         try {
-            const apiUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
-            const url = `${apiUrl}/api/deleghe/processi/download-mia-nomina/?consultazione_id=${consultazione.id}`;
+            // Check IndexedDB cache first
+            let blob = await getCachedNomina(consultazione.id);
 
-            // Fetch PDF with auth header (react-pdf can't send JWT on its own)
-            const response = await fetch(url, {
-                headers: { 'Authorization': client.authHeader }
-            });
+            if (!blob) {
+                const apiUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
+                const url = `${apiUrl}/api/deleghe/processi/download-mia-nomina/?consultazione_id=${consultazione.id}`;
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `Errore ${response.status}`);
+                const response = await fetch(url, {
+                    headers: { 'Authorization': client.authHeader }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Errore ${response.status}`);
+                }
+
+                blob = await response.blob();
+
+                // Cache in IndexedDB for future use
+                setCachedNomina(consultazione.id, blob);
             }
 
-            const blob = await response.blob();
             const blobUrl = URL.createObjectURL(blob);
 
             // Open PDF in viewer using blob URL
