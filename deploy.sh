@@ -12,6 +12,8 @@ SKIP_FRONTEND=false
 SKIP_BACKEND=false
 SKIP_PDF=false
 SKIP_AI=false
+SKIP_ADMIN=false
+SKIP_RDL=false
 SKIP_DISPATCH=false
 
 # Colors for output
@@ -40,6 +42,8 @@ while [[ $# -gt 0 ]]; do
       SKIP_BACKEND=true
       SKIP_PDF=true
       SKIP_AI=true
+      SKIP_ADMIN=true
+      SKIP_RDL=true
       SKIP_DISPATCH=true
       shift
       ;;
@@ -47,6 +51,8 @@ while [[ $# -gt 0 ]]; do
       SKIP_FRONTEND=true
       SKIP_PDF=true
       SKIP_AI=true
+      SKIP_ADMIN=true
+      SKIP_RDL=true
       SKIP_DISPATCH=true
       shift
       ;;
@@ -54,6 +60,8 @@ while [[ $# -gt 0 ]]; do
       SKIP_FRONTEND=true
       SKIP_BACKEND=true
       SKIP_AI=true
+      SKIP_ADMIN=true
+      SKIP_RDL=true
       SKIP_DISPATCH=true
       shift
       ;;
@@ -61,6 +69,26 @@ while [[ $# -gt 0 ]]; do
       SKIP_FRONTEND=true
       SKIP_BACKEND=true
       SKIP_PDF=true
+      SKIP_ADMIN=true
+      SKIP_RDL=true
+      SKIP_DISPATCH=true
+      shift
+      ;;
+    --admin-only)
+      SKIP_FRONTEND=true
+      SKIP_BACKEND=true
+      SKIP_PDF=true
+      SKIP_AI=true
+      SKIP_RDL=true
+      SKIP_DISPATCH=true
+      shift
+      ;;
+    --rdl-only)
+      SKIP_FRONTEND=true
+      SKIP_BACKEND=true
+      SKIP_PDF=true
+      SKIP_AI=true
+      SKIP_ADMIN=true
       SKIP_DISPATCH=true
       shift
       ;;
@@ -69,6 +97,8 @@ while [[ $# -gt 0 ]]; do
       SKIP_BACKEND=true
       SKIP_PDF=true
       SKIP_AI=true
+      SKIP_ADMIN=true
+      SKIP_RDL=true
       shift
       ;;
     --help|-h)
@@ -82,6 +112,8 @@ while [[ $# -gt 0 ]]; do
       echo "  --backend-only      Deploya solo il backend Django (api)"
       echo "  --pdf-only          Deploya solo il servizio PDF"
       echo "  --ai-only           Deploya solo il servizio AI assistant"
+      echo "  --admin-only        Deploya solo il servizio Admin Django"
+      echo "  --rdl-only          Deploya solo il servizio RDL (scrutinio + risorse)"
       echo "  --dispatch-only     Aggiorna solo dispatch.yaml"
       echo "  --help, -h          Mostra questo messaggio"
       echo ""
@@ -111,6 +143,8 @@ echo -e "   Skip Frontend: ${SKIP_FRONTEND}"
 echo -e "   Skip Backend: ${SKIP_BACKEND}"
 echo -e "   Skip PDF Service: ${SKIP_PDF}"
 echo -e "   Skip AI Service: ${SKIP_AI}"
+echo -e "   Skip Admin Service: ${SKIP_ADMIN}"
+echo -e "   Skip RDL Service: ${SKIP_RDL}"
 echo -e "   Skip Dispatch: ${SKIP_DISPATCH}"
 echo ""
 
@@ -273,11 +307,53 @@ if [ "$SKIP_AI" = false ]; then
     echo -e "${GREEN}✅ AI service deployato con successo${NC}"
 fi
 
+# Deploy Admin Service (Django - full admin interface)
+if [ "$SKIP_ADMIN" = false ]; then
+    echo ""
+    echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║              5. ADMIN SERVICE (Django Admin)              ║${NC}"
+    echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
+
+    cd backend_django
+
+    echo -e "${YELLOW}📦 Collect static files Django (admin CSS/JS)...${NC}"
+    python3 manage.py collectstatic --noinput --clear
+    echo -e "${GREEN}✅ Static files collected${NC}"
+
+    echo -e "${YELLOW}🚀 Deploy Admin service su App Engine (service: admin)...${NC}"
+    gcloud app deploy app_admin.yaml \
+        --project=${PROJECT} \
+        ${PROMOTE} \
+        --quiet
+
+    cd ..
+    echo -e "${GREEN}✅ Admin service deployato con successo${NC}"
+fi
+
+# Deploy RDL Service (Django - scrutinio + risorse, high traffic)
+if [ "$SKIP_RDL" = false ]; then
+    echo ""
+    echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║              6. RDL SERVICE (scrutinio + risorse)         ║${NC}"
+    echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
+
+    cd backend_django
+
+    echo -e "${YELLOW}🚀 Deploy RDL service su App Engine (service: rdl)...${NC}"
+    gcloud app deploy app_rdl.yaml \
+        --project=${PROJECT} \
+        ${PROMOTE} \
+        --quiet
+
+    cd ..
+    echo -e "${GREEN}✅ RDL service deployato con successo${NC}"
+fi
+
 # Deploy Dispatch Rules
 if [ "$SKIP_DISPATCH" = false ]; then
     echo ""
     echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║              5. DISPATCH ROUTING RULES                    ║${NC}"
+    echo -e "${BLUE}║              7. DISPATCH ROUTING RULES                    ║${NC}"
     echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
 
     echo -e "${YELLOW}🔀 Deploy dispatch.yaml (routing rules)...${NC}"
@@ -300,6 +376,8 @@ echo -e "${YELLOW}📊 Versioni deployate:${NC}"
 gcloud app versions list --project=${PROJECT} --service=default --sort-by=~version.createTime --limit=3
 gcloud app versions list --project=${PROJECT} --service=api --sort-by=~version.createTime --limit=3
 gcloud app versions list --project=${PROJECT} --service=ai --sort-by=~version.createTime --limit=3 2>/dev/null || true
+gcloud app versions list --project=${PROJECT} --service=admin --sort-by=~version.createTime --limit=3 2>/dev/null || true
+gcloud app versions list --project=${PROJECT} --service=rdl --sort-by=~version.createTime --limit=3 2>/dev/null || true
 
 echo ""
 echo -e "${BLUE}🌐 URL Applicazione:${NC}"
@@ -314,6 +392,8 @@ echo -e "${YELLOW}💡 Comandi utili:${NC}"
 echo -e "   Logs frontend:     gcloud app logs tail --service=default"
 echo -e "   Logs backend:      gcloud app logs tail --service=api"
 echo -e "   Logs AI:           gcloud app logs tail --service=ai"
+echo -e "   Logs Admin:        gcloud app logs tail --service=admin"
+echo -e "   Logs RDL:          gcloud app logs tail --service=rdl"
 echo -e "   Browse app:        gcloud app browse"
 echo -e "   Lista versioni:    gcloud app versions list"
 echo -e "   Traffico servizi:  gcloud app services list"
