@@ -6,23 +6,32 @@ When FAQ or Documento is created/updated:
 2. Generate embedding via Vertex AI
 3. Save to KnowledgeSource with embedding
 """
+from django.apps import apps
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from .models import FAQ, Documento
-from ai_assistant.models import KnowledgeSource
-from ai_assistant.vertex_service import vertex_ai_service
-from ai_assistant.extractors import PDFExtractor, WebExtractor
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _ai_assistant_available():
+    """Check if ai_assistant app is installed."""
+    return apps.is_installed('ai_assistant')
 
 
 @receiver(post_save, sender=FAQ)
 def ingest_faq_to_knowledge_base(sender, instance, created, **kwargs):
     """
     Auto-ingest FAQ into knowledge base with embedding.
+    Skipped if ai_assistant app is not installed.
     """
+    if not _ai_assistant_available():
+        return
+
     try:
+        from ai_assistant.models import KnowledgeSource
+        from ai_assistant.vertex_service import vertex_ai_service
         # Combina domanda + risposta
         content = f"DOMANDA: {instance.domanda}\n\nRISPOSTA: {instance.risposta}"
 
@@ -51,8 +60,15 @@ def ingest_faq_to_knowledge_base(sender, instance, created, **kwargs):
 def ingest_documento_to_knowledge_base(sender, instance, created, **kwargs):
     """
     Auto-ingest Documento into knowledge base with text extraction + embedding.
+    Skipped if ai_assistant app is not installed.
     """
+    if not _ai_assistant_available():
+        return
+
     try:
+        from ai_assistant.models import KnowledgeSource
+        from ai_assistant.vertex_service import vertex_ai_service
+        from ai_assistant.extractors import PDFExtractor, WebExtractor
         # Estrai contenuto basato su tipo
         content = ""
 

@@ -6,7 +6,7 @@ instance_class: F1
 entrypoint: bash entrypoint.sh
 
 env_variables:
-  DJANGO_SETTINGS_MODULE: config.settings
+  DJANGO_SETTINGS_MODULE: config.settings_api
   GOOGLE_CLOUD_PROJECT: ainaudi-prod
   DEBUG: "false"
   ALLOWED_HOSTS: ".appspot.com,.run.app"
@@ -47,25 +47,8 @@ env_variables:
   FEATURE_TEMPLATES_ENGINE: "true"
   FEATURE_AI_ASSISTANT: "false"  # AI runs on separate 'ai' service
 
+# No static file handlers (API-only, admin is separate service)
 handlers:
-  # Admin static files (CSS/JS/fonts) - cache 6 months
-  - url: /static/admin
-    static_dir: staticfiles/admin/
-    secure: always
-    expiration: 180d
-
-  # DRF static files - cache 6 months
-  - url: /static/rest_framework
-    static_dir: staticfiles/rest_framework/
-    secure: always
-    expiration: 180d
-
-  # Other static files
-  - url: /static
-    static_dir: staticfiles/
-    secure: always
-
-  # All other requests go to Django
   - url: /.*
     script: auto
     secure: always
@@ -77,8 +60,8 @@ beta_settings:
 # Automatic scaling
 automatic_scaling:
   min_instances: 0
-  max_instances: 5
+  max_instances: 3
   min_idle_instances: 0
-  max_idle_instances: 1
+  max_idle_instances: 0
   target_cpu_utilization: 0.65
   target_throughput_utilization: 0.65
