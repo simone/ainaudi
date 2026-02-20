@@ -3,6 +3,10 @@ dispatch:
   - url: "*/api/deleghe/processi/*"
     service: pdf
 
+  # AI Assistant (Vertex AI + pgvector, scale-to-zero)
+  - url: "*/api/ai/*"
+    service: ai
+
   # Django Admin
   - url: "*/admin/*"
     service: api
