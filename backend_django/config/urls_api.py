@@ -47,6 +47,15 @@ urlpatterns = [
     path('api/election/candidates', ElectionCandidatesView.as_view(), name='election-candidates'),
     path('api/elections/', include('elections.urls')),
 
+    # Notifications: user dashboard, events, assignments, device tokens
+    path('api/me/', include('notifications.urls')),
+
+    # Internal endpoints (called by Cloud Tasks, not by users)
+    path('api/internal/', include('notifications.urls_internal')),
+
+    # Admin endpoints (elevated permissions)
+    path('api/admin/', include('notifications.urls_admin')),
+
     # Other API endpoints
     path('api/sections/', include('data.urls')),
     path('api/kpi/', include('kpi.urls')),

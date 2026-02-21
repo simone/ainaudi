@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     'resources.apps.ResourcesConfig',
     'kpi.apps.KpiConfig',
     'ai_assistant.apps.AiAssistantConfig',
+    'notifications.apps.NotificationsConfig',
 ]
 
 MIDDLEWARE = [
@@ -372,6 +373,11 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
+        'notifications': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
 
@@ -449,7 +455,7 @@ EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', "AINAUDI (M5S) - Simone Federici <s.federici@gmail.com>")
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', "AInaudi (M5S) <s.federici+ainaudi@gmail.com>")
 
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
@@ -476,3 +482,53 @@ REDIS_PDF_EVENT_CHANNEL = 'pdf_events'
 PDF_PREVIEW_EXPIRY_SECONDS = int(os.environ.get('PDF_PREVIEW_EXPIRY_SECONDS', 86400))
 
 # Redis client: Vedere core/redis_client.py per lazy initialization
+
+
+# =============================================================================
+# FIREBASE CLOUD MESSAGING (FCM) - Push Notifications
+# =============================================================================
+
+# Path to Firebase service account credentials JSON
+# In production, use Secret Manager or environment variable
+FIREBASE_CREDENTIALS_PATH = os.environ.get('FIREBASE_CREDENTIALS_PATH', '')
+
+# VAPID key for Web Push (generated in Firebase Console → Cloud Messaging)
+FCM_VAPID_KEY = os.environ.get('FCM_VAPID_KEY', '')
+
+
+# =============================================================================
+# GOOGLE CLOUD TASKS - Scheduled Notifications
+# =============================================================================
+
+# GCP project and location for Cloud Tasks
+CLOUD_TASKS_PROJECT = os.environ.get('CLOUD_TASKS_PROJECT', os.environ.get('GOOGLE_CLOUD_PROJECT', 'ainaudi-prod'))
+CLOUD_TASKS_LOCATION = os.environ.get('CLOUD_TASKS_LOCATION', 'europe-west1')
+CLOUD_TASKS_QUEUE = os.environ.get('CLOUD_TASKS_QUEUE', 'notifications-queue')
+
+# Target URL for Cloud Tasks HTTP callbacks
+# On App Engine, this is the service URL; in dev, use local URL
+CLOUD_TASKS_TARGET_HOST = os.environ.get('CLOUD_TASKS_TARGET_HOST', '')
+# If empty, defaults to App Engine's own URL
+
+# Shared secret for internal endpoints (fallback auth if not using OIDC)
+INTERNAL_API_SECRET = os.environ.get('INTERNAL_API_SECRET', '')
+
+
+# =============================================================================
+# NOTIFICATION SCHEDULING OFFSETS
+# =============================================================================
+
+# Offsets for event notifications (relative to event start_at)
+EVENT_NOTIFICATION_OFFSETS = [
+    {'hours': -24, 'label': '24 ore prima'},
+    {'hours': -2, 'label': '2 ore prima'},
+    {'minutes': -10, 'label': '10 minuti prima', 'only_if_url': True},
+]
+
+# Offsets for assignment notifications (relative to consultation data_inizio)
+ASSIGNMENT_NOTIFICATION_OFFSETS = [
+    {'days': -3, 'label': '3 giorni prima'},
+    {'hours': -24, 'label': '24 ore prima'},
+    {'hours': -2, 'label': '2 ore prima'},
+    {'time': '07:30', 'label': 'Mattina stessa'},
+]

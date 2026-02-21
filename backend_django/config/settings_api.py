@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'documents.apps.DocumentsConfig',
     'resources.apps.ResourcesConfig',
     'kpi.apps.KpiConfig',
+    'notifications.apps.NotificationsConfig',
 ]
 
 # No sessions, no admin, no allauth
@@ -39,8 +40,17 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'config.urls_api'
 WSGI_APPLICATION = 'config.wsgi_api.application'
 
-# No templates needed (API-only, DRF browsable API disabled in prod)
-TEMPLATES = []
+# Minimal template engine (needed for email rendering: mass email, magic link, RDL notifications)
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],  # noqa: F405
+        'APP_DIRS': False,
+        'OPTIONS': {
+            'context_processors': [],
+        },
+    },
+]
 
 # No static files
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'

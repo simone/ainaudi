@@ -2229,6 +2229,128 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             }),
     };
 
+    // ========================================================================
+    // ME: Dashboard, Events, Assignments, Device Tokens
+    // ========================================================================
+
+    const me = {
+        // Dashboard: mixed events + assignments
+        dashboard: async () =>
+            fetchWithCacheAndRetry('me.dashboard', 30)(`${server}/api/me/dashboard`, {
+                headers: { 'Authorization': authHeader }
+            }).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Events list
+        events: async (consultazioneId) => {
+            const params = consultazioneId ? `?consultazione=${consultazioneId}` : '';
+            return fetch(`${server}/api/me/events${params}`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            });
+        },
+
+        // Event detail
+        event: async (eventId) =>
+            fetch(`${server}/api/me/events/${eventId}`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Assignments list
+        assignments: async () =>
+            fetch(`${server}/api/me/assignments`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Assignment detail
+        assignment: async (assignmentId) =>
+            fetch(`${server}/api/me/assignments/${assignmentId}`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Register device token for push notifications
+        registerDeviceToken: async (token, platform = 'WEB') =>
+            fetch(`${server}/api/me/device-tokens`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify({ token, platform })
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Start notifications for assignments (admin)
+        startAssignmentNotifications: async (consultazioneId) =>
+            fetch(`${server}/api/admin/assignments/start-notifications/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify({ consultazione_id: consultazioneId })
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Admin: Create event
+        createEvent: async (data) =>
+            fetch(`${server}/api/admin/events/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify(data)
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Admin: Update event
+        updateEvent: async (eventId, data) =>
+            fetch(`${server}/api/admin/events/${eventId}/`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify(data)
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Admin: Delete (cancel) event
+        deleteEvent: async (eventId) =>
+            fetch(`${server}/api/admin/events/${eventId}/`, {
+                method: 'DELETE',
+                headers: { 'Authorization': authHeader }
+            }).then(response => {
+                if (response.status === 204) return { success: true };
+                return safeJson(response);
+            }).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+    };
+
     return {
         server,  // Esponi URL del server per costruire URL diretti
         pdfServer,  // Esponi URL del PDF server
@@ -2250,6 +2372,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
         mappatura,
         ai,  // AI Assistant
         templates,  // Document templates
+        me,  // Dashboard, Events, Assignments, Push tokens
         // Generic HTTP methods
         get,
         post,

@@ -199,6 +199,15 @@ class CanManageMassEmail(HasCustomPermission):
     permission_codename = 'can_manage_mass_email'
 
 
+class CanManageEvents(HasCustomPermission):
+    """
+    Permission: Gestione eventi (corsi, meeting Zoom).
+
+    Ruoli: Superuser, Delegato
+    """
+    permission_codename = 'can_manage_events'
+
+
 # ============================================================================
 # PERMESSI EXTRA / FUTURE FEATURES
 # ============================================================================

@@ -362,6 +362,7 @@ class CustomPermission(models.Model):
     15. can_view_kpi: Diretta (KPI dashboard)
 
     Extra:
+    - can_manage_events: Gestione eventi (corsi, Zoom)
     - can_ask_to_ai_assistant: Uso chatbot AI (futuro)
     - can_manage_incidents: Gestione segnalazioni (futuro)
     """
@@ -388,6 +389,7 @@ class CustomPermission(models.Model):
 
             # Funzionalità riservate admin
             ('can_manage_mass_email', 'Can manage mass email templates and sending'),
+            ('can_manage_events', 'Can manage events (courses, Zoom meetings)'),
 
             # Funzionalità extra (future)
             ('can_ask_to_ai_assistant', 'Can use AI assistant chatbot'),

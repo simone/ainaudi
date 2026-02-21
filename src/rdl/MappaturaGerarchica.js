@@ -210,6 +210,10 @@ function MappaturaGerarchica({ client, consultazione, setError }) {
                     Assegnazione operativa RDL alle sezioni
                 </div>
             </div>
+            {/* Start Notifications Button */}
+            {consultazione && (
+                <StartNotificationsButton client={client} consultazione={consultazione} />
+            )}
             {/* Fixed Header */}
             <div style={styles.header}>
                 <div style={styles.headerTop}>
@@ -656,5 +660,71 @@ const styles = {
         zIndex: 100
     }
 };
+
+/**
+ * Button to start notifications for all assigned RDLs.
+ * Only visible to users with client.me.startAssignmentNotifications access.
+ */
+function StartNotificationsButton({ client, consultazione }) {
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState(null);
+
+    const handleStart = async () => {
+        if (!window.confirm(
+            'Vuoi avviare le notifiche push ed email per tutti gli RDL assegnati?\n\n' +
+            'Verranno create notifiche programmate (3 giorni, 24h, 2h prima e mattina stessa).'
+        )) return;
+
+        setLoading(true);
+        setResult(null);
+
+        try {
+            const data = await client.me.startAssignmentNotifications(consultazione.id);
+            if (data.error) {
+                setResult({ error: data.error });
+            } else {
+                setResult(data);
+            }
+        } catch (err) {
+            setResult({ error: err.message });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="mb-3">
+            <button
+                className="btn btn-outline-primary btn-sm"
+                onClick={handleStart}
+                disabled={loading}
+            >
+                {loading ? (
+                    <>
+                        <span className="spinner-border spinner-border-sm me-1"></span>
+                        Generazione...
+                    </>
+                ) : (
+                    <>
+                        <i className="fas fa-bell me-1"></i>
+                        Avvia notifiche RDL
+                    </>
+                )}
+            </button>
+            {result && !result.error && (
+                <span className="ms-2 text-success small">
+                    <i className="fas fa-check me-1"></i>
+                    {result.message}
+                </span>
+            )}
+            {result?.error && (
+                <span className="ms-2 text-danger small">
+                    <i className="fas fa-times me-1"></i>
+                    {result.error}
+                </span>
+            )}
+        </div>
+    );
+}
 
 export default MappaturaGerarchica;

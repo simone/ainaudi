@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 /**
  * Dashboard Home - presenta le sezioni principali dell'app
  * Struttura allineata al menu: Territorio, Consultazione, Delegati, RDL, Scrutinio, Diretta
  */
-function Dashboard({ user, permissions, consultazione, onNavigate }) {
+function Dashboard({ user, permissions, consultazione, onNavigate, client }) {
 
     const sections = [
         // 1. TERRITORIO
@@ -318,6 +318,9 @@ function Dashboard({ user, permissions, consultazione, onNavigate }) {
 
     return (
         <div className="dashboard">
+            {/* Prossimi Appuntamenti */}
+            {client && <UpcomingItems client={client} onNavigate={onNavigate} />}
+
             {/* Grid delle sezioni principali */}
             <div className="row g-4">
                 {visibleSections.map((section) => (
@@ -427,6 +430,112 @@ function Dashboard({ user, permissions, consultazione, onNavigate }) {
                     100% { opacity: 1; }
                 }
             `}</style>
+        </div>
+    );
+}
+
+/**
+ * Upcoming appointments widget for the dashboard.
+ * Shows a mixed list of events and assignments.
+ */
+function UpcomingItems({ client, onNavigate }) {
+    const [items, setItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!client?.me?.dashboard) {
+            setLoading(false);
+            return;
+        }
+
+        client.me.dashboard()
+            .then(data => {
+                if (!data.error && Array.isArray(data)) {
+                    setItems(data);
+                }
+                setLoading(false);
+            })
+            .catch(() => setLoading(false));
+    }, [client]);
+
+    if (loading || items.length === 0) return null;
+
+    const formatDateTime = (dtStr) => {
+        const dt = new Date(dtStr);
+        return dt.toLocaleDateString('it-IT', {
+            day: 'numeric',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
+    const handleClick = (item) => {
+        if (item.type === 'event') {
+            // Navigate to event detail via deep link state
+            window.history.pushState({ tab: 'event-detail' }, '');
+            // We need to set the deep link ID - dispatch a custom event
+            window.dispatchEvent(new CustomEvent('navigate-deep-link', {
+                detail: { type: 'event', id: item.id }
+            }));
+            onNavigate('event-detail');
+        } else {
+            window.dispatchEvent(new CustomEvent('navigate-deep-link', {
+                detail: { type: 'assignment', id: item.id }
+            }));
+            onNavigate('assignment-detail');
+        }
+    };
+
+    return (
+        <div className="mb-4">
+            <h5 className="mb-3">
+                <i className="fas fa-calendar-alt me-2"></i>
+                Prossimi appuntamenti
+            </h5>
+            <div className="list-group">
+                {items.map((item) => (
+                    <button
+                        key={`${item.type}-${item.id}`}
+                        className="list-group-item list-group-item-action d-flex align-items-center"
+                        onClick={() => handleClick(item)}
+                    >
+                        <div className="me-3">
+                            {item.type === 'event' ? (
+                                <i className="fas fa-calendar-alt fa-lg text-primary"></i>
+                            ) : (
+                                <i className="fas fa-map-marker-alt fa-lg text-success"></i>
+                            )}
+                        </div>
+                        <div className="flex-grow-1">
+                            <div className="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>{item.title}</strong>
+                                    {item.subtitle && (
+                                        <div className="small text-muted">{item.subtitle}</div>
+                                    )}
+                                </div>
+                                <div className="text-end ms-2">
+                                    <small className="text-muted">{formatDateTime(item.start_at)}</small>
+                                    {item.is_urgent && (
+                                        <div>
+                                            <span className="badge bg-warning text-dark">Urgente</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="ms-2">
+                            {item.temporal_status === 'IN_CORSO' && (
+                                <span className="badge bg-success">In corso</span>
+                            )}
+                            {item.temporal_status === 'FUTURO' && (
+                                <span className="badge bg-info">In programma</span>
+                            )}
+                        </div>
+                    </button>
+                ))}
+            </div>
         </div>
     );
 }

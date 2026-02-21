@@ -522,6 +522,7 @@ class PermissionsView(APIView):
 
                 # Admin-only
                 'can_manage_mass_email': True,
+                'can_manage_events': True,
 
                 # Future features
                 'can_ask_to_ai_assistant': True,
@@ -588,6 +589,7 @@ class PermissionsView(APIView):
 
             # Admin-only
             'can_manage_mass_email': user.has_perm('core.can_manage_mass_email'),
+            'can_manage_events': user.has_perm('core.can_manage_events'),
 
             # Future features
             'can_ask_to_ai_assistant': user.has_perm('core.can_ask_to_ai_assistant'),

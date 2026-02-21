@@ -25,6 +25,11 @@ import TemplateList from "./templates/TemplateList";
 import ScrutinioAggregato from "./scrutinio/ScrutinioAggregato";
 import {AuthProvider, useAuth} from "./auth/AuthContext";
 import ChatInterface from "./chat/ChatInterface";
+import PwaOnboarding from "./pwa/PwaOnboarding";
+import EventDetail from "./events/EventDetail";
+import AssignmentDetail from "./events/AssignmentDetail";
+import EventList from "./events/EventList";
+import { onForegroundMessage } from "./firebase";
 
 // In development, use empty string to leverage Vite proxy (vite.config.js)
 // In production, use empty string for same-origin requests
@@ -72,6 +77,7 @@ function AppContent() {
 
         // Admin-only
         can_manage_mass_email: false,
+        can_manage_events: false,
 
         // Future features
         can_ask_to_ai_assistant: false,
@@ -112,6 +118,8 @@ function AppContent() {
     const [templateIdToEdit, setTemplateIdToEdit] = useState(null);
     const [showChat, setShowChat] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [deepLinkEventId, setDeepLinkEventId] = useState(null);
+    const [deepLinkAssignmentId, setDeepLinkAssignmentId] = useState(null);
     const [theme, setTheme] = useState(() => {
         const savedTheme = localStorage.getItem('app-theme');
         if (savedTheme) return savedTheme;
@@ -184,6 +192,20 @@ function AppContent() {
         const pdfConfirmMatch = path.match(/^\/pdf\/confirm\/?$/);
         if (pdfConfirmMatch) {
             setShowPdfConfirm(true);
+        }
+
+        // Check for deep link: /events/:id
+        const eventMatch = path.match(/^\/events\/([a-f0-9-]+)\/?$/);
+        if (eventMatch) {
+            setDeepLinkEventId(eventMatch[1]);
+            setActiveTab('event-detail');
+        }
+
+        // Check for deep link: /assignments/:id
+        const assignmentMatch = path.match(/^\/assignments\/(\d+)\/?$/);
+        if (assignmentMatch) {
+            setDeepLinkAssignmentId(assignmentMatch[1]);
+            setActiveTab('assignment-detail');
         }
     }, []);
 
@@ -303,6 +325,67 @@ function AppContent() {
             setError(authError);
         }
     }, [authError]);
+
+    // Firebase foreground message handler
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        const unsubscribe = onForegroundMessage((msg) => {
+            // Show toast for foreground push notifications
+            setApiToast(null); // Reset to trigger animation
+            setTimeout(() => {
+                setApiToast(`${msg.title}: ${msg.body}`);
+                setTimeout(() => setApiToast(null), 5000);
+            }, 50);
+        });
+
+        return unsubscribe;
+    }, [isAuthenticated]);
+
+    // Handle deep link messages from service worker
+    useEffect(() => {
+        const handler = (event) => {
+            if (event.data?.type === 'NOTIFICATION_CLICK') {
+                const link = event.data.deep_link;
+                const eventMatch = link?.match(/^\/events\/([a-f0-9-]+)/);
+                const assignmentMatch = link?.match(/^\/assignments\/(\d+)/);
+
+                if (eventMatch) {
+                    setDeepLinkEventId(eventMatch[1]);
+                    activate('event-detail');
+                } else if (assignmentMatch) {
+                    setDeepLinkAssignmentId(assignmentMatch[1]);
+                    activate('assignment-detail');
+                }
+            }
+        };
+
+        navigator.serviceWorker?.addEventListener('message', handler);
+        return () => navigator.serviceWorker?.removeEventListener('message', handler);
+    }, []);
+
+    // Register service worker for push notifications
+    useEffect(() => {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/firebase-messaging-sw.js')
+                .then(reg => console.log('SW registered:', reg.scope))
+                .catch(err => console.warn('SW registration failed:', err));
+        }
+    }, []);
+
+    // Handle deep link navigation from dashboard widget
+    useEffect(() => {
+        const handler = (e) => {
+            const { type, id } = e.detail;
+            if (type === 'event') {
+                setDeepLinkEventId(id);
+            } else if (type === 'assignment') {
+                setDeepLinkAssignmentId(id);
+            }
+        };
+        window.addEventListener('navigate-deep-link', handler);
+        return () => window.removeEventListener('navigate-deep-link', handler);
+    }, []);
 
     // Check for contributions (to enable "Diretta")
     const handleImpersonate = async (e) => {
@@ -546,9 +629,9 @@ function AppContent() {
                                         )}
 
                                         {/* 4. RDL - Menu gestione RDL */}
-                                        {(permissions.can_manage_campaign || permissions.can_manage_rdl || permissions.can_manage_mass_email || permissions.can_manage_sections || permissions.can_manage_mappatura) && (
+                                        {(permissions.can_manage_campaign || permissions.can_manage_rdl || permissions.can_manage_mass_email || permissions.can_manage_sections || permissions.can_manage_mappatura || permissions.can_manage_events) && (
                                             <li className="nav-item dropdown">
-                                                <a className={`nav-link dropdown-toggle ${['campagne', 'gestione_rdl', 'mass_email', 'sezioni', 'mappatura-gerarchica'].includes(activeTab) ? 'active' : ''}`}
+                                                <a className={`nav-link dropdown-toggle ${['campagne', 'gestione_rdl', 'mass_email', 'sezioni', 'mappatura-gerarchica', 'eventi'].includes(activeTab) ? 'active' : ''}`}
                                                    href="#"
                                                    role="button"
                                                    onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsRdlDropdownOpen(!isRdlDropdownOpen); }}
@@ -581,6 +664,15 @@ function AppContent() {
                                                                onClick={() => { activate('mass_email'); closeAllDropdowns(); }} href="#">
                                                                 <i className="fas fa-paper-plane me-2"></i>
                                                                 Mass Mail
+                                                            </a>
+                                                        </li>
+                                                    )}
+                                                    {permissions.can_manage_events && (
+                                                        <li>
+                                                            <a className={`dropdown-item ${activeTab === 'eventi' ? 'active' : ''}`}
+                                                               onClick={() => { activate('eventi'); closeAllDropdowns(); }} href="#">
+                                                                <i className="fas fa-calendar-alt me-2"></i>
+                                                                Eventi
                                                             </a>
                                                         </li>
                                                     )}
@@ -906,11 +998,13 @@ function AppContent() {
                         <div className="tab-content">
                             {activeTab === 'dashboard' && (
                                 <div className="tab-pane active">
+                                    <PwaOnboarding client={client} />
                                     <Dashboard
                                         user={user}
                                         permissions={permissions}
                                         consultazione={consultazione}
                                         onNavigate={activate}
+                                        client={client}
                                     />
                                 </div>
                             )}
@@ -1034,6 +1128,36 @@ function AppContent() {
                                         client={client}
                                         consultazione={consultazione}
                                         setError={setError}
+                                    />
+                                </div>
+                            )}
+                            {activeTab === 'eventi' && permissions.can_manage_events && (
+                                <div className="tab-pane active">
+                                    <EventList
+                                        client={client}
+                                        consultazione={consultazione}
+                                    />
+                                </div>
+                            )}
+                            {activeTab === 'event-detail' && deepLinkEventId && (
+                                <div className="tab-pane active">
+                                    <button className="btn btn-secondary mb-3" onClick={() => activate('dashboard')}>
+                                        <i className="fas fa-arrow-left me-1"></i> Torna alla dashboard
+                                    </button>
+                                    <EventDetail
+                                        eventId={deepLinkEventId}
+                                        client={client}
+                                    />
+                                </div>
+                            )}
+                            {activeTab === 'assignment-detail' && deepLinkAssignmentId && (
+                                <div className="tab-pane active">
+                                    <button className="btn btn-secondary mb-3" onClick={() => activate('dashboard')}>
+                                        <i className="fas fa-arrow-left me-1"></i> Torna alla dashboard
+                                    </button>
+                                    <AssignmentDetail
+                                        assignmentId={deepLinkAssignmentId}
+                                        client={client}
                                     />
                                 </div>
                             )}

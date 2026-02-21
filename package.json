@@ -11,6 +11,7 @@
     "chart.js": "^4.4.3",
     "chartjs-plugin-datalabels": "^2.2.0",
     "chroma-js": "^2.4.2",
+    "firebase": "^12.9.0",
     "gapi-script": "1.2.0",
     "googleapis": "^91.0.0",
     "html2canvas": "^1.4.1",
