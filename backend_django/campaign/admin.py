@@ -6,7 +6,7 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from territory.admin_filters import make_territory_filters
-from .models import CampagnaReclutamento, RdlRegistration
+from .models import CampagnaReclutamento, RdlRegistration, EmailTemplate, MassEmailLog
 
 
 @admin.register(CampagnaReclutamento)
@@ -199,3 +199,24 @@ class RdlRegistrationAdmin(admin.ModelAdmin):
         count = queryset.filter(status='PENDING').update(status='REJECTED')
         self.message_user(request, f'{count} registrazioni rifiutate.')
     reject_selected.short_description = _('Rifiuta selezionati')
+
+
+@admin.register(EmailTemplate)
+class EmailTemplateAdmin(admin.ModelAdmin):
+    list_display = ['nome', 'oggetto', 'consultazione', 'n_invii_display', 'created_by_email', 'created_at']
+    list_filter = ['consultazione']
+    search_fields = ['nome', 'oggetto']
+    readonly_fields = ['created_at', 'updated_at', 'n_invii_display']
+
+    @admin.display(description=_('Invii'))
+    def n_invii_display(self, obj):
+        return obj.n_invii
+
+
+@admin.register(MassEmailLog)
+class MassEmailLogAdmin(admin.ModelAdmin):
+    list_display = ['template', 'rdl_registration', 'stato', 'sent_by_email', 'sent_at']
+    list_filter = ['stato', 'template']
+    search_fields = ['rdl_registration__email', 'rdl_registration__cognome']
+    raw_id_fields = ['template', 'rdl_registration']
+    readonly_fields = ['sent_at']

@@ -126,8 +126,8 @@ Movimento 5 Stelle
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
     <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px 0;">
         <tr>
-            <td align="center">
-                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; max-width: 100%;">
+            <td align="center" style="padding: 0 12px;">
+                <table cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; width: 100%; max-width: 600px;">
 
                     <!-- Header con branding M5S Referendum -->
                     <tr>
@@ -520,6 +520,9 @@ class PermissionsView(APIView):
                 'can_view_live_results': True,
                 'can_view_kpi': True,
 
+                # Admin-only
+                'can_manage_mass_email': True,
+
                 # Future features
                 'can_ask_to_ai_assistant': True,
                 'can_manage_incidents': True,
@@ -582,6 +585,9 @@ class PermissionsView(APIView):
             'can_view_resources': user.has_perm('core.can_view_resources'),
             'can_view_live_results': user.has_perm('core.can_view_live_results'),
             'can_view_kpi': user.has_perm('core.can_view_kpi'),
+
+            # Admin-only
+            'can_manage_mass_email': user.has_perm('core.can_manage_mass_email'),
 
             # Future features
             'can_ask_to_ai_assistant': user.has_perm('core.can_ask_to_ai_assistant'),

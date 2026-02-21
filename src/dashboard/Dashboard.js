@@ -113,6 +113,26 @@ function Dashboard({ user, permissions, consultazione, onNavigate }) {
             cta: 'Approva RDL'
         },
 
+        // 5b. MASS MAIL
+        {
+            id: 'mass_email',
+            title: 'Mass Mail',
+            icon: 'fa-paper-plane',
+            color: '#4F46E5',
+            gradient: 'linear-gradient(135deg, #4F46E5 0%, #4338CA 100%)',
+            description: 'Invia email massive agli RDL registrati con template personalizzabili e tracking deduplica.',
+            purpose: 'Comunica con tutti gli RDL: formazione, logistica, aggiornamenti operativi.',
+            features: [
+                'Template riutilizzabili',
+                'Variabili personalizzate',
+                'Deduplica automatica',
+                'Invio asincrono'
+            ],
+            permission: permissions.can_manage_mass_email,
+            action: () => onNavigate('mass_email'),
+            cta: 'Gestisci Email'
+        },
+
         // 6. GESTIONE SEZIONI
         {
             id: 'sezioni',

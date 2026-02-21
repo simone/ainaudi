@@ -190,6 +190,15 @@ class CanViewKPI(HasCustomPermission):
     permission_codename = 'can_view_kpi'
 
 
+class CanManageMassEmail(HasCustomPermission):
+    """
+    Permission: Gestione email massiva (template + invio).
+
+    Ruoli: Solo superuser (admin)
+    """
+    permission_codename = 'can_manage_mass_email'
+
+
 # ============================================================================
 # PERMESSI EXTRA / FUTURE FEATURES
 # ============================================================================

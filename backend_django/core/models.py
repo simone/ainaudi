@@ -386,6 +386,9 @@ class CustomPermission(models.Model):
             ('can_view_live_results', 'Can view live election results'),
             ('can_view_kpi', 'Can view KPI dashboard'),
 
+            # Funzionalità riservate admin
+            ('can_manage_mass_email', 'Can manage mass email templates and sending'),
+
             # Funzionalità extra (future)
             ('can_ask_to_ai_assistant', 'Can use AI assistant chatbot'),
             ('can_manage_incidents', 'Can manage incident reports'),

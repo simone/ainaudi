@@ -1062,6 +1062,10 @@ small.text-muted {
   background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
 }
 
+.page-header.mass-email {
+  background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
+}
+
 /* Dashboard card gradients (same as page headers) */
 .dashboard-card-gradient-territorio {
   background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
@@ -1081,6 +1085,10 @@ small.text-muted {
 
 .dashboard-card-gradient-rdl {
   background: linear-gradient(135deg, #fd7e14 0%, #dc6a0c 100%);
+}
+
+.dashboard-card-gradient-mass_email {
+  background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
 }
 
 .dashboard-card-gradient-sezioni {

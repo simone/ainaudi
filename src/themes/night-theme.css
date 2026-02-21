@@ -1385,7 +1385,11 @@
   background: linear-gradient(135deg, #2d7f8f 0%, #256a78 100%) !important;
 }
 
-
+/* Mass Mail - Muted Indigo */
+[data-theme="night"] .page-header.mass-email,
+[data-theme="night"] .dashboard-card-gradient-mass_email {
+  background: linear-gradient(135deg, #4338CA 0%, #3730A3 100%) !important;
+}
 
 /* Mappatura component overrides */
 [data-theme="night"] .mappatura-tabs {

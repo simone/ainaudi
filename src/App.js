@@ -11,6 +11,7 @@ import EmailAutocomplete from "./components/EmailAutocomplete";
 import RdlSelfRegistration from "./rdl/RdlSelfRegistration";
 import CampagnaRegistration from "./rdl/CampagnaRegistration";
 import GestioneRdl from "./rdl/GestioneRdl";
+import MassEmail from "./rdl/MassEmail";
 import GestioneDeleghe from "./deleghe/GestioneDeleghe";
 import GestioneDesignazioni from "./deleghe/GestioneDesignazioni";
 import GestioneCampagne from "./rdl/GestioneCampagne";
@@ -68,6 +69,9 @@ function AppContent() {
         can_view_resources: false,           // Risorse
         can_view_live_results: false,        // Risultati Live
         can_view_kpi: false,                 // Diretta (KPI)
+
+        // Admin-only
+        can_manage_mass_email: false,
 
         // Future features
         can_ask_to_ai_assistant: false,
@@ -542,9 +546,9 @@ function AppContent() {
                                         )}
 
                                         {/* 4. RDL - Menu gestione RDL */}
-                                        {(permissions.can_manage_campaign || permissions.can_manage_rdl || permissions.can_manage_sections || permissions.can_manage_mappatura) && (
+                                        {(permissions.can_manage_campaign || permissions.can_manage_rdl || permissions.can_manage_mass_email || permissions.can_manage_sections || permissions.can_manage_mappatura) && (
                                             <li className="nav-item dropdown">
-                                                <a className={`nav-link dropdown-toggle ${['campagne', 'gestione_rdl', 'designazione', 'sezioni', 'mappatura-gerarchica'].includes(activeTab) ? 'active' : ''}`}
+                                                <a className={`nav-link dropdown-toggle ${['campagne', 'gestione_rdl', 'mass_email', 'sezioni', 'mappatura-gerarchica'].includes(activeTab) ? 'active' : ''}`}
                                                    href="#"
                                                    role="button"
                                                    onClick={(e) => { e.preventDefault(); closeAllDropdowns(); setIsRdlDropdownOpen(!isRdlDropdownOpen); }}
@@ -568,6 +572,15 @@ function AppContent() {
                                                                onClick={() => { activate('gestione_rdl'); closeAllDropdowns(); }} href="#">
                                                                 <i className="fas fa-user-check me-2"></i>
                                                                 Gestione RDL
+                                                            </a>
+                                                        </li>
+                                                    )}
+                                                    {permissions.can_manage_mass_email && (
+                                                        <li>
+                                                            <a className={`dropdown-item ${activeTab === 'mass_email' ? 'active' : ''}`}
+                                                               onClick={() => { activate('mass_email'); closeAllDropdowns(); }} href="#">
+                                                                <i className="fas fa-paper-plane me-2"></i>
+                                                                Mass Mail
                                                             </a>
                                                         </li>
                                                     )}
@@ -972,6 +985,14 @@ function AppContent() {
                                     <GestioneRdl
                                         client={client}
                                         setError={setError}
+                                    />
+                                </div>
+                            )}
+                            {activeTab === 'mass_email' && permissions.can_manage_mass_email && (
+                                <div className="tab-pane active">
+                                    <MassEmail
+                                        client={client}
+                                        consultazione={consultazione}
                                     />
                                 </div>
                             )}

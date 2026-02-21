@@ -14,6 +14,7 @@ from data.views import (
     RdlUnassignView,
 )
 from data.urls import rdl_registration_urlpatterns, mappatura_urlpatterns, scrutinio_urlpatterns
+from campaign.urls import email_template_urlpatterns
 from elections.views import ElectionListsView, ElectionCandidatesView
 from delegations.views_campagna import CampagnaPublicView, CampagnaRegistraView
 
@@ -30,6 +31,9 @@ urlpatterns = [
     path('api/rdl/assign', RdlAssignView.as_view(), name='rdl-assign'),
     path('api/rdl/unassign', RdlUnassignView.as_view(), name='rdl-unassign'),
     path('api/rdl/', include(rdl_registration_urlpatterns)),
+
+    # Email templates and mass email (campaign)
+    path('api/rdl/', include(email_template_urlpatterns)),
 
     # Mapping
     path('api/mapping/', include(mappatura_urlpatterns)),

@@ -4,6 +4,8 @@ Campaign models: Recruitment campaigns and RDL registrations.
 This module defines:
 - CampagnaReclutamento: Recruitment campaigns for RDLs
 - RdlRegistration: RDL registration requests
+- EmailTemplate: Reusable email templates with Jinja-style variables
+- MassEmailLog: Deduplication log for mass email sends
 """
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -453,3 +455,102 @@ class RdlRegistration(models.Model):
         self.approved_at = timezone.now()
         self.rejection_reason = reason
         self.save()
+
+
+class EmailTemplate(models.Model):
+    """
+    Template email riutilizzabile per invii massivi agli RDL.
+
+    Supporta variabili Django template ({{ rdl.nome }}, {{ rdl.cognome }}, ecc.)
+    nel campo oggetto e corpo.
+    """
+    nome = models.CharField(
+        _('nome template'),
+        max_length=200,
+        help_text=_('Nome interno del template')
+    )
+    oggetto = models.CharField(
+        _('oggetto email'),
+        max_length=500,
+        help_text=_('Subject dell\'email. Supporta variabili: {{ rdl.nome }}, {{ rdl.cognome }}, ecc.')
+    )
+    corpo = models.TextField(
+        _('corpo email'),
+        help_text=_('Body HTML con variabili Django template: {{ rdl.nome }}, {{ rdl.comune }}, ecc.')
+    )
+    consultazione = models.ForeignKey(
+        'elections.ConsultazioneElettorale',
+        on_delete=models.CASCADE,
+        related_name='email_templates',
+        verbose_name=_('consultazione')
+    )
+    created_by_email = models.EmailField(_('creato da (email)'), blank=True)
+    created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('data modifica'), auto_now=True)
+
+    class Meta:
+        verbose_name = _('Template Email')
+        verbose_name_plural = _('Template Email')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.nome
+
+    @property
+    def created_by(self):
+        return get_user_by_email(self.created_by_email)
+
+    @property
+    def n_invii(self):
+        """Numero di email inviate con successo usando questo template."""
+        return self.mass_email_logs.filter(stato='SUCCESS').count()
+
+    @property
+    def has_been_sent(self):
+        """True se il template è stato usato per almeno un invio."""
+        return self.mass_email_logs.exists()
+
+
+class MassEmailLog(models.Model):
+    """
+    Log di invio email massiva. Traccia ogni invio per template+RDL
+    con UniqueConstraint per deduplica (non inviare mai la stessa mail due volte).
+    """
+    class Stato(models.TextChoices):
+        SUCCESS = 'SUCCESS', _('Inviata')
+        FAILED = 'FAILED', _('Fallita')
+
+    template = models.ForeignKey(
+        EmailTemplate,
+        on_delete=models.CASCADE,
+        related_name='mass_email_logs',
+        verbose_name=_('template')
+    )
+    rdl_registration = models.ForeignKey(
+        RdlRegistration,
+        on_delete=models.CASCADE,
+        related_name='mass_email_logs',
+        verbose_name=_('registrazione RDL')
+    )
+    stato = models.CharField(
+        _('stato'),
+        max_length=10,
+        choices=Stato.choices
+    )
+    errore = models.TextField(_('errore'), blank=True)
+    sent_at = models.DateTimeField(_('data invio'), auto_now_add=True)
+    sent_by_email = models.EmailField(_('inviato da (email)'), blank=True)
+
+    class Meta:
+        verbose_name = _('Log Email Massiva')
+        verbose_name_plural = _('Log Email Massive')
+        ordering = ['-sent_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['template', 'rdl_registration'],
+                name='unique_template_rdl_email'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.template.nome} → {self.rdl_registration.email} ({self.stato})'

@@ -753,6 +753,79 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
         }
     };
 
+    // API per Email Templates
+    const emailTemplates = {
+        list: async (consultazioneId) => {
+            const url = consultazioneId
+                ? `${server}/api/rdl/email-templates/?consultazione=${consultazioneId}`
+                : `${server}/api/rdl/email-templates/`;
+            return fetch(url, {
+                headers: { 'Authorization': authHeader }
+            }).then(r => safeJson(r)).catch(e => ({ error: e.message }));
+        },
+        get: async (id) =>
+            fetch(`${server}/api/rdl/email-templates/${id}/`, {
+                headers: { 'Authorization': authHeader }
+            }).then(r => safeJson(r)).catch(e => ({ error: e.message })),
+        create: async (data) =>
+            fetch(`${server}/api/rdl/email-templates/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+                body: JSON.stringify(data)
+            }).then(r => safeJson(r)).catch(e => ({ error: e.message })),
+        update: async (id, data) =>
+            fetch(`${server}/api/rdl/email-templates/${id}/`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+                body: JSON.stringify(data)
+            }).then(r => safeJson(r)).catch(e => ({ error: e.message })),
+        delete: async (id) =>
+            fetch(`${server}/api/rdl/email-templates/${id}/`, {
+                method: 'DELETE',
+                headers: { 'Authorization': authHeader }
+            }).then(r => safeJson(r)).catch(e => ({ error: e.message })),
+        preview: async (id) =>
+            fetch(`${server}/api/rdl/email-templates/${id}/preview/`, {
+                method: 'POST',
+                headers: { 'Authorization': authHeader }
+            }).then(r => safeJson(r)).catch(e => ({ error: e.message })),
+        testSend: async (id) =>
+            fetch(`${server}/api/rdl/email-templates/${id}/test-send/`, {
+                method: 'POST',
+                headers: { 'Authorization': authHeader }
+            }).then(r => safeJson(r)).catch(e => ({ error: e.message })),
+        previewInline: async (data) =>
+            fetch(`${server}/api/rdl/email-templates/preview-inline/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+                body: JSON.stringify(data)
+            }).then(r => safeJson(r)).catch(e => ({ error: e.message })),
+        variables: async () =>
+            fetch(`${server}/api/rdl/email-templates/variables/`, {
+                headers: { 'Authorization': authHeader }
+            }).then(r => safeJson(r)).catch(e => ({ error: e.message })),
+    };
+
+    // API per Mass Email
+    const massEmail = {
+        recipientsInfo: async (data) =>
+            fetch(`${server}/api/rdl/mass-email/recipients-info/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+                body: JSON.stringify(data)
+            }).then(r => safeJson(r)).catch(e => ({ error: e.message })),
+        send: async (data) =>
+            fetch(`${server}/api/rdl/mass-email/send/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+                body: JSON.stringify(data)
+            }).then(r => safeJson(r)).catch(e => ({ error: e.message })),
+        progress: async (taskId) =>
+            fetch(`${server}/api/rdl/mass-email/progress/${taskId}/`, {
+                headers: { 'Authorization': authHeader }
+            }).then(r => safeJson(r)).catch(e => ({ error: e.message })),
+    };
+
     // API per le Deleghe (quando Django sarà attivo)
     const deleghe = {
         // Ottiene la catena deleghe dell'utente loggato
@@ -2169,6 +2242,8 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
         pdf,
         users,
         rdlRegistrations,
+        emailTemplates,
+        massEmail,
         deleghe,
         risorse,
         territorio,
