@@ -185,11 +185,18 @@ def send_push_to_token(token, title, body, data=None, ttl=None):
         if ttl is not None:
             webpush_config['headers'] = {'TTL': str(ttl)}
 
+        webpush_notification = messaging.WebpushNotification(
+            title=title,
+            body=body,
+            icon='/icon-192.png',
+        )
+        webpush_config['notification'] = webpush_notification
+
         message = messaging.Message(
             notification=messaging.Notification(title=title, body=body),
             data={k: str(v) for k, v in (data or {}).items()},
             token=token,
-            webpush=messaging.WebpushConfig(**webpush_config) if webpush_config else None,
+            webpush=messaging.WebpushConfig(**webpush_config),
         )
 
         messaging.send(message)

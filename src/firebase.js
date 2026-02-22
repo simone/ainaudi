@@ -74,9 +74,18 @@ export async function requestPushToken() {
             return null;
         }
 
+        // Ensure our Firebase SW is registered and use it explicitly
+        let swReg = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+        if (!swReg) {
+            console.log('Registering Firebase messaging service worker...');
+            swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+            await navigator.serviceWorker.ready;
+        }
+        console.log('Using SW:', swReg.scope);
+
         const token = await getToken(msg, {
             vapidKey: VAPID_KEY,
-            serviceWorkerRegistration: await navigator.serviceWorker.getRegistration(),
+            serviceWorkerRegistration: swReg,
         });
 
         console.log('FCM token obtained:', token?.substring(0, 20) + '...');

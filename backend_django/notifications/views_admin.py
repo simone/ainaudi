@@ -92,7 +92,7 @@ class TestNotificationView(APIView):
                 title='Test notifica AInaudi',
                 body='Se vedi questo messaggio, le notifiche funzionano!',
                 data={'deep_link': '/', 'type': 'test'},
-                ttl=15,
+                ttl=60,
             )
             if ok:
                 sent += 1

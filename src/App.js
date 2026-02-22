@@ -350,8 +350,19 @@ function AppContent() {
         if (!isAuthenticated) return;
 
         const unsubscribe = onForegroundMessage((msg) => {
-            // Show toast for foreground push notifications
-            setApiToast(null); // Reset to trigger animation
+            // Show OS notification even when app is in foreground
+            if (Notification.permission === 'granted' && navigator.serviceWorker?.controller) {
+                navigator.serviceWorker.ready.then(reg => {
+                    reg.showNotification(msg.title, {
+                        body: msg.body,
+                        icon: '/icon-192.png',
+                        data: msg.data,
+                        tag: msg.data?.notification_id || 'foreground',
+                    });
+                });
+            }
+            // Also show in-app toast
+            setApiToast(null);
             setTimeout(() => {
                 setApiToast(`${msg.title}: ${msg.body}`);
                 setTimeout(() => setApiToast(null), 5000);
@@ -383,14 +394,7 @@ function AppContent() {
         return () => navigator.serviceWorker?.removeEventListener('message', handler);
     }, []);
 
-    // Register service worker for push notifications
-    useEffect(() => {
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/firebase-messaging-sw.js')
-                .then(reg => console.log('SW registered:', reg.scope))
-                .catch(err => console.warn('SW registration failed:', err));
-        }
-    }, []);
+    // Service worker is registered by firebase.js when requesting push token
 
     // Handle deep link navigation from dashboard widget
     useEffect(() => {
