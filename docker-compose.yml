@@ -97,9 +97,9 @@ services:
       dockerfile: docker/frontend.Dockerfile
     container_name: ainaudi_frontend
     restart: unless-stopped
+    env_file: .env
     environment:
       - VITE_BACKEND_URL=http://backend:8000  # Backend URL for Vite proxy
-      - VITE_RDL_REGISTRATION_URL=${VITE_RDL_REGISTRATION_URL:-https://forms.gle/sLzS7fABZNXeUUnC9}
     volumes:
       - ./src:/app/src
       - ./public:/app/public

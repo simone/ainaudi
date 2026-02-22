@@ -76,6 +76,12 @@ export default function PwaOnboarding({ onComplete, client }) {
         setPushStatus('requesting');
 
         try {
+            // Check if browser permission is already denied
+            if (Notification.permission === 'denied') {
+                setPushStatus('denied');
+                return;
+            }
+
             const token = await requestPushToken();
 
             if (token) {
@@ -91,7 +97,13 @@ export default function PwaOnboarding({ onComplete, client }) {
                 // Auto-dismiss after success
                 setTimeout(() => handleDismiss(), 2000);
             } else {
-                setPushStatus('denied');
+                // Token is null: could be config issue or permission denied
+                if (Notification.permission === 'denied') {
+                    setPushStatus('denied');
+                } else {
+                    // Firebase not configured or other setup issue
+                    setPushStatus('not_configured');
+                }
             }
         } catch (err) {
             console.error('Push notification error:', err);
@@ -217,6 +229,19 @@ export default function PwaOnboarding({ onComplete, client }) {
                                     <i className="fas fa-exclamation-triangle me-2"></i>
                                     Permesso negato. Puoi attivare le notifiche in seguito
                                     dalle impostazioni del browser.
+                                </div>
+                                <button className="btn btn-outline-secondary" onClick={handleDismiss}>
+                                    Chiudi
+                                </button>
+                            </div>
+                        )}
+
+                        {pushStatus === 'not_configured' && (
+                            <div>
+                                <div className="alert alert-info">
+                                    <i className="fas fa-info-circle me-2"></i>
+                                    Le notifiche push non sono ancora disponibili.
+                                    Verranno attivate a breve.
                                 </div>
                                 <button className="btn btn-outline-secondary" onClick={handleDismiss}>
                                     Chiudi
