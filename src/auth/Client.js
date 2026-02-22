@@ -2309,6 +2309,19 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 return { error: error.message };
             }),
 
+        // Admin: Test push notification to all devices
+        testNotification: async () =>
+            fetch(`${server}/api/admin/notifications/test/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
         // Admin: Create event
         createEvent: async (data) =>
             fetch(`${server}/api/admin/events/`, {

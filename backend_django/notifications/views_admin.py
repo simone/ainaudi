@@ -13,9 +13,10 @@ from rest_framework.views import APIView
 from core.permissions import IsSuperAdmin, CanManageDelegations
 from elections.models import ConsultazioneElettorale
 
-from .models import Event
+from .models import Event, DeviceToken
 from .serializers import EventSerializer
 from .services.generator import generate_notifications_for_assignments
+from .services.fcm import send_push_to_token
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,55 @@ class StartAssignmentNotificationsView(APIView):
                 f'per {result["users_notified"]} RDL'
             ),
             **result,
+        })
+
+
+class TestNotificationView(APIView):
+    """
+    POST /api/admin/notifications/test/
+
+    Send a test push notification to ALL active device tokens.
+    The notification has a TTL of 15 seconds (auto-expires).
+    """
+    permission_classes = [permissions.IsAuthenticated, IsSuperAdmin]
+
+    def post(self, request):
+        tokens = DeviceToken.objects.filter(is_active=True).select_related('user')
+
+        if not tokens.exists():
+            return Response({
+                'message': 'Nessun dispositivo registrato',
+                'sent': 0,
+                'failed': 0,
+            })
+
+        sent = 0
+        failed = 0
+
+        for device in tokens:
+            ok = send_push_to_token(
+                token=device.token,
+                title='Test notifica AInaudi',
+                body='Se vedi questo messaggio, le notifiche funzionano!',
+                data={'deep_link': '/', 'type': 'test'},
+                ttl=15,
+            )
+            if ok:
+                sent += 1
+            else:
+                failed += 1
+                device.is_active = False
+                device.save(update_fields=['is_active', 'updated_at'])
+
+        logger.info(
+            f'Test notification by {request.user.email}: '
+            f'{sent} sent, {failed} failed out of {tokens.count()} tokens'
+        )
+
+        return Response({
+            'message': f'Notifica test inviata a {sent} dispositivi',
+            'sent': sent,
+            'failed': failed,
         })
 
 

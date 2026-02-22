@@ -156,6 +156,55 @@ def send_push(notification):
     return success_count > 0
 
 
+def send_push_to_token(token, title, body, data=None, ttl=None):
+    """
+    Send a push notification to a single FCM token.
+
+    Used for test notifications and direct sends without a Notification model.
+
+    Args:
+        token: FCM registration token string
+        title: notification title
+        body: notification body
+        data: optional dict of data payload
+        ttl: optional time-to-live in seconds (notification expires after this)
+
+    Returns:
+        bool: True if sent successfully, False if token is invalid
+    """
+    _init_firebase()
+
+    try:
+        from firebase_admin import messaging
+    except ImportError:
+        logger.error('firebase_admin not installed')
+        return False
+
+    try:
+        webpush_config = {}
+        if ttl is not None:
+            webpush_config['headers'] = {'TTL': str(ttl)}
+
+        message = messaging.Message(
+            notification=messaging.Notification(title=title, body=body),
+            data={k: str(v) for k, v in (data or {}).items()},
+            token=token,
+            webpush=messaging.WebpushConfig(**webpush_config) if webpush_config else None,
+        )
+
+        messaging.send(message)
+        logger.info(f'Push sent to token {token[:20]}...')
+        return True
+
+    except (messaging.UnregisteredError, messaging.InvalidArgumentError) as e:
+        logger.warning(f'Token invalid ({token[:20]}...): {e}')
+        return False
+
+    except Exception as e:
+        logger.error(f'Push send failed ({token[:20]}...): {e}')
+        return False
+
+
 def send_email_notification(notification):
     """
     Send an email notification as fallback.

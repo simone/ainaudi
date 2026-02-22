@@ -84,11 +84,14 @@ export default function EventList({ client, consultazione }) {
 
     return (
         <div>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-                <h4><i className="fas fa-calendar-alt me-2"></i>Gestione Eventi</h4>
-                <button className="btn btn-primary" onClick={() => setEditingEvent({})}>
-                    <i className="fas fa-plus me-1"></i> Nuovo evento
-                </button>
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <h4 className="mb-0"><i className="fas fa-calendar-alt me-2"></i>Gestione Eventi</h4>
+                <div className="d-flex gap-2">
+                    <TestNotificationButton client={client} />
+                    <button className="btn btn-primary" onClick={() => setEditingEvent({})}>
+                        <i className="fas fa-plus me-1"></i> Nuovo evento
+                    </button>
+                </div>
             </div>
 
             {error && (
@@ -163,6 +166,58 @@ export default function EventList({ client, consultazione }) {
                         </tbody>
                     </table>
                 </div>
+            )}
+        </div>
+    );
+}
+
+/**
+ * Test notification button - sends a push to all registered devices.
+ * TTL 15 seconds: the notification auto-expires.
+ */
+function TestNotificationButton({ client }) {
+    const [sending, setSending] = useState(false);
+    const [result, setResult] = useState(null);
+
+    const handleTest = async () => {
+        setSending(true);
+        setResult(null);
+        try {
+            const data = await client.me.testNotification();
+            setResult(data);
+        } catch (err) {
+            setResult({ error: err.message });
+        } finally {
+            setSending(false);
+            setTimeout(() => setResult(null), 5000);
+        }
+    };
+
+    return (
+        <div className="d-flex align-items-center gap-2">
+            <button
+                className="btn btn-outline-warning"
+                onClick={handleTest}
+                disabled={sending}
+                title="Invia una notifica test a tutti i dispositivi registrati (scade dopo 15s)"
+            >
+                {sending ? (
+                    <span className="spinner-border spinner-border-sm"></span>
+                ) : (
+                    <>
+                        <i className="fas fa-bell me-1"></i> Test push
+                    </>
+                )}
+            </button>
+            {result && !result.error && (
+                <small className="text-success">
+                    <i className="fas fa-check me-1"></i>{result.message}
+                </small>
+            )}
+            {result?.error && (
+                <small className="text-danger">
+                    <i className="fas fa-times me-1"></i>{result.error}
+                </small>
             )}
         </div>
     );

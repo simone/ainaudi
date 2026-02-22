@@ -13,6 +13,7 @@ urlpatterns = [
         views_admin.StartAssignmentNotificationsView.as_view(),
         name='admin-start-notifications'
     ),
+    path('notifications/test/', views_admin.TestNotificationView.as_view(), name='admin-notification-test'),
     path('events/', views_admin.EventCreateView.as_view(), name='admin-event-create'),
     path('events/<uuid:event_id>/', views_admin.EventUpdateView.as_view(), name='admin-event-update'),
 ]
