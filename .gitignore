@@ -13,3 +13,6 @@ gcp-credentials.json
 *.json.key
 service-account-*.json
 secrets/
+
+# Firebase config with API key (use firebase-config.js.example as template)
+public/firebase-config.js
