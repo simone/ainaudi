@@ -42,6 +42,7 @@ function AppContent() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [apiToast, setApiToast] = useState(null);
+    const [pushToast, setPushToast] = useState(null); // {title, body, deep_link}
     const [activeTab, setActiveTab] = useState(null);
     const activeTabRef = useRef(null);
     useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
@@ -361,12 +362,12 @@ function AppContent() {
                     });
                 });
             }
-            // Also show in-app toast
-            setApiToast(null);
-            setTimeout(() => {
-                setApiToast(`${msg.title}: ${msg.body}`);
-                setTimeout(() => setApiToast(null), 5000);
-            }, 50);
+            // Show in-app push toast (stays until dismissed)
+            setPushToast({
+                title: msg.title,
+                body: msg.body,
+                deep_link: msg.data?.deep_link || null,
+            });
         });
 
         return unsubscribe;
@@ -1435,6 +1436,74 @@ function AppContent() {
                     show={showChat}
                     onClose={() => setShowChat(false)}
                 />
+            )}
+
+            {/* Push notification toast animation */}
+            <style>{`
+                @keyframes slideDown {
+                    from { transform: translateY(-100%); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+            `}</style>
+
+            {/* Push notification toast - prominent, stays until dismissed */}
+            {pushToast && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0,
+                    zIndex: 10000, padding: '0 12px',
+                    paddingTop: 'env(safe-area-inset-top, 12px)',
+                }}>
+                    <div
+                        style={{
+                            maxWidth: 480, margin: '12px auto',
+                            background: '#1a237e', color: '#fff',
+                            borderRadius: 12, padding: '16px 20px',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                            display: 'flex', alignItems: 'flex-start', gap: 12,
+                            cursor: pushToast.deep_link ? 'pointer' : 'default',
+                            animation: 'slideDown 0.3s ease-out',
+                        }}
+                        onClick={() => {
+                            if (pushToast.deep_link) {
+                                const link = pushToast.deep_link;
+                                const eventMatch = link.match(/^\/events\/([a-f0-9-]+)/);
+                                const assignmentMatch = link.match(/^\/assignments\/(\d+)/);
+                                if (eventMatch) {
+                                    setDeepLinkEventId(eventMatch[1]);
+                                    activate('event-detail');
+                                } else if (assignmentMatch) {
+                                    setDeepLinkAssignmentId(assignmentMatch[1]);
+                                    activate('assignment-detail');
+                                }
+                            }
+                            setPushToast(null);
+                        }}
+                    >
+                        <div style={{ fontSize: '1.5rem', flexShrink: 0, marginTop: 2 }}>
+                            <i className="fas fa-bell"></i>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 4 }}>
+                                {pushToast.title}
+                            </div>
+                            <div style={{ fontSize: '0.9rem', opacity: 0.9, lineHeight: 1.4 }}>
+                                {pushToast.body}
+                            </div>
+                        </div>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setPushToast(null); }}
+                            style={{
+                                background: 'rgba(255,255,255,0.2)', border: 'none',
+                                color: '#fff', borderRadius: 8, width: 32, height: 32,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer', flexShrink: 0, fontSize: '1rem',
+                            }}
+                            aria-label="Chiudi"
+                        >
+                            <i className="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
             )}
 
             {/* Global API error toast */}
