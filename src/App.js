@@ -6,6 +6,7 @@ import Kpi from "./kpi/Kpi";
 import Client, {clearCache} from "./auth/Client";
 import SectionList from "./scrutinio/SectionList";
 import logo from './assets/logo-m5s.png';
+import ainaudiLogo from './assets/ainaudi_logo_light.png';
 import GestioneSezioni from "./rdl/GestioneSezioni";
 import EmailAutocomplete from "./components/EmailAutocomplete";
 import RdlSelfRegistration from "./rdl/RdlSelfRegistration";
@@ -589,7 +590,7 @@ function AppContent() {
                             }}
                             style={{ cursor: isAuthenticated ? 'pointer' : 'default' }}
                         >
-                            AInaudi
+                            <img src={ainaudiLogo} alt="AInaudi" style={{ height: '32px' }} />
                         </a>
                         {isAuthenticated && client && (
                             <>
@@ -1440,28 +1441,34 @@ function AppContent() {
 
             {/* Push notification toast animation */}
             <style>{`
-                @keyframes slideDown {
-                    from { transform: translateY(-100%); opacity: 0; }
+                @keyframes slideUp {
+                    from { transform: translateY(100%); opacity: 0; }
                     to { transform: translateY(0); opacity: 1; }
+                }
+                @keyframes slideOut {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
                 }
             `}</style>
 
-            {/* Push notification toast - prominent, stays until dismissed */}
+            {/* Push notification toast - bottom, swipeable, floating */}
             {pushToast && (
                 <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0,
-                    zIndex: 10000, padding: '0 12px',
-                    paddingTop: 'env(safe-area-inset-top, 12px)',
+                    position: 'fixed', bottom: 20, left: 12, right: 12,
+                    zIndex: 10000,
+                    pointerEvents: 'none',
+                    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
                 }}>
                     <div
                         style={{
-                            maxWidth: 480, margin: '12px auto',
-                            background: '#1a237e', color: '#fff',
-                            borderRadius: 12, padding: '16px 20px',
+                            maxWidth: 480, margin: '0 auto',
+                            background: '#1B2A5B', color: '#fff',
+                            borderRadius: 12, padding: '14px 16px',
                             boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                            display: 'flex', alignItems: 'flex-start', gap: 12,
+                            display: 'flex', alignItems: 'flex-start', gap: 10,
                             cursor: pushToast.deep_link ? 'pointer' : 'default',
-                            animation: 'slideDown 0.3s ease-out',
+                            animation: 'slideUp 0.3s ease-out',
+                            pointerEvents: 'auto',
                         }}
                         onClick={() => {
                             if (pushToast.deep_link) {
@@ -1479,24 +1486,24 @@ function AppContent() {
                             setPushToast(null);
                         }}
                     >
-                        <div style={{ fontSize: '1.5rem', flexShrink: 0, marginTop: 2 }}>
-                            <i className="fas fa-bell"></i>
+                        <div style={{ fontSize: '1.3rem', flexShrink: 0, marginTop: 1 }}>
+                            <i className="fas fa-bell" style={{ color: '#F5A623' }}></i>
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 4 }}>
+                            <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: 2 }}>
                                 {pushToast.title}
                             </div>
-                            <div style={{ fontSize: '0.9rem', opacity: 0.9, lineHeight: 1.4 }}>
+                            <div style={{ fontSize: '0.85rem', opacity: 0.85, lineHeight: 1.3 }}>
                                 {pushToast.body}
                             </div>
                         </div>
                         <button
                             onClick={(e) => { e.stopPropagation(); setPushToast(null); }}
                             style={{
-                                background: 'rgba(255,255,255,0.2)', border: 'none',
-                                color: '#fff', borderRadius: 8, width: 32, height: 32,
+                                background: 'rgba(255,255,255,0.15)', border: 'none',
+                                color: '#fff', borderRadius: 8, width: 28, height: 28,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                cursor: 'pointer', flexShrink: 0, fontSize: '1rem',
+                                cursor: 'pointer', flexShrink: 0, fontSize: '0.85rem',
                             }}
                             aria-label="Chiudi"
                         >
