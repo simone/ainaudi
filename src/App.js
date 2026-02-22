@@ -43,7 +43,8 @@ function AppContent() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [apiToast, setApiToast] = useState(null);
-    const [pushToast, setPushToast] = useState(null); // {title, body, deep_link}
+    const [pushToasts, setPushToasts] = useState([]); // [{id, title, body, deep_link}]
+    const pushToastIdRef = useRef(0);
     const [activeTab, setActiveTab] = useState(null);
     const activeTabRef = useRef(null);
     useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
@@ -364,12 +365,18 @@ function AppContent() {
                     });
                 });
             }
-            // Show in-app push toast (stays until dismissed)
-            setPushToast({
+            // Add to push toast stack
+            const id = ++pushToastIdRef.current;
+            setPushToasts(prev => [...prev, {
+                id,
                 title: msg.title,
                 body: msg.body,
                 deep_link: msg.data?.deep_link || null,
-            });
+            }]);
+            // Auto-dismiss after 30s
+            setTimeout(() => {
+                setPushToasts(prev => prev.filter(t => t.id !== id));
+            }, 30000);
         });
 
         return unsubscribe;
@@ -1488,65 +1495,70 @@ function AppContent() {
                 }
             `}</style>
 
-            {/* Push notification toast - bottom, swipeable, floating */}
-            {pushToast && (
+            {/* Push notification toast stack - bottom, floating */}
+            {pushToasts.length > 0 && (
                 <div style={{
                     position: 'fixed', bottom: 20, left: 12, right: 12,
                     zIndex: 10000,
                     pointerEvents: 'none',
                     paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    gap: 8,
                 }}>
-                    <div
-                        style={{
-                            maxWidth: 480, margin: '0 auto',
-                            background: '#1B2A5B', color: '#fff',
-                            borderRadius: 12, padding: '14px 16px',
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                            display: 'flex', alignItems: 'flex-start', gap: 10,
-                            cursor: pushToast.deep_link ? 'pointer' : 'default',
-                            animation: 'slideUp 0.3s ease-out',
-                            pointerEvents: 'auto',
-                        }}
-                        onClick={() => {
-                            if (pushToast.deep_link) {
-                                const link = pushToast.deep_link;
-                                const eventMatch = link.match(/^\/events\/([a-f0-9-]+)/);
-                                const assignmentMatch = link.match(/^\/assignments\/(\d+)/);
-                                if (eventMatch) {
-                                    setDeepLinkEventId(eventMatch[1]);
-                                    activate('event-detail');
-                                } else if (assignmentMatch) {
-                                    setDeepLinkAssignmentId(assignmentMatch[1]);
-                                    activate('assignment-detail');
-                                }
-                            }
-                            setPushToast(null);
-                        }}
-                    >
-                        <div style={{ fontSize: '1.3rem', flexShrink: 0, marginTop: 1 }}>
-                            <i className="fas fa-bell" style={{ color: '#F5A623' }}></i>
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: 2 }}>
-                                {pushToast.title}
-                            </div>
-                            <div style={{ fontSize: '0.85rem', opacity: 0.85, lineHeight: 1.3 }}>
-                                {pushToast.body}
-                            </div>
-                        </div>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setPushToast(null); }}
+                    {pushToasts.map((toast) => (
+                        <div
+                            key={toast.id}
                             style={{
-                                background: 'rgba(255,255,255,0.15)', border: 'none',
-                                color: '#fff', borderRadius: 8, width: 28, height: 28,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                cursor: 'pointer', flexShrink: 0, fontSize: '0.85rem',
+                                maxWidth: 480, width: '100%',
+                                background: '#1B2A5B', color: '#fff',
+                                borderRadius: 12, padding: '14px 16px',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                                display: 'flex', alignItems: 'flex-start', gap: 10,
+                                cursor: toast.deep_link ? 'pointer' : 'default',
+                                animation: 'slideUp 0.3s ease-out',
+                                pointerEvents: 'auto',
                             }}
-                            aria-label="Chiudi"
+                            onClick={() => {
+                                if (toast.deep_link) {
+                                    const link = toast.deep_link;
+                                    const eventMatch = link.match(/^\/events\/([a-f0-9-]+)/);
+                                    const assignmentMatch = link.match(/^\/assignments\/(\d+)/);
+                                    if (eventMatch) {
+                                        setDeepLinkEventId(eventMatch[1]);
+                                        activate('event-detail');
+                                    } else if (assignmentMatch) {
+                                        setDeepLinkAssignmentId(assignmentMatch[1]);
+                                        activate('assignment-detail');
+                                    }
+                                }
+                                setPushToasts(prev => prev.filter(t => t.id !== toast.id));
+                            }}
                         >
-                            <i className="fas fa-times"></i>
-                        </button>
-                    </div>
+                            <div style={{ fontSize: '1.3rem', flexShrink: 0, marginTop: 1 }}>
+                                <i className="fas fa-bell" style={{ color: '#F5A623' }}></i>
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: 2 }}>
+                                    {toast.title}
+                                </div>
+                                <div style={{ fontSize: '0.85rem', opacity: 0.85, lineHeight: 1.3 }}>
+                                    {toast.body}
+                                </div>
+                            </div>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setPushToasts(prev => prev.filter(t => t.id !== toast.id)); }}
+                                style={{
+                                    background: 'rgba(255,255,255,0.15)', border: 'none',
+                                    color: '#fff', borderRadius: 8, width: 28, height: 28,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    cursor: 'pointer', flexShrink: 0, fontSize: '0.85rem',
+                                }}
+                                aria-label="Chiudi"
+                            >
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+                    ))}
                 </div>
             )}
 
