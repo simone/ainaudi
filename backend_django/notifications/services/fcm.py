@@ -201,7 +201,7 @@ def send_push_to_token(token, title, body, data=None, ttl=None):
         return False
 
     except Exception as e:
-        logger.error(f'Push send failed ({token[:20]}...): {e}')
+        logger.error(f'Push send failed ({token[:20]}...): {type(e).__name__}: {e}', exc_info=True)
         return False
 
 
