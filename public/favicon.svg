@@ -1,14 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
   <defs>
-    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1a5f7a;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#57c5b6;stop-opacity:1" />
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1B2A5B"/>
+      <stop offset="100%" stop-color="#0D1B3E"/>
     </linearGradient>
   </defs>
   <!-- Circle background -->
-  <circle cx="100" cy="100" r="95" fill="url(#grad1)"/>
-  <!-- AI text -->
-  <text x="100" y="125" font-family="Georgia, serif" font-size="80" font-weight="bold" fill="white" text-anchor="middle">AI</text>
-  <!-- Underline accent -->
-  <rect x="45" y="140" width="110" height="6" rx="3" fill="#ffd700"/>
+  <circle cx="100" cy="100" r="95" fill="url(#bg)"/>
+  <!-- Ballot box body -->
+  <rect x="52" y="105" width="70" height="45" rx="4" fill="#2A3E7A" stroke="#4A6AB5" stroke-width="1.5"/>
+  <rect x="48" y="98" width="78" height="12" rx="3" fill="#3B5199" stroke="#4A6AB5" stroke-width="1"/>
+  <!-- Ballot slot -->
+  <rect x="72" y="99" width="30" height="4" rx="2" fill="#0D1B3E"/>
+  <!-- Ballot paper going in -->
+  <rect x="76" y="78" width="22" height="26" rx="2" fill="#E8E8E8" transform="rotate(-5, 87, 91)"/>
+  <!-- Checkmark on ballot -->
+  <polyline points="80,92 85,97 95,85" fill="none" stroke="#F5A623" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Hemicycle arcs (top) -->
+  <path d="M 45 75 A 55 55 0 0 1 100 45" fill="none" stroke="#F5A623" stroke-width="3" opacity="0.9"/>
+  <path d="M 38 85 A 65 65 0 0 1 100 35" fill="none" stroke="#F5A623" stroke-width="2.5" opacity="0.6"/>
+  <path d="M 32 95 A 75 75 0 0 1 100 27" fill="none" stroke="#F5A623" stroke-width="2" opacity="0.35"/>
+  <!-- Circuit nodes (AI motif, right side) -->
+  <circle cx="135" cy="55" r="4" fill="#F5A623"/>
+  <circle cx="155" cy="70" r="3" fill="#F5A623" opacity="0.8"/>
+  <circle cx="145" cy="90" r="3.5" fill="#F5A623" opacity="0.7"/>
+  <circle cx="160" cy="50" r="2.5" fill="#F5A623" opacity="0.5"/>
+  <!-- Circuit lines -->
+  <line x1="135" y1="55" x2="155" y2="70" stroke="#F5A623" stroke-width="1.5" opacity="0.6"/>
+  <line x1="155" y1="70" x2="145" y2="90" stroke="#F5A623" stroke-width="1.5" opacity="0.5"/>
+  <line x1="135" y1="55" x2="160" y2="50" stroke="#F5A623" stroke-width="1.2" opacity="0.4"/>
+  <line x1="135" y1="55" x2="145" y2="90" stroke="#F5A623" stroke-width="1" opacity="0.3"/>
+  <!-- Small circuit dots -->
+  <circle cx="148" cy="62" r="1.5" fill="#F5A623" opacity="0.5"/>
+  <circle cx="152" cy="82" r="1.5" fill="#F5A623" opacity="0.4"/>
 </svg>

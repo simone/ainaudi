@@ -13,9 +13,9 @@
 
                     <!-- Header M5S -->
                     <tr>
-                        <td style="background: linear-gradient(135deg, #1F4E5F 0%, #2C5F6F 100%); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+                        <td style="background: linear-gradient(135deg, #1B2A5B 0%, #0D1B3E 100%); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
                             <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">
-                                AInaudi
+                                <span style="color: #F5A623;">AI</span>naudi
                             </h1>
                             <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">
                                 Sistema di Gestione Rappresentanti di Lista
@@ -26,7 +26,7 @@
                     <!-- Consultazione Badge -->
                     <tr>
                         <td style="padding: 20px 30px 0 30px;">
-                            <div style="background: linear-gradient(135deg, #2C5F6F 0%, #1F4E5F 100%); padding: 12px 20px; border-radius: 6px; text-align: center;">
+                            <div style="background: linear-gradient(135deg, #1B2A5B 0%, #0D1B3E 100%); padding: 12px 20px; border-radius: 6px; text-align: center;">
                                 <p style="margin: 0; color: #ffffff; font-size: 16px; font-weight: 600;">
                                     📊 {{ consultazione }}
                                 </p>
@@ -37,7 +37,7 @@
                     <!-- Saluto -->
                     <tr>
                         <td style="padding: 30px 30px 20px 30px;">
-                            <h2 style="margin: 0 0 20px 0; color: #1F4E5F; font-size: 24px; font-weight: 600;">
+                            <h2 style="margin: 0 0 20px 0; color: #1B2A5B; font-size: 24px; font-weight: 600;">
                                 Ciao {{ nome }}! 👋
                             </h2>
                             <p style="margin: 0 0 15px 0; color: #333333; font-size: 16px; line-height: 1.6;">
@@ -57,14 +57,14 @@
                     <tr>
                         <td style="padding: 0 30px {% if not ha_supplente %}20px{% else %}10px{% endif %} 30px;">
                             {% if ha_entrambi %}
-                            <h3 style="margin: 0 0 10px 0; color: #1F4E5F; font-size: 16px; font-weight: 600;">
+                            <h3 style="margin: 0 0 10px 0; color: #1B2A5B; font-size: 16px; font-weight: 600;">
                                 🟢 RDL Effettivo ({{ n_sezioni_effettivo }} {% if n_sezioni_effettivo == 1 %}sezione{% else %}sezioni{% endif %})
                             </h3>
                             {% endif %}
                             <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; border-left: 4px solid #28a745;">
                                 {% for sezione in sezioni_effettivo %}
                                 <div style="margin-bottom: {% if not forloop.last %}12px{% else %}0{% endif %};">
-                                    <strong style="color: #1F4E5F; font-size: 16px;">
+                                    <strong style="color: #1B2A5B; font-size: 16px;">
                                         📍 Sezione {{ sezione.numero }}
                                     </strong><br>
                                     <span style="color: #666666; font-size: 14px;">
@@ -82,14 +82,14 @@
                     <tr>
                         <td style="padding: {% if ha_effettivo %}10px{% else %}0{% endif %} 30px 20px 30px;">
                             {% if ha_entrambi %}
-                            <h3 style="margin: 0 0 10px 0; color: #1F4E5F; font-size: 16px; font-weight: 600;">
+                            <h3 style="margin: 0 0 10px 0; color: #1B2A5B; font-size: 16px; font-weight: 600;">
                                 🟡 RDL Supplente ({{ n_sezioni_supplente }} {% if n_sezioni_supplente == 1 %}sezione{% else %}sezioni{% endif %})
                             </h3>
                             {% endif %}
                             <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; border-left: 4px solid #FFC800;">
                                 {% for sezione in sezioni_supplente %}
                                 <div style="margin-bottom: {% if not forloop.last %}12px{% else %}0{% endif %};">
-                                    <strong style="color: #1F4E5F; font-size: 16px;">
+                                    <strong style="color: #1B2A5B; font-size: 16px;">
                                         📍 Sezione {{ sezione.numero }}
                                     </strong><br>
                                     <span style="color: #666666; font-size: 14px;">
@@ -110,7 +110,7 @@
                             </p>
                             <div style="text-align: center; margin: 20px 0;">
                                 <a href="{{ app_url }}"
-                                   style="display: inline-block; background-color: #FFC800; color: #1F4E5F; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                   style="display: inline-block; background-color: #F5A623; color: #1B2A5B; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                     👉 Accedi ad AInaudi
                                 </a>
                             </div>
@@ -120,7 +120,7 @@
                     <!-- Istruzioni -->
                     <tr>
                         <td style="padding: 20px 30px;">
-                            <h3 style="margin: 0 0 15px 0; color: #1F4E5F; font-size: 18px; font-weight: 600;">
+                            <h3 style="margin: 0 0 15px 0; color: #1B2A5B; font-size: 18px; font-weight: 600;">
                                 Cosa devi fare ora
                             </h3>
                             <p style="margin: 0 0 10px 0; color: #333333; font-size: 15px; line-height: 1.6;">
@@ -163,7 +163,7 @@
                     <!-- Footer giallo M5S -->
                     <tr>
                         <td style="background-color: #FFC800; padding: 20px 30px; text-align: center; border-radius: 0 0 8px 8px;">
-                            <p style="margin: 0; color: #1F4E5F; font-size: 12px; font-weight: 600;">
+                            <p style="margin: 0; color: #1B2A5B; font-size: 12px; font-weight: 600;">
                                 Movimento 5 Stelle - Sistema AInaudi
                             </p>
                         </td>

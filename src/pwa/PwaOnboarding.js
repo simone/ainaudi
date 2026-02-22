@@ -42,6 +42,59 @@ function isPushSupported() {
  * - onComplete: callback when wizard finishes (token registered or skipped)
  * - client: API client for device token registration
  */
+const ICON_VERSION = 2; // Bump this when icons change
+
+/**
+ * One-time banner for iOS standalone users to reinstall for new icon.
+ * Android/Chrome updates icons automatically via manifest.
+ */
+function PwaIconUpdateBanner() {
+    const [visible, setVisible] = useState(false);
+
+    useEffect(() => {
+        const key = `pwa_icon_v${ICON_VERSION}_dismissed`;
+        const alreadySeen = localStorage.getItem(key) === 'true';
+        // Show for standalone users who need to reinstall.
+        // Android/Chrome updates icons automatically, but iOS and desktop need manual action.
+        if (!alreadySeen && isStandalone() && !isAndroid()) {
+            setVisible(true);
+        }
+    }, []);
+
+    const dismiss = () => {
+        localStorage.setItem(`pwa_icon_v${ICON_VERSION}_dismissed`, 'true');
+        setVisible(false);
+    };
+
+    if (!visible) return null;
+
+    return (
+        <div className="alert alert-info alert-dismissible fade show mb-3" role="alert">
+            <strong><i className="fas fa-paint-brush me-2"></i>Nuovo look!</strong>
+            <p className="mb-2 mt-1">
+                Abbiamo aggiornato il logo di AInaudi.
+                Per vedere la nuova icona:
+            </p>
+            {isIOS() ? (
+                <ol className="mb-2" style={{ paddingLeft: '1.2rem' }}>
+                    <li>Tieni premuto sull'icona di AInaudi nella Home</li>
+                    <li>Tocca <strong>"Rimuovi app"</strong> &rarr; <strong>"Rimuovi dalla schermata Home"</strong></li>
+                    <li>Riapri questa pagina in Safari</li>
+                    <li>Tocca <i className="fas fa-share-square"></i> &rarr; <strong>"Aggiungi a Home"</strong></li>
+                </ol>
+            ) : (
+                <ol className="mb-2" style={{ paddingLeft: '1.2rem' }}>
+                    <li>Apri il menu dell'app (tre puntini in alto a destra)</li>
+                    <li>Seleziona <strong>"Disinstalla AInaudi"</strong></li>
+                    <li>Riapri <strong>{window.location.origin}</strong> nel browser</li>
+                    <li>Reinstalla l'app dal menu del browser</li>
+                </ol>
+            )}
+            <button type="button" className="btn-close" aria-label="Chiudi" onClick={dismiss}></button>
+        </div>
+    );
+}
+
 export default function PwaOnboarding({ onComplete, client }) {
     const [step, setStep] = useState(() => {
         if (isStandalone()) return 2; // Already installed, go to notifications
@@ -123,6 +176,8 @@ export default function PwaOnboarding({ onComplete, client }) {
     if (!isPushSupported() && isStandalone()) return null;
 
     return (
+        <>
+        <PwaIconUpdateBanner />
         <div className="card mb-3 border-primary">
             <div className="card-body">
                 {step === 1 && (
@@ -264,5 +319,6 @@ export default function PwaOnboarding({ onComplete, client }) {
                 )}
             </div>
         </div>
+        </>
     );
 }

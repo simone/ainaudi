@@ -109,6 +109,7 @@ function AppContent() {
         return localStorage.getItem('rdl_magic_link_email') || '';
     });
     const [magicLinkSent, setMagicLinkSent] = useState(false);
+    const [otpCode, setOtpCode] = useState('');
     const [consultazione, setConsultazione] = useState(null);
     const [consultazioni, setConsultazioni] = useState([]);
     const [consultazioneLoaded, setConsultazioneLoaded] = useState(false);
@@ -567,6 +568,22 @@ function AppContent() {
             setLoading(false);
         } catch (err) {
             setError(`Errore invio magic link: ${err.message}`);
+            setLoading(false);
+        }
+    };
+
+    const handleOtpSubmit = async (e) => {
+        e.preventDefault();
+        if (!otpCode || otpCode.length !== 6) return;
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            await verifyMagicLink(otpCode, magicLinkEmail);
+            setLoading(false);
+        } catch (err) {
+            setError(`Errore verifica codice: ${err.message}`);
             setLoading(false);
         }
     };
@@ -1236,41 +1253,61 @@ function AppContent() {
                         </div>
                         <div className="card-body">
                             {magicLinkSent ? (
-                                /* STEP 2: Email inviata - istruzioni chiare */
+                                /* STEP 2: Email inviata - OTP + istruzioni */
                                 <div className="text-center">
                                     <div className="alert alert-success">
                                         <h4 className="alert-heading">Email inviata con successo!</h4>
+                                        <p className="mb-0">Abbiamo inviato un codice a <strong>{magicLinkEmail}</strong></p>
                                     </div>
 
+                                    {/* OTP Input */}
                                     <div className="my-4 p-4 bg-light rounded">
-                                        <h5>Cosa fare ora:</h5>
-                                        <ol className="text-start mb-0" style={{fontSize: '1.1em'}}>
-                                            <li className="mb-2">
-                                                <strong>Apri la tua casella email</strong><br/>
-                                                <span className="text-muted">Controlla la posta di: <strong>{magicLinkEmail}</strong></span>
-                                            </li>
-                                            <li className="mb-2">
-                                                <strong>Cerca l'email da "AInaudi"</strong><br/>
-                                                <span className="text-muted">Oggetto: "Il tuo link di accesso"</span>
-                                            </li>
-                                            <li className="mb-2">
-                                                <strong>Clicca sul pulsante "Accedi"</strong><br/>
-                                                <span className="text-muted">Si aprirà automaticamente questa pagina e sarai dentro!</span>
-                                            </li>
-                                        </ol>
+                                        <h5><i className="fas fa-keyboard me-2"></i>Inserisci il codice</h5>
+                                        <p className="text-muted mb-3">
+                                            Troverai un codice a 6 cifre nell'email che ti abbiamo inviato
+                                        </p>
+                                        <form onSubmit={handleOtpSubmit}>
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
+                                                maxLength={6}
+                                                className="form-control form-control-lg text-center mb-3"
+                                                style={{fontSize: '2rem', letterSpacing: '0.5em', fontFamily: 'monospace'}}
+                                                placeholder="000000"
+                                                value={otpCode}
+                                                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                autoFocus
+                                                disabled={isLoading}
+                                            />
+                                            <button
+                                                type="submit"
+                                                className="btn btn-referendum btn-lg w-100"
+                                                disabled={isLoading || otpCode.length !== 6}
+                                            >
+                                                {isLoading ? (
+                                                    <>
+                                                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                        Verifica in corso...
+                                                    </>
+                                                ) : (
+                                                    'Accedi'
+                                                )}
+                                            </button>
+                                        </form>
                                     </div>
 
                                     <div className="alert alert-warning">
                                         <strong>Non trovi l'email?</strong><br/>
                                         <small>
                                             Controlla nella cartella <strong>SPAM</strong> o <strong>Posta indesiderata</strong>.<br/>
-                                            Il link è valido per 60 minuti.
+                                            Il codice e' valido per 60 minuti.
                                         </small>
                                     </div>
 
                                     <button
                                         className="btn btn-outline-primary"
-                                        onClick={() => setMagicLinkSent(false)}
+                                        onClick={() => { setMagicLinkSent(false); setOtpCode(''); }}
                                     >
                                         ← Torna indietro per reinviare
                                     </button>

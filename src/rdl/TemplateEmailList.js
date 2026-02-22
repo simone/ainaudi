@@ -9,11 +9,9 @@ const WRAPPER_HTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta nam
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f5f5;padding:20px 0;">
 <tr><td align="center" style="padding:0 12px;">
 <table cellpadding="0" cellspacing="0" border="0" style="background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);overflow:hidden;width:100%;max-width:600px;">
-<tr><td style="background:linear-gradient(135deg,#1F4E5F 0%,#2C5F6F 100%);padding:30px 40px;text-align:center;">
-<div style="background-color:#DC143C;display:inline-block;padding:12px 24px;border-radius:6px;margin-bottom:15px;box-shadow:0 2px 6px rgba(220,20,60,0.3);">
-<h1 style="margin:0;font-size:28px;color:#FFFFFF;font-weight:700;letter-spacing:-0.5px;">AInaudi</h1>
-</div>
-<p style="margin:10px 0 0 0;color:#FFFFFF;font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:1px;">Gestione Elettorale</p>
+<tr><td style="background:linear-gradient(135deg,#1B2A5B 0%,#0D1B3E 100%);padding:30px 40px;text-align:center;">
+<h1 style="margin:0 0 8px 0;font-size:28px;color:#FFFFFF;font-weight:700;letter-spacing:-0.5px;"><span style="color:#F5A623;">AI</span>naudi</h1>
+<p style="margin:0;color:rgba(255,255,255,0.9);font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:1px;">Gestione Elettorale</p>
 </td></tr>
 <tr><td style="padding:30px 40px;">BODY_CONTENT</td></tr>
 <tr><td style="background:linear-gradient(to bottom,#f8f9fa 0%,#f8f9fa 10%,#FFC800 10%,#FFC800 100%);padding:25px 40px;text-align:center;border-top:1px solid #e9ecef;">

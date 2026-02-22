@@ -309,9 +309,9 @@ if USE_GCS:
 ADMIN_LOGO = os.environ.get('ADMIN_LOGO', 'ainaudi')  # 'ainaudi' or 'm5s'
 
 # App name displayed in admin
-ADMIN_SITE_HEADER = os.environ.get('ADMIN_SITE_HEADER', 'AInaudi Admin')
-ADMIN_SITE_TITLE = os.environ.get('ADMIN_SITE_TITLE', 'AInaudi')
-ADMIN_INDEX_TITLE = os.environ.get('ADMIN_INDEX_TITLE', 'Gestione Sistema')
+ADMIN_SITE_HEADER = os.environ.get('ADMIN_SITE_HEADER', 'AInaudi')
+ADMIN_SITE_TITLE = os.environ.get('ADMIN_SITE_TITLE', 'Gestione Elettorale')
+ADMIN_INDEX_TITLE = os.environ.get('ADMIN_INDEX_TITLE', 'Gestione Elettorale')
 
 
 # =============================================================================

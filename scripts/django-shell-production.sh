@@ -60,8 +60,19 @@ fi
 # Get DB password from Secret Manager
 echo -e "${YELLOW}🔐 Recupero password database...${NC}"
 
-# Try Secret Manager with timeout
-DB_PASSWORD=$(timeout 5 gcloud secrets versions access latest --secret=db-password --project=${PROJECT} 2>/dev/null || echo "")
+# Try Secret Manager (gtimeout on macOS via coreutils, timeout on Linux)
+TIMEOUT_CMD=""
+if command -v gtimeout &> /dev/null; then
+    TIMEOUT_CMD="gtimeout 10"
+elif command -v timeout &> /dev/null; then
+    TIMEOUT_CMD="timeout 10"
+fi
+
+if [ -n "$TIMEOUT_CMD" ]; then
+    DB_PASSWORD=$($TIMEOUT_CMD gcloud secrets versions access latest --secret=db-password --project=${PROJECT} 2>/dev/null || echo "")
+else
+    DB_PASSWORD=$(gcloud secrets versions access latest --secret=db-password --project=${PROJECT} 2>/dev/null || echo "")
+fi
 
 if [ -z "$DB_PASSWORD" ]; then
     echo -e "${YELLOW}⚠️  Password non trovata in Secret Manager${NC}"

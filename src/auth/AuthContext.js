@@ -161,16 +161,20 @@ export function AuthProvider({ children }) {
         }
     };
 
-    // Verify magic link token
-    const verifyMagicLink = async (token) => {
+    // Verify magic link token or OTP code
+    const verifyMagicLink = async (tokenOrOtp, email = null) => {
         setLoading(true);
         setError(null);
+
+        const payload = email
+            ? { otp: tokenOrOtp, email }
+            : { token: tokenOrOtp };
 
         try {
             const response = await fetch(`${SERVER_API}/api/auth/magic-link/verify/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token })
+                body: JSON.stringify(payload)
             });
 
             if (!response.ok) {

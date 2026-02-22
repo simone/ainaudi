@@ -12,11 +12,10 @@
 <h1 id="site-name">
     <a href="{% url 'admin:index' %}">
         {% if ADMIN_LOGO == 'm5s' %}
-        <img src="{% static 'admin/img/m5s_logo.svg' %}" alt="{{ ADMIN_SITE_TITLE }}" style="height: 35px; vertical-align: middle; margin-right: 10px;">
+        <img src="{% static 'admin/img/m5s_logo.svg' %}" alt="AInaudi" style="height: 35px; vertical-align: middle;">
         {% else %}
-        <img src="{% static 'admin/img/ainaudi_logo.png' %}" alt="{{ ADMIN_SITE_TITLE }}" style="height: 35px; vertical-align: middle; margin-right: 10px;">
+        <img src="{% static 'admin/img/ainaudi_logo_light.png' %}" alt="AInaudi" style="height: 35px; vertical-align: middle;">
         {% endif %}
-        {{ ADMIN_SITE_TITLE }}
     </a>
 </h1>
 {% endblock %}

@@ -101,7 +101,7 @@ if settings.DEBUG:
 # Admin site customization
 admin.site.site_header = 'AInaudi'
 admin.site.site_title = 'AInaudi'
-admin.site.index_title = 'AInaudi - Gestione Elettorale'
+admin.site.index_title = 'Gestione Elettorale'
 
 # Cleanup admin: remove unused models (Sites, Social accounts, etc.)
 # Must be imported AFTER admin.site.urls is included

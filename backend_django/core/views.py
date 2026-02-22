@@ -1,8 +1,10 @@
 """
 Views for core authentication and user management.
 """
+import random
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
 from django.core.mail import send_mail
 from django.db.models import Q
@@ -75,6 +77,11 @@ class MagicLinkRequestView(APIView):
         # Generate signed token with user ID (not email)
         token = signer.sign(str(user.id))
 
+        # Generate 6-digit OTP code for in-app verification (PWA)
+        otp_code = f"{random.randint(0, 999999):06d}"
+        cache_key = f"magic_link_otp_{user.id}"
+        cache.set(cache_key, otp_code, timeout=settings.MAGIC_LINK_TOKEN_EXPIRY)
+
         # Build magic link URL
         magic_link = f"{settings.FRONTEND_URL}/?token={token}"
 
@@ -104,7 +111,11 @@ Clicca sul seguente link per accedere in modo sicuro:
 
 {magic_link}
 
-⏱️  Il link è valido per {validity_minutes} minuti.
+Oppure inserisci questo codice direttamente nell'app:
+
+{otp_code}
+
+⏱️  Il link e il codice sono validi per {validity_minutes} minuti.
 
 Se non hai richiesto questo accesso, ignora questa email.
 La tua sicurezza è importante per noi.
@@ -129,15 +140,13 @@ Movimento 5 Stelle
             <td align="center" style="padding: 0 12px;">
                 <table cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; width: 100%; max-width: 600px;">
 
-                    <!-- Header con branding M5S Referendum -->
+                    <!-- Header con branding AInaudi -->
                     <tr>
-                        <td style="background: linear-gradient(135deg, #1F4E5F 0%, #2C5F6F 100%); padding: 30px 40px; text-align: center;">
-                            <div style="background-color: #DC143C; display: inline-block; padding: 12px 24px; border-radius: 6px; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(220,20,60,0.3);">
-                                <h1 style="margin: 0; font-size: 28px; color: #FFFFFF; font-weight: 700; letter-spacing: -0.5px;">
-                                    AInaudi
-                                </h1>
-                            </div>
-                            <p style="margin: 10px 0 0 0; color: #FFFFFF; font-size: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">
+                        <td style="background: linear-gradient(135deg, #1B2A5B 0%, #0D1B3E 100%); padding: 30px 40px; text-align: center;">
+                            <h1 style="margin: 0 0 8px 0; font-size: 28px; color: #FFFFFF; font-weight: 700; letter-spacing: -0.5px;">
+                                <span style="color: #F5A623;">AI</span>naudi
+                            </h1>
+                            <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">
                                 Gestione Elettorale
                             </p>
                         </td>
@@ -146,7 +155,7 @@ Movimento 5 Stelle
                     <!-- Consultazione badge -->
                     <tr>
                         <td style="padding: 25px 40px 0 40px; text-align: center;">
-                            <div style="background: linear-gradient(135deg, #2C5F6F 0%, #1F4E5F 100%); border-radius: 8px; padding: 16px 24px; display: inline-block; box-shadow: 0 2px 4px rgba(44,95,111,0.3);">
+                            <div style="background: linear-gradient(135deg, #1B2A5B 0%, #0D1B3E 100%); border-radius: 8px; padding: 16px 24px; display: inline-block; box-shadow: 0 2px 4px rgba(44,95,111,0.3);">
                                 <p style="margin: 0; color: #FFC800; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
                                     📋 Consultazione attiva
                                 </p>
@@ -161,11 +170,11 @@ Movimento 5 Stelle
                     <!-- Saluto personalizzato -->
                     <tr>
                         <td style="padding: 30px 40px 20px 40px;">
-                            <h2 style="margin: 0 0 15px 0; font-size: 22px; color: #1F4E5F; font-weight: 600;">
+                            <h2 style="margin: 0 0 15px 0; font-size: 22px; color: #1B2A5B; font-weight: 600;">
                                 Ciao {user_name}! 👋
                             </h2>
                             <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
-                                Hai richiesto l'accesso sicuro alla piattaforma <strong style="color: #DC143C;">AInaudi</strong>.
+                                Hai richiesto l'accesso sicuro alla piattaforma <strong style="color: #F5A623;">AInaudi</strong>.
                                 Clicca sul pulsante qui sotto per accedere immediatamente.
                             </p>
                         </td>
@@ -177,9 +186,17 @@ Movimento 5 Stelle
                             <a href="{magic_link}" style="display: inline-block; background-color: #F2CB13; color: #2E2D2C; text-decoration: none; padding: 16px 40px; border-radius: 12px; font-size: 16px; font-weight: 600; letter-spacing: 0.3px; box-shadow: 0 4px 12px rgba(242,203,19,0.4); transition: all 0.3s ease;">
                                 🔐 Accedi alla Piattaforma
                             </a>
-                            <p style="margin: 20px 0 0 0; font-size: 13px; color: #666666; line-height: 1.5;">
-                                Oppure copia e incolla questo link nel tuo browser:<br/>
-                                <span style="color: #999999; font-size: 12px; word-break: break-all;">{magic_link}</span>
+                            <div style="margin: 25px 0 0 0; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                                <p style="margin: 0 0 10px 0; font-size: 14px; color: #666666; font-weight: 600;">
+                                    Stai usando l'app? Inserisci questo codice:
+                                </p>
+                                <p style="margin: 0; font-size: 36px; font-weight: 700; color: #1B2A5B; letter-spacing: 8px; font-family: monospace;">
+                                    {otp_code}
+                                </p>
+                            </div>
+                            <p style="margin: 15px 0 0 0; font-size: 12px; color: #999999; line-height: 1.5;">
+                                Oppure copia e incolla questo link nel browser:<br/>
+                                <span style="word-break: break-all;">{magic_link}</span>
                             </p>
                         </td>
                     </tr>
@@ -188,11 +205,11 @@ Movimento 5 Stelle
                     <tr>
                         <td style="padding: 0 40px 30px 40px;">
                             <div style="background-color: #E8F4F8; border-left: 4px solid #2C5F6F; padding: 15px 20px; border-radius: 4px;">
-                                <p style="margin: 0 0 8px 0; font-size: 14px; color: #1F4E5F; font-weight: 600;">
+                                <p style="margin: 0 0 8px 0; font-size: 14px; color: #1B2A5B; font-weight: 600;">
                                     ⏱️  Validità del link
                                 </p>
                                 <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #555555;">
-                                    Questo link è valido per <strong style="color: #DC143C;">{validity_minutes} minuti</strong> per garantire la massima sicurezza del tuo accesso.
+                                    Questo link è valido per <strong style="color: #F5A623;">{validity_minutes} minuti</strong> per garantire la massima sicurezza del tuo accesso.
                                 </p>
                             </div>
                         </td>
@@ -279,33 +296,62 @@ class MagicLinkVerifyView(APIView):
         serializer = MagicLinkVerifySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        token = serializer.validated_data['token']
+        token = serializer.validated_data.get('token')
+        otp = serializer.validated_data.get('otp')
+        email = serializer.validated_data.get('email')
 
-        try:
-            # Verify token signature and expiry
-            user_id = signer.unsign(
-                token,
-                max_age=settings.MAGIC_LINK_TOKEN_EXPIRY
-            )
-        except SignatureExpired:
-            return Response(
-                {'error': 'Link scaduto. Richiedine uno nuovo.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        except BadSignature:
-            return Response(
-                {'error': 'Link non valido.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if token:
+            # Method 1: Signed token verification (magic link click)
+            try:
+                user_id = signer.unsign(
+                    token,
+                    max_age=settings.MAGIC_LINK_TOKEN_EXPIRY
+                )
+            except SignatureExpired:
+                return Response(
+                    {'error': 'Link scaduto. Richiedine uno nuovo.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            except BadSignature:
+                return Response(
+                    {'error': 'Link non valido.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        # Find user by ID
-        try:
-            user = User.objects.get(id=int(user_id))
-        except (User.DoesNotExist, ValueError):
-            return Response(
-                {'error': 'Utente non trovato.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            try:
+                user = User.objects.get(id=int(user_id))
+            except (User.DoesNotExist, ValueError):
+                return Response(
+                    {'error': 'Utente non trovato.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        else:
+            # Method 2: OTP + email verification (in-app code entry)
+            try:
+                user = User.objects.get(email=email.lower())
+            except User.DoesNotExist:
+                return Response(
+                    {'error': 'Utente non trovato.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            cache_key = f"magic_link_otp_{user.id}"
+            stored_otp = cache.get(cache_key)
+
+            if not stored_otp:
+                return Response(
+                    {'error': 'Codice scaduto. Richiedine uno nuovo.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if otp != stored_otp:
+                return Response(
+                    {'error': 'Codice non valido.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # OTP used successfully, delete it
+            cache.delete(cache_key)
 
         created = False
 

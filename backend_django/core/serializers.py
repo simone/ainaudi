@@ -84,7 +84,25 @@ class MagicLinkRequestSerializer(serializers.Serializer):
 
 
 class MagicLinkVerifySerializer(serializers.Serializer):
-    """Serializer for Magic Link verification."""
+    """Serializer for Magic Link verification. Accepts token OR otp+email."""
     token = serializers.CharField(
-        help_text='Magic link token from email'
+        help_text='Magic link token from email',
+        required=False,
     )
+    otp = serializers.CharField(
+        help_text='6-digit OTP code from email',
+        required=False,
+    )
+    email = serializers.EmailField(
+        help_text='Email for OTP verification',
+        required=False,
+    )
+
+    def validate(self, attrs):
+        has_token = bool(attrs.get('token'))
+        has_otp = bool(attrs.get('otp')) and bool(attrs.get('email'))
+        if not has_token and not has_otp:
+            raise serializers.ValidationError(
+                'Fornire token oppure otp + email.'
+            )
+        return attrs
