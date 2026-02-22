@@ -99,18 +99,28 @@ export async function requestPushToken() {
 /**
  * Register handler for foreground messages (when app is open).
  *
+ * Initializes Firebase if needed, then registers the onMessage listener.
+ *
  * @param {Function} callback - receives { title, body, data } for each message
  * @returns {Function} unsubscribe function
  */
 export function onForegroundMessage(callback) {
-    if (!messaging) return () => {};
+    let unsubscribe = () => {};
 
-    return onMessage(messaging, (payload) => {
-        console.log('Foreground message received:', payload);
-        callback({
-            title: payload.notification?.title || '',
-            body: payload.notification?.body || '',
-            data: payload.data || {},
+    // Initialize async, then register listener
+    initFirebase().then((msg) => {
+        if (!msg) return;
+        unsubscribe = onMessage(msg, (payload) => {
+            console.log('Foreground message received:', payload);
+            callback({
+                title: payload.notification?.title || '',
+                body: payload.notification?.body || '',
+                data: payload.data || {},
+            });
         });
+        console.log('FCM foreground listener registered');
     });
+
+    // Return a function that will unsubscribe once the listener is set
+    return () => unsubscribe();
 }
