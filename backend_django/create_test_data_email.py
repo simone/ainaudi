@@ -19,7 +19,7 @@ django.setup()
 from delegations.models import ProcessoDesignazione, DesignazioneRDL, Delegato
 from elections.models import ConsultazioneElettorale
 from territory.models import SezioneElettorale, Comune
-from documents.models import Template, TemplateType
+from documents.models import Template
 from django.utils import timezone
 from django.core.files.base import ContentFile
 
@@ -81,21 +81,13 @@ def create_test_data():
     print(f"✅ Delegato: {delegato.cognome} {delegato.nome}")
 
     # 5. Trova template (opzionale)
-    try:
-        template_type_ind = TemplateType.objects.get(code='DESIGNAZIONE_RDL_INDIVIDUALE')
-        template_ind = Template.objects.filter(template_type=template_type_ind).first()
+    template_ind = Template.objects.filter(template_type='DESIGNATION_SINGLE').first()
+    template_cum = Template.objects.filter(template_type='DESIGNATION_MULTI').first()
 
-        template_type_cum = TemplateType.objects.get(code='DESIGNAZIONE_RDL_CUMULATIVO')
-        template_cum = Template.objects.filter(template_type=template_type_cum).first()
-
-        if template_ind and template_cum:
-            print(f"✅ Template: {template_ind.name}, {template_cum.name}")
-        else:
-            print("⚠️  Template non trovati, creando processo senza PDF")
-            template_ind = None
-            template_cum = None
-    except TemplateType.DoesNotExist:
-        print("⚠️  TemplateType non trovati, creando processo senza PDF")
+    if template_ind and template_cum:
+        print(f"✅ Template: {template_ind.name}, {template_cum.name}")
+    else:
+        print("⚠️  Template non trovati, creando processo senza PDF")
         template_ind = None
         template_cum = None
 

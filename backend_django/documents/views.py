@@ -13,25 +13,12 @@ import io
 import os
 
 from core.permissions import CanGenerateDocuments
-from .models import TemplateType, Template, GeneratedDocument
-from .serializers import TemplateTypeSerializer, TemplateSerializer, GeneratedDocumentSerializer, GeneratePDFSerializer
+from .models import Template, GeneratedDocument
+from .serializers import TemplateSerializer, GeneratedDocumentSerializer, GeneratePDFSerializer
 from .events import publish_preview_pdf_and_email, publish_confirm_freeze
 
 # Signer for review tokens (similar to magic link pattern)
 signer = TimestampSigner()
-
-
-class TemplateTypeViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    ViewSet for TemplateType (read-only for users, editable via admin).
-
-    GET /api/documents/template-types/        - List all template types
-    GET /api/documents/template-types/{id}/   - Get template type detail
-    """
-    queryset = TemplateType.objects.filter(is_active=True)
-    serializer_class = TemplateTypeSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    pagination_class = None  # Disable pagination - return full list
 
 
 class TemplateViewSet(viewsets.ModelViewSet):
@@ -341,18 +328,15 @@ class TemplateEditorView(APIView):
         variables_schema = {}
         variables_doc = ''
         if template.template_type:
-            type_class = get_template_type_class(template.template_type.code)
+            type_class = get_template_type_class(template.template_type)
             if type_class:
                 variables_schema = type_class.example_schema
                 variables_doc = type_class.variables_doc
-            else:
-                # Fallback al default_schema del DB per tipi non in registry
-                variables_schema = template.template_type.default_schema
 
         return Response({
             'id': template.id,
             'name': template.name,
-            'template_type_code': template.template_type.code if template.template_type else None,
+            'template_type_code': template.template_type,
             'template_file_url': template_file_url,
             'field_mappings': template.field_mappings,
             'loop_config': template.loop_config,

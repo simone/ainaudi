@@ -2,13 +2,18 @@ import React, { useState, useEffect } from 'react';
 import ConfirmModal from '../components/ConfirmModal';
 import './TemplateEditor.css';
 
+const TEMPLATE_TYPES = [
+    { code: 'DESIGNATION_SINGLE', name: 'Designazione RDL Singola' },
+    { code: 'DESIGNATION_MULTI', name: 'Designazione RDL Riepilogativa' },
+    { code: 'DELEGATION', name: 'Delega Sub-Delegato' },
+];
+
 /**
  * Template List - Lista template per consultazione attiva
  * Permette di creare nuovi template o aprire l'editor
  */
 function TemplateList({ client, onEditTemplate }) {
     const [templates, setTemplates] = useState([]);
-    const [templateTypes, setTemplateTypes] = useState([]);
     const [visibleDelegates, setVisibleDelegates] = useState([]);
     const [consultazione, setConsultazione] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -26,7 +31,6 @@ function TemplateList({ client, onEditTemplate }) {
 
     useEffect(() => {
         loadConsultazioneAndTemplates();
-        loadTemplateTypes();
     }, []);
 
     const loadConsultazioneAndTemplates = async () => {
@@ -74,20 +78,6 @@ function TemplateList({ client, onEditTemplate }) {
         }
     };
 
-    const loadTemplateTypes = async () => {
-        try {
-            const data = await client.get('/api/documents/template-types/');
-            setTemplateTypes(data || []);
-            // Set default template_type if available
-            if (data && data.length > 0 && !newTemplate.template_type) {
-                setNewTemplate(prev => ({ ...prev, template_type: data[0].id }));
-            }
-        } catch (err) {
-            console.error('Template types load error:', err);
-            setError(`Errore caricamento tipi template: ${err.message}`);
-        }
-    };
-
     const handleCreateTemplate = async (e) => {
         e.preventDefault();
 
@@ -124,7 +114,7 @@ function TemplateList({ client, onEditTemplate }) {
             setShowNewTemplateForm(false);
             setNewTemplate({
                 name: '',
-                template_type: templateTypes.length > 0 ? templateTypes[0].id : '',
+                template_type: '',
                 description: '',
                 owner_email: '',
                 file: null
@@ -244,21 +234,16 @@ function TemplateList({ client, onEditTemplate }) {
                                     <select
                                         className="form-control"
                                         value={newTemplate.template_type}
-                                        onChange={(e) => setNewTemplate({...newTemplate, template_type: parseInt(e.target.value)})}
+                                        onChange={(e) => setNewTemplate({...newTemplate, template_type: e.target.value})}
                                         required
                                     >
                                         <option value="">-- Seleziona tipo --</option>
-                                        {templateTypes.map(tt => (
-                                            <option key={tt.id} value={tt.id}>
+                                        {TEMPLATE_TYPES.map(tt => (
+                                            <option key={tt.code} value={tt.code}>
                                                 {tt.name}
                                             </option>
                                         ))}
                                     </select>
-                                    {newTemplate.template_type && templateTypes.length > 0 && (
-                                        <small className="text-muted d-block mt-1">
-                                            {templateTypes.find(tt => tt.id === newTemplate.template_type)?.description}
-                                        </small>
-                                    )}
                                 </div>
 
                                 <div className="form-group">
@@ -351,7 +336,7 @@ function TemplateList({ client, onEditTemplate }) {
                                 <div className="template-list-card-header">
                                     <strong>{template.name}</strong>
                                     <span className="badge bg-info">
-                                        {template.template_type_details?.name || template.template_type || 'N/A'}
+                                        {template.template_type_display || template.template_type || 'N/A'}
                                     </span>
                                 </div>
                                 {template.description && template.description !== '-' && (

@@ -40,6 +40,49 @@ def _serialize_designazione(designazione):
     }
 
 
+def _serialize_designazione_flat(designazione):
+    """Serializza una designazione come lista flat: prima effettivo, poi supplente.
+
+    Restituisce 1 o 2 record per sezione, ordinati effettivo poi supplente.
+    Se il supplente non esiste (cognome vuoto), viene saltato.
+    """
+    sezione = designazione.sezione.numero
+    comune = designazione.sezione.comune.nome if designazione.sezione.comune else ''
+    indirizzo = designazione.sezione.indirizzo or ''
+
+    records = []
+
+    # Effettivo (sempre presente)
+    if designazione.effettivo_cognome:
+        records.append({
+            'sezione': sezione,
+            'comune': comune,
+            'indirizzo': indirizzo,
+            'tipo_rdl': 'EFFETTIVO',
+            'cognome': designazione.effettivo_cognome or '',
+            'nome': designazione.effettivo_nome or '',
+            'data_nascita': designazione.effettivo_data_nascita,
+            'luogo_nascita': designazione.effettivo_luogo_nascita or '',
+            'domicilio': designazione.effettivo_domicilio or '',
+        })
+
+    # Supplente (solo se presente)
+    if designazione.supplente_cognome:
+        records.append({
+            'sezione': sezione,
+            'comune': comune,
+            'indirizzo': indirizzo,
+            'tipo_rdl': 'SUPPLENTE',
+            'cognome': designazione.supplente_cognome or '',
+            'nome': designazione.supplente_nome or '',
+            'data_nascita': designazione.supplente_data_nascita,
+            'luogo_nascita': designazione.supplente_luogo_nascita or '',
+            'domicilio': designazione.supplente_domicilio or '',
+        })
+
+    return records
+
+
 class DesignationSingleType:
     """Template per designazione singola: una pagina per sezione, NO loop."""
 
@@ -180,6 +223,52 @@ class DesignationMultiType:
                 },
             },
         ],
+        'designazioni_flat': [
+            {
+                'sezione': 2359,
+                'comune': 'Roma',
+                'indirizzo': 'VIA VALLOMBROSA, 31',
+                'tipo_rdl': 'EFFETTIVO',
+                'cognome': 'Verdi',
+                'nome': 'Luigi',
+                'data_nascita': '1990-03-20',
+                'luogo_nascita': 'Torino',
+                'domicilio': 'Via Milano 5, Milano',
+            },
+            {
+                'sezione': 2359,
+                'comune': 'Roma',
+                'indirizzo': 'VIA VALLOMBROSA, 31',
+                'tipo_rdl': 'SUPPLENTE',
+                'cognome': 'Gialli',
+                'nome': 'Maria',
+                'data_nascita': '1988-07-10',
+                'luogo_nascita': 'Bologna',
+                'domicilio': 'Via Torino 8, Milano',
+            },
+            {
+                'sezione': 2360,
+                'comune': 'Roma',
+                'indirizzo': 'VIA CASSIA, 472',
+                'tipo_rdl': 'EFFETTIVO',
+                'cognome': 'Neri',
+                'nome': 'Paolo',
+                'data_nascita': '1992-11-05',
+                'luogo_nascita': 'Napoli',
+                'domicilio': 'Via Napoli 12, Roma',
+            },
+            {
+                'sezione': 2360,
+                'comune': 'Roma',
+                'indirizzo': 'VIA CASSIA, 472',
+                'tipo_rdl': 'SUPPLENTE',
+                'cognome': 'Blu',
+                'nome': 'Carla',
+                'data_nascita': '1995-02-28',
+                'luogo_nascita': 'Firenze',
+                'domicilio': 'Via Firenze 3, Roma',
+            },
+        ],
     }
 
     variables_doc = """\
@@ -199,10 +288,10 @@ Delegato e comune al top level, designazioni in array per loop.
 ### Comune (testo, assoluto)
 - `$.comune`
 
-### Loop jsonpath
+### Loop jsonpath (nested: effettivo/supplente come oggetti)
 - `$.designazioni`
 
-### Campi nel loop (relativi ad ogni item)
+### Campi nel loop designazioni (relativi ad ogni item)
 - `$.sezione` (numero)
 - `$.indirizzo`
 - `$.effettivo.cognome`
@@ -215,11 +304,32 @@ Delegato e comune al top level, designazioni in array per loop.
 - `$.supplente.data_nascita`
 - `$.supplente.luogo_nascita`
 - `$.supplente.domicilio`
+
+### Loop jsonpath alternativo (flat: un record per persona)
+- `$.designazioni_flat`
+
+Ordinato per sezione, prima effettivo poi supplente.
+Il supplente viene saltato se assente.
+
+### Campi nel loop designazioni_flat (relativi ad ogni item)
+- `$.sezione` (numero)
+- `$.comune`
+- `$.indirizzo`
+- `$.tipo_rdl` (EFFETTIVO o SUPPLENTE)
+- `$.cognome`
+- `$.nome`
+- `$.data_nascita`
+- `$.luogo_nascita`
+- `$.domicilio`
 """
 
     @staticmethod
     def serialize(processo, designazioni):
-        """Delegato + comune al top level + array designazioni per loop."""
+        """Delegato + comune al top level + array designazioni per loop.
+
+        Include sia `designazioni` (nested effettivo/supplente) che
+        `designazioni_flat` (un record per persona, ordinato per sezione).
+        """
         # Il comune e' lo stesso per tutte le designazioni (no cross-comune)
         comune = ''
         if designazioni:
@@ -227,10 +337,16 @@ Delegato e comune al top level, designazioni in array per loop.
             if first and first.sezione and first.sezione.comune:
                 comune = first.sezione.comune.nome
 
+        # Flat: un record per persona, ordinato per sezione, effettivo prima di supplente
+        flat = []
+        for d in designazioni:
+            flat.extend(_serialize_designazione_flat(d))
+
         return {
             'delegato': _serialize_delegato(processo),
             'comune': comune,
             'designazioni': [_serialize_designazione(d) for d in designazioni],
+            'designazioni_flat': flat,
         }
 
 

@@ -8,6 +8,12 @@ import './TemplateEditor.css';
 // Configure PDF.js worker (use local worker from /public folder)
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 
+const TEMPLATE_TYPES = [
+    { code: 'DESIGNATION_SINGLE', name: 'Designazione RDL Singola' },
+    { code: 'DESIGNATION_MULTI', name: 'Designazione RDL Riepilogativa' },
+    { code: 'DELEGATION', name: 'Delega Sub-Delegato' },
+];
+
 /**
  * Template Editor - Admin only
  * Visual PDF editor with click-to-place field mappings
@@ -16,7 +22,6 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
  */
 function TemplateEditor({ templateId: initialTemplateId, client }) {
     const [templates, setTemplates] = useState([]);
-    const [templateTypes, setTemplateTypes] = useState([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplateId || null);
     const [template, setTemplate] = useState(null);
     const [fieldMappings, setFieldMappings] = useState([]);
@@ -72,10 +77,9 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
     const [showRowsPrompt, setShowRowsPrompt] = useState(false);
     const [rowsPromptData, setRowsPromptData] = useState(null); // { selX, selY, selW, selH, defaultRows }
 
-    // Load available templates and template types on mount
+    // Load available templates on mount
     useEffect(() => {
         loadTemplates();
-        loadTemplateTypes();
     }, []);
 
     // Load specific template when selected
@@ -137,22 +141,6 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
         } catch (err) {
             setError(`Errore caricamento lista template: ${err.message}`);
             console.error('Templates list error:', err);
-        }
-    };
-
-    const loadTemplateTypes = async () => {
-        console.log('🔍 Loading template types...');
-        try {
-            const data = await client.get('/api/documents/template-types/');
-            console.log('✅ Template types loaded:', data);
-            setTemplateTypes(data || []);
-            // Set default template_type if available
-            if (data && data.length > 0 && !newTemplate.template_type) {
-                setNewTemplate(prev => ({ ...prev, template_type: data[0].id }));
-            }
-        } catch (err) {
-            console.error('❌ Template types load error:', err);
-            setError(`Errore caricamento tipi template: ${err.message}`);
         }
     };
 
@@ -1037,7 +1025,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
             setShowNewTemplateForm(false);
             setNewTemplate({
                 name: '',
-                template_type: templateTypes.length > 0 ? templateTypes[0].id : '',
+                template_type: '',
                 description: '',
                 file: null
             });
@@ -1124,7 +1112,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                     >
                         {templates.map(t => (
                             <option key={t.id} value={t.id}>
-                                {t.name} ({t.template_type_details?.name || 'N/A'})
+                                {t.name} ({t.template_type_display || t.template_type || 'N/A'})
                             </option>
                         ))}
                     </select>
@@ -1186,21 +1174,16 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                     <select
                                         className="form-control"
                                         value={newTemplate.template_type}
-                                        onChange={(e) => setNewTemplate({...newTemplate, template_type: parseInt(e.target.value)})}
+                                        onChange={(e) => setNewTemplate({...newTemplate, template_type: e.target.value})}
                                         required
                                     >
                                         <option value="">-- Seleziona tipo --</option>
-                                        {templateTypes.map(tt => (
-                                            <option key={tt.id} value={tt.id}>
+                                        {TEMPLATE_TYPES.map(tt => (
+                                            <option key={tt.code} value={tt.code}>
                                                 {tt.name}
                                             </option>
                                         ))}
                                     </select>
-                                    {newTemplate.template_type && templateTypes.length > 0 && (
-                                        <small className="text-muted d-block mt-1">
-                                            {templateTypes.find(tt => tt.id === newTemplate.template_type)?.description}
-                                        </small>
-                                    )}
                                 </div>
 
                                 <div className="form-group">
@@ -1239,7 +1222,7 @@ function TemplateEditor({ templateId: initialTemplateId, client }) {
                                             setShowNewTemplateForm(false);
                                             setNewTemplate({
                                                 name: '',
-                                                template_type: templateTypes.length > 0 ? templateTypes[0].id : '',
+                                                template_type: '',
                                                 description: '',
                                                 file: null
                                             });

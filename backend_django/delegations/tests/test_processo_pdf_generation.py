@@ -20,7 +20,7 @@ from core.models import User
 from elections.models import ConsultazioneElettorale
 from territory.models import Regione, Provincia, Comune, SezioneElettorale
 from delegations.models import Delegato, DesignazioneRDL, ProcessoDesignazione
-from documents.models import Template, TemplateType
+from documents.models import Template
 
 
 class ProcessoPDFGenerationTestCase(TestCase):
@@ -83,21 +83,9 @@ class ProcessoPDFGenerationTestCase(TestCase):
             data_nascita=date(1980, 5, 15)
         )
 
-        # Template Type
-        self.template_type_ind = TemplateType.objects.create(
-            code='DESIGNATION_SINGLE',
-            name='Designazione Individuale',
-            default_merge_mode=TemplateType.MergeMode.SINGLE_DOC_PER_RECORD
-        )
-        self.template_type_cum = TemplateType.objects.create(
-            code='DESIGNATION_MULTI',
-            name='Designazione Cumulativa',
-            default_merge_mode=TemplateType.MergeMode.MULTI_PAGE_LOOP
-        )
-
         # Template PDF vuoti
         self.template_ind = self._create_template_with_mappings(
-            self.template_type_ind,
+            'DESIGNATION_SINGLE',
             'Template Individuale',
             field_mappings=[
                 {'jsonpath': '$.delegato.cognome', 'x': 100, 'y': 750, 'page': 0, 'font_size': 12},
@@ -109,7 +97,7 @@ class ProcessoPDFGenerationTestCase(TestCase):
         )
 
         self.template_cum = self._create_template_with_mappings(
-            self.template_type_cum,
+            'DESIGNATION_MULTI',
             'Template Cumulativo',
             field_mappings=[
                 {'jsonpath': '$.delegato.cognome', 'x': 100, 'y': 750, 'page': 0, 'font_size': 12},
@@ -134,13 +122,13 @@ class ProcessoPDFGenerationTestCase(TestCase):
         buffer.seek(0)
         return buffer
 
-    def _create_template_with_mappings(self, template_type, name, field_mappings, num_pages=1):
+    def _create_template_with_mappings(self, template_type_code, name, field_mappings, num_pages=1):
         """Crea un template con field_mappings."""
         pdf_buffer = self._create_blank_pdf(num_pages)
 
         template = Template.objects.create(
             consultazione=self.consultazione,
-            template_type=template_type,
+            template_type=template_type_code,
             name=name,
             field_mappings=field_mappings,
             is_active=True
@@ -369,7 +357,7 @@ class ProcessoPDFGenerationTestCase(TestCase):
         """Test che le date vengano formattate correttamente nel PDF."""
         # Aggiungi campo data al template
         template_with_date = self._create_template_with_mappings(
-            self.template_type_ind,
+            'DESIGNATION_SINGLE',
             'Template con Date',
             field_mappings=[
                 {'jsonpath': '$.delegato.cognome', 'x': 100, 'y': 750, 'page': 0, 'font_size': 12},

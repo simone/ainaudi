@@ -3,28 +3,7 @@ Django Admin configuration for documents models.
 """
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-from .models import TemplateType, Template, GeneratedDocument
-
-
-@admin.register(TemplateType)
-class TemplateTypeAdmin(admin.ModelAdmin):
-    list_display = ['code', 'name', 'default_merge_mode', 'is_active', 'updated_at']
-    list_filter = ['default_merge_mode', 'is_active']
-    search_fields = ['code', 'name', 'description']
-    readonly_fields = ['created_at', 'updated_at']
-
-    fieldsets = (
-        (_('Informazioni Base'), {
-            'fields': ('code', 'name', 'description', 'is_active')
-        }),
-        (_('Configurazione'), {
-            'fields': ('default_schema', 'default_merge_mode', 'use_case')
-        }),
-        (_('Metadata'), {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        })
-    )
+from .models import Template, GeneratedDocument
 
 
 @admin.register(Template)

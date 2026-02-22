@@ -4,7 +4,6 @@ Documents URL configuration.
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    TemplateTypeViewSet,
     TemplateViewSet,
     GeneratedDocumentViewSet,
     GeneratePDFView,
@@ -17,7 +16,6 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register(r'template-types', TemplateTypeViewSet, basename='template-type')
 router.register(r'templates', TemplateViewSet, basename='template')
 router.register(r'generated', GeneratedDocumentViewSet, basename='generated-document')
 

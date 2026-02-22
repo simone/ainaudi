@@ -15,7 +15,7 @@ from reportlab.lib.pagesizes import A4
 from PyPDF2 import PdfReader
 
 from documents.pdf_generator import PDFGenerator, generate_pdf
-from documents.models import Template, TemplateType
+from documents.models import Template
 from elections.models import ConsultazioneElettorale
 
 
@@ -29,13 +29,6 @@ class PDFGeneratorTestCase(TestCase):
             nome="Test Elezioni 2026",
             data_inizio=date(2026, 6, 8),
             data_fine=date(2026, 6, 9)
-        )
-
-        # Crea tipo template
-        self.template_type = TemplateType.objects.create(
-            code="TEST_TEMPLATE",
-            name="Template Test",
-            default_merge_mode=TemplateType.MergeMode.SINGLE_DOC_PER_RECORD
         )
 
     def _create_blank_pdf_template(self, num_pages=1):

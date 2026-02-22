@@ -30,7 +30,7 @@ from core.permissions import CanGenerateDocuments
 from elections.models import ConsultazioneElettorale
 from data.models import SectionAssignment
 from campaign.models import RdlRegistration
-from documents.models import Template, TemplateType
+from documents.models import Template
 from territory.models import SezioneElettorale
 
 
@@ -858,27 +858,25 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
     def _get_template_choices(self, consultazione):
         """Restituisce template disponibili per la consultazione."""
         # Template individuali (DESIGNATION_SINGLE)
-        tipo_single = TemplateType.objects.filter(code='DESIGNATION_SINGLE').first()
         templates_ind = Template.objects.filter(
             consultazione=consultazione,
-            template_type=tipo_single,
+            template_type='DESIGNATION_SINGLE',
             is_active=True
-        ) if tipo_single else Template.objects.none()
+        )
 
         # Template cumulativi (DESIGNATION_MULTI)
-        tipo_multi = TemplateType.objects.filter(code='DESIGNATION_MULTI').first()
         templates_cum = Template.objects.filter(
             consultazione=consultazione,
-            template_type=tipo_multi,
+            template_type='DESIGNATION_MULTI',
             is_active=True
-        ) if tipo_multi else Template.objects.none()
+        )
 
         return {
             'individuali': [
                 {
                     'id': t.id,
                     'nome': t.name,
-                    'tipo': t.template_type.code,
+                    'tipo': t.template_type,
                     'variabili': self._extract_variables_from_template(t)
                 }
                 for t in templates_ind
@@ -887,7 +885,7 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
                 {
                     'id': t.id,
                     'nome': t.name,
-                    'tipo': t.template_type.code,
+                    'tipo': t.template_type,
                     'variabili': self._extract_variables_from_template(t)
                 }
                 for t in templates_cum
