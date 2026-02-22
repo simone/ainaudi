@@ -326,6 +326,25 @@ function AppContent() {
         }
     }, [authError]);
 
+    // Auto-register FCM token on every app start (best practice: tokens can change)
+    useEffect(() => {
+        if (!isAuthenticated || !client) return;
+        if (Notification.permission !== 'granted') return;
+
+        (async () => {
+            try {
+                const { requestPushToken } = await import('./firebase');
+                const token = await requestPushToken();
+                if (token) {
+                    await client.me.registerDeviceToken(token, 'WEB');
+                    console.log('FCM token registered');
+                }
+            } catch (err) {
+                console.warn('FCM token registration failed:', err);
+            }
+        })();
+    }, [isAuthenticated, client]);
+
     // Firebase foreground message handler
     useEffect(() => {
         if (!isAuthenticated) return;
