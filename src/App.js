@@ -31,6 +31,7 @@ import EventDetail from "./events/EventDetail";
 import AssignmentDetail from "./events/AssignmentDetail";
 import EventList from "./events/EventList";
 import { onForegroundMessage } from "./firebase";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // In development, use empty string to leverage Vite proxy (vite.config.js)
 // In production, use empty string for same-origin requests
@@ -333,7 +334,7 @@ function AppContent() {
     // Auto-register FCM token on every app start (best practice: tokens can change)
     useEffect(() => {
         if (!isAuthenticated || !client) return;
-        if (Notification.permission !== 'granted') return;
+        if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
 
         (async () => {
             try {
@@ -355,7 +356,7 @@ function AppContent() {
 
         const unsubscribe = onForegroundMessage((msg) => {
             // Show OS notification even when app is in foreground
-            if (Notification.permission === 'granted' && navigator.serviceWorker?.controller) {
+            if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && navigator.serviceWorker?.controller) {
                 navigator.serviceWorker.ready.then(reg => {
                     reg.showNotification(msg.title, {
                         body: msg.body,
@@ -1580,9 +1581,11 @@ function AppContent() {
 
 function App() {
     return (
-        <AuthProvider>
-            <AppContent />
-        </AuthProvider>
+        <ErrorBoundary>
+            <AuthProvider>
+                <AppContent />
+            </AuthProvider>
+        </ErrorBoundary>
     );
 }
 

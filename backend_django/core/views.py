@@ -486,6 +486,44 @@ class SearchUsersView(APIView):
         return Response({'emails': list(users)})
 
 
+class ClientErrorView(APIView):
+    """
+    POST /api/client-errors/
+
+    Receives frontend JavaScript errors and logs them to Cloud Logging.
+    On App Engine, Cloud Error Reporting picks these up automatically.
+    No auth required - errors can happen before/during login.
+    """
+    permission_classes = []  # No auth - errors can happen on login screen
+    throttle_classes = []    # Allow error reports even if throttled
+
+    def post(self, request):
+        import logging
+        logger = logging.getLogger('frontend')
+
+        error_msg = request.data.get('message', 'Unknown frontend error')
+        stack = request.data.get('stack', '')
+        component_stack = request.data.get('componentStack', '')
+        url = request.data.get('url', '')
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+        user_email = ''
+        if request.user and request.user.is_authenticated:
+            user_email = request.user.email
+
+        # Format as a Python-style error so Cloud Error Reporting groups it
+        logger.error(
+            'Frontend error: %s\n'
+            'URL: %s\n'
+            'User: %s\n'
+            'User-Agent: %s\n'
+            'Stack: %s\n'
+            'Component Stack: %s',
+            error_msg, url, user_email, user_agent, stack, component_stack,
+        )
+
+        return Response({'ok': True})
+
+
 class PermissionsView(APIView):
     """
     Get the current user's permissions for the frontend.

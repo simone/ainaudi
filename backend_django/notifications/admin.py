@@ -9,10 +9,11 @@ from .models import Event, Notification, DeviceToken
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ['title', 'start_at', 'end_at', 'status', 'consultazione', 'has_url', 'created_at']
+    list_display = ['title', 'start_at', 'end_at', 'status', 'consultazione', 'has_url', 'has_territory', 'created_at']
     list_filter = ['status', 'consultazione']
     search_fields = ['title', 'description']
     raw_id_fields = ['consultazione']
+    filter_horizontal = ['regioni', 'province', 'comuni']
     readonly_fields = ['id', 'created_at', 'updated_at']
     date_hierarchy = 'start_at'
 
@@ -22,6 +23,10 @@ class EventAdmin(admin.ModelAdmin):
         }),
         (_('Date e link'), {
             'fields': ('start_at', 'end_at', 'external_url')
+        }),
+        (_('Territorio'), {
+            'fields': ('regioni', 'province', 'comuni'),
+            'description': _('Se tutti vuoti, l\'evento è visibile a tutti. Se almeno uno valorizzato, solo gli utenti con sezioni nei territori specificati vedranno l\'evento.'),
         }),
         (_('Stato'), {
             'fields': ('status',)
@@ -36,6 +41,11 @@ class EventAdmin(admin.ModelAdmin):
         return bool(obj.external_url)
     has_url.boolean = True
     has_url.short_description = _('Link')
+
+    def has_territory(self, obj):
+        return obj.has_territory_filter
+    has_territory.boolean = True
+    has_territory.short_description = _('Territorio')
 
 
 @admin.register(Notification)

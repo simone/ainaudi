@@ -49,6 +49,28 @@ class Event(models.Model):
         choices=Status.choices,
         default=Status.ACTIVE
     )
+
+    # Territory filters: if all empty → visible to everyone
+    # If any populated → visible only to users with sections in those territories
+    regioni = models.ManyToManyField(
+        'territory.Regione',
+        blank=True,
+        verbose_name=_('regioni'),
+        help_text=_('Se vuoto, evento visibile a tutti. Se valorizzato, solo utenti con sezioni in queste regioni.')
+    )
+    province = models.ManyToManyField(
+        'territory.Provincia',
+        blank=True,
+        verbose_name=_('province'),
+        help_text=_('Filtro aggiuntivo per province.')
+    )
+    comuni = models.ManyToManyField(
+        'territory.Comune',
+        blank=True,
+        verbose_name=_('comuni'),
+        help_text=_('Filtro aggiuntivo per comuni.')
+    )
+
     created_at = models.DateTimeField(_('creato il'), auto_now_add=True)
     updated_at = models.DateTimeField(_('aggiornato il'), auto_now=True)
 
@@ -77,6 +99,15 @@ class Event(models.Model):
     @property
     def is_live(self):
         return self.temporal_status == 'IN_CORSO'
+
+    @property
+    def has_territory_filter(self):
+        """True if event is restricted to specific territories."""
+        return (
+            self.regioni.exists() or
+            self.province.exists() or
+            self.comuni.exists()
+        )
 
 
 class Notification(models.Model):

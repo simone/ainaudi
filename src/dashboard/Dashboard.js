@@ -318,11 +318,10 @@ function Dashboard({ user, permissions, consultazione, onNavigate, client }) {
 
     return (
         <div className="dashboard">
-            {/* Prossimi Appuntamenti */}
-            {client && <UpcomingItems client={client} onNavigate={onNavigate} />}
-
             {/* Grid delle sezioni principali */}
             <div className="row g-4">
+                {/* Eventi box - first item in the grid */}
+                {client && <UpcomingItems client={client} onNavigate={onNavigate} />}
                 {visibleSections.map((section) => (
                     <div key={section.id} className="col-12 col-md-6 col-xl-4">
                         <div
@@ -435,8 +434,8 @@ function Dashboard({ user, permissions, consultazione, onNavigate, client }) {
 }
 
 /**
- * Upcoming appointments widget for the dashboard.
- * Shows a mixed list of events and assignments.
+ * Events box for the dashboard.
+ * Styled as a card (like other dashboard boxes) with email-template-like event items.
  */
 function UpcomingItems({ client, onNavigate }) {
     const [items, setItems] = useState([]);
@@ -460,81 +459,115 @@ function UpcomingItems({ client, onNavigate }) {
 
     if (loading || items.length === 0) return null;
 
-    const formatDateTime = (dtStr) => {
+    const formatDate = (dtStr) => {
         const dt = new Date(dtStr);
         return dt.toLocaleDateString('it-IT', {
+            weekday: 'short',
             day: 'numeric',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit',
+            month: 'long',
         });
     };
 
+    const formatTime = (dtStr) => {
+        const dt = new Date(dtStr);
+        return dt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    };
+
     const handleClick = (item) => {
-        if (item.type === 'event') {
-            // Navigate to event detail via deep link state
-            window.history.pushState({ tab: 'event-detail' }, '');
-            // We need to set the deep link ID - dispatch a custom event
-            window.dispatchEvent(new CustomEvent('navigate-deep-link', {
-                detail: { type: 'event', id: item.id }
-            }));
-            onNavigate('event-detail');
-        } else {
-            window.dispatchEvent(new CustomEvent('navigate-deep-link', {
-                detail: { type: 'assignment', id: item.id }
-            }));
-            onNavigate('assignment-detail');
-        }
+        window.history.pushState({ tab: 'event-detail' }, '');
+        window.dispatchEvent(new CustomEvent('navigate-deep-link', {
+            detail: { type: 'event', id: item.id }
+        }));
+        onNavigate('event-detail');
     };
 
     return (
-        <div className="mb-4">
-            <h5 className="mb-3">
-                <i className="fas fa-calendar-alt me-2"></i>
-                Prossimi appuntamenti
-            </h5>
-            <div className="list-group">
-                {items.map((item) => (
-                    <button
-                        key={`${item.type}-${item.id}`}
-                        className="list-group-item list-group-item-action d-flex align-items-center"
-                        onClick={() => handleClick(item)}
-                    >
-                        <div className="me-3">
-                            {item.type === 'event' ? (
-                                <i className="fas fa-calendar-alt fa-lg text-primary"></i>
-                            ) : (
-                                <i className="fas fa-map-marker-alt fa-lg text-success"></i>
-                            )}
+        <div className="col-12 mb-4">
+            <div className="card border-0 shadow-sm" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+                {/* Header - gradient like other dashboard boxes */}
+                <div className="dashboard-card-header" style={{
+                    background: 'linear-gradient(135deg, #1B2A5B 0%, #0D1B3E 100%)',
+                }}>
+                    <div className="d-flex justify-content-between align-items-start">
+                        <div className="dashboard-card-icon">
+                            <i className="fas fa-calendar-alt"></i>
                         </div>
-                        <div className="flex-grow-1">
-                            <div className="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <strong>{item.title}</strong>
-                                    {item.subtitle && (
-                                        <div className="small text-muted">{item.subtitle}</div>
-                                    )}
-                                </div>
-                                <div className="text-end ms-2">
-                                    <small className="text-muted">{formatDateTime(item.start_at)}</small>
-                                    {item.is_urgent && (
-                                        <div>
-                                            <span className="badge bg-warning text-dark">Urgente</span>
+                    </div>
+                    <h4 className="mt-3 mb-1 fw-bold">Eventi</h4>
+                    <div className="dashboard-card-extra">
+                        Prossimi appuntamenti
+                    </div>
+                </div>
+
+                {/* Body with event cards */}
+                <div className="card-body" style={{ padding: '20px' }}>
+                    {items.map((item) => {
+                        const isLive = item.temporal_status === 'IN_CORSO';
+                        const hasUrl = !!item.external_url;
+                        const hasConsultazione = item.has_consultazione;
+                        const borderColor = isLive ? '#28a745' : hasConsultazione ? '#1B2A5B' : '#F5A623';
+
+                        return (
+                            <div
+                                key={item.id}
+                                onClick={() => handleClick(item)}
+                                style={{
+                                    background: '#f8f9fa',
+                                    borderRadius: '8px',
+                                    borderLeft: `4px solid ${borderColor}`,
+                                    padding: '14px 16px',
+                                    marginBottom: '12px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                }}
+                                onMouseOver={e => e.currentTarget.style.background = '#eef1f5'}
+                                onMouseOut={e => e.currentTarget.style.background = '#f8f9fa'}
+                            >
+                                <div className="d-flex justify-content-between align-items-start">
+                                    <div className="flex-grow-1">
+                                        <div className="fw-bold" style={{ color: '#1B2A5B', fontSize: '0.95rem' }}>
+                                            {item.title}
                                         </div>
-                                    )}
+                                        {item.subtitle && (
+                                            <div className="text-muted" style={{ fontSize: '0.85rem', marginTop: '2px' }}>
+                                                {item.subtitle}
+                                            </div>
+                                        )}
+                                        <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '6px' }}>
+                                            <i className="fas fa-calendar me-1"></i>
+                                            {formatDate(item.start_at)}
+                                            <span className="mx-2">|</span>
+                                            <i className="fas fa-clock me-1"></i>
+                                            {formatTime(item.start_at)} - {formatTime(item.end_at)}
+                                        </div>
+                                    </div>
+                                    <div className="ms-2 text-end d-flex flex-column align-items-end gap-1">
+                                        {isLive && (
+                                            <span className="badge bg-success">
+                                                <i className="fas fa-broadcast-tower me-1"></i>
+                                                In corso
+                                            </span>
+                                        )}
+                                        {item.temporal_status === 'FUTURO' && item.is_urgent && (
+                                            <span className="badge bg-warning text-dark">Imminente</span>
+                                        )}
+                                        {isLive && hasUrl && (
+                                            <span className="badge bg-success" style={{ fontSize: '0.7rem' }}>
+                                                <i className="fas fa-video me-1"></i>Entra
+                                            </span>
+                                        )}
+                                        {hasConsultazione && (
+                                            <span className="badge bg-primary" style={{ fontSize: '0.7rem' }}>
+                                                <i className="fas fa-vote-yea me-1"></i>Sezioni
+                                            </span>
+                                        )}
+                                        <i className="fas fa-chevron-right text-muted" style={{ fontSize: '0.7rem', marginTop: '4px' }}></i>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="ms-2">
-                            {item.temporal_status === 'IN_CORSO' && (
-                                <span className="badge bg-success">In corso</span>
-                            )}
-                            {item.temporal_status === 'FUTURO' && (
-                                <span className="badge bg-info">In programma</span>
-                            )}
-                        </div>
-                    </button>
-                ))}
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );

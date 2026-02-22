@@ -1,6 +1,8 @@
 """
 Serializers for notifications app.
 """
+from collections import defaultdict
+
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -9,10 +11,25 @@ from data.models import SectionAssignment
 
 
 class EventSerializer(serializers.ModelSerializer):
-    """Full event serializer with computed temporal status."""
+    """Full event serializer with computed temporal status and user sections."""
     temporal_status = serializers.SerializerMethodField()
     consultazione_nome = serializers.CharField(
         source='consultazione.nome', read_only=True, default=None
+    )
+    user_sections = serializers.SerializerMethodField()
+
+    # M2M territory fields (accept lists of PKs)
+    regioni = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Event.regioni.field.related_model.objects.all(),
+        required=False,
+    )
+    province = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Event.province.field.related_model.objects.all(),
+        required=False,
+    )
+    comuni = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Event.comuni.field.related_model.objects.all(),
+        required=False,
     )
 
     class Meta:
@@ -21,6 +38,8 @@ class EventSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'start_at', 'end_at',
             'external_url', 'status', 'temporal_status',
             'consultazione', 'consultazione_nome',
+            'regioni', 'province', 'comuni',
+            'user_sections',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -28,20 +47,78 @@ class EventSerializer(serializers.ModelSerializer):
     def get_temporal_status(self, obj):
         return obj.temporal_status
 
+    def get_user_sections(self, obj):
+        """
+        For events linked to a consultazione, return user's assigned sections
+        grouped by location address.
+        """
+        if not obj.consultazione_id:
+            return []
+
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return []
+
+        assignments = SectionAssignment.objects.filter(
+            consultazione=obj.consultazione,
+            rdl_registration__email=request.user.email,
+        ).select_related(
+            'sezione', 'sezione__comune', 'sezione__municipio',
+        ).order_by('sezione__numero')
+
+        # Group by address (indirizzo + comune)
+        groups = defaultdict(lambda: {
+            'address': '',
+            'location_name': '',
+            'comune': '',
+            'municipio': None,
+            'lat': None,
+            'lng': None,
+            'sections': [],
+        })
+
+        for a in assignments:
+            sez = a.sezione
+            key = (sez.indirizzo or '', sez.comune_id)
+            group = groups[key]
+            group['address'] = sez.indirizzo or ''
+            group['location_name'] = sez.denominazione or ''
+            group['comune'] = sez.comune.nome
+            if sez.municipio:
+                group['municipio'] = sez.municipio.nome
+            if sez.latitudine and sez.longitudine:
+                group['lat'] = float(sez.latitudine)
+                group['lng'] = float(sez.longitudine)
+            group['sections'].append({
+                'id': a.pk,
+                'numero': sez.numero,
+                'role_display': a.get_role_display(),
+                'role': a.role,
+            })
+
+        return list(groups.values())
+
 
 class EventListSerializer(serializers.ModelSerializer):
     """Lightweight event serializer for list views."""
     temporal_status = serializers.SerializerMethodField()
+    has_territory = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
         fields = [
             'id', 'title', 'start_at', 'end_at',
             'external_url', 'status', 'temporal_status',
+            'consultazione',
+            'regioni', 'province', 'comuni',
+            'has_territory',
         ]
 
     def get_temporal_status(self, obj):
         return obj.temporal_status
+
+    def get_has_territory(self, obj):
+        return obj.has_territory_filter
 
 
 class AssignmentSerializer(serializers.ModelSerializer):
@@ -147,9 +224,9 @@ class DeviceTokenSerializer(serializers.ModelSerializer):
 
 class DashboardItemSerializer(serializers.Serializer):
     """
-    Unified serializer for dashboard items (mixed events + assignments).
+    Serializer for dashboard event items.
     """
-    type = serializers.CharField()  # 'event' or 'assignment'
+    type = serializers.CharField()
     id = serializers.CharField()
     title = serializers.CharField()
     subtitle = serializers.CharField(allow_blank=True)
@@ -159,3 +236,4 @@ class DashboardItemSerializer(serializers.Serializer):
     deep_link = serializers.CharField()
     is_urgent = serializers.BooleanField()
     external_url = serializers.CharField(allow_blank=True, default='')
+    has_consultazione = serializers.BooleanField(default=False)

@@ -129,6 +129,12 @@ export default function PwaOnboarding({ onComplete, client }) {
         setPushStatus('requesting');
 
         try {
+            // Check if Notification API is available
+            if (typeof Notification === 'undefined') {
+                setPushStatus('not_configured');
+                return;
+            }
+
             // Check if browser permission is already denied
             if (Notification.permission === 'denied') {
                 setPushStatus('denied');
@@ -151,7 +157,7 @@ export default function PwaOnboarding({ onComplete, client }) {
                 setTimeout(() => handleDismiss(), 2000);
             } else {
                 // Token is null: could be config issue or permission denied
-                if (Notification.permission === 'denied') {
+                if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
                     setPushStatus('denied');
                 } else {
                     // Firebase not configured or other setup issue

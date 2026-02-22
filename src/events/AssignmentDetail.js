@@ -65,10 +65,14 @@ export default function AssignmentDetail({ assignmentId, client }) {
         });
     };
 
-    const mapsUrl = assignment.lat && assignment.lng
-        ? `https://maps.google.com/?q=${assignment.lat},${assignment.lng}`
+    const osmEmbedUrl = assignment.lat && assignment.lng
+        ? `https://www.openstreetmap.org/export/embed.html?bbox=${assignment.lng - 0.003},${assignment.lat - 0.002},${assignment.lng + 0.003},${assignment.lat + 0.002}&layer=mapnik&marker=${assignment.lat},${assignment.lng}`
+        : null;
+
+    const directionsUrl = assignment.lat && assignment.lng
+        ? `https://www.google.com/maps/dir/?api=1&destination=${assignment.lat},${assignment.lng}`
         : assignment.address
-            ? `https://maps.google.com/?q=${encodeURIComponent(assignment.address + ' ' + assignment.comune_nome)}`
+            ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(assignment.address + ' ' + assignment.comune_nome)}`
             : null;
 
     return (
@@ -122,6 +126,36 @@ export default function AssignmentDetail({ assignmentId, client }) {
                     </div>
                 </div>
 
+                {/* Inline OSM Map */}
+                {osmEmbedUrl && (
+                    <div className="mb-3" style={{ borderRadius: '8px', overflow: 'hidden' }}>
+                        <iframe
+                            title={`Mappa ${assignment.address || 'sezione'}`}
+                            width="100%"
+                            height="250"
+                            frameBorder="0"
+                            scrolling="no"
+                            src={osmEmbedUrl}
+                            style={{ display: 'block' }}
+                        />
+                    </div>
+                )}
+
+                {/* Directions link */}
+                {directionsUrl && (
+                    <div className="mb-3">
+                        <a
+                            href={directionsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-outline-primary btn-sm w-100"
+                        >
+                            <i className="fas fa-directions me-2"></i>
+                            Indicazioni
+                        </a>
+                    </div>
+                )}
+
                 {/* Date */}
                 <div className="mb-3">
                     <div className="d-flex align-items-center mb-1">
@@ -150,21 +184,6 @@ export default function AssignmentDetail({ assignmentId, client }) {
                     <div className="alert alert-light mb-3">
                         <i className="fas fa-sticky-note me-2"></i>
                         {assignment.notes}
-                    </div>
-                )}
-
-                {/* Maps CTA */}
-                {mapsUrl && (
-                    <div className="mt-4">
-                        <a
-                            href={mapsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn-primary btn-lg w-100"
-                        >
-                            <i className="fas fa-directions me-2"></i>
-                            Apri in Google Maps
-                        </a>
                     </div>
                 )}
             </div>

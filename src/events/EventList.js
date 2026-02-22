@@ -120,6 +120,7 @@ export default function EventList({ client, consultazione }) {
                                 <th>Data</th>
                                 <th>Stato</th>
                                 <th>Link</th>
+                                <th>Territorio</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -133,7 +134,7 @@ export default function EventList({ client, consultazione }) {
                                         <small>
                                             {formatDate(ev.start_at)}
                                             <br/>
-                                            <span className="text-muted">→ {formatDate(ev.end_at)}</span>
+                                            <span className="text-muted">{formatDate(ev.end_at)}</span>
                                         </small>
                                     </td>
                                     <td>{statusBadge(ev.temporal_status)}</td>
@@ -145,6 +146,15 @@ export default function EventList({ client, consultazione }) {
                                             </a>
                                         ) : (
                                             <span className="text-muted">-</span>
+                                        )}
+                                    </td>
+                                    <td>
+                                        {ev.has_territory ? (
+                                            <span className="badge bg-warning text-dark">
+                                                <i className="fas fa-globe-europe me-1"></i>Filtrato
+                                            </span>
+                                        ) : (
+                                            <span className="text-muted small">Tutti</span>
                                         )}
                                     </td>
                                     <td>

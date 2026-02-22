@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 /**
  * Event create/edit form.
@@ -21,9 +21,22 @@ export default function EventForm({ client, event, consultazione, onSaved, onCan
         external_url: event?.external_url || '',
         consultazione: event?.consultazione || consultazione?.id || '',
         status: event?.status || 'ACTIVE',
+        regioni: event?.regioni || [],
+        province: event?.province || [],
+        comuni: event?.comuni || [],
     });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
+
+    // Territory options
+    const [regioniOptions, setRegioniOptions] = useState([]);
+    const [provinceOptions, setProvinceOptions] = useState([]);
+    const [comuniOptions, setComuniOptions] = useState([]);
+    const [loadingTerritory, setLoadingTerritory] = useState(false);
+
+    // Selected filters for cascading
+    const [selectedRegione, setSelectedRegione] = useState('');
+    const [selectedProvincia, setSelectedProvincia] = useState('');
 
     function toLocalDatetime(isoStr) {
         const dt = new Date(isoStr);
@@ -32,9 +45,70 @@ export default function EventForm({ client, event, consultazione, onSaved, onCan
         return local.toISOString().slice(0, 16);
     }
 
+    // Load regioni on mount
+    useEffect(() => {
+        if (!client?.territory?.regioni) return;
+        client.territory.regioni()
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setRegioniOptions(data);
+                }
+            });
+    }, [client]);
+
+    // Load province when a regione is selected for filtering
+    useEffect(() => {
+        if (!selectedRegione || !client?.territory?.province) {
+            setProvinceOptions([]);
+            return;
+        }
+        client.territory.province(selectedRegione)
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setProvinceOptions(data);
+                }
+            });
+    }, [client, selectedRegione]);
+
+    // Load comuni when a provincia is selected for filtering
+    useEffect(() => {
+        if (!selectedProvincia || !client?.territory?.comuni) {
+            setComuniOptions([]);
+            return;
+        }
+        client.territory.comuni(selectedProvincia)
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setComuniOptions(data);
+                }
+            });
+    }, [client, selectedProvincia]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
+    };
+
+    // Add/remove from M2M arrays
+    const addToList = (field, id, label) => {
+        if (!id) return;
+        const numId = Number(id);
+        setForm(prev => {
+            if (prev[field].includes(numId)) return prev;
+            return { ...prev, [field]: [...prev[field], numId] };
+        });
+    };
+
+    const removeFromList = (field, id) => {
+        setForm(prev => ({
+            ...prev,
+            [field]: prev[field].filter(v => v !== id),
+        }));
+    };
+
+    const getLabel = (options, id) => {
+        const opt = options.find(o => o.id === id);
+        return opt?.nome || opt?.name || `#${id}`;
     };
 
     const handleSubmit = async (e) => {
@@ -147,6 +221,149 @@ export default function EventForm({ client, event, consultazione, onSaved, onCan
                         <small className="text-muted">
                             Se presente, gli utenti vedranno un pulsante "Entra ora" durante l'evento.
                         </small>
+                    </div>
+
+                    {/* Territory filters */}
+                    <div className="mb-3 p-3" style={{ background: '#f8f9fa', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+                        <label className="form-label fw-bold">
+                            <i className="fas fa-globe-europe me-1"></i>
+                            Visibilita' territoriale
+                        </label>
+                        <small className="d-block text-muted mb-3">
+                            Se non selezioni nessun territorio, l'evento sara' visibile a tutti.
+                            Se ne selezioni almeno uno, solo gli utenti con sezioni in quei territori lo vedranno.
+                        </small>
+
+                        {/* Regioni */}
+                        <div className="mb-2">
+                            <label className="form-label small fw-bold mb-1">Regioni</label>
+                            <div className="input-group input-group-sm">
+                                <select
+                                    className="form-select form-select-sm"
+                                    value={selectedRegione}
+                                    onChange={e => setSelectedRegione(e.target.value)}
+                                >
+                                    <option value="">-- Seleziona regione --</option>
+                                    {regioniOptions.map(r => (
+                                        <option key={r.id} value={r.id}>{r.nome}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-primary btn-sm"
+                                    onClick={() => {
+                                        addToList('regioni', selectedRegione);
+                                        // Don't reset selectedRegione - it's useful for province cascade
+                                    }}
+                                    disabled={!selectedRegione}
+                                >
+                                    <i className="fas fa-plus"></i> Aggiungi
+                                </button>
+                            </div>
+                            {form.regioni.length > 0 && (
+                                <div className="mt-1">
+                                    {form.regioni.map(id => (
+                                        <span key={id} className="badge bg-primary me-1 mb-1">
+                                            {getLabel(regioniOptions, id)}
+                                            <button
+                                                type="button"
+                                                className="btn-close btn-close-white ms-1"
+                                                style={{ fontSize: '0.5em' }}
+                                                onClick={() => removeFromList('regioni', id)}
+                                            ></button>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Province */}
+                        <div className="mb-2">
+                            <label className="form-label small fw-bold mb-1">Province</label>
+                            <div className="input-group input-group-sm">
+                                <select
+                                    className="form-select form-select-sm"
+                                    value={selectedProvincia}
+                                    onChange={e => setSelectedProvincia(e.target.value)}
+                                    disabled={!selectedRegione}
+                                >
+                                    <option value="">
+                                        {selectedRegione ? '-- Seleziona provincia --' : '-- Seleziona prima una regione --'}
+                                    </option>
+                                    {provinceOptions.map(p => (
+                                        <option key={p.id} value={p.id}>{p.nome}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-primary btn-sm"
+                                    onClick={() => addToList('province', selectedProvincia)}
+                                    disabled={!selectedProvincia}
+                                >
+                                    <i className="fas fa-plus"></i> Aggiungi
+                                </button>
+                            </div>
+                            {form.province.length > 0 && (
+                                <div className="mt-1">
+                                    {form.province.map(id => (
+                                        <span key={id} className="badge bg-info me-1 mb-1">
+                                            {getLabel(provinceOptions, id)}
+                                            <button
+                                                type="button"
+                                                className="btn-close btn-close-white ms-1"
+                                                style={{ fontSize: '0.5em' }}
+                                                onClick={() => removeFromList('province', id)}
+                                            ></button>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Comuni */}
+                        <div className="mb-0">
+                            <label className="form-label small fw-bold mb-1">Comuni</label>
+                            <div className="input-group input-group-sm">
+                                <select
+                                    className="form-select form-select-sm"
+                                    id="comuni-select"
+                                    disabled={!selectedProvincia}
+                                >
+                                    <option value="">
+                                        {selectedProvincia ? '-- Seleziona comune --' : '-- Seleziona prima una provincia --'}
+                                    </option>
+                                    {comuniOptions.map(c => (
+                                        <option key={c.id} value={c.id}>{c.nome}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-primary btn-sm"
+                                    onClick={() => {
+                                        const sel = document.getElementById('comuni-select');
+                                        addToList('comuni', sel?.value);
+                                    }}
+                                    disabled={!selectedProvincia}
+                                >
+                                    <i className="fas fa-plus"></i> Aggiungi
+                                </button>
+                            </div>
+                            {form.comuni.length > 0 && (
+                                <div className="mt-1">
+                                    {form.comuni.map(id => (
+                                        <span key={id} className="badge bg-success me-1 mb-1">
+                                            {getLabel(comuniOptions, id)}
+                                            <button
+                                                type="button"
+                                                className="btn-close btn-close-white ms-1"
+                                                style={{ fontSize: '0.5em' }}
+                                                onClick={() => removeFromList('comuni', id)}
+                                            ></button>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {isEdit && (

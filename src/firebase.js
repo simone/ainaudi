@@ -68,6 +68,10 @@ export async function requestPushToken() {
     }
 
     try {
+        if (typeof Notification === 'undefined') {
+            console.log('Notification API not available on this device');
+            return null;
+        }
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
             console.log('Notification permission denied');

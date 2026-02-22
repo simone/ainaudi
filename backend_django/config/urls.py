@@ -11,7 +11,7 @@ from core.admin_views import (
     AdminMagicLinkRequestView,
     AdminMagicLinkVerifyView,
 )
-from core.views import PermissionsView
+from core.views import PermissionsView, ClientErrorView
 from data.views import (
     RdlEmailsView,
     RdlSectionsView,
@@ -39,6 +39,9 @@ urlpatterns = [
 
     # Permissions endpoint
     path('api/permissions', PermissionsView.as_view(), name='permissions'),
+
+    # Frontend error reporting → Cloud Logging → Error Reporting
+    path('api/client-errors/', ClientErrorView.as_view(), name='client-errors'),
 
     # RDL assignment endpoints
     path('api/rdl/emails', RdlEmailsView.as_view(), name='rdl-emails'),
