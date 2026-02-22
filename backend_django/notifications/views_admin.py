@@ -98,8 +98,8 @@ class TestNotificationView(APIView):
                 sent += 1
             else:
                 failed += 1
-                device.is_active = False
-                device.save(update_fields=['is_active', 'updated_at'])
+                # Don't deactivate on test - let send_push_to_token handle
+                # token invalidation only for UnregisteredError
 
         logger.info(
             f'Test notification by {request.user.email}: '
