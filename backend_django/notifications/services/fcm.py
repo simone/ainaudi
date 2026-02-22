@@ -146,7 +146,7 @@ def send_push(notification):
             logger.warning(f'Token unregistered, deactivating: {device.token[:20]}...')
             DeviceToken.objects.filter(pk=device.id).update(is_active=False)
 
-        except messaging.InvalidArgumentError as e:
+        except ValueError as e:
             logger.warning(f'Invalid token, deactivating: {device.token[:20]}... ({e})')
             DeviceToken.objects.filter(pk=device.id).update(is_active=False)
 
@@ -196,7 +196,7 @@ def send_push_to_token(token, title, body, data=None, ttl=None):
         logger.info(f'Push sent to token {token[:20]}...')
         return True
 
-    except (messaging.UnregisteredError, messaging.InvalidArgumentError) as e:
+    except (messaging.UnregisteredError, ValueError) as e:
         logger.warning(f'Token invalid ({token[:20]}...): {e}')
         return False
 
