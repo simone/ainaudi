@@ -97,10 +97,21 @@ def send_push(notification):
 
     _init_firebase()
 
+    frontend_url = getattr(settings, 'FRONTEND_URL', '')
     tokens = DeviceToken.objects.filter(
         user=notification.user,
         is_active=True,
+        origin=frontend_url,
     ).values_list('id', 'token', named=True)
+
+    # Fallback: if no tokens match origin, send to all active tokens
+    # (retrocompatibility for tokens saved before origin migration)
+    if not tokens and frontend_url:
+        tokens = DeviceToken.objects.filter(
+            user=notification.user,
+            is_active=True,
+            origin='',
+        ).values_list('id', 'token', named=True)
 
     if not tokens:
         logger.info(f'No active tokens for user {notification.user.email}')

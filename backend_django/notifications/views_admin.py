@@ -6,6 +6,7 @@ and managing events.
 """
 import logging
 
+from django.conf import settings
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -74,7 +75,18 @@ class TestNotificationView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsSuperAdmin]
 
     def post(self, request):
-        tokens = DeviceToken.objects.filter(is_active=True).select_related('user')
+        frontend_url = getattr(settings, 'FRONTEND_URL', '')
+        tokens = DeviceToken.objects.filter(
+            is_active=True,
+            origin=frontend_url,
+        ).select_related('user')
+
+        # Fallback: include tokens without origin (pre-migration)
+        if not tokens.exists() and frontend_url:
+            tokens = DeviceToken.objects.filter(
+                is_active=True,
+                origin='',
+            ).select_related('user')
 
         if not tokens.exists():
             return Response({

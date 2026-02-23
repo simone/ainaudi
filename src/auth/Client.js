@@ -2289,7 +2289,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     'Content-Type': 'application/json',
                     'Authorization': authHeader
                 },
-                body: JSON.stringify({ token, platform })
+                body: JSON.stringify({ token, platform, origin: window.location.origin })
             }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };

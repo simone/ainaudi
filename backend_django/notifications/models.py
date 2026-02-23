@@ -267,6 +267,13 @@ class DeviceToken(models.Model):
         choices=Platform.choices,
         default=Platform.WEB
     )
+    origin = models.CharField(
+        _('origin'),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_('window.location.origin del browser (es. https://ainaudi.it)')
+    )
     is_active = models.BooleanField(_('attivo'), default=True)
     last_seen_at = models.DateTimeField(_('ultimo utilizzo'), null=True, blank=True)
 

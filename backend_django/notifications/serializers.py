@@ -201,13 +201,14 @@ class DeviceTokenSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DeviceToken
-        fields = ['id', 'token', 'platform', 'is_active', 'created_at']
+        fields = ['id', 'token', 'platform', 'origin', 'is_active', 'created_at']
         read_only_fields = ['id', 'is_active', 'created_at']
 
     def create(self, validated_data):
         user = self.context['request'].user
         token = validated_data['token']
         platform = validated_data.get('platform', DeviceToken.Platform.WEB)
+        origin = validated_data.get('origin', '')
 
         # Upsert: update existing or create new
         device_token, created = DeviceToken.objects.update_or_create(
@@ -215,6 +216,7 @@ class DeviceTokenSerializer(serializers.ModelSerializer):
             token=token,
             defaults={
                 'platform': platform,
+                'origin': origin,
                 'is_active': True,
                 'last_seen_at': timezone.now(),
             }
