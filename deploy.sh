@@ -168,6 +168,22 @@ if [ "$SKIP_FRONTEND" = false ]; then
     if [ "$SKIP_BUILD" = false ]; then
         echo -e "${YELLOW}📦 Build frontend React...${NC}"
         npm install
+
+        # Generate firebase-config.js from env var (file is in .gitignore)
+        if [ -n "$VITE_FIREBASE_API_KEY" ]; then
+            echo -e "${YELLOW}🔑 Generating public/firebase-config.js from env...${NC}"
+            cat > public/firebase-config.js << FBEOF
+const FIREBASE_CONFIG = {
+    apiKey: '${VITE_FIREBASE_API_KEY}',
+    authDomain: '${VITE_FIREBASE_AUTH_DOMAIN:-ainaudi.firebaseapp.com}',
+    projectId: '${VITE_FIREBASE_PROJECT_ID:-ainaudi}',
+    storageBucket: '${VITE_FIREBASE_STORAGE_BUCKET:-ainaudi.firebasestorage.app}',
+    messagingSenderId: '${VITE_FIREBASE_MESSAGING_SENDER_ID:-882563906656}',
+    appId: '${VITE_FIREBASE_APP_ID:-1:882563906656:web:e43578aeb49427984b1705}',
+};
+FBEOF
+        fi
+
         npm run build
         echo -e "${GREEN}✅ Build frontend completata${NC}"
     else
@@ -251,6 +267,7 @@ if [ "$SKIP_BACKEND" = false ]; then
         DB_HOST="127.0.0.1" DB_PORT="${PROXY_PORT}" DB_NAME="${DB_NAME_PROD}" \
         DB_USER="${DB_USER_PROD}" DB_PASSWORD="${DB_PASSWORD_PROD}" \
         python3 manage.py migrate --noinput
+        python3 manage.py createcachetable 2>/dev/null || true
 
         # Chiudi proxy
         kill $PROXY_PID 2>/dev/null || true
