@@ -483,6 +483,16 @@ PDF_PREVIEW_EXPIRY_SECONDS = int(os.environ.get('PDF_PREVIEW_EXPIRY_SECONDS', 86
 
 # Redis client: Vedere core/redis_client.py per lazy initialization
 
+# =============================================================================
+# DJANGO CACHE (Redis backend - condiviso tra istanze App Engine)
+# =============================================================================
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': REDIS_URL,
+    }
+}
+
 
 # =============================================================================
 # FIREBASE CLOUD MESSAGING (FCM) - Push Notifications
