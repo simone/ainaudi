@@ -446,6 +446,33 @@ GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
 # EMAIL CONFIGURATION (for Magic Link)
 # =============================================================================
 
+def get_secret_from_manager(secret_id):
+    """
+    Get secret from environment variable or Google Cloud Secret Manager.
+    For production on App Engine, reads from Secret Manager.
+    For local/dev, reads from environment variable.
+    """
+    env_var = f"EMAIL_HOST_{secret_id.upper()}" if secret_id == "password" else f"EMAIL_HOST_USER"
+    value = os.environ.get(env_var, '')
+    if value:
+        return value
+
+    # Try to read from Google Cloud Secret Manager (production)
+    if os.environ.get('GOOGLE_CLOUD_PROJECT'):
+        try:
+            from google.cloud import secretmanager
+            project_id = os.environ.get('GOOGLE_CLOUD_PROJECT')
+            secret_name = f"email-host-{secret_id}"
+            client = secretmanager.SecretManagerServiceClient()
+            name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
+            response = client.access_secret_version(request={"name": name})
+            return response.payload.data.decode("UTF-8")
+        except Exception as e:
+            print(f"Warning: Could not read {secret_name} from Secret Manager: {e}")
+            return ''
+
+    return ''
+
 EMAIL_BACKEND = os.environ.get(
     'EMAIL_BACKEND',
     'django.core.mail.backends.console.EmailBackend'
@@ -453,8 +480,8 @@ EMAIL_BACKEND = os.environ.get(
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_HOST_USER = get_secret_from_manager('user')
+EMAIL_HOST_PASSWORD = get_secret_from_manager('password')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', "AInaudi (M5S) <s.federici+ainaudi@gmail.com>")
 
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
