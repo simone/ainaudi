@@ -476,10 +476,12 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         sub_deleghe = roles['sub_deleghe'].prefetch_related('regioni', 'province', 'comuni')
         delegati = roles['deleghe_lista'].prefetch_related('regioni', 'province', 'comuni')
 
-        # Prendi tutte le SectionAssignment nel territorio
+        # Prendi tutte le SectionAssignment nel territorio (escludendo RDL rifiutati)
         assignments = SectionAssignment.objects.filter(
             sezione_id__in=sezioni_ids,
             consultazione=consultazione
+        ).exclude(
+            rdl_registration__status='REJECTED'
         ).select_related('rdl_registration', 'sezione', 'sezione__comune', 'sezione__comune__provincia', 'sezione__comune__provincia__regione', 'sezione__municipio')
 
         # NUOVO: Raggruppa per sezione: {sezione_id: {'effettivo': rdl, 'supplente': rdl}}
@@ -744,6 +746,8 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         """
         import csv
         import io
+        from campaign.models import RdlRegistration
+        from territory.models import Comune, Municipio
 
         file = request.FILES.get('file')
         if not file:
@@ -780,8 +784,6 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
                     continue
 
                 # Trova sezione
-                from territory.models import Comune, Municipio
-
                 try:
                     comune = Comune.objects.get(nome__iexact=comune_nome)
                 except Comune.DoesNotExist:
@@ -809,6 +811,12 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
                 # Crea designazioni
                 for email, ruolo in [(effettivo_email, 'EFFETTIVO'), (supplente_email, 'SUPPLENTE')]:
                     if not email:
+                        continue
+
+                    # Verifica che l'RDL non sia stato rifiutato
+                    rdl_reg = RdlRegistration.objects.filter(email__iexact=email).first()
+                    if rdl_reg and rdl_reg.status == 'REJECTED':
+                        errors.append(f'Riga {row_num} ({ruolo}): RDL {email} è stato rifiutato e non può essere importato')
                         continue
 
                     # Usa la stessa logica di mappatura()
