@@ -72,8 +72,6 @@ services:
       - backend_media:/app/media
       # Mount secrets directory (contains gcp-credentials.json)
       - ./secrets:/app/secrets:ro
-      # Mount roma sections CSV files for sezioni_2026 updates
-      - ./roma:/app/roma:ro
     ports:
       - "3001:8000"
     depends_on:

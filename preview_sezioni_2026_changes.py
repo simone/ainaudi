@@ -19,7 +19,7 @@ def normalize_address(addr):
     return addr
 
 
-# Read 2025 CSV
+# Read 2025 CSV (still in roma directory)
 sezioni_2025 = {}
 with open('roma/sezioni_2025.csv', 'r', encoding='utf-8') as f:
     reader = csv.DictReader(f)
@@ -32,7 +32,7 @@ with open('roma/sezioni_2025.csv', 'r', encoding='utf-8') as f:
 
 # Read 2026 CSV
 sezioni_2026 = {}
-with open('roma/sezioni_2026.csv', 'r', encoding='utf-8') as f:
+with open('backend_django/fixtures/sezioni_2026.csv', 'r', encoding='utf-8') as f:
     reader = csv.DictReader(f)
     for row in reader:
         num = int(row['numero'])

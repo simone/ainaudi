@@ -19,8 +19,8 @@ class Command(BaseCommand):
         parser.add_argument(
             '--csv-path',
             type=str,
-            default='roma/sezioni_2026.csv',
-            help='Path to sezioni_2026.csv file (relative to project root, or --csv-path ./roma/sezioni_2026.csv if running from backend_django)',
+            default='fixtures/sezioni_2026.csv',
+            help='Path to sezioni_2026.csv file (relative to backend_django directory)',
         )
         parser.add_argument(
             '--delete-removed',
