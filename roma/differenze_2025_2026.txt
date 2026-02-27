@@ -1,0 +1,40 @@
+SEZIONI RIMOSSE nel 2026 (7):
+  Sezione 9001: VIA DEL CASTRO LAURENZIANO, 9A (Municipio 2)
+  Sezione 9002: VIA DEL CASTRO LAURENZIANO, 9A (Municipio 2)
+  Sezione 9003: VIA DEL CASTRO LAURENZIANO, 9A (Municipio 2)
+  Sezione 9004: VIA DEL CASTRO LAURENZIANO, 9A (Municipio 2)
+  Sezione 9005: VIA DEL CASTRO LAURENZIANO, 9A (Municipio 2)
+  Sezione 9006: VIA DEL CASTRO LAURENZIANO, 9A (Municipio 2)
+  Sezione 9007: VIA DEL CASTRO LAURENZIANO, 9A (Municipio 2)
+
+SEZIONI CON DIFFERENZE (30):
+
+Nel municipio 1:
+  - le sezioni 1714, 1715, 1717 hanno cambiato via da VIA DEI GENOVESI, 30B a VIA DELLA MADONNA DELL'ORTO N. 2
+
+Nel municipio 2:
+  - la sezione 2571 ha cambiato via e municipio, stava in VIA GIOVANNI MARTINOTTI, 20 nel municipio 14 e ora si trova in VIALE DEL POLICLINICO N. 155 nel municipio 2
+
+Nel municipio 4:
+  - le sezioni 173, 174, 175 hanno cambiato via da VIA ACHILLE TEDESCHI, 85 a VIA DEL TUFO N. 27A
+
+Nel municipio 6:
+  - la sezione 2569 ha cambiato via e municipio, stava in VIALE DEL POLICLINICO, 155 nel municipio 2 e ora si trova in VIA LUIGI GASTINELLI N. 58 nel municipio 6
+
+Nel municipio 11:
+  - le sezioni 1927, 1928, 1929, 1931, 1932 hanno cambiato via da VIA DELLE VIGNE, 190 a VIA MARINO MAZZACURATI N. 86
+
+Nel municipio 12:
+  - le sezioni 1393, 1394, 1395, 1396 hanno cambiato via da VIA ANTON GIULIO BARRILI, 15 a VIA ANTON GIULIO BARRILI N. 13
+  - le sezioni 2071, 2072, 2073, 2074, 2075, 2554 hanno cambiato via da VIA GIUSEPPE MONTESANO, 6 a VIA ILDEBRANDO DELLA GIOVANNA N. 127
+  - le sezioni 2280 hanno cambiato via da VIA GIUSEPPE VANNI, 7 a VIA ILDEBRANDO DELLA GIOVANNA N. 127
+
+Nel municipio 13:
+  - la sezione 2097 ha cambiato via da VIA GIUSEPPE VANNI, 7 a VIA ILDEBRANDO DELLA GIOVANNA N. 127
+
+Nel municipio 14:
+  - la sezione 2579 ha cambiato via e municipio, stava in VIALE OXFORD, 81 nel municipio 6 e ora si trova in VIA GIOVANNI MARTINOTTI N. 20 nel municipio 14
+
+Nel municipio 15:
+  - le sezioni 2405, 2475, 2476, 2477 hanno cambiato via da VIA DELL'ISOLA FARNESE, 233 a LARGO CESARE VICO LODOVICI N. 9
+
