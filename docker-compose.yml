@@ -39,6 +39,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: ainaudi_backend
     restart: unless-stopped
+    env_file: backend_django/.env
     environment:
       - DEBUG=True
       - DJANGO_SECRET_KEY=dev-secret-key-change-in-production
@@ -58,13 +59,6 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       # Firebase push notifications (service account for project "ainaudi")
       - FIREBASE_CREDENTIALS_PATH=/app/secrets/firebase-credentials.json
-      - EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
-      - EMAIL_HOST=smtp.gmail.com
-      - EMAIL_PORT=587
-      - EMAIL_USE_TLS=True
-      - EMAIL_HOST_USER=
-      - EMAIL_HOST_PASSWORD=
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-"AINAUDI (M5S) - Simone Federici <s.federici@gmail.com>"}
       # Feature Flags
       - FEATURE_MAGIC_LINK=true
       - FEATURE_AI_ASSISTANT=${FEATURE_AI_ASSISTANT:-true}
@@ -78,6 +72,8 @@ services:
       - backend_media:/app/media
       # Mount secrets directory (contains gcp-credentials.json)
       - ./secrets:/app/secrets:ro
+      # Mount roma sections CSV files for sezioni_2026 updates
+      - ./roma:/app/roma:ro
     ports:
       - "3001:8000"
     depends_on:

@@ -16,17 +16,11 @@ class Command(BaseCommand):
     help = 'Update electoral sections from 2026 CSV (indirizzo and municipio)'
 
     def add_arguments(self, parser):
-        # Calcola il percorso di default (roma/sezioni_2026.csv nella root del progetto)
-        # __file__ = .../backend_django/territory/management/commands/update_sezioni_2026.py
-        # Risalire: commands -> management -> territory -> backend_django -> root
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
-        default_csv = os.path.join(project_root, 'roma', 'sezioni_2026.csv')
-
         parser.add_argument(
             '--csv-path',
             type=str,
-            default=default_csv,
-            help=f'Path to sezioni_2026.csv file (default: {default_csv})',
+            default='roma/sezioni_2026.csv',
+            help='Path to sezioni_2026.csv file (relative to project root, or --csv-path ./roma/sezioni_2026.csv if running from backend_django)',
         )
         parser.add_argument(
             '--delete-removed',
