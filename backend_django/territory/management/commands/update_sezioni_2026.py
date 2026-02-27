@@ -6,6 +6,7 @@ Updates municipio and indirizzo for changed sections, deletes removed sections.
 """
 
 import csv
+import os
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from territory.models import SezioneElettorale, Comune, Municipio
@@ -15,11 +16,17 @@ class Command(BaseCommand):
     help = 'Update electoral sections from 2026 CSV (indirizzo and municipio)'
 
     def add_arguments(self, parser):
+        # Calcola il percorso di default (roma/sezioni_2026.csv nella root del progetto)
+        # __file__ = .../backend_django/territory/management/commands/update_sezioni_2026.py
+        # Risalire: commands -> management -> territory -> backend_django -> root
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+        default_csv = os.path.join(project_root, 'roma', 'sezioni_2026.csv')
+
         parser.add_argument(
             '--csv-path',
             type=str,
-            default='roma/sezioni_2026.csv',
-            help='Path to sezioni_2026.csv file',
+            default=default_csv,
+            help=f'Path to sezioni_2026.csv file (default: {default_csv})',
         )
         parser.add_argument(
             '--delete-removed',

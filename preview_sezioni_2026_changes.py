@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Preview of changes for sezioni_2026 update.
-Shows what would be updated without requiring database connection.
+Preview of changes for ROMA sezioni_2026 update.
+Shows what would be updated in Roma without requiring database connection.
+This only updates sections in Roma (Comune: ROMA), not other cities.
 """
 
 import csv
