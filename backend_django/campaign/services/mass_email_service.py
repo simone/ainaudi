@@ -122,8 +122,10 @@ def get_recipients_info(template_id, filters, consultazione_id=None):
 
     qs = RdlRegistration.objects.all()
 
-    if consultazione_id:
-        qs = qs.filter(consultazione_id=consultazione_id)
+    # Default: only APPROVED RDLs (unless status explicitly specified)
+    status_filter = filters.get('status', 'APPROVED')
+    if status_filter:
+        qs = qs.filter(status=status_filter)
 
     # Filtri territorio
     if filters.get('comune'):
@@ -134,11 +136,6 @@ def get_recipients_info(template_id, filters, consultazione_id=None):
         qs = qs.filter(comune__provincia__regione_id=filters['regione'])
     if filters.get('provincia'):
         qs = qs.filter(comune__provincia_id=filters['provincia'])
-
-    # Filtro stato
-    status_filter = filters.get('status', '')
-    if status_filter:
-        qs = qs.filter(status=status_filter)
 
     total = qs.count()
 
@@ -182,8 +179,10 @@ def send_mass_email_batch(template_id, filters, user_email, consultazione_id=Non
     # Build queryset destinatari
     qs = RdlRegistration.objects.select_related('comune', 'municipio')
 
-    if consultazione_id:
-        qs = qs.filter(consultazione_id=consultazione_id)
+    # Default: only APPROVED RDLs (unless status explicitly specified)
+    status_filter = filters.get('status', 'APPROVED')
+    if status_filter:
+        qs = qs.filter(status=status_filter)
 
     if filters.get('comune'):
         qs = qs.filter(comune_id=filters['comune'])
@@ -193,10 +192,6 @@ def send_mass_email_batch(template_id, filters, user_email, consultazione_id=Non
         qs = qs.filter(comune__provincia__regione_id=filters['regione'])
     if filters.get('provincia'):
         qs = qs.filter(comune__provincia_id=filters['provincia'])
-
-    status_filter = filters.get('status', '')
-    if status_filter:
-        qs = qs.filter(status=status_filter)
 
     # Escludi RDL già inviate per questo template
     already_sent_ids = set(
@@ -285,8 +280,10 @@ def _worker_send_mass_email(task_id, template_id, filters, user_email, consultaz
         # Build queryset
         qs = RdlRegistration.objects.select_related('comune', 'municipio')
 
-        if consultazione_id:
-            qs = qs.filter(consultazione_id=consultazione_id)
+        # Default: only APPROVED RDLs (unless status explicitly specified)
+        status_filter = filters.get('status', 'APPROVED')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
 
         if filters.get('comune'):
             qs = qs.filter(comune_id=filters['comune'])
@@ -296,10 +293,6 @@ def _worker_send_mass_email(task_id, template_id, filters, user_email, consultaz
             qs = qs.filter(comune__provincia__regione_id=filters['regione'])
         if filters.get('provincia'):
             qs = qs.filter(comune__provincia_id=filters['provincia'])
-
-        status_filter = filters.get('status', '')
-        if status_filter:
-            qs = qs.filter(status=status_filter)
 
         # Exclude already sent
         already_sent_ids = set(
