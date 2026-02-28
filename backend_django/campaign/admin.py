@@ -196,7 +196,10 @@ class RdlRegistrationAdmin(admin.ModelAdmin):
     approve_selected.short_description = _('Approva selezionati')
 
     def reject_selected(self, request, queryset):
-        count = queryset.filter(status='PENDING').update(status='REJECTED')
+        count = 0
+        for reg in queryset.filter(status='PENDING'):
+            reg.reject(request.user)
+            count += 1
         self.message_user(request, f'{count} registrazioni rifiutate.')
     reject_selected.short_description = _('Rifiuta selezionati')
 

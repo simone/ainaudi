@@ -2041,22 +2041,19 @@ class RdlRegistrationApproveView(APIView):
                 rdl_registration=registration
             ).delete()[0]
 
-            # 2. Cancella utente e relativi RoleAssignment
+            # 2. Revoca accesso RDL (disattiva RoleAssignment e rimuove dal gruppo)
+            registration.withdraw()
+
+            # 3. Se l'utente non ha più nessun ruolo, cancellalo opzionalmente
             from core.models import User
             deleted_user = False
             try:
                 user = User.objects.get(email=registration.email.lower())
-                # Cancella solo i RoleAssignment RDL per questo utente
-                RoleAssignment.objects.filter(user=user, role='RDL').delete()
-                # Se l'utente non ha più nessun ruolo, cancellalo
                 if not user.role_assignments.exists():
                     user.delete()
                     deleted_user = True
             except User.DoesNotExist:
                 pass
-
-            # 3. Metti in REJECTED con motivo "Ritirato"
-            registration.reject(request.user, 'Ritirato')
 
             return Response({
                 'success': True,
