@@ -26,7 +26,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-change-me-in-p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,ainaudi.it,www.ainaudi.it').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,ainaudi.it,www.ainaudi.it,ainaudi-prod.appspot.com').split(',')
 
 # CSRF settings
 CSRF_TRUSTED_ORIGINS = os.environ.get(
@@ -557,7 +557,7 @@ else:
         EMAIL_HOST_PASSWORD = ''
         _email_status = "⚠️  Console (Debug)"
 
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@ainaudi.it')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'AINAUDI (M5S) <noreply@ainaudi.it>')
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
 # AWS SES Configuration for django-ses

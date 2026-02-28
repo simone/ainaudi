@@ -78,7 +78,7 @@ DB_PASSWORD=<strong-password>
 
 # Django
 DJANGO_SECRET_KEY=<generate-with-django-generate-secret-key>
-ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+ALLOWED_HOSTS=ainaudi.it,www.ainaudi.it,ainaudi-prod.appspot.com
 CORS_ALLOWED_ORIGINS=https://yourdomain.com
 CSRF_TRUSTED_ORIGINS=https://yourdomain.com
 FRONTEND_URL=https://yourdomain.com
