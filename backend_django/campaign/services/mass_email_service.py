@@ -160,9 +160,84 @@ def get_recipients_info(template_id, filters, consultazione_id=None):
     }
 
 
+def send_mass_email_batch(template_id, filters, user_email, consultazione_id=None, batch_size=50):
+    """
+    Invia un batch di email (max 50) sincronamente.
+
+    Returns:
+        {
+            'sent': numero email inviate in questo batch,
+            'remaining': numero email ancora da inviare,
+            'total': numero totale destinatari
+        }
+    """
+    from campaign.models import RdlRegistration, EmailTemplate, MassEmailLog
+
+    # Recupera template
+    try:
+        template = EmailTemplate.objects.get(id=template_id)
+    except EmailTemplate.DoesNotExist:
+        return {'sent': 0, 'remaining': 0, 'total': 0, 'error': 'Template non trovato'}
+
+    # Build queryset destinatari
+    qs = RdlRegistration.objects.select_related('comune', 'municipio')
+
+    if consultazione_id:
+        qs = qs.filter(consultazione_id=consultazione_id)
+
+    if filters.get('comune'):
+        qs = qs.filter(comune_id=filters['comune'])
+    if filters.get('municipio'):
+        qs = qs.filter(municipio_id=filters['municipio'])
+    if filters.get('regione'):
+        qs = qs.filter(comune__provincia__regione_id=filters['regione'])
+    if filters.get('provincia'):
+        qs = qs.filter(comune__provincia_id=filters['provincia'])
+
+    status_filter = filters.get('status', '')
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+
+    # Escludi RDL già inviate per questo template
+    already_sent_ids = set(
+        MassEmailLog.objects.filter(
+            template_id=template_id,
+        ).values_list('rdl_registration_id', flat=True)
+    )
+
+    # Filtra destinatari da inviare
+    recipients_to_send = [rdl for rdl in qs if rdl.id not in already_sent_ids]
+    total_recipients = len(recipients_to_send)
+
+    # Invia batch (max 50)
+    batch = recipients_to_send[:batch_size]
+    sent = 0
+    failed = 0
+
+    for rdl in batch:
+        success = _send_single_email(template, rdl, user_email)
+        if success:
+            sent += 1
+        else:
+            failed += 1
+
+        # Rate limiting: 14 email/sec per SES quota
+        time.sleep(1/14)
+
+    remaining = total_recipients - len(already_sent_ids) - sent
+
+    logger.info(f"Batch email: {sent} sent, {remaining} remaining (template: {template.nome})")
+
+    return {
+        'sent': sent,
+        'remaining': max(0, remaining),
+        'total': total_recipients,
+    }
+
+
 def send_mass_email_async(template_id, filters, user_email, consultazione_id=None):
     """
-    Avvia invio asincrono email di massa.
+    Avvia invio asincrono email di massa (LEGACY - per backward compatibility).
     Ritorna task_id per tracking progress.
     """
     task_id = f"mass_email_{template_id}_{uuid.uuid4().hex[:8]}"
