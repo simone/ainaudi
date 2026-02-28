@@ -50,11 +50,11 @@ for num in sorted(set(sezioni_2025.keys()) & set(sezioni_2026.keys())):
     s2025 = sezioni_2025[num]
     s2026 = sezioni_2026[num]
 
-    # Normalize for comparison
+    # Normalize for comparison (ignore format differences like comma vs "N.")
     via_2025_norm = normalize_address(s2025['via'])
     via_2026_norm = normalize_address(s2026['via'])
 
-    # Check for changes
+    # Check for real changes (compare normalized addresses)
     via_changed = via_2025_norm != via_2026_norm
     mun_changed = s2025['municipio'] != s2026['municipio']
 

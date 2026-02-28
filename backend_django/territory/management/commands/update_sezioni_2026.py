@@ -7,9 +7,23 @@ Updates municipio and indirizzo for changed sections, deletes removed sections.
 
 import csv
 import os
+import re
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from territory.models import SezioneElettorale, Comune, Municipio
+
+
+def normalize_address(addr):
+    """Normalize address for comparison (ignore format differences)."""
+    if not addr:
+        return ""
+    # Convert to uppercase
+    addr = addr.upper().strip()
+    # Remove multiple spaces
+    addr = re.sub(r'\s+', ' ', addr)
+    # Normalize separators: "VIA XX, 123" → "VIA XX N. 123"
+    addr = re.sub(r',\s*(\d+)', r' N. \1', addr)
+    return addr
 
 
 class Command(BaseCommand):
@@ -84,10 +98,12 @@ class Command(BaseCommand):
             needs_update = False
             changes = {}
 
-            # Check indirizzo
+            # Check indirizzo (normalize for comparison)
             current_via = sezione.indirizzo or ''
             new_via = csv_data['via']
-            if current_via.upper() != new_via.upper():
+            current_via_norm = normalize_address(current_via)
+            new_via_norm = normalize_address(new_via)
+            if current_via_norm != new_via_norm:
                 needs_update = True
                 changes['indirizzo'] = (current_via, new_via)
 
