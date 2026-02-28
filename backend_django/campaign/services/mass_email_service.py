@@ -257,8 +257,8 @@ def _worker_send_mass_email(task_id, template_id, filters, user_email, consultaz
                 'failed': str(failed),
             })
 
-            # Rate limiting: 5 email/sec
-            time.sleep(0.2)
+            # Rate limiting: 14 email/sec (AWS SES approved limit)
+            time.sleep(1/14)  # ~0.071 seconds
 
         r.hset(task_id, 'status', 'SUCCESS')
         r.expire(task_id, 86400)

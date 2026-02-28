@@ -151,8 +151,8 @@ class RDLEmailService:
                 r.hset(task_id, 'sent', str(sent))
                 r.hset(task_id, 'failed', str(failed))
 
-                # Rate limiting: 5 email/sec (0.2s interval)
-                time.sleep(0.2)
+                # Rate limiting: 14 email/sec (AWS SES approved limit)
+                time.sleep(1/14)  # ~0.071 seconds
 
             # Salva log nel database
             for log_data in logs:
