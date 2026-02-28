@@ -65,7 +65,9 @@ def geocode_rdl_on_save(sender, instance, created, update_fields, **kwargs):
 
     if already_geocoded and not address_changed:
         # Address unchanged: skip geocoding, but refresh sezioni_vicine if empty
-        if not instance.sezioni_vicine:
+        # or if _force_recalculate_sezioni_vicine flag is set
+        force_recalc = getattr(instance, '_force_recalculate_sezioni_vicine', False)
+        if not instance.sezioni_vicine or force_recalc:
             sezioni_vicine = _find_sezioni_vicine(
                 instance.comune_id,
                 float(instance.latitudine),
@@ -76,8 +78,9 @@ def geocode_rdl_on_save(sender, instance, created, update_fields, **kwargs):
                     sezioni_vicine=sezioni_vicine,
                 )
                 logger.info(
-                    "RDL %s: refreshed sezioni_vicine (%d plessi)",
+                    "RDL %s: refreshed sezioni_vicine (%d plessi%s)",
                     instance.pk, len(sezioni_vicine),
+                    ' [forced]' if force_recalc else '',
                 )
         return
 

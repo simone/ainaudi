@@ -99,8 +99,10 @@ class Command(BaseCommand):
             return
 
         # Aggiorna i RDL (scatena il post_save signal che ricalcola i plessi)
+        # Setta il flag per forzare il ricalcolo nel signal
         updated = 0
         for i, rdl in enumerate(rdl_da_aggiornare, 1):
+            rdl._force_recalculate_sezioni_vicine = True
             rdl.save()
             updated += 1
             if i % 50 == 0:

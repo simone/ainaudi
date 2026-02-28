@@ -54,6 +54,9 @@ class Command(BaseCommand):
 
         updated = 0
         for i, rdl in enumerate(qs.iterator(), 1):
+            # Se --force, setta il flag per forzare il ricalcolo nel signal
+            if force:
+                rdl._force_recalculate_sezioni_vicine = True
             rdl.save()
             updated += 1
             if i % 50 == 0:
