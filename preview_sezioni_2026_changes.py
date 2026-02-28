@@ -6,17 +6,6 @@ This only updates sections in Roma (Comune: ROMA), not other cities.
 """
 
 import csv
-import re
-
-
-def normalize_address(addr):
-    """Normalize for comparison."""
-    if not addr:
-        return ""
-    addr = addr.upper().strip()
-    addr = re.sub(r'\s+', ' ', addr)
-    addr = re.sub(r',\s*(\d+)', r' N. \1', addr)
-    return addr
 
 
 # Read 2025 CSV (still in roma directory)
@@ -50,12 +39,8 @@ for num in sorted(set(sezioni_2025.keys()) & set(sezioni_2026.keys())):
     s2025 = sezioni_2025[num]
     s2026 = sezioni_2026[num]
 
-    # Normalize for comparison (ignore format differences like comma vs "N.")
-    via_2025_norm = normalize_address(s2025['via'])
-    via_2026_norm = normalize_address(s2026['via'])
-
-    # Check for real changes (compare normalized addresses)
-    via_changed = via_2025_norm != via_2026_norm
+    # Check for changes (case-insensitive comparison)
+    via_changed = s2025['via'].upper() != s2026['via'].upper()
     mun_changed = s2025['municipio'] != s2026['municipio']
 
     if via_changed or mun_changed:
