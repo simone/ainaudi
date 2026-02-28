@@ -17,8 +17,8 @@ env_variables:
   DB_USER: "postgres"
 
   # CORS & CSRF Security
-  CORS_ALLOWED_ORIGINS: "https://ainaudi-prod.appspot.com"
-  CSRF_TRUSTED_ORIGINS: "https://ainaudi-prod.appspot.com"
+  CORS_ALLOWED_ORIGINS: "https://ainaudi.it"
+  CSRF_TRUSTED_ORIGINS: "https://ainaudi.it"
 
   # Feature Flags
   FEATURE_AI_ASSISTANT: "true"

@@ -23,8 +23,8 @@ env_variables:
   GS_DEFAULT_ACL: "publicRead"
 
   # CORS & CSRF Security
-  CORS_ALLOWED_ORIGINS: "https://ainaudi-prod.appspot.com"
-  CSRF_TRUSTED_ORIGINS: "https://ainaudi-prod.appspot.com"
+  CORS_ALLOWED_ORIGINS: "https://ainaudi.it"
+  CSRF_TRUSTED_ORIGINS: "https://ainaudi.it"
 
 # No static file handlers (API-only)
 handlers:

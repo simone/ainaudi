@@ -62,7 +62,7 @@ EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
         - Sez. 2: Via Milano 2, Roma
         - Sez. 3: Via Napoli 3, Roma
    Subject: Conferma Designazione RDL - Referendum 2025
-   From: AINAUDI (M5S) - Simone Federici <s.federici@gmail.com>
+   From: AINAUDI (M5S) <noreply@ainaudi.it>
    Backend EMAIL: django.core.mail.backends.console.EmailBackend
    ================================================================================
    ✅ Email inviata con successo a mario.rossi@example.com (EFFETTIVO)

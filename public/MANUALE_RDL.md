@@ -40,7 +40,7 @@ AInaudi è l'applicazione ufficiale del Movimento 5 Stelle per:
 ### 1. Primo Accesso
 
 1. **Apri il browser** sul tuo smartphone, tablet o computer
-2. Vai su: `https://ainaudi-prod.appspot.com`
+2. Vai su: `https://ainaudi.it`
 3. Inserisci la tua **email** (quella con cui sei stato registrato)
 4. Clicca su **"Invia Magic Link"**
 

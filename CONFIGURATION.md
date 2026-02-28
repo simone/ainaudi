@@ -106,7 +106,7 @@ EMAIL_HOST_PASSWORD=SG.xxxxxxxxxxxxxxxxxxxxxxxx
 
 ```bash
 # Con display name (raccomandato)
-DEFAULT_FROM_EMAIL="AINAUDI (M5S) - Simone Federici <s.federici@gmail.com>"
+DEFAULT_FROM_EMAIL="AINAUDI (M5S) <noreply@ainaudi.it>"
 
 # Solo email
 DEFAULT_FROM_EMAIL=s.federici@gmail.com
