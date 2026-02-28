@@ -446,7 +446,7 @@ GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
 # EMAIL CONFIGURATION (for Magic Link)
 # =============================================================================
 
-def get_secret_from_manager(secret_id):
+def controget_secret_from_manager(secret_id):
     """
     Get secret from environment variable or Google Cloud Secret Manager.
     For production on App Engine, reads from Secret Manager.
@@ -473,19 +473,102 @@ def get_secret_from_manager(secret_id):
 
     return ''
 
-EMAIL_BACKEND = os.environ.get(
-    'EMAIL_BACKEND',
-    'django.core.mail.backends.console.EmailBackend'
-)
-EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
-EMAIL_HOST_USER = get_secret_from_manager('user')
-EMAIL_HOST_PASSWORD = get_secret_from_manager('password')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', "AInaudi (M5S) <s.federici+ainaudi@gmail.com>")
+# Email Configuration - Gmail + SES + Fallback
+# Strategy: Try SES first, fallback to Gmail, then Console for debugging
 
+# 1. Try to load AWS credentials for SES
+_aws_key = os.environ.get('AWS_ACCESS_KEY_ID', '')
+_aws_secret = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
+
+if not _aws_key and os.environ.get('GOOGLE_CLOUD_PROJECT'):
+    try:
+        from google.cloud import secretmanager
+        project_id = os.environ.get('GOOGLE_CLOUD_PROJECT')
+        client = secretmanager.SecretManagerServiceClient()
+        try:
+            name = f"projects/{project_id}/secrets/email-host-user/versions/latest"
+            response = client.access_secret_version(request={"name": name})
+            _aws_key = response.payload.data.decode("UTF-8").strip()
+        except Exception:
+            pass
+        try:
+            name = f"projects/{project_id}/secrets/email-host-password/versions/latest"
+            response = client.access_secret_version(request={"name": name})
+            _aws_secret = response.payload.data.decode("UTF-8").strip()
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+# Set AWS env vars for botocore to find them
+if _aws_key:
+    os.environ['AWS_ACCESS_KEY_ID'] = _aws_key
+if _aws_secret:
+    os.environ['AWS_SECRET_ACCESS_KEY'] = _aws_secret
+# Force region to eu-west-3 for SES
+os.environ['AWS_SES_REGION_NAME'] = 'eu-west-3'
+os.environ['AWS_SES_REGION_ENDPOINT'] = 'email.eu-west-3.amazonaws.com'
+
+# 2. Configure backend based on available credentials
+if _aws_key and _aws_secret:
+    # Try SES first
+    EMAIL_BACKEND = 'django_ses.SESBackend'
+    EMAIL_HOST = 'email-smtp.eu-west-3.amazonaws.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = _aws_key
+    EMAIL_HOST_PASSWORD = _aws_secret
+    _email_status = "✅ AWS SES"
+else:
+    # Fallback to Gmail SMTP (forward to s.federici@gmail.com)
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = 's.federici@gmail.com'
+    # Gmail App Password for SMTP
+    _gmail_password = os.environ.get('GMAIL_APP_PASSWORD', '')
+    if not _gmail_password and os.environ.get('GOOGLE_CLOUD_PROJECT'):
+        try:
+            from google.cloud import secretmanager
+            project_id = os.environ.get('GOOGLE_CLOUD_PROJECT')
+            client = secretmanager.SecretManagerServiceClient()
+            try:
+                name = f"projects/{project_id}/secrets/gmail-app-password/versions/latest"
+                response = client.access_secret_version(request={"name": name})
+                _gmail_password = response.payload.data.decode("UTF-8").strip()
+            except Exception:
+                # If no Gmail password, use Console
+                _gmail_password = None
+        except Exception:
+            _gmail_password = None
+
+    if _gmail_password:
+        EMAIL_HOST_PASSWORD = _gmail_password
+        EMAIL_HOST_USER = 's.federici@gmail.com'
+        _email_status = "✅ Gmail SMTP"
+    else:
+        # Ultimate fallback: Console backend
+        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+        EMAIL_HOST = 'localhost'
+        EMAIL_PORT = 1025
+        EMAIL_USE_TLS = False
+        EMAIL_HOST_USER = ''
+        EMAIL_HOST_PASSWORD = ''
+        _email_status = "⚠️  Console (Debug)"
+
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@ainaudi.it')
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
+# AWS SES Configuration for django-ses
+AWS_SES_REGION_NAME = os.environ.get('AWS_SES_REGION_NAME', 'eu-west-3')
+AWS_SES_REGION_ENDPOINT = os.environ.get('AWS_SES_REGION_ENDPOINT', 'email.eu-west-3.amazonaws.com')
+
+# django-ses uses these settings
+AWS_SES = {
+    'region': AWS_SES_REGION_NAME,
+    'endpoint_url': f'https://{AWS_SES_REGION_ENDPOINT}',
+}
 
 # =============================================================================
 # MAGIC LINK SETTINGS

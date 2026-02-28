@@ -253,6 +253,14 @@ Movimento 5 Stelle
         '''.strip()
 
         try:
+            import logging
+            logger = logging.getLogger(__name__)
+
+            # Log email configuration for debugging
+            logger.info(f"Email Backend: {settings.EMAIL_BACKEND}")
+            logger.info(f"Email Host: {settings.EMAIL_HOST}:{settings.EMAIL_PORT}")
+            logger.info(f"Email From: {settings.DEFAULT_FROM_EMAIL}")
+
             send_mail(
                 subject=f'🔐 Accesso AInaudi - {consultazione_nome}',
                 message=text_message,
@@ -261,9 +269,16 @@ Movimento 5 Stelle
                 fail_silently=False,
                 html_message=html_message,
             )
+            logger.info(f"✅ Magic link email sent to {email}")
         except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"❌ Error sending magic link email: {type(e).__name__}: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+
             return Response(
-                {'error': f'Errore invio email: {str(e)}'},
+                {'error': f'Errore invio email: {type(e).__name__}. Contatta l\'amministratore.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

@@ -21,9 +21,9 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
     console.log('[SW] Background message received:', payload);
 
-    const notificationTitle = payload.notification?.title || 'AInaudi';
+    const notificationTitle = payload.data?.title || 'AInaudi';
     const notificationOptions = {
-        body: payload.notification?.body || '',
+        body: payload.data?.body || '',
         icon: '/icon-192.png',
         badge: '/icon-192.png',
         data: payload.data || {},

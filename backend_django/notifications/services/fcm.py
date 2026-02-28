@@ -169,19 +169,7 @@ def send_push(notification):
 
 def send_push_to_token(token, title, body, data=None, ttl=None):
     """
-    Send a push notification to a single FCM token.
-
-    Used for test notifications and direct sends without a Notification model.
-
-    Args:
-        token: FCM registration token string
-        title: notification title
-        body: notification body
-        data: optional dict of data payload
-        ttl: optional time-to-live in seconds (notification expires after this)
-
-    Returns:
-        bool: True if sent successfully, False if token is invalid
+    Send a data-only push notification to a single FCM token (Web PWA safe).
     """
     _init_firebase()
 
@@ -192,22 +180,20 @@ def send_push_to_token(token, title, body, data=None, ttl=None):
         return False
 
     try:
-        webpush_config = {}
+        headers = {}
         if ttl is not None:
-            webpush_config['headers'] = {'TTL': str(ttl)}
-
-        webpush_notification = messaging.WebpushNotification(
-            title=title,
-            body=body,
-            icon='/icon-192.png',
-        )
-        webpush_config['notification'] = webpush_notification
+            headers["TTL"] = str(ttl)
 
         message = messaging.Message(
-            notification=messaging.Notification(title=title, body=body),
-            data={k: str(v) for k, v in (data or {}).items()},
+            data={
+                "title": title,
+                "body": body,
+                **{k: str(v) for k, v in (data or {}).items()}
+            },
             token=token,
-            webpush=messaging.WebpushConfig(**webpush_config),
+            webpush=messaging.WebpushConfig(
+                headers=headers
+            )
         )
 
         messaging.send(message)

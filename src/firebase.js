@@ -111,20 +111,18 @@ export async function requestPushToken() {
 export function onForegroundMessage(callback) {
     let unsubscribe = () => {};
 
-    // Initialize async, then register listener
     initFirebase().then((msg) => {
         if (!msg) return;
         unsubscribe = onMessage(msg, (payload) => {
             console.log('Foreground message received:', payload);
             callback({
-                title: payload.notification?.title || '',
-                body: payload.notification?.body || '',
+                title: payload.data?.title || '',
+                body: payload.data?.body || '',
                 data: payload.data || {},
             });
         });
         console.log('FCM foreground listener registered');
     });
 
-    // Return a function that will unsubscribe once the listener is set
     return () => unsubscribe();
 }
