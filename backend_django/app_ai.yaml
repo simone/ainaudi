@@ -9,7 +9,7 @@ env_variables:
   DJANGO_SETTINGS_MODULE: config.settings_ai
   GOOGLE_CLOUD_PROJECT: ainaudi-prod
   DEBUG: "false"
-  ALLOWED_HOSTS: ".appspot.com,.run.app"
+  ALLOWED_HOSTS: ".appspot.com,.run.app,ainaudi.it,www.ainaudi.it,ainaudi-prod.appspot.com"
 
   # Database (Cloud SQL via Unix socket) - read for JWT user lookup + pgvector
   DB_HOST: "/cloudsql/ainaudi-prod:europe-west1:ainaudi-db"
