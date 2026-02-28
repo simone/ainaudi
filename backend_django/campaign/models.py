@@ -7,10 +7,13 @@ This module defines:
 - EmailTemplate: Reusable email templates with Jinja-style variables
 - MassEmailLog: Deduplication log for mass email sends
 """
+import logging
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from core.models import get_user_by_email
+
+logger = logging.getLogger(__name__)
 
 
 class CampagnaReclutamento(models.Model):
@@ -402,8 +405,9 @@ class RdlRegistration(models.Model):
         return get_user_by_email(self.approved_by_email)
 
     def approve(self, approved_by_user):
-        """Approve this registration and create/link user."""
+        """Approve this registration, create user, and grant RDL access."""
         from django.utils import timezone
+        from django.contrib.auth.models import Group
         from core.models import User, RoleAssignment
 
         # Accetta sia stringa email che oggetto User
@@ -426,23 +430,31 @@ class RdlRegistration(models.Model):
             }
         )
 
-        # Create RDL role assignment scoped to consultazione
+        # Create RDL role assignment scoped to comune (operativo)
         RoleAssignment.objects.get_or_create(
             user=user,
             role='RDL',
-            consultazione=self.consultazione,
+            scope_type='comune',
+            scope_comune=self.comune,
             defaults={
                 'assigned_by_email': approved_by_email,
                 'is_active': True,
             }
         )
 
+        # Add user to RDL group (Django groups for permissions)
+        rdl_group = Group.objects.get(name='RDL')
+        user.groups.add(rdl_group)
+
         self.save()
+        logger.info(f"RDL approved: {self.email} granted RDL role in {self.comune.nome}")
         return user
 
     def reject(self, rejected_by_user, reason=''):
-        """Reject this registration."""
+        """Reject this registration and revoke RDL access."""
         from django.utils import timezone
+        from django.contrib.auth.models import Group
+        from core.models import User, RoleAssignment
 
         # Accetta sia stringa email che oggetto User
         if hasattr(rejected_by_user, 'email'):
@@ -455,6 +467,59 @@ class RdlRegistration(models.Model):
         self.approved_at = timezone.now()
         self.rejection_reason = reason
         self.save()
+
+        # Revoke RDL access if user exists
+        try:
+            user = User.objects.get(email=self.email.lower())
+
+            # Deactivate all RDL role assignments for this user
+            RoleAssignment.objects.filter(
+                user=user,
+                role='RDL'
+            ).update(is_active=False)
+
+            # Remove user from RDL group
+            rdl_group = Group.objects.get(name='RDL')
+            user.groups.remove(rdl_group)
+
+            logger.info(f"RDL rejected: {self.email} revoked RDL role")
+        except User.DoesNotExist:
+            pass  # User was never created
+        except Group.DoesNotExist:
+            logger.warning("RDL group not found")
+
+    def withdraw(self):
+        """Revoke RDL access (approved RDL retires)."""
+        from django.contrib.auth.models import Group
+        from core.models import User, RoleAssignment
+
+        if self.status != self.Status.APPROVED:
+            logger.warning(f"Cannot withdraw non-APPROVED RDL: {self.email}")
+            return
+
+        self.status = self.Status.REJECTED
+        self.rejection_reason = "Ritiro volontario"
+        self.save()
+
+        # Revoke RDL access
+        try:
+            user = User.objects.get(email=self.email.lower())
+
+            # Deactivate all RDL role assignments
+            RoleAssignment.objects.filter(
+                user=user,
+                role='RDL'
+            ).update(is_active=False)
+
+            # Remove user from RDL group
+            rdl_group = Group.objects.get(name='RDL')
+            user.groups.remove(rdl_group)
+
+            logger.info(f"RDL withdrew: {self.email} revoked RDL role")
+        except User.DoesNotExist:
+            pass
+        except Group.DoesNotExist:
+            logger.warning("RDL group not found")
 
 
 class EmailTemplate(models.Model):
