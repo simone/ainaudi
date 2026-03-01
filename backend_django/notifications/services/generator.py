@@ -1,7 +1,13 @@
 """
 Notification generator service.
 
-Creates Notification records and Cloud Tasks for events and assignments.
+Creates Cloud Tasks for events and assignments.
+
+IMPORTANT ARCHITECTURE:
+- For each event offset (24h, 2h, 10min), create ONE Cloud Task
+- When the Cloud Task triggers, it calls the backend with the event_id and offset
+- The backend then determines recipients and sends all notifications
+- This avoids creating N*M Notifications (N users × M offsets)
 """
 import logging
 from datetime import timedelta, datetime, time
@@ -9,7 +15,7 @@ from datetime import timedelta, datetime, time
 from django.conf import settings
 from django.utils import timezone
 
-from notifications.models import Event, Notification, DeviceToken
+from notifications.models import Event
 
 logger = logging.getLogger(__name__)
 
@@ -55,21 +61,24 @@ def _compute_scheduled_time(reference_dt, offset):
 
 def generate_notifications_for_event(event):
     """
-    Generate notification records and Cloud Tasks for an event.
+    Generate Cloud Tasks for an event notification campaign.
 
-    Creates one notification per user per offset for the event.
-    Users are determined by the event's consultazione (all RDLs + delegati).
+    Creates ONE Cloud Task per offset (24h, 2h, 10min before event).
+    When each task triggers, it calls the backend which determines recipients
+    and sends all notifications at that time.
+
+    This architecture:
+    - Limits Cloud Tasks to 3 per event (not N users × M offsets)
+    - Allows backend to determine recipients dynamically at send time
+    - Supports territory filtering without creating per-user tasks
 
     Args:
         event: Event model instance (must be ACTIVE with future start_at)
 
     Returns:
-        int: Number of notifications created
+        int: Number of Cloud Tasks created (should be 0-3)
     """
-    from .cloud_tasks import create_notification_task
-    from core.models import User
-    from data.models import SectionAssignment
-    from delegations.models import Delegato, SubDelega
+    from .cloud_tasks import create_event_notification_task
 
     if event.status != Event.Status.ACTIVE:
         return 0
@@ -83,107 +92,34 @@ def generate_notifications_for_event(event):
         {'minutes': -10, 'label': '10 minuti prima', 'only_if_url': True},
     ])
 
-    # Collect target user emails
-    user_emails = set()
-
-    if event.consultazione:
-        # Build territorial filters if event has territory constraints
-        from django.db.models import Q
-        territory_filter = Q()
-
-        has_territory_filter = (
-            event.regioni.exists() or
-            event.province.exists() or
-            event.comuni.exists()
-        )
-
-        if has_territory_filter:
-            # Filter by territory: regioni OR province OR comuni
-            # SectionAssignment → RdlRegistration → Comune → Provincia → Regione
-            territory_filter = (
-                Q(rdl_registration__comune__provincia__regione__in=event.regioni.all()) |
-                Q(rdl_registration__comune__provincia__in=event.province.all()) |
-                Q(rdl_registration__comune__in=event.comuni.all())
-            )
-
-        # RDLs assigned to sections in this consultation (with territory filter if applicable)
-        rdl_query = SectionAssignment.objects.filter(
-            consultazione=event.consultazione,
-        )
-
-        if has_territory_filter:
-            rdl_query = rdl_query.filter(territory_filter)
-
-        rdl_emails = rdl_query.values_list(
-            'rdl_registration__email', flat=True
-        ).distinct()
-        user_emails.update(e for e in rdl_emails if e)
-
-        logger.info(
-            f'Event {event.id}: {len(user_emails)} RDLs targeted '
-            f'(territory_filter={has_territory_filter})'
-        )
-
-        # Delegati for this consultation
-        # NOTE: Delegati don't have territory constraints - they get notified for all events
-        delegato_emails = Delegato.objects.filter(
-            consultazione=event.consultazione,
-        ).values_list('email', flat=True)
-        user_emails.update(e for e in delegato_emails if e)
-
-        # SubDelegati for this consultation
-        # NOTE: SubDelegati don't have territory constraints - they get notified for all events
-        sub_emails = SubDelega.objects.filter(
-            delegato__consultazione=event.consultazione,
-            is_attiva=True,
-        ).values_list('email', flat=True)
-        user_emails.update(e for e in sub_emails if e)
-
-    if not user_emails:
-        logger.info(f'No users to notify for event {event.id}')
-        return 0
-
-    # Map emails to User objects
-    users = User.objects.filter(email__in=user_emails, is_active=True)
-    user_map = {u.email: u for u in users}
-
     created_count = 0
 
     for offset in offsets:
         # Skip URL-only offsets if no external URL
         if offset.get('only_if_url') and not event.external_url:
+            logger.debug(f'Skipping {offset.get("label")} (no external_url)')
             continue
 
         scheduled_at = _compute_scheduled_time(event.start_at, offset)
         if not scheduled_at:
+            logger.debug(f'Skipping {offset.get("label")} (in the past)')
             continue  # In the past
 
-        label = offset.get('label', '')
+        # Create ONE Cloud Task for this offset
+        task_name = create_event_notification_task(
+            event_id=str(event.id),
+            offset=offset,
+            scheduled_at=scheduled_at,
+        )
 
-        for email in user_emails:
-            user = user_map.get(email)
-            if not user:
-                continue
-
-            notification = Notification.objects.create(
-                user=user,
-                event=event,
-                title=f'{event.title}',
-                body=f'{label}: {event.title}',
-                deep_link=f'/events/{event.id}',
-                scheduled_at=scheduled_at,
-                channel=Notification.Channel.BOTH,
-                status=Notification.Status.SCHEDULED,
+        if task_name:
+            created_count += 1
+            logger.info(
+                f'Created Cloud Task for event {event.id} '
+                f'offset={offset.get("label")}, scheduled={scheduled_at}'
             )
 
-            # Create Cloud Task
-            create_notification_task(notification)
-            created_count += 1
-
-    logger.info(
-        f'Generated {created_count} notifications for event {event.id} '
-        f'({len(user_emails)} users, {len(offsets)} offsets)'
-    )
+    logger.info(f'Generated {created_count} Cloud Tasks for event {event.id}')
     return created_count
 
 

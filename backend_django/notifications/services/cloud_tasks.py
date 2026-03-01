@@ -34,19 +34,22 @@ def _get_queue_path():
     )
 
 
-def _get_target_url():
+def _get_target_url(endpoint='send-notification'):
     """
-    Build the target URL for the internal send-notification endpoint.
+    Build the target URL for an internal endpoint.
 
     On App Engine, uses the service's own URL.
     In dev, uses CLOUD_TASKS_TARGET_HOST.
+
+    Args:
+        endpoint: 'send-notification' (legacy) or 'send-event-notifications'
     """
     host = settings.CLOUD_TASKS_TARGET_HOST
     if not host:
         # Default to App Engine service URL
         project = settings.CLOUD_TASKS_PROJECT
         host = f'https://api-dot-{project}.ew.r.appspot.com'
-    return f'{host}/api/internal/send-notification/'
+    return f'{host}/api/internal/{endpoint}/'
 
 
 def create_notification_task(notification):
@@ -148,6 +151,83 @@ def cancel_notification_task(notification):
             f'Could not cancel Cloud Task {notification.cloud_task_name}: {e}'
         )
         return False
+
+
+def create_event_notification_task(event_id, offset, scheduled_at):
+    """
+    Create a single Cloud Task for an event at a specific offset.
+
+    ARCHITECTURE: Creates ONE task per offset (24h, 2h, 10min before event).
+    When the task triggers, it calls the backend with event_id and offset.
+    The backend determines recipients and sends all notifications.
+
+    Args:
+        event_id: str - UUID of the event
+        offset: dict - offset config (e.g., {'hours': -24, 'label': '24 ore prima'})
+        scheduled_at: datetime - when to send the notification
+
+    Returns:
+        str: The full task name, or empty string if creation failed
+    """
+    if not settings.CLOUD_TASKS_PROJECT:
+        logger.warning('CLOUD_TASKS_PROJECT not configured, skipping task creation')
+        return ''
+
+    try:
+        from google.protobuf import timestamp_pb2
+
+        client = _get_client()
+        queue_path = _get_queue_path()
+        target_url = _get_target_url('send-event-notifications')
+
+        # Build the task
+        task = {
+            'http_request': {
+                'http_method': 'POST',
+                'url': f'{target_url}{event_id}/',
+                'headers': {
+                    'Content-Type': 'application/json',
+                },
+                'body': json.dumps({
+                    'offset_hours': offset.get('hours', 0),
+                    'offset_days': offset.get('days', 0),
+                    'offset_minutes': offset.get('minutes', 0),
+                    'label': offset.get('label', ''),
+                }).encode(),
+            },
+        }
+
+        # Set schedule time
+        if scheduled_at:
+            timestamp = timestamp_pb2.Timestamp()
+            timestamp.FromDatetime(scheduled_at)
+            task['schedule_time'] = timestamp
+
+        # Add OIDC token for authentication (App Engine service account)
+        service_account = getattr(settings, 'CLOUD_TASKS_SERVICE_ACCOUNT', None)
+        if service_account:
+            task['http_request']['oidc_token'] = {
+                'service_account_email': service_account,
+                'audience': target_url,
+            }
+
+        response = client.create_task(parent=queue_path, task=task)
+        task_name = response.name
+
+        logger.info(
+            f'Created Cloud Task: {task_name} '
+            f'for event {event_id} offset={offset.get("label")} '
+            f'scheduled at {scheduled_at}'
+        )
+
+        return task_name
+
+    except Exception as e:
+        logger.error(
+            f'Failed to create Cloud Task for event {event_id}: {e}',
+            exc_info=True
+        )
+        return ''
 
 
 def cancel_and_regenerate_for_event(event):

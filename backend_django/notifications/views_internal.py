@@ -54,6 +54,147 @@ class InternalAuthMixin:
         return False
 
 
+class SendEventNotificationsView(InternalAuthMixin, APIView):
+    """
+    POST /api/internal/send-event-notifications/{event_id}/
+
+    Called by Cloud Task to send notifications for an event at a specific offset.
+
+    This endpoint is called ONCE per offset (24h, 2h, 10min before event).
+    It determines recipients based on event territory filters and sends to all.
+
+    Request body: offset parameters (hours, days, minutes, label)
+
+    Response:
+    - 200: Notifications sent (or skipped if event inactive)
+    - 404: Event not found
+    - 500: Temporary error (Cloud Tasks will retry)
+    """
+    authentication_classes = []
+
+    def post(self, request, event_id):
+        # Auth check
+        if not self.check_internal_auth(request):
+            logger.warning('Unauthorized internal request')
+            return Response(
+                {'error': 'Unauthorized'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        from .models import Event
+        from .services.fcm import send_push_to_token
+        from core.models import User
+        from data.models import SectionAssignment
+        from delegations.models import Delegato, SubDelega
+        from django.db.models import Q
+
+        # 1. Load event
+        try:
+            event = Event.objects.select_related('consultazione').prefetch_related(
+                'regioni', 'province', 'comuni'
+            ).get(pk=event_id)
+        except Event.DoesNotExist:
+            logger.info(f'Event {event_id} not found, no-op')
+            return Response({'status': 'not_found'})
+
+        # 2. Event still active?
+        if event.status != Event.Status.ACTIVE:
+            logger.info(f'Event {event_id} not ACTIVE (status={event.status}), no-op')
+            return Response({'status': 'cancelled'})
+
+        # 3. Determine recipient emails based on territory filters
+        user_emails = set()
+
+        if event.consultazione:
+            # Build territorial filters if event has territory constraints
+            territory_filter = Q()
+            has_territory_filter = (
+                event.regioni.exists() or
+                event.province.exists() or
+                event.comuni.exists()
+            )
+
+            if has_territory_filter:
+                # Filter by territory
+                territory_filter = (
+                    Q(rdl_registration__comune__provincia__regione__in=event.regioni.all()) |
+                    Q(rdl_registration__comune__provincia__in=event.province.all()) |
+                    Q(rdl_registration__comune__in=event.comuni.all())
+                )
+
+            # RDLs
+            rdl_query = SectionAssignment.objects.filter(
+                consultazione=event.consultazione,
+            )
+            if has_territory_filter:
+                rdl_query = rdl_query.filter(territory_filter)
+
+            rdl_emails = rdl_query.values_list(
+                'rdl_registration__email', flat=True
+            ).distinct()
+            user_emails.update(e for e in rdl_emails if e)
+
+            # Delegati (no territory constraints)
+            delegato_emails = Delegato.objects.filter(
+                consultazione=event.consultazione,
+            ).values_list('email', flat=True)
+            user_emails.update(e for e in delegato_emails if e)
+
+            # SubDelegati (no territory constraints)
+            sub_emails = SubDelega.objects.filter(
+                delegato__consultazione=event.consultazione,
+                is_attiva=True,
+            ).values_list('email', flat=True)
+            user_emails.update(e for e in sub_emails if e)
+
+        if not user_emails:
+            logger.info(f'No recipients for event {event_id}')
+            return Response({
+                'status': 'no_recipients',
+                'sent': 0,
+            })
+
+        # 4. Get users and their device tokens
+        users = User.objects.filter(email__in=user_emails, is_active=True).prefetch_related(
+            'device_tokens'
+        )
+
+        # 5. Send push to all tokens
+        offset_label = request.data.get('label', 'Notification')
+        title = event.title
+        body = f'{offset_label}: {event.title}'
+        deep_link = f'/events/{event_id}'
+
+        sent_count = 0
+        failed_count = 0
+
+        for user in users:
+            for device_token in user.device_tokens.filter(is_active=True):
+                ok = send_push_to_token(
+                    token=device_token.token,
+                    title=title,
+                    body=body,
+                    data={'deep_link': deep_link, 'type': 'event'},
+                    ttl=None,  # No TTL for scheduled notifications
+                )
+                if ok:
+                    sent_count += 1
+                else:
+                    failed_count += 1
+
+        logger.info(
+            f'Sent event {event_id} notifications: '
+            f'{sent_count} sent, {failed_count} failed '
+            f'to {len(list(users))} users'
+        )
+
+        return Response({
+            'status': 'sent',
+            'sent': sent_count,
+            'failed': failed_count,
+        })
+
+
 class SendNotificationView(InternalAuthMixin, APIView):
     """
     POST /api/internal/send-notification/
