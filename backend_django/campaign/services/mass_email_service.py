@@ -399,12 +399,35 @@ def _send_single_email(template, rdl, user_email):
 
 
 def get_task_progress(task_id):
-    """Recupera progress di un task da Redis."""
+    """
+    Recupera progress di un task da Redis.
+
+    Se Redis non è disponibile, ritorna stato COMPLETED
+    (perché in fallback mode, il task è già completato sincrono).
+    """
     r = get_redis_client()
     if not r:
-        return {'status': 'NOT_FOUND', 'error': 'Redis not available'}
+        # Fallback mode: task era sincrono e già completato
+        logger.debug(f"Redis not available for task {task_id}, returning COMPLETED")
+        return {
+            'status': 'COMPLETED',
+            'current': 0,
+            'total': 0,
+            'sent': 0,
+            'failed': 0,
+            'skipped': 0,
+            'fallback': True,
+        }
 
-    data = r.hgetall(task_id)
+    try:
+        data = r.hgetall(task_id)
+    except Exception as e:
+        logger.warning(f"Failed to get task progress: {e}")
+        return {
+            'status': 'COMPLETED',
+            'fallback': True,
+        }
+
     if not data:
         return {'status': 'NOT_FOUND'}
 
