@@ -47,12 +47,23 @@ export default function EventForm({ client, event, consultazione, onSaved, onCan
 
     // Load regioni on mount
     useEffect(() => {
-        if (!client?.territorio?.regioni) return;
+        if (!client?.territorio?.regioni) {
+            console.warn('client.territorio.regioni not available');
+            return;
+        }
         client.territorio.regioni()
             .then(data => {
+                console.log('Regioni data:', data);
                 if (Array.isArray(data)) {
                     setRegioniOptions(data);
+                } else if (data?.results && Array.isArray(data.results)) {
+                    setRegioniOptions(data.results);
+                } else if (data?.error) {
+                    console.error('Error loading regioni:', data.error);
                 }
+            })
+            .catch(err => {
+                console.error('Error loading regioni:', err);
             });
     }, [client]);
 
@@ -64,9 +75,17 @@ export default function EventForm({ client, event, consultazione, onSaved, onCan
         }
         client.territorio.province(selectedRegione)
             .then(data => {
+                console.log('Province data for regione', selectedRegione, ':', data);
                 if (Array.isArray(data)) {
                     setProvinceOptions(data);
+                } else if (data?.results && Array.isArray(data.results)) {
+                    setProvinceOptions(data.results);
+                } else if (data?.error) {
+                    console.error('Error loading province:', data.error);
                 }
+            })
+            .catch(err => {
+                console.error('Error loading province:', err);
             });
     }, [client, selectedRegione]);
 
@@ -78,9 +97,17 @@ export default function EventForm({ client, event, consultazione, onSaved, onCan
         }
         client.territorio.comuni(selectedProvincia)
             .then(data => {
+                console.log('Comuni data for provincia', selectedProvincia, ':', data);
                 if (Array.isArray(data)) {
                     setComuniOptions(data);
+                } else if (data?.results && Array.isArray(data.results)) {
+                    setComuniOptions(data.results);
+                } else if (data?.error) {
+                    console.error('Error loading comuni:', data.error);
                 }
+            })
+            .catch(err => {
+                console.error('Error loading comuni:', err);
             });
     }, [client, selectedProvincia]);
 
