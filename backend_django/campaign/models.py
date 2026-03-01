@@ -430,12 +430,19 @@ class RdlRegistration(models.Model):
             }
         )
 
-        # Create RDL role assignment scoped to comune (operativo)
+        # Delete any non-comunal RDL assignments
+        RoleAssignment.objects.filter(
+            user=user,
+            role='RDL'
+        ).exclude(scope_type='comune').delete()
+
+        # Create RDL role assignment scoped to comune with consultazione
         RoleAssignment.objects.get_or_create(
             user=user,
             role='RDL',
             scope_type='comune',
             scope_comune=self.comune,
+            consultazione=self.consultazione,
             defaults={
                 'assigned_by_email': approved_by_email,
                 'is_active': True,
