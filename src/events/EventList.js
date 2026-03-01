@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import EventForm from './EventForm';
+import './EventList.css';
 
 /**
  * Admin Event List - CRUD per gli eventi.
@@ -83,7 +84,7 @@ export default function EventList({ client, consultazione }) {
     }
 
     return (
-        <div>
+        <div className="event-list-container">
             <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <h4 className="mb-0"><i className="fas fa-calendar-alt me-2"></i>Gestione Eventi</h4>
                 <div className="d-flex gap-2">
@@ -113,7 +114,7 @@ export default function EventList({ client, consultazione }) {
                 </div>
             ) : (
                 <div className="table-responsive">
-                    <table className="table table-hover">
+                    <table className="table table-hover event-list-table">
                         <thead>
                             <tr>
                                 <th>Titolo</th>

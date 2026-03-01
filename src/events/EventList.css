@@ -1,0 +1,121 @@
+/* EventList styling for light and dark themes */
+
+.event-list-container {
+    min-height: auto;
+    padding: 0;
+}
+
+/* Dark mode table styling */
+@media (prefers-color-scheme: dark) {
+    .event-list-table {
+        color: #e9ecef;
+        background-color: #212529;
+    }
+
+    .event-list-table thead {
+        background-color: #343a40;
+    }
+
+    .event-list-table tbody tr {
+        border-color: #495057;
+    }
+
+    .event-list-table tbody tr:hover {
+        background-color: #343a40;
+    }
+
+    .event-list-table td,
+    .event-list-table th {
+        border-color: #495057;
+        color: #e9ecef;
+    }
+
+    .event-list-table .text-muted {
+        color: #adb5bd !important;
+    }
+
+    /* Badge colors in dark mode */
+    .event-list-table .badge {
+        color: #e9ecef;
+    }
+
+    .event-list-table .badge.bg-success {
+        background-color: #198754 !important;
+    }
+
+    .event-list-table .badge.bg-info {
+        background-color: #0dcaf0 !important;
+    }
+
+    .event-list-table .badge.bg-warning {
+        background-color: #ffc107 !important;
+        color: #000 !important;
+    }
+
+    .event-list-table .badge.bg-secondary {
+        background-color: #6c757d !important;
+    }
+
+    /* Button styling in dark mode */
+    .event-list-table .btn-outline-primary {
+        color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .event-list-table .btn-outline-primary:hover,
+    .event-list-table .btn-outline-primary:focus {
+        color: #fff;
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .event-list-table .btn-outline-secondary {
+        color: #6c757d;
+        border-color: #6c757d;
+    }
+
+    .event-list-table .btn-outline-secondary:hover,
+    .event-list-table .btn-outline-secondary:focus {
+        color: #fff;
+        background-color: #6c757d;
+        border-color: #6c757d;
+    }
+
+    .event-list-table .btn-outline-danger {
+        color: #dc3545;
+        border-color: #dc3545;
+    }
+
+    .event-list-table .btn-outline-danger:hover,
+    .event-list-table .btn-outline-danger:focus {
+        color: #fff;
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+}
+
+/* Light mode - ensure good contrast */
+@media (prefers-color-scheme: light) {
+    .event-list-table {
+        color: #212529;
+        background-color: #fff;
+    }
+
+    .event-list-table thead {
+        background-color: #f8f9fa;
+    }
+
+    .event-list-table tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+}
+
+/* Remove excessive spacing in tab-pane */
+.tab-pane {
+    padding: 0;
+}
+
+/* Table responsive container */
+.table-responsive {
+    border-radius: 0.25rem;
+}
