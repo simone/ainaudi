@@ -255,17 +255,27 @@ def send_mass_email_async(template_id, filters, user_email, consultazione_id=Non
             'fallback': True,  # Indica che è in fallback mode
         }
 
-    r.hset(task_id, mapping={
-        'status': 'STARTED',
-        'current': '0',
-        'total': '0',
-        'sent': '0',
-        'failed': '0',
-        'skipped': '0',
-        'template_id': str(template_id),
-        'user_email': user_email,
-    })
-    r.expire(task_id, 3600)
+    try:
+        r.hset(task_id, mapping={
+            'status': 'STARTED',
+            'current': '0',
+            'total': '0',
+            'sent': '0',
+            'failed': '0',
+            'skipped': '0',
+            'template_id': str(template_id),
+            'user_email': user_email,
+        })
+        r.expire(task_id, 3600)
+    except Exception as e:
+        # Redis connection error - fall back to batch mode
+        logger.warning(f"Redis operation failed: {e}, falling back to batch mode")
+        result = send_mass_email_batch(template_id, filters, user_email, consultazione_id, batch_size=50)
+        return {
+            'task_id': task_id,
+            'batch_result': result,
+            'fallback': True,  # Indica che è in fallback mode
+        }
 
     thread = threading.Thread(
         target=_worker_send_mass_email,
@@ -405,15 +415,15 @@ def get_task_progress(task_id):
     """
     Recupera progress di un task da Redis.
 
-    Se Redis non è disponibile, ritorna stato COMPLETED
+    Se Redis non è disponibile, ritorna stato SUCCESS
     (perché in fallback mode, il task è già completato sincrono).
     """
     r = get_redis_client()
     if not r:
         # Fallback mode: task era sincrono e già completato
-        logger.debug(f"Redis not available for task {task_id}, returning COMPLETED")
+        logger.debug(f"Redis not available for task {task_id}, returning SUCCESS")
         return {
-            'status': 'COMPLETED',
+            'status': 'SUCCESS',
             'current': 0,
             'total': 0,
             'sent': 0,
@@ -427,7 +437,7 @@ def get_task_progress(task_id):
     except Exception as e:
         logger.warning(f"Failed to get task progress: {e}")
         return {
-            'status': 'COMPLETED',
+            'status': 'SUCCESS',
             'fallback': True,
         }
 
