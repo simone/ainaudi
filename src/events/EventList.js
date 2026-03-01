@@ -150,7 +150,7 @@ export default function EventList({ client, consultazione }) {
                                     </td>
                                     <td>
                                         {ev.has_territory ? (
-                                            <span className="badge bg-warning text-dark">
+                                            <span className="badge bg-warning">
                                                 <i className="fas fa-globe-europe me-1"></i>Filtrato
                                             </span>
                                         ) : (
