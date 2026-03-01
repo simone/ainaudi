@@ -233,13 +233,24 @@ def send_mass_email_batch(template_id, filters, user_email, consultazione_id=Non
 def send_mass_email_async(template_id, filters, user_email, consultazione_id=None):
     """
     Avvia invio asincrono email di massa (LEGACY - per backward compatibility).
-    Ritorna task_id per tracking progress.
+
+    Se Redis è disponibile: usa async + progress tracking
+    Se Redis NON è disponibile: usa batch sincrono (50 email alla volta)
     """
     task_id = f"mass_email_{template_id}_{uuid.uuid4().hex[:8]}"
 
     r = get_redis_client()
     if not r:
-        raise RuntimeError("Redis client not available")
+        logger.warning("Redis not available, falling back to batch mode")
+        # Fallback: invia il primo batch sincrono
+        # Il frontend dovrà fare polling su send-batch per i rimanenti
+        result = send_mass_email_batch(template_id, filters, user_email, consultazione_id, batch_size=50)
+        # Ritorna task_id uguale ma in formato batch
+        return {
+            'task_id': task_id,
+            'batch_result': result,
+            'fallback': True,  # Indica che è in fallback mode
+        }
 
     r.hset(task_id, mapping={
         'status': 'STARTED',

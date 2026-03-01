@@ -315,13 +315,25 @@ class MassEmailSendView(APIView):
             )
 
         try:
-            task_id = send_mass_email_async(
+            result = send_mass_email_async(
                 template_id, filters, request.user.email, consultazione_id
             )
         except RuntimeError as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        return Response({'task_id': task_id})
+        # Handle fallback mode (no Redis available)
+        if isinstance(result, dict) and result.get('fallback'):
+            # In fallback mode, return batch results directly
+            return Response({
+                'task_id': result['task_id'],
+                'sent': result['batch_result']['sent'],
+                'remaining': result['batch_result']['remaining'],
+                'total': result['batch_result']['total'],
+                'fallback': True,
+            })
+
+        # Normal mode (Redis available) - return task_id for polling
+        return Response({'task_id': result})
 
 
 class MassEmailBatchSendView(APIView):
