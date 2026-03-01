@@ -47,8 +47,8 @@ export default function EventForm({ client, event, consultazione, onSaved, onCan
 
     // Load regioni on mount
     useEffect(() => {
-        if (!client?.territory?.regioni) return;
-        client.territory.regioni()
+        if (!client?.territorio?.regioni) return;
+        client.territorio.regioni()
             .then(data => {
                 if (Array.isArray(data)) {
                     setRegioniOptions(data);
@@ -58,11 +58,11 @@ export default function EventForm({ client, event, consultazione, onSaved, onCan
 
     // Load province when a regione is selected for filtering
     useEffect(() => {
-        if (!selectedRegione || !client?.territory?.province) {
+        if (!selectedRegione || !client?.territorio?.province) {
             setProvinceOptions([]);
             return;
         }
-        client.territory.province(selectedRegione)
+        client.territorio.province(selectedRegione)
             .then(data => {
                 if (Array.isArray(data)) {
                     setProvinceOptions(data);
@@ -72,11 +72,11 @@ export default function EventForm({ client, event, consultazione, onSaved, onCan
 
     // Load comuni when a provincia is selected for filtering
     useEffect(() => {
-        if (!selectedProvincia || !client?.territory?.comuni) {
+        if (!selectedProvincia || !client?.territorio?.comuni) {
             setComuniOptions([]);
             return;
         }
-        client.territory.comuni(selectedProvincia)
+        client.territorio.comuni(selectedProvincia)
             .then(data => {
                 if (Array.isArray(data)) {
                     setComuniOptions(data);
