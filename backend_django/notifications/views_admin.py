@@ -76,17 +76,15 @@ class TestNotificationView(APIView):
 
     def post(self, request):
         frontend_url = getattr(settings, 'FRONTEND_URL', '')
-        tokens = DeviceToken.objects.filter(
-            is_active=True,
-            origin=frontend_url,
-        ).select_related('user')
 
-        # Fallback: include tokens without origin (pre-migration)
-        if not tokens.exists() and frontend_url:
-            tokens = DeviceToken.objects.filter(
-                is_active=True,
-                origin='',
-            ).select_related('user')
+        # Get all active tokens, preferring matching origin but fallback to all
+        tokens = DeviceToken.objects.filter(is_active=True).select_related('user')
+
+        # Count by origin for debugging
+        if tokens.exists():
+            from django.db.models import Count, Q
+            origin_stats = tokens.values('origin').annotate(count=Count('id')).order_by('-count')
+            logger.info(f'Test notification: tokens by origin: {list(origin_stats)}')
 
         if not tokens.exists():
             return Response({
