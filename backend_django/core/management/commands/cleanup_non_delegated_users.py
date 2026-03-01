@@ -43,8 +43,8 @@ class Command(BaseCommand):
         # 3. Users with DELEGATE role
         # 4. Users with APPROVED RdlRegistration
 
-        superusers = User.objects.filter(is_superuser=True)
-        staff_users = User.objects.filter(is_staff=True)
+        superusers = User.objects.filter(is_superuser=True).distinct()
+        staff_users = User.objects.filter(is_staff=True).distinct()
         delegates = User.objects.filter(role_assignments__role='DELEGATE').distinct()
 
         # Approved RDL registrations
