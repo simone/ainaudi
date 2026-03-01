@@ -578,40 +578,18 @@ MAGIC_LINK_TOKEN_EXPIRY = int(os.environ.get('MAGIC_LINK_TOKEN_EXPIRY', 24*3600)
 
 
 # =============================================================================
-# REDIS EVENT BUS
+# DJANGO CACHE
 # =============================================================================
-
-# Redis Configuration for Event-Driven PDF Generation
-REDIS_HOST = os.environ.get('REDIS_HOST', 'redis')
-REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
-REDIS_DB = int(os.environ.get('REDIS_DB', 0))
-REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
-REDIS_PDF_EVENT_CHANNEL = 'pdf_events'
+# Use database cache (DatabaseCache works on App Engine without extra infrastructure)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'django_cache',
+    }
+}
 
 # PDF Preview Expiry (24 hours default)
 PDF_PREVIEW_EXPIRY_SECONDS = int(os.environ.get('PDF_PREVIEW_EXPIRY_SECONDS', 86400))
-
-# Redis client: Vedere core/redis_client.py per lazy initialization
-
-# =============================================================================
-# DJANGO CACHE
-# =============================================================================
-# Use Redis if available, otherwise fall back to database cache.
-# Database cache works on App Engine without extra infrastructure.
-if os.environ.get('REDIS_HOST'):
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': REDIS_URL,
-        }
-    }
-else:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-            'LOCATION': 'django_cache',
-        }
-    }
 
 
 # =============================================================================

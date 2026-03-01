@@ -120,19 +120,6 @@ class Command(BaseCommand):
 
                 processo.save()
 
-                # Invalida cache Redis per i PDF estratti
-                try:
-                    from core.redis_client import get_redis_client
-                    redis_client = get_redis_client()
-                    if redis_client:
-                        import fnmatch
-                        keys = redis_client.keys('pdf_nomina:*')
-                        if keys:
-                            redis_client.delete(*keys)
-                            self.stdout.write(f'  Cache Redis invalidata ({len(keys)} chiavi)')
-                except Exception as e:
-                    self.stdout.write(self.style.WARNING(f'  Cache Redis non invalidata: {e}'))
-
                 success += 1
 
             except Exception as e:

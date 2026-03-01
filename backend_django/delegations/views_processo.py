@@ -18,7 +18,6 @@ import logging
 
 from .models import ProcessoDesignazione, DesignazioneRDL, Delegato, SubDelega, EmailDesignazioneLog
 from .services import RDLEmailService, PDFExtractionService
-from core.redis_client import get_redis_client
 from .serializers import (
     ProcessoDesignazioneSerializer,
     AvviaProcessoSerializer,
@@ -1176,88 +1175,28 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Avvia invio asincrono
+        # Avvia invio batch email
         try:
-            result = RDLEmailService.invia_notifiche_processo_async(processo, request.user.email)
+            result = RDLEmailService.invia_notifiche_processo_batch(processo, request.user.email, batch_size=50)
 
-            # Handle fallback mode (no Redis available)
-            if isinstance(result, dict) and result.get('fallback'):
-                # In fallback mode, return batch results directly
-                return Response({
-                    'success': True,
-                    'message': 'Invio email avviato in batch mode',
-                    'task_id': result['task_id'],
-                    'sent': result['batch_result']['sent'],
-                    'remaining': result['batch_result']['remaining'],
-                    'total': result['batch_result']['total'],
-                    'fallback': True,
-                    'n_designazioni': n_designazioni
-                }, status=status.HTTP_202_ACCEPTED)
-
-            # Normal mode (Redis available) - return task_id for polling
             return Response({
                 'success': True,
-                'message': 'Invio email avviato in background',
-                'task_id': result,
+                'message': 'Invio email avviato in batch mode',
+                'sent': result['sent'],
+                'remaining': result['remaining'],
+                'total': result['total'],
                 'n_designazioni': n_designazioni
-            }, status=status.HTTP_202_ACCEPTED)  # 202 = Accepted (async)
+            }, status=status.HTTP_202_ACCEPTED)
 
         except Exception as e:
-            logger.error(f"Errore avvio task email processo {processo.id}: {e}", exc_info=True)
+            logger.error(f"Errore invio email processo {processo.id}: {e}", exc_info=True)
             return Response(
                 {
                     'success': False,
-                    'error': f'Errore durante l\'avvio dell\'invio email: {str(e)}'
+                    'error': f'Errore durante l\'invio email: {str(e)}'
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-    @action(detail=True, methods=['get'], url_path='email-progress')
-    def email_progress(self, request, pk=None):
-        """
-        Recupera progress dell'invio email.
-
-        GET /api/processi/{id}/email-progress/
-
-        Response:
-        {
-            "status": "PROGRESS",
-            "current": 50,
-            "total": 100,
-            "sent": 48,
-            "failed": 2,
-            "percentage": 50
-        }
-        """
-        processo = self.get_object()
-
-        # Trova task_id più recente per questo processo
-        redis = get_redis_client()
-        if not redis:
-            return Response({
-                'status': 'NOT_FOUND',
-                'message': 'Redis non disponibile'
-            }, status=404)
-
-        task_key = f"email_task_current_{processo.id}"
-        task_id = redis.get(task_key)
-
-        if not task_id:
-            return Response({
-                'status': 'NOT_FOUND',
-                'message': 'Nessun invio email in corso'
-            }, status=404)
-
-        # Recupera progress
-        progress = RDLEmailService.get_task_progress(task_id)
-
-        # Calcola percentuale
-        if progress.get('total', 0) > 0:
-            progress['percentage'] = int((progress['current'] / progress['total']) * 100)
-        else:
-            progress['percentage'] = 0
-
-        return Response(progress)
 
     @action(detail=False, methods=['get'], url_path='mie-designazioni',
             permission_classes=[permissions.IsAuthenticated])

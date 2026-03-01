@@ -17,9 +17,7 @@ from campaign.services.mass_email_service import (
     render_preview,
     render_template_string,
     get_recipients_info,
-    send_mass_email_async,
     send_mass_email_batch,
-    get_task_progress,
     _validate_template_body,
     _build_preview_context,
 )
@@ -286,7 +284,8 @@ class MassEmailRecipientsInfoView(APIView):
 
 class MassEmailSendView(APIView):
     """
-    POST /api/rdl/mass-email/send/  - Avvia invio asincrono
+    POST /api/rdl/mass-email/send/  - Invia 50 email (batch mode)
+    Frontend continua a chiamare per i rimanenti finché remaining = 0
     """
     permission_classes = [permissions.IsAuthenticated, CanManageMassEmail]
 
@@ -315,51 +314,6 @@ class MassEmailSendView(APIView):
             )
 
         try:
-            result = send_mass_email_async(
-                template_id, filters, request.user.email, consultazione_id
-            )
-        except RuntimeError as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        # Handle fallback mode (no Redis available)
-        if isinstance(result, dict) and result.get('fallback'):
-            # In fallback mode, return batch results directly
-            return Response({
-                'task_id': result['task_id'],
-                'sent': result['batch_result']['sent'],
-                'remaining': result['batch_result']['remaining'],
-                'total': result['batch_result']['total'],
-                'fallback': True,
-            })
-
-        # Normal mode (Redis available) - return task_id for polling
-        return Response({'task_id': result})
-
-
-class MassEmailBatchSendView(APIView):
-    """
-    POST /api/rdl/mass-email/send-batch/  - Invia 50 email e ritorna quante ne mancano
-    Frontend continua a chiamare finché remaining = 0
-    """
-    permission_classes = [permissions.IsAuthenticated, CanManageMassEmail]
-
-    def post(self, request):
-        template_id = request.data.get('template_id')
-        filters = request.data.get('filters', {})
-        consultazione_id = request.data.get('consultazione_id')
-
-        if not template_id:
-            return Response(
-                {'error': 'template_id è obbligatorio'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            EmailTemplate.objects.get(id=template_id)
-        except EmailTemplate.DoesNotExist:
-            return Response({'error': 'Template non trovato'}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
             result = send_mass_email_batch(
                 template_id, filters, request.user.email, consultazione_id, batch_size=50
             )
@@ -368,14 +322,3 @@ class MassEmailBatchSendView(APIView):
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(result)
-
-
-class MassEmailProgressView(APIView):
-    """
-    GET /api/rdl/mass-email/progress/<task_id>/  - Poll progresso (LEGACY async)
-    """
-    permission_classes = [permissions.IsAuthenticated, CanManageMassEmail]
-
-    def get(self, request, task_id):
-        progress = get_task_progress(task_id)
-        return Response(progress)

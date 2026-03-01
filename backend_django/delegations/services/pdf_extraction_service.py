@@ -1,5 +1,5 @@
 """
-Servizio per estrazione pagine specifiche da PDF di designazione con caching.
+Servizio per estrazione pagine specifiche da PDF di designazione con filesystem caching.
 """
 from PyPDF2 import PdfReader, PdfWriter
 from io import BytesIO
@@ -7,8 +7,6 @@ from pathlib import Path
 from django.conf import settings
 import hashlib
 import logging
-
-from core.redis_client import get_redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -53,17 +51,13 @@ class PDFExtractionService:
             f"{processo.id}_{user_email}_{','.join(map(str, sezioni_ids))}".encode()
         ).hexdigest()
 
-        # Check Redis cache (metadata) + filesystem cache
-        r = get_redis_client()
-        if r:
-            redis_key = f"pdf_nomina:{cache_key}"
-            cached_filename = r.get(redis_key)
+        # Check filesystem cache
+        cache_filename = f"{cache_key}.pdf"
+        cache_file = PDFExtractionService.CACHE_DIR / cache_filename
 
-            if cached_filename:
-                cache_file = PDFExtractionService.CACHE_DIR / cached_filename
-                if cache_file.exists():
-                    logger.info(f"PDF cache HIT: {cache_key}")
-                    return cache_file.read_bytes()
+        if cache_file.exists():
+            logger.info(f"PDF cache HIT: {cache_key}")
+            return cache_file.read_bytes()
 
         logger.info(f"PDF cache MISS: {cache_key}, generando...")
 
@@ -118,14 +112,7 @@ class PDFExtractionService:
 
         # ===== SALVA IN CACHE =====
         PDFExtractionService.CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-        cache_filename = f"{cache_key}.pdf"
-        cache_file = PDFExtractionService.CACHE_DIR / cache_filename
         cache_file.write_bytes(pdf_bytes)
-
-        # Salva metadata in Redis (TTL 7 giorni) se disponibile
-        if r:
-            r.setex(redis_key, 7 * 24 * 3600, str(cache_filename))
 
         logger.info(
             f"PDF estratto e cached: {len(pagine_da_estrarre)} pagine "

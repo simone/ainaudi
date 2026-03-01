@@ -14,8 +14,6 @@ from .views import (
     EmailTemplateVariablesView,
     MassEmailRecipientsInfoView,
     MassEmailSendView,
-    MassEmailBatchSendView,
-    MassEmailProgressView,
 )
 
 email_template_urlpatterns = [
@@ -30,6 +28,4 @@ email_template_urlpatterns = [
     # Mass Email
     path('mass-email/recipients-info/', MassEmailRecipientsInfoView.as_view(), name='mass-email-recipients-info'),
     path('mass-email/send/', MassEmailSendView.as_view(), name='mass-email-send'),
-    path('mass-email/send-batch/', MassEmailBatchSendView.as_view(), name='mass-email-send-batch'),
-    path('mass-email/progress/<str:task_id>/', MassEmailProgressView.as_view(), name='mass-email-progress'),
 ]
