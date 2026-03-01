@@ -87,19 +87,52 @@ def generate_notifications_for_event(event):
     user_emails = set()
 
     if event.consultazione:
-        # RDLs assigned to sections in this consultation
-        rdl_emails = SectionAssignment.objects.filter(
+        # Build territorial filters if event has territory constraints
+        from django.db.models import Q
+        territory_filter = Q()
+
+        has_territory_filter = (
+            event.regioni.exists() or
+            event.province.exists() or
+            event.comuni.exists()
+        )
+
+        if has_territory_filter:
+            # Filter by territory: regioni OR province OR comuni
+            # SectionAssignment → RdlRegistration → Comune → Provincia → Regione
+            territory_filter = (
+                Q(rdl_registration__comune__provincia__regione__in=event.regioni.all()) |
+                Q(rdl_registration__comune__provincia__in=event.province.all()) |
+                Q(rdl_registration__comune__in=event.comuni.all())
+            )
+
+        # RDLs assigned to sections in this consultation (with territory filter if applicable)
+        rdl_query = SectionAssignment.objects.filter(
             consultazione=event.consultazione,
-        ).values_list('rdl_registration__email', flat=True).distinct()
+        )
+
+        if has_territory_filter:
+            rdl_query = rdl_query.filter(territory_filter)
+
+        rdl_emails = rdl_query.values_list(
+            'rdl_registration__email', flat=True
+        ).distinct()
         user_emails.update(e for e in rdl_emails if e)
 
+        logger.info(
+            f'Event {event.id}: {len(user_emails)} RDLs targeted '
+            f'(territory_filter={has_territory_filter})'
+        )
+
         # Delegati for this consultation
+        # NOTE: Delegati don't have territory constraints - they get notified for all events
         delegato_emails = Delegato.objects.filter(
             consultazione=event.consultazione,
         ).values_list('email', flat=True)
         user_emails.update(e for e in delegato_emails if e)
 
         # SubDelegati for this consultation
+        # NOTE: SubDelegati don't have territory constraints - they get notified for all events
         sub_emails = SubDelega.objects.filter(
             delegato__consultazione=event.consultazione,
             is_attiva=True,
