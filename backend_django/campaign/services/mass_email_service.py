@@ -139,13 +139,14 @@ def get_recipients_info(template_id, filters, consultazione_id=None):
 
     total = qs.count()
 
-    # Conta quanti hanno già ricevuto questo template
+    # Conta quanti hanno già ricevuto questo template (tra i destinatari attuali)
     already_sent = 0
     if template_id:
+        # Filtra per RDL nel queryset attuale (con territorio applicato)
         already_sent_ids = set(
             MassEmailLog.objects.filter(
                 template_id=template_id,
-                rdl_registration__in=qs
+                rdl_registration__in=qs  # Filtra per destinatari con filtri territorio applicati
             ).values_list('rdl_registration_id', flat=True)
         )
         already_sent = len(already_sent_ids)
@@ -193,10 +194,12 @@ def send_mass_email_batch(template_id, filters, user_email, consultazione_id=Non
     if filters.get('provincia'):
         qs = qs.filter(comune__provincia_id=filters['provincia'])
 
-    # Escludi RDL già inviate per questo template
+    # Escludi RDL già inviate per questo template (ma solo tra i destinatari attuali)
+    # IMPORTANTE: filtriamo per qs per considerare solo i destinatari nel municipio/provincia/region selezionato
     already_sent_ids = set(
         MassEmailLog.objects.filter(
             template_id=template_id,
+            rdl_registration__in=qs,  # Filtra per RDL nel queryset attuale
         ).values_list('rdl_registration_id', flat=True)
     )
 
