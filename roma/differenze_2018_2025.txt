@@ -1,0 +1,101 @@
+Nel municipio 1:
+  - le sezioni 1714, 1715 e 1717 hanno cambiato via da VIA DELLA MADONNA DELL'ORTO, 2 a VIA DEI GENOVESI, 30B
+  - le sezioni 1719, 1720 e 1721 hanno cambiato via da VIA DEL FALCO, 43 a VIA GABRIELE CAMOZZI, 4
+  - le sezioni 2574 e 2575 hanno cambiato via e municipio, stavano in VIA DELL'AMBA ARADAM, 8 nel municipio 15 e ora si trovano in VIA DELL'AMBA ARADAM, 9 nel municipio 1
+  - la sezione 2576 ha cambiato via e municipio, stava in PIAZZA FATEBENEFRATELLI, 2 nel municipio 15 e ora si trova in VIA DI PONTE QUATTRO CAPI, 39 nel municipio 1
+
+Nel municipio 2:
+  - le sezioni 2569 e 2570 hanno cambiato municipio da 15 a 2
+  - le sezioni 9001, 9002, 9003, 9004, 9005, 9006 e 9007 sono nuove, si trovano in VIA DEL CASTRO LAURENZIANO, 9A
+
+Nel municipio 3:
+  - la sezione 355 ha cambiato via da VIA RINA DE LIGUORO, 50 a VIA SERRAPETRONA, 121
+  - la sezione 856 ha cambiato via e municipio, stava in VIA ACIREALE, 8 nel municipio 7 e ora si trova in VIA PIER ANTONIO SERASSI, 75 nel municipio 3
+
+Nel municipio 4:
+  - le sezioni 173, 174 e 175 hanno cambiato via da VIA DEL TUFO, 27 a VIA ACHILLE TEDESCHI, 85
+  - la sezione 449 ha cambiato via e municipio, stava in VIA POLICASTRO, 24 nel municipio 5 e ora si trova in VIA RUBELLIA, 31 nel municipio 4
+  - le sezioni 564, 565 e 566 hanno cambiato via da VIA DEL FRANTOIO, 46 a VIA DEL FRANTOIO, 2
+  - la sezione 2301 ha cambiato via e municipio, stava in VIA DI VAL FAVARA, 31 nel municipio 14 e ora si trova in VIA CORROPOLI, 119 nel municipio 4
+  - la sezione 2572 ha cambiato municipio da 15 a 4
+
+Nel municipio 5:
+  - le sezioni 446, 447 e 448 hanno cambiato via da VIA POLICASTRO, 24 a VIA DI ACQUA BULLICANTE, 30
+  - le sezioni 492, 493, 494, 495, 496, 497, 499 e 500 hanno cambiato via da VIA TOR DE' SCHIAVI, 175 a VIA DEI FAGGI, 151
+  - la sezione 536 ha cambiato via da VIA PIETRO ROMUALDO PIROTTA, 95A a VIA COLLATINA, 103
+  - la sezione 601 ha cambiato via da VIA COLLATINA, 103 a VIALE GIOVANNI BATTISTA VALENTE, 100
+  - le sezioni 655 e 656 hanno cambiato municipio da 4 a 5
+  - la sezione 677 ha cambiato municipio da 6 a 5
+  - la sezione 2573 ha cambiato municipio da 15 a 5
+
+Nel municipio 6:
+  - le sezioni 477, 684, 685, 2558 e 2559 hanno cambiato via da VIA DEL FOSSO DELL'OSA, 507 a VIA DON PRIMO MAZZOLARI, 323
+  - la sezione 1075 ha cambiato via da VIA RUGANTINO, 88 a VIA DEL PELLICANO, 18
+  - la sezione 1757 ha cambiato via e municipio, stava in VIA ETTORE STAMPINI, 38 nel municipio 14 e ora si trova in VIA DON PRIMO MAZZOLARI, 323 nel municipio 6
+  - la sezione 2578 ha cambiato municipio da 15 a 6
+  - la sezione 2579 ha cambiato via e municipio, stava in VIA ALVARO DEL PORTILLO, 200 nel municipio 15 e ora si trova in VIALE OXFORD, 81 nel municipio 6
+
+Nel municipio 7:
+  - le sezioni 855, 857, 858, 859 e 860 hanno cambiato via da VIA ACIREALE, 8 a VIA LA SPEZIA, 23
+  - le sezioni 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1088 e 1089 hanno cambiato municipio da 6 a 7
+  - la sezione 1574 ha cambiato via e municipio, stava in VIA DI S. PANTALEO CAMPANO, 41 nel municipio 11 e ora si trova in VIA RUGANTINO, 88 nel municipio 7
+  - la sezione 2577 ha cambiato via e municipio, stava in VIA ACERENZA, 3 nel municipio 15 e ora si trova in VIA APPIA NUOVA, 901 nel municipio 7
+
+Nel municipio 8:
+  - le sezioni 1265, 1266 e 1267 hanno cambiato via da LARGO BEATO PLACIDO RICCARDI, 13 a VIA DELLA VASCA NAVALE, 70
+  - le sezioni 1506, 1507, 1508, 1509 e 2512 hanno cambiato via da VIA BENEDETTO CROCE, 48D a VIA BENEDETTO CROCE, 48
+  - la sezione 2583 ha cambiato municipio da 15 a 8
+
+Nel municipio 9:
+  - la sezione 595 ha cambiato via e municipio, stava in VIALE GIOVANNI BATTISTA VALENTE, 100 nel municipio 5 e ora si trova in LARGO FRANCO BIGNOTTI, 3 nel municipio 9
+  - la sezione 1415 ha cambiato via e municipio, stava in VIA DI DONNA OLIMPIA, 45 nel municipio 12 e ora si trova in LARGO FRANCO BIGNOTTI, 3 nel municipio 9
+  - la sezione 1620 ha cambiato via da PIAZZALE ELSA MORANTE, 9 a VIA BRUNO DE FINETTI, 170B
+  - la sezione 2582 ha cambiato via e municipio, stava in CIRCONVALLAZIONE GIANICOLENSE, 87 nel municipio 15 e ora si trova in VIA ALVARO DEL PORTILLO, 200 nel municipio 9
+  - le sezioni 2584 e 2585 hanno cambiato municipio da 15 a 9
+
+Nel municipio 10:
+  - le sezioni 311, 1965, 1966 e 2560 hanno cambiato via da VIALE DI CASTEL PORZIANO, 524 a VIA BEDOLLO, 320
+  - la sezione 832 ha cambiato via e municipio, stava in VIA PANISPERNA, 255 nel municipio 1 e ora si trova in VIALE DI CASTEL PORZIANO, 524 nel municipio 10
+  - le sezioni 1824, 1825, 1826, 1827, 1828 e 1829 hanno cambiato via da VIA GIULIANO DA SANGALLO, 11 a CORSO DUCA DI GENOVA, 135
+  - le sezioni 1840, 1841, 1842, 1843, 1844, 1845, 1846, 1848, 1849 e 1850 hanno cambiato via da VIA DELL'IDROSCALO, 82 a VIA DELL'IDROSCALO, 88
+  - le sezioni 1967 e 2515 hanno cambiato via da VIA FRANCESCO CILEA, 269 a VIA BEDOLLO, 320
+  - le sezioni 2054, 2055, 2056, 2538 e 2552 hanno cambiato via da VIA PERICLE DUCATI, 12 a VIA FRANCESCO ORIOLI, 38
+  - la sezione 2599 ha cambiato via e municipio, stava in VIA GIOVANNI MARTINOTTI, 20 nel municipio 15 e ora si trova in VIA GIANCARLO PASSERONI, 28 nel municipio 10
+
+Nel municipio 11:
+  - la sezione 513 ha cambiato via e municipio, stava in VIA DEI GLICINI, 60 nel municipio 5 e ora si trova in VIA PORTUENSE, 1493 nel municipio 11
+  - le sezioni 1360, 1361, 1362, 1363, 1364 e 1365 hanno cambiato via da VIA DI VIGNA PIA, 120 a VIALE DI VIGNA PIA, 120
+  - la sezione 2276 ha cambiato via e municipio, stava in VIA SUOR CELESTINA DONATI, 146 nel municipio 14 e ora si trova in VIA PORTUENSE, 1491 nel municipio 11
+  - la sezione 2591 ha cambiato via e municipio, stava in VIA GIANCARLO PASSERONI, 34 nel municipio 15 e ora si trova in VIA DEI BUONVISI, 50 nel municipio 11
+  - le sezioni 2593 e 2597 hanno cambiato municipio da 15 a 11
+
+Nel municipio 12:
+  - le sezioni 1418, 1419, 1420, 1421, 1422 e 1423 hanno cambiato via da VIA FABIOLA, 15 a VIA FONTEIANA, 117
+  - le sezioni 1461, 1462, 1463 e 1464 hanno cambiato via da LARGO VICTOR HUGO GIROLAMI, 12 a VIA DEL CASALETTO, 597
+  - le sezioni 1465, 1466 e 1467 hanno cambiato via da LARGO VICTOR HUGO GIROLAMI, 12 a PIAZZA CARLO FORLANINI, 8
+  - la sezione 2280 ha cambiato via e municipio, stava in VIA FEDERICO BORROMEO, 53 nel municipio 14 e ora si trova in VIA GIUSEPPE VANNI, 7 nel municipio 12
+  - le sezioni 2580, 2581 e 2592 hanno cambiato municipio da 15 a 12
+
+Nel municipio 13:
+  - la sezione 2097 ha cambiato via da VIA GIUSEPPE MONTESANO, 6 a VIA GIUSEPPE VANNI, 7
+  - la sezione 2259 ha cambiato via da VIA DEL FORTE BRASCHI, 93A a VIA DEL FORTE BRASCHI, 99
+  - le sezioni 2586, 2595 e 2596 hanno cambiato municipio da 15 a 13
+
+Nel municipio 14:
+  - la sezione 1624 ha cambiato via e municipio, stava in VIA CARLO EMILIO GADDA, 80 nel municipio 9 e ora si trova in VIA S.S. AUDIFACE ED ABACUC, 41 nel municipio 14
+  - la sezione 1811 ha cambiato via da VIA SUOR CELESTINA DONATI, 146 a VIA ETTORE STAMPINI, 38
+  - la sezione 2081 ha cambiato via da VIA DI CASALOTTI, 87 a VIA S.S. AUDIFACE ED ABACUC, 41
+  - le sezioni 2082, 2083, 2084 e 2085 hanno cambiato via da VIA DI CASALOTTI, 87B a VIA S.S. AUDIFACE ED ABACUC, 41
+  - le sezioni 2255, 2256 e 2258 hanno cambiato via da VIA DEL FORTE BRASCHI, 93A a VIA DEL FORTE BRASCHI, 99
+  - la sezione 2275 ha cambiato via da VIA SUOR CELESTINA DONATI, 146 a VIA CASSIA, 1690
+  - la sezione 2285 ha cambiato via da VIA FEDERICO BORROMEO, 57 a VIA PONZONE, 23
+  - le sezioni 2315, 2316, 2317, 2318, 2319, 2320, 2321, 2323 e 2324 hanno cambiato via da VIA TAGGIA, 70 a VIA STEFANO BORGIA, 110
+  - la sezione 2568 ha cambiato via e municipio, stava in VIA PORTUENSE, 1493 nel municipio 11 e ora si trova in VIA DEL PODERE TRIESTE, 20 nel municipio 14
+  - la sezione 2571 ha cambiato via e municipio, stava in VIALE DEL POLICLINICO, 155 nel municipio 15 e ora si trova in VIA GIOVANNI MARTINOTTI, 20 nel municipio 14
+  - le sezioni 2587, 2588, 2589 e 2590 hanno cambiato municipio da 15 a 14
+
+Nel municipio 15:
+  - la sezione 577 ha cambiato via e municipio, stava in VIALE DELLA VENEZIA GIULIA, 52 nel municipio 5 e ora si trova in LARGO GIAMPAOLO BORGHI, 6 nel municipio 15
+  - la sezione 2594 ha cambiato via da VIA DI VALLELUNGA, 8 a VIA DI GROTTAROSSA, 1035
+  - la sezione 2600 è stata rimossa, era in VIA DI GROTTAROSSA, 1035 nel municipio 15
+

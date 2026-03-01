@@ -1,0 +1,24 @@
+Tipo,Nome,Valore
+CNAME,a3fyltmm4tqrvrpnkoydbkvsqkogf7ka._domainkey.ainaudi.it,a3fyltmm4tqrvrpnkoydbkvsqkogf7ka.dkim.amazonses.com
+CNAME,ou57oc3ut3xpcrnwiowwbchbfd7zulzt._domainkey.ainaudi.it,ou57oc3ut3xpcrnwiowwbchbfd7zulzt.dkim.amazonses.com
+CNAME,yyloxoodnzaxpoorh7e24onss3odnjpw._domainkey.ainaudi.it,yyloxoodnzaxpoorh7e24onss3odnjpw.dkim.amazonses.com
+
+⏺ La lista completa per register.it quando sblocca il DNS:
+
+  ┌───────┬─────────────────────────────────────────────┬──────────────────────────────────────────────────────────────────────┐
+  │ Tipo  │                    Nome                     │                                Valore                                │
+  ├───────┼─────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ TXT   │ @                                           │ google-site-verification=9hwU4GfVI6SkCRDTHL-7mV8sUHezlJuTfUnbWKq0oBI │
+  ├───────┼─────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ CNAME │ a3fyltmm4tqrvrpnkoydbkvsqkogf7ka._domainkey │ a3fyltmm4tqrvrpnkoydbkvsqkogf7ka.dkim.amazonses.com                  │
+  ├───────┼─────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ CNAME │ ou57oc3ut3xpcrnwiowwbchbfd7zulzt._domainkey │ ou57oc3ut3xpcrnwiowwbchbfd7zulzt.dkim.amazonses.com                  │
+  ├───────┼─────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ CNAME │ yyloxoodnzaxpoorh7e24onss3odnjpw._domainkey │ yyloxoodnzaxpoorh7e24onss3odnjpw.dkim.amazonses.com                  │
+  ├───────┼─────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ A     │ @                                           │ (dopo verifica Google, lancia gcloud app domain-mappings create)     │
+  ├───────┼─────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ AAAA  │ @                                           │ (idem)                                                               │
+  ├───────┼─────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ CNAME │ www                                         │ ainaudi.it.                                                          │
+  └───────┴─────────────────────────────────────────────┴──────────────────────────────────────────────────────────────────────┘

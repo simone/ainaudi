@@ -1,0 +1,61 @@
+Nel municipio 1:
+  - le sezioni 1714, 1715 e 1717 hanno cambiato via da VIA DELLA MADONNA DELL'ORTO, 2 a VIA DEI GENOVESI, 30B
+  - la sezione 2213 ha cambiato municipio da 14 a 1
+  - le sezioni 2574 e 2575 hanno cambiato via da VIA DELL'AMBA ARADAM, 8 a VIA DELL'AMBA ARADAM, 9
+  - la sezione 2576 ha cambiato via da PIAZZA FATEBENEFRATELLI, 2 a VIA DI PONTE QUATTRO CAPI, 39
+
+Nel municipio 2:
+  - le sezioni 28, 2182 e 2535 hanno cambiato municipio da 1 a 2
+  - le sezioni 9001, 9002, 9003, 9004, 9005, 9006 e 9007 sono nuove, si trovano in VIA DEL CASTRO LAURENZIANO, 9A
+
+Nel municipio 3:
+  - la sezione 361 ha cambiato municipio da 4 a 3
+
+Nel municipio 5:
+  - la sezione 696 ha cambiato municipio da 6 a 5
+
+Nel municipio 6:
+  - la sezione 2579 ha cambiato via e municipio, stava in VIA ALVARO DEL PORTILLO, 200 nel municipio 9 e ora si trova in VIALE OXFORD, 81 nel municipio 6
+
+Nel municipio 7:
+  - le sezioni 941 e 942 hanno cambiato municipio da 5 a 7
+  - la sezione 2577 ha cambiato via da VIA ACERENZA, 3 a VIA APPIA NUOVA, 901
+
+Nel municipio 8:
+  - le sezioni 1023, 1127, 1194 e 2537 hanno cambiato municipio da 7 a 8
+  - le sezioni 1195, 1536 e 1604 hanno cambiato municipio da 9 a 8
+  - le sezioni 1230 e 1231 hanno cambiato municipio da 1 a 8
+  - le sezioni 1506, 1507, 1508, 1509 e 2512 hanno cambiato via da VIA BENEDETTO CROCE, 48D a VIA BENEDETTO CROCE, 48
+
+Nel municipio 9:
+  - la sezione 1294 ha cambiato municipio da 8 a 9
+  - la sezione 1415 ha cambiato via e municipio, stava in VIA DI DONNA OLIMPIA, 45 nel municipio 12 e ora si trova in LARGO FRANCO BIGNOTTI, 3 nel municipio 9
+  - la sezione 1620 ha cambiato via da PIAZZALE ELSA MORANTE, 9 a VIA BRUNO DE FINETTI, 170B
+  - la sezione 2582 ha cambiato via e municipio, stava in CIRCONVALLAZIONE GIANICOLENSE, 87 nel municipio 12 e ora si trova in VIA ALVARO DEL PORTILLO, 200 nel municipio 9
+
+Nel municipio 10:
+  - la sezione 832 ha cambiato via e municipio, stava in VIA PANISPERNA, 255 nel municipio 1 e ora si trova in VIALE DI CASTEL PORZIANO, 524 nel municipio 10
+  - le sezioni 1560 e 1964 hanno cambiato municipio da 9 a 10
+  - le sezioni 1840, 1841, 1842, 1843, 1844, 1845, 1846, 1848, 1849 e 1850 hanno cambiato via da VIA DELL'IDROSCALO, 82 a VIA DELL'IDROSCALO, 88
+  - la sezione 2599 ha cambiato via e municipio, stava in VIA GIOVANNI MARTINOTTI, 20 nel municipio 14 e ora si trova in VIA GIANCARLO PASSERONI, 28 nel municipio 10
+
+Nel municipio 11:
+  - le sezioni 1570, 1571 e 1572 hanno cambiato municipio da 12 a 11
+
+Nel municipio 12:
+  - le sezioni 1295, 1296 e 1297 hanno cambiato municipio da 11 a 12
+
+Nel municipio 13:
+  - la sezione 2097 ha cambiato municipio da 12 a 13
+  - la sezione 2259 ha cambiato via da VIA DEL FORTE BRASCHI, 93A a VIA DEL FORTE BRASCHI, 99
+
+Nel municipio 14:
+  - le sezioni 1805, 1806, 1807 e 1808 hanno cambiato municipio da 1 a 14
+  - le sezioni 1811, 1933, 2078, 2079, 2080, 2250, 2251, 2253, 2254 e 2567 hanno cambiato municipio da 13 a 14
+  - le sezioni 2255, 2256 e 2258 hanno cambiato via e municipio, stavano in VIA DEL FORTE BRASCHI, 93A nel municipio 13 e ora si trovano in VIA DEL FORTE BRASCHI, 99 nel municipio 14
+  - le sezioni 2275, 2322, 2402 e 2403 hanno cambiato municipio da 15 a 14
+  - la sezione 2571 ha cambiato via e municipio, stava in VIALE DEL POLICLINICO, 155 nel municipio 2 e ora si trova in VIA GIOVANNI MARTINOTTI, 20 nel municipio 14
+
+Nel municipio 15:
+  - le sezioni 2214, 2353 e 2365 hanno cambiato municipio da 14 a 15
+

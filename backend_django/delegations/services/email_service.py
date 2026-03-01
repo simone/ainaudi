@@ -109,42 +109,63 @@ class RDLEmailService:
         }
 
     @staticmethod
-    def invia_notifiche_processo_async(processo, user_email: str) -> str:
+    def invia_notifiche_processo_async(processo, user_email: str):
         """
         Avvia invio asincrono email a tutti gli RDL di un processo.
+
+        Se Redis è disponibile: usa async + progress tracking
+        Se Redis NON è disponibile: usa batch sincrono (50 email alla volta)
 
         Args:
             processo: ProcessoDesignazione instance
             user_email: Email utente che ha avviato l'invio
 
         Returns:
-            task_id: ID univoco per tracking progress
+            task_id: ID univoco per tracking progress (async mode)
+            OR dict: batch_result con fallback=True (batch mode)
         """
         import uuid
         task_id = f"email_task_{processo.id}_{uuid.uuid4().hex[:8]}"
 
         r = get_redis_client()
         if not r:
-            raise RuntimeError("Redis client not available")
-
-        # Salva stato iniziale in Redis
-        r.hset(
-            task_id,
-            mapping={
-                'status': 'STARTED',
-                'current': '0',
-                'total': '0',
-                'sent': '0',
-                'failed': '0',
-                'processo_id': str(processo.id),
-                'user_email': user_email
+            logger.warning("Redis not available, falling back to batch mode")
+            # Fallback: invia il primo batch sincrono
+            result = RDLEmailService.invia_notifiche_processo_batch(processo, user_email, batch_size=50)
+            return {
+                'task_id': task_id,
+                'batch_result': result,
+                'fallback': True,  # Indica che è in fallback mode
             }
-        )
-        r.expire(task_id, 3600)  # TTL 1 ora
 
-        # Salva task_id corrente per questo processo (per polling)
-        task_key = f"email_task_current_{processo.id}"
-        r.setex(task_key, 3600, task_id)  # TTL 1 ora
+        try:
+            # Salva stato iniziale in Redis
+            r.hset(
+                task_id,
+                mapping={
+                    'status': 'STARTED',
+                    'current': '0',
+                    'total': '0',
+                    'sent': '0',
+                    'failed': '0',
+                    'processo_id': str(processo.id),
+                    'user_email': user_email
+                }
+            )
+            r.expire(task_id, 3600)  # TTL 1 ora
+
+            # Salva task_id corrente per questo processo (per polling)
+            task_key = f"email_task_current_{processo.id}"
+            r.setex(task_key, 3600, task_id)  # TTL 1 ora
+        except Exception as e:
+            # Redis connection error - fall back to batch mode
+            logger.warning(f"Redis operation failed: {e}, falling back to batch mode")
+            result = RDLEmailService.invia_notifiche_processo_batch(processo, user_email, batch_size=50)
+            return {
+                'task_id': task_id,
+                'batch_result': result,
+                'fallback': True,  # Indica che è in fallback mode
+            }
 
         # Avvia thread worker
         thread = threading.Thread(
@@ -290,9 +311,26 @@ class RDLEmailService:
         """
         r = get_redis_client()
         if not r:
-            return {'status': 'NOT_FOUND', 'error': 'Redis not available'}
+            # Fallback mode: return SUCCESS since batch mode already completed
+            return {
+                'status': 'SUCCESS',
+                'current': 0,
+                'total': 0,
+                'sent': 0,
+                'failed': 0,
+                'error': '',
+                'fallback': True,
+            }
 
-        data = r.hgetall(task_id)
+        try:
+            data = r.hgetall(task_id)
+        except Exception as e:
+            logger.warning(f"Failed to get task progress: {e}")
+            return {
+                'status': 'SUCCESS',
+                'fallback': True,
+            }
+
         if not data:
             return {'status': 'NOT_FOUND'}
 

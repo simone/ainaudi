@@ -1178,13 +1178,27 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
 
         # Avvia invio asincrono
         try:
-            task_id = RDLEmailService.invia_notifiche_processo_async(processo, request.user.email)
+            result = RDLEmailService.invia_notifiche_processo_async(processo, request.user.email)
 
-            # Ritorna task_id per progress tracking
+            # Handle fallback mode (no Redis available)
+            if isinstance(result, dict) and result.get('fallback'):
+                # In fallback mode, return batch results directly
+                return Response({
+                    'success': True,
+                    'message': 'Invio email avviato in batch mode',
+                    'task_id': result['task_id'],
+                    'sent': result['batch_result']['sent'],
+                    'remaining': result['batch_result']['remaining'],
+                    'total': result['batch_result']['total'],
+                    'fallback': True,
+                    'n_designazioni': n_designazioni
+                }, status=status.HTTP_202_ACCEPTED)
+
+            # Normal mode (Redis available) - return task_id for polling
             return Response({
                 'success': True,
                 'message': 'Invio email avviato in background',
-                'task_id': task_id,
+                'task_id': result,
                 'n_designazioni': n_designazioni
             }, status=status.HTTP_202_ACCEPTED)  # 202 = Accepted (async)
 
