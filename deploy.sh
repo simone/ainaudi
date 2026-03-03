@@ -158,6 +158,28 @@ fi
 echo -e "${YELLOW}🔧 Configurazione progetto GCP...${NC}"
 gcloud config set project ${PROJECT}
 
+# Helper function to cleanup old versions (keep only latest 3)
+cleanup_old_versions() {
+    local service=$1
+    echo -e "${YELLOW}🧹 Pulizia versioni vecchie di ${service}...${NC}"
+
+    # Get all versions except the latest 3, sorted by creation time (newest first)
+    local versions_to_delete=$(gcloud app versions list --service=${service} --sort-by=~VERSION.CREATE_TIME --format='value(VERSION.ID)' 2>/dev/null | tail -n +4)
+
+    if [ -z "$versions_to_delete" ]; then
+        echo -e "${YELLOW}   ℹ️  Nessuna versione da eliminare (≤3 versioni)${NC}"
+        return
+    fi
+
+    # Delete each version
+    echo "$versions_to_delete" | while read version; do
+        echo -e "${YELLOW}   🗑️  Eliminando ${service}/${version}...${NC}"
+        gcloud app versions delete ${version} --service=${service} --quiet 2>/dev/null || true
+    done
+
+    echo -e "${GREEN}   ✅ Pulizia ${service} completata${NC}"
+}
+
 # Deploy Frontend (React)
 if [ "$SKIP_FRONTEND" = false ]; then
     echo ""
@@ -201,6 +223,8 @@ FBEOF
     cp -r backend_django/staticfiles/admin build/static/admin
     cp -r backend_django/staticfiles/rest_framework build/static/rest_framework
     echo -e "${GREEN}✅ Static Django copiati in build/static/${NC}"
+
+    cleanup_old_versions "default"
 
     echo -e "${YELLOW}🚀 Deploy frontend su App Engine (service: default)...${NC}"
     gcloud app deploy app.yaml \
@@ -276,6 +300,8 @@ if [ "$SKIP_BACKEND" = false ]; then
         echo -e "${GREEN}✅ Migrazioni completate su Cloud SQL${NC}"
     fi
 
+    cleanup_old_versions "api"
+
     echo -e "${YELLOW}🚀 Deploy backend su App Engine (service: api)...${NC}"
     gcloud app deploy app.yaml \
         --project=${PROJECT} \
@@ -295,6 +321,8 @@ if [ "$SKIP_PDF" = false ]; then
 
     cd backend_django
 
+    cleanup_old_versions "pdf"
+
     echo -e "${YELLOW}🚀 Deploy PDF service su App Engine (service: pdf)...${NC}"
     gcloud app deploy app-pdf.yaml \
         --project=${PROJECT} \
@@ -313,6 +341,8 @@ if [ "$SKIP_AI" = false ]; then
     echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
 
     cd backend_django
+
+    cleanup_old_versions "ai"
 
     echo -e "${YELLOW}🚀 Deploy AI service su App Engine (service: ai)...${NC}"
     gcloud app deploy app_ai.yaml \
@@ -337,6 +367,8 @@ if [ "$SKIP_ADMIN" = false ]; then
     python3 manage.py collectstatic --noinput --clear
     echo -e "${GREEN}✅ Static files collected${NC}"
 
+    cleanup_old_versions "admin"
+
     echo -e "${YELLOW}🚀 Deploy Admin service su App Engine (service: admin)...${NC}"
     gcloud app deploy app_admin.yaml \
         --project=${PROJECT} \
@@ -355,6 +387,8 @@ if [ "$SKIP_RDL" = false ]; then
     echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
 
     cd backend_django
+
+    cleanup_old_versions "rdl"
 
     echo -e "${YELLOW}🚀 Deploy RDL service su App Engine (service: rdl)...${NC}"
     gcloud app deploy app_rdl.yaml \
