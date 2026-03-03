@@ -1235,10 +1235,11 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             consultazione_id = consultazione.id
 
         # Trova designazioni RDL (sia effettivo che supplente)
+        # Include TEST designazioni per testing purposes
         designazioni = DesignazioneRDL.objects.filter(
             Q(effettivo_email=user_email) | Q(supplente_email=user_email),
             processo__consultazione_id=consultazione_id,
-            processo__stato__in=['APPROVATO', 'INVIATO'],
+            processo__stato__in=['APPROVATO', 'INVIATO', 'TEST'],
             stato='CONFERMATA',
             is_attiva=True
         ).select_related(
