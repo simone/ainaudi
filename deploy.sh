@@ -158,26 +158,38 @@ fi
 echo -e "${YELLOW}🔧 Configurazione progetto GCP...${NC}"
 gcloud config set project ${PROJECT}
 
-# Helper function to cleanup old versions (keep only latest 3)
+# Helper function to cleanup old versions (keep only the one serving traffic)
 cleanup_old_versions() {
     local service=$1
     echo -e "${YELLOW}🧹 Pulizia versioni vecchie di ${service}...${NC}"
 
-    # Get all versions except the latest 3, sorted by creation time (newest first)
-    local versions_to_delete=$(gcloud app versions list --service=${service} --sort-by=~VERSION.CREATE_TIME --format='value(VERSION.ID)' 2>/dev/null | tail -n +4)
+    # Get the version currently serving traffic (100% traffic split)
+    local serving_version=$(gcloud app services describe ${service} --format='value(split.allocations[0].version)' 2>/dev/null)
+
+    if [ -z "$serving_version" ]; then
+        echo -e "${YELLOW}   ℹ️  Nessuna versione trovata in serving traffic${NC}"
+        return
+    fi
+
+    echo -e "${YELLOW}   📍 Versione in serving: ${serving_version}${NC}"
+
+    # Get all versions except the one serving traffic
+    local versions_to_delete=$(gcloud app versions list --service=${service} --sort-by=~VERSION.CREATE_TIME --format='value(VERSION.ID)' 2>/dev/null | grep -v "^${serving_version}$")
 
     if [ -z "$versions_to_delete" ]; then
-        echo -e "${YELLOW}   ℹ️  Nessuna versione da eliminare (≤3 versioni)${NC}"
+        echo -e "${YELLOW}   ✅ Nessun'altra versione da eliminare${NC}"
         return
     fi
 
     # Delete each version
+    local count=0
     echo "$versions_to_delete" | while read version; do
         echo -e "${YELLOW}   🗑️  Eliminando ${service}/${version}...${NC}"
         gcloud app versions delete ${version} --service=${service} --quiet 2>/dev/null || true
+        ((count++))
     done
 
-    echo -e "${GREEN}   ✅ Pulizia ${service} completata${NC}"
+    echo -e "${GREEN}   ✅ Pulizia ${service} completata (eliminate versioni precedenti)${NC}"
 }
 
 # Deploy Frontend (React)
