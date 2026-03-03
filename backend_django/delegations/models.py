@@ -640,6 +640,7 @@ class ProcessoDesignazione(models.Model):
         APPROVATO = 'APPROVATO', _('Confermato')
         ANNULLATO = 'ANNULLATO', _('Annullato')
         INVIATO = 'INVIATO', _('Inviato a Prefettura')
+        TEST = 'TEST', _('Test (designazioni temporanee)')
 
     class Tipo(models.TextChoices):
         """Tipo di documento (per retrocompatibilità con vecchio frontend)."""
