@@ -142,9 +142,12 @@ class Command(BaseCommand):
                 f'No SectionAssignments found for consultazione {consultazione.nome}'
             )
 
-        # Get sections that already have active CONFERMATA designations
-        # We'll deactivate these and replace them with test designations
+        # Get sections (from current consultazione's assignments) that already have
+        # active CONFERMATA designations. We'll deactivate these and replace them with test designations
+        sezioni_assignment = set(assignments.values_list('sezione_id', flat=True))
+
         designazioni_esistenti = DesignazioneRDL.objects.filter(
+            sezione_id__in=sezioni_assignment,
             is_attiva=True,
             stato='CONFERMATA'
         ).values_list('sezione_id', flat=True)
@@ -171,8 +174,8 @@ class Command(BaseCommand):
         if dry_run:
             msg = f'DRY RUN: Would create TEST process for consultazione: {consultazione.nome}\n'
             msg += f'Assignments found: {assignments.count()}\n'
-            if count_skipped > 0:
-                msg += f'Will deactivate {count_skipped} existing CONFERMATA designations'
+            if sezioni_con_designazione:
+                msg += f'Will deactivate {len(sezioni_con_designazione)} existing CONFERMATA designations'
             self.stdout.write(self.style.WARNING(msg))
         else:
             # Deactivate existing CONFERMATA designations that we'll replace
