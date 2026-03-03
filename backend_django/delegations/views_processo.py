@@ -1308,65 +1308,6 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             'totale_sezioni': len(designazioni_list)
         })
 
-    def _generate_test_pdf_response(self, consultazione_id):
-        """
-        Generate a fake PDF for TEST processes.
-
-        Returns a simple PDF with:
-        - Title: "DESIGNAZIONI - PERIODO TEST"
-        - Message: "Le designazioni non sono ancora disponibili durante il test"
-        - Creation date
-        """
-        from io import BytesIO
-        from reportlab.lib.pagesizes import letter
-        from reportlab.pdfgen import canvas
-        from datetime import datetime
-
-        buffer = BytesIO()
-        c = canvas.Canvas(buffer, pagesize=letter)
-
-        # Document metadata
-        c.setTitle("Designazioni Test")
-
-        # Page content
-        y_position = 750
-        c.setFont("Helvetica-Bold", 18)
-        c.drawString(50, y_position, "DESIGNAZIONI - PERIODO TEST")
-
-        y_position -= 60
-        c.setFont("Helvetica", 12)
-        c.drawString(50, y_position, "Le designazioni non sono ancora disponibili durante il periodo test")
-
-        y_position -= 30
-        c.drawString(50, y_position, "della piattaforma.")
-
-        y_position -= 60
-        c.setFont("Helvetica", 11)
-        c.drawString(50, y_position, f"Documento generato il: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
-
-        y_position -= 30
-        c.setFont("Helvetica-Oblique", 10)
-        c.drawString(50, y_position, "Questo è un documento temporaneo per il periodo di test.")
-
-        c.save()
-        buffer.seek(0)
-        pdf_bytes = buffer.getvalue()
-
-        # Get consultazione for filename
-        try:
-            consultazione = ConsultazioneElettorale.objects.get(id=consultazione_id)
-            consultazione_nome = consultazione.nome[:30]
-        except ConsultazioneElettorale.DoesNotExist:
-            consultazione_nome = "Test"
-
-        filename = f"Designazione_Test_{consultazione_nome}.pdf"
-
-        response = HttpResponse(pdf_bytes, content_type='application/pdf')
-        response['Content-Disposition'] = f'inline; filename="{filename}"'
-        response['Content-Length'] = len(pdf_bytes)
-
-        return response
-
     @action(detail=False, methods=['get'], url_path='download-mia-nomina',
             permission_classes=[permissions.IsAuthenticated])
     def download_mia_nomina(self, request):
@@ -1401,11 +1342,6 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             return Response({
                 'error': 'Nessuna designazione trovata per questa consultazione'
             }, status=404)
-
-        # Se è un processo TEST, genera un PDF finto
-        processo = designazioni.first().processo
-        if processo.stato == 'TEST':
-            return self._generate_test_pdf_response(consultazione_id)
 
         # Determina ruoli: può essere effettivo per alcune sezioni E supplente per altre
         sezioni_effettivo = []
