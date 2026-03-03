@@ -202,9 +202,21 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
     DELETE /api/deleghe/designazioni/{id}/ - Revoca designazione
     GET /api/deleghe/designazioni/sezioni_disponibili/ - Sezioni disponibili per designazione
 
-    Permission: can_manage_delegations (Delegato, SubDelegato)
+    Permission: can_manage_delegations (Delegato, SubDelegato) or IsAuthenticated (RDL read-only)
     """
-    permission_classes = [permissions.IsAuthenticated, CanManageDelegations]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        """
+        RDL possono solo leggere (list, retrieve).
+        Delegato/SubDelegato possono create/update/delete se hanno CanManageDelegations.
+        """
+        if self.action in ['list', 'retrieve']:
+            # Anyone authenticated can read
+            return [permissions.IsAuthenticated()]
+        else:
+            # Only Delegato/SubDelegato can modify
+            return [permissions.IsAuthenticated(), CanManageDelegations()]
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -215,11 +227,9 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        Returns designazioni based on user's territorial scope.
-        Uses the same territorial filtering logic as mappatura.
-
-        Un utente vede TUTTE le designazioni per le sezioni nel suo territorio,
-        indipendentemente da chi le ha create.
+        Returns designazioni based on user's role:
+        - RDL: Solo designazioni dove è effettivo o supplente
+        - Delegato/SubDelegato: Tutte le designazioni nel loro territorio
         """
         from .permissions import get_sezioni_filter_for_user
         from territory.models import SezioneElettorale
@@ -227,17 +237,46 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
         user = self.request.user
         consultazione_id = self.request.query_params.get('consultazione')
 
-        # Get territorial filter for user (Q object for SezioneElettorale)
+        # Check if user is RDL (has designazioni where is effettivo or supplente)
+        is_rdl = DesignazioneRDL.objects.filter(
+            Q(effettivo_email=user.email) | Q(supplente_email=user.email)
+        ).exists()
+
+        # If user is ONLY RDL (not delegato/subdelegato), show only their designazioni
+        if is_rdl:
+            from .models import Delegato, SubDelega
+            is_delegato = Delegato.objects.filter(email=user.email).exists()
+            is_subdelegato = SubDelega.objects.filter(email=user.email).exists()
+
+            if not is_delegato and not is_subdelegato:
+                # RDL: show only where they are effettivo or supplente
+                qs = DesignazioneRDL.objects.filter(
+                    Q(effettivo_email=user.email) | Q(supplente_email=user.email),
+                    is_attiva=True
+                ).select_related(
+                    'delegato', 'sub_delega', 'sub_delega__delegato',
+                    'sezione', 'sezione__comune', 'sezione__municipio',
+                    'processo'
+                )
+
+                if consultazione_id:
+                    qs = qs.filter(
+                        Q(delegato__consultazione_id=consultazione_id) |
+                        Q(sub_delega__delegato__consultazione_id=consultazione_id)
+                    )
+
+                return qs.distinct()
+
+        # Delegato/SubDelegato: territorial filter
         sezioni_filter = get_sezioni_filter_for_user(user, consultazione_id)
 
         if sezioni_filter is None:
-            # User has no access
             return DesignazioneRDL.objects.none()
 
         # Get sezioni IDs in user's territory
         sezioni_ids = SezioneElettorale.objects.filter(sezioni_filter).values_list('id', flat=True)
 
-        # Base queryset: all designazioni for sections in user's territory
+        # All designazioni for sections in user's territory
         qs = DesignazioneRDL.objects.filter(
             sezione_id__in=sezioni_ids
         ).select_related(
@@ -246,7 +285,6 @@ class DesignazioneRDLViewSet(viewsets.ModelViewSet):
             'processo'
         )
 
-        # Additional filter by consultazione if specified
         if consultazione_id:
             qs = qs.filter(
                 Q(delegato__consultazione_id=consultazione_id) |
