@@ -14,7 +14,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from elections.models import ConsultazioneElettorale
-from delegations.models import ProcessoDesignazione, DesignazioneRDL
+from delegations.models import ProcessoDesignazione, DesignazioneRDL, Delegato
 from data.models import SectionAssignment
 
 
@@ -56,7 +56,7 @@ class Command(BaseCommand):
             self._generate_test_data(consultazione, dry_run)
 
     def _delete_test_data(self, consultazione, dry_run):
-        """Delete all TEST designations and processes for the consultazione."""
+        """Delete all TEST designations, processes, and test delegato for the consultazione."""
         processi_test = ProcessoDesignazione.objects.filter(
             consultazione=consultazione,
             stato=ProcessoDesignazione.Stato.TEST
@@ -76,25 +76,48 @@ class Command(BaseCommand):
         )
         count_designazioni = designazioni_test.count()
 
+        # Check if test delegato exists (the one we created)
+        delegato_test = Delegato.objects.filter(
+            consultazione=consultazione,
+            cognome='Designazioni',
+            nome='Test'
+        ).first()
+
         if dry_run:
-            self.stdout.write(
-                self.style.WARNING(
-                    f'DRY RUN: Would delete {count_designazioni} designations '
-                    f'across {count_processi} TEST processes'
-                )
-            )
+            msg = f'DRY RUN: Would delete {count_designazioni} designations across {count_processi} TEST processes'
+            if delegato_test:
+                msg += f' and 1 test delegato'
+            self.stdout.write(self.style.WARNING(msg))
             return
 
         # Delete designations first (cascade should handle this)
         designazioni_test.delete()
         processi_test.delete()
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f'Deleted {count_designazioni} test designations '
-                f'across {count_processi} TEST processes'
+        # Delete test delegato if it exists and no other designations reference it
+        if delegato_test:
+            if not DesignazioneRDL.objects.filter(delegato=delegato_test).exists():
+                delegato_test.delete()
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f'✓ Deleted {count_designazioni} test designations, '
+                        f'{count_processi} TEST processes, and 1 test delegato'
+                    )
+                )
+            else:
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f'✓ Deleted {count_designazioni} test designations '
+                        f'and {count_processi} TEST processes (delegato still in use)'
+                    )
+                )
+        else:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f'✓ Deleted {count_designazioni} test designations '
+                    f'across {count_processi} TEST processes'
+                )
             )
-        )
 
     def _generate_test_data(self, consultazione, dry_run):
         """Generate test designations from SectionAssignments."""
@@ -108,6 +131,23 @@ class Command(BaseCommand):
             raise CommandError(
                 f'No SectionAssignments found for consultazione {consultazione.nome}'
             )
+
+        # Find or create a test delegato for this consultazione
+        # Use the unique constraint (consultazione, cognome, nome)
+        if not dry_run:
+            delegato_test, created_delegato = Delegato.objects.get_or_create(
+                consultazione=consultazione,
+                cognome='Designazioni',
+                nome='Test',
+                defaults={
+                    'carica': Delegato.Carica.RAPPRESENTANTE_PARTITO,
+                    'email': 'test-designazioni@m5s.it',
+                }
+            )
+            if created_delegato:
+                self.stdout.write(
+                    self.style.WARNING(f'Created test Delegato: {delegato_test.email}')
+                )
 
         # Create a single TEST process for this consultazione
         if dry_run:
@@ -142,6 +182,7 @@ class Command(BaseCommand):
 
             designazione = DesignazioneRDL(
                 processo=processo_test if not dry_run else None,
+                delegato=delegato_test if not dry_run else None,  # Link to test delegato
                 sezione=assignment.sezione,
                 stato='CONFERMATA',
                 is_attiva=True,
