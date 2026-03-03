@@ -56,7 +56,10 @@ class Command(BaseCommand):
             self._generate_test_data(consultazione, dry_run)
 
     def _delete_test_data(self, consultazione, dry_run):
-        """Delete all TEST designations, processes, and test delegato for the consultazione."""
+        """Delete all TEST designations, processes, and test delegato for the consultazione.
+
+        Also reactivates any non-TEST designations that were deactivated during test setup.
+        """
         processi_test = ProcessoDesignazione.objects.filter(
             consultazione=consultazione,
             stato=ProcessoDesignazione.Stato.TEST
@@ -76,6 +79,16 @@ class Command(BaseCommand):
         )
         count_designazioni = designazioni_test.count()
 
+        # Find designations that were deactivated (not in TEST process, not active, not from test delegato)
+        # These should be reactivated
+        designazioni_da_riattivare = DesignazioneRDL.objects.filter(
+            sezione__in=designazioni_test.values('sezione'),
+            is_attiva=False,
+            stato='CONFERMATA'
+        ).exclude(processo__stato=ProcessoDesignazione.Stato.TEST)
+
+        count_da_riattivare = designazioni_da_riattivare.count()
+
         # Check if test delegato exists (the one we created)
         delegato_test = Delegato.objects.filter(
             consultazione=consultazione,
@@ -84,43 +97,40 @@ class Command(BaseCommand):
         ).first()
 
         if dry_run:
-            msg = f'DRY RUN: Would delete {count_designazioni} designations across {count_processi} TEST processes'
+            msg = f'DRY RUN: Would delete {count_designazioni} TEST designations across {count_processi} TEST processes'
+            if count_da_riattivare > 0:
+                msg += f' and reactivate {count_da_riattivare} original designations'
             if delegato_test:
-                msg += f' and 1 test delegato'
+                msg += f' and delete 1 test delegato'
             self.stdout.write(self.style.WARNING(msg))
             return
 
-        # Delete designations first (cascade should handle this)
+        # Delete test designations first
         designazioni_test.delete()
         processi_test.delete()
+
+        # Reactivate original designations
+        if count_da_riattivare > 0:
+            designazioni_da_riattivare.update(is_attiva=True)
+            self.stdout.write(
+                self.style.WARNING(f'⚠ Reactivated {count_da_riattivare} original designations')
+            )
 
         # Delete test delegato if it exists and no other designations reference it
         if delegato_test:
             if not DesignazioneRDL.objects.filter(delegato=delegato_test).exists():
                 delegato_test.delete()
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f'✓ Deleted {count_designazioni} test designations, '
-                        f'{count_processi} TEST processes, and 1 test delegato'
-                    )
-                )
-            else:
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f'✓ Deleted {count_designazioni} test designations '
-                        f'and {count_processi} TEST processes (delegato still in use)'
-                    )
-                )
-        else:
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f'✓ Deleted {count_designazioni} test designations '
-                    f'across {count_processi} TEST processes'
-                )
-            )
+
+        self.stdout.write(
+            self.style.SUCCESS(f'✓ Deleted {count_designazioni} test designations')
+        )
 
     def _generate_test_data(self, consultazione, dry_run):
-        """Generate test designations from SectionAssignments."""
+        """Generate test designations from SectionAssignments.
+
+        Only creates designations for sections that don't already have an active
+        CONFERMATA designation (respecting the unique constraint).
+        """
 
         # Get all assignments for this consultazione
         assignments = SectionAssignment.objects.filter(
@@ -131,6 +141,14 @@ class Command(BaseCommand):
             raise CommandError(
                 f'No SectionAssignments found for consultazione {consultazione.nome}'
             )
+
+        # Get sections that already have active CONFERMATA designations
+        # We'll deactivate these and replace them with test designations
+        designazioni_esistenti = DesignazioneRDL.objects.filter(
+            is_attiva=True,
+            stato='CONFERMATA'
+        ).values_list('sezione_id', flat=True)
+        sezioni_con_designazione = set(designazioni_esistenti)
 
         # Find or create a test delegato for this consultazione
         # Use the unique constraint (consultazione, cognome, nome)
@@ -151,12 +169,26 @@ class Command(BaseCommand):
 
         # Create a single TEST process for this consultazione
         if dry_run:
-            self.stdout.write(
-                self.style.WARNING(
-                    f'DRY RUN: Would create TEST process for consultazione: {consultazione.nome}'
-                )
-            )
+            msg = f'DRY RUN: Would create TEST process for consultazione: {consultazione.nome}\n'
+            msg += f'Assignments found: {assignments.count()}\n'
+            if count_skipped > 0:
+                msg += f'Will deactivate {count_skipped} existing CONFERMATA designations'
+            self.stdout.write(self.style.WARNING(msg))
         else:
+            # Deactivate existing CONFERMATA designations that we'll replace
+            if sezioni_con_designazione:
+                deactivated_count = DesignazioneRDL.objects.filter(
+                    sezione_id__in=sezioni_con_designazione,
+                    is_attiva=True,
+                    stato='CONFERMATA'
+                ).update(is_attiva=False)
+                if deactivated_count > 0:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f'⚠ Deactivated {deactivated_count} existing CONFERMATA designations'
+                        )
+                    )
+
             processo_test, created = ProcessoDesignazione.objects.get_or_create(
                 consultazione=consultazione,
                 stato=ProcessoDesignazione.Stato.TEST,
@@ -164,6 +196,11 @@ class Command(BaseCommand):
                     'tipo': ProcessoDesignazione.Tipo.INDIVIDUALE,
                 }
             )
+
+            if created:
+                self.stdout.write(
+                    self.style.SUCCESS(f'✓ Created TEST process: {processo_test.id}')
+                )
 
         # Build designations from assignments
         count_created = 0
@@ -208,10 +245,15 @@ class Command(BaseCommand):
             count_created += 1
 
         if dry_run:
+            msg = f'DRY RUN: Would create {count_created} test designations'
+            if sezioni_con_designazione:
+                msg += f'\n({len(sezioni_con_designazione)} will have existing designations deactivated)'
+            self.stdout.write(self.style.WARNING(msg))
+            return
+
+        if count_created == 0:
             self.stdout.write(
-                self.style.WARNING(
-                    f'DRY RUN: Would create {count_created} test designations'
-                )
+                self.style.WARNING(f'ℹ No assignments found for {consultazione.nome}')
             )
             return
 
@@ -219,8 +261,5 @@ class Command(BaseCommand):
         DesignazioneRDL.objects.bulk_create(designazioni_to_create)
 
         self.stdout.write(
-            self.style.SUCCESS(
-                f'✓ Created TEST process: {processo_test.id}\n'
-                f'✓ Created {count_created} test designations'
-            )
+            self.style.SUCCESS(f'✓ Created {count_created} test designations')
         )
