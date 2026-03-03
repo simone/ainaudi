@@ -158,38 +158,34 @@ fi
 echo -e "${YELLOW}🔧 Configurazione progetto GCP...${NC}"
 gcloud config set project ${PROJECT}
 
-# Helper function to cleanup old versions (keep only the one serving traffic)
+# Helper function to cleanup old versions (keep only latest 2)
 cleanup_old_versions() {
     local service=$1
     echo -e "${YELLOW}🧹 Pulizia versioni vecchie di ${service}...${NC}"
 
-    # Get the version currently serving traffic (100% traffic split)
-    local serving_version=$(gcloud app services describe ${service} --format='value(split.allocations[0].version)' 2>/dev/null)
+    # Get all versions sorted by creation time (newest first)
+    local all_versions=$(gcloud app versions list --service=${service} --sort-by=~VERSION.CREATE_TIME --format='value(VERSION.ID)' 2>/dev/null)
 
-    if [ -z "$serving_version" ]; then
-        echo -e "${YELLOW}   ℹ️  Nessuna versione trovata in serving traffic${NC}"
+    if [ -z "$all_versions" ]; then
+        echo -e "${YELLOW}   ℹ️  Nessuna versione trovata${NC}"
         return
     fi
 
-    echo -e "${YELLOW}   📍 Versione in serving: ${serving_version}${NC}"
+    # Count versions
+    local version_count=$(echo "$all_versions" | wc -l)
 
-    # Get all versions except the one serving traffic
-    local versions_to_delete=$(gcloud app versions list --service=${service} --sort-by=~VERSION.CREATE_TIME --format='value(VERSION.ID)' 2>/dev/null | grep -v "^${serving_version}$")
-
-    if [ -z "$versions_to_delete" ]; then
-        echo -e "${YELLOW}   ✅ Nessun'altra versione da eliminare${NC}"
+    if [ $version_count -le 2 ]; then
+        echo -e "${YELLOW}   ✅ Solo $version_count versioni, niente da pulire${NC}"
         return
     fi
 
-    # Delete each version
-    local count=0
-    echo "$versions_to_delete" | while read version; do
+    # Delete all versions except the latest 2
+    echo "$all_versions" | tail -n +3 | while read version; do
         echo -e "${YELLOW}   🗑️  Eliminando ${service}/${version}...${NC}"
         gcloud app versions delete ${version} --service=${service} --quiet 2>/dev/null || true
-        ((count++))
     done
 
-    echo -e "${GREEN}   ✅ Pulizia ${service} completata (eliminate versioni precedenti)${NC}"
+    echo -e "${GREEN}   ✅ Pulizia ${service} completata (restano ultime 2 versioni)${NC}"
 }
 
 # Deploy Frontend (React)
