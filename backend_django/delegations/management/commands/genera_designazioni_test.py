@@ -205,43 +205,75 @@ class Command(BaseCommand):
                     self.style.SUCCESS(f'✓ Created TEST process: {processo_test.id}')
                 )
 
-        # Build designations from assignments
+        # Group assignments by sezione (since there can be RDL + SUPPLENTE for same sezione)
+        sezioni_map = {}  # sezione_id -> {'rdl': assignment, 'supplente': assignment}
+
+        for assignment in assignments:
+            sezione_id = assignment.sezione_id
+            if sezione_id not in sezioni_map:
+                sezioni_map[sezione_id] = {}
+
+            if assignment.role == SectionAssignment.Role.RDL:
+                sezioni_map[sezione_id]['rdl'] = assignment
+            else:  # SUPPLENTE
+                sezioni_map[sezione_id]['supplente'] = assignment
+
+        # Build designations (one per sezione, collecting both RDL and SUPPLENTE)
         count_created = 0
         designazioni_to_create = []
 
-        for assignment in assignments:
-            rdl_reg = assignment.rdl_registration
+        for sezione_id, roles_dict in sezioni_map.items():
+            # Get sezione and data from assignments
+            rdl_assignment = roles_dict.get('rdl')
+            supplente_assignment = roles_dict.get('supplente')
 
-            # Determine email based on role
-            if assignment.role == SectionAssignment.Role.RDL:
-                effettivo_email = rdl_reg.email
-                supplente_email = ''
-            else:  # SUPPLENTE
-                effettivo_email = ''
-                supplente_email = rdl_reg.email
+            # Use whichever assignment exists (prefer RDL if both)
+            assignment = rdl_assignment or supplente_assignment
+            sezione = assignment.sezione
+
+            # Collect effettivo data (from RDL assignment if exists, else supplente)
+            effettivo_data = None
+            effettivo_email = ''
+            if rdl_assignment:
+                effettivo_data = rdl_assignment.rdl_registration
+                effettivo_email = effettivo_data.email
+
+            # Collect supplente data (from SUPPLENTE assignment if exists)
+            supplente_data = None
+            supplente_email = ''
+            if supplente_assignment:
+                supplente_data = supplente_assignment.rdl_registration
+                supplente_email = supplente_data.email
+
+            # At least one email must exist (enforced by check constraint)
+            if not effettivo_email and not supplente_email:
+                continue
+
+            # Use the first available RDL registration for data snapshot
+            rdl_reg = effettivo_data or supplente_data
 
             designazione = DesignazioneRDL(
                 processo=processo_test if not dry_run else None,
                 delegato=delegato_test if not dry_run else None,  # Link to test delegato
-                sezione=assignment.sezione,
+                sezione=sezione,
                 stato='CONFERMATA',
                 is_attiva=True,
-                # Effettivo data
+                # Effettivo data (if RDL role exists)
                 effettivo_email=effettivo_email,
-                effettivo_nome=rdl_reg.nome,
-                effettivo_cognome=rdl_reg.cognome,
-                effettivo_telefono=rdl_reg.telefono,
-                effettivo_data_nascita=rdl_reg.data_nascita,
-                effettivo_luogo_nascita=rdl_reg.comune_nascita,
-                effettivo_domicilio=rdl_reg.indirizzo_residenza,
-                # Supplente data
+                effettivo_nome=effettivo_data.nome if effettivo_data else '',
+                effettivo_cognome=effettivo_data.cognome if effettivo_data else '',
+                effettivo_telefono=effettivo_data.telefono if effettivo_data else '',
+                effettivo_data_nascita=effettivo_data.data_nascita if effettivo_data else None,
+                effettivo_luogo_nascita=effettivo_data.comune_nascita if effettivo_data else '',
+                effettivo_domicilio=effettivo_data.indirizzo_residenza if effettivo_data else '',
+                # Supplente data (if SUPPLENTE role exists)
                 supplente_email=supplente_email,
-                supplente_nome=rdl_reg.nome,
-                supplente_cognome=rdl_reg.cognome,
-                supplente_telefono=rdl_reg.telefono,
-                supplente_data_nascita=rdl_reg.data_nascita,
-                supplente_luogo_nascita=rdl_reg.comune_nascita,
-                supplente_domicilio=rdl_reg.indirizzo_residenza,
+                supplente_nome=supplente_data.nome if supplente_data else '',
+                supplente_cognome=supplente_data.cognome if supplente_data else '',
+                supplente_telefono=supplente_data.telefono if supplente_data else '',
+                supplente_data_nascita=supplente_data.data_nascita if supplente_data else None,
+                supplente_luogo_nascita=supplente_data.comune_nascita if supplente_data else '',
+                supplente_domicilio=supplente_data.indirizzo_residenza if supplente_data else '',
             )
 
             designazioni_to_create.append(designazione)
@@ -260,7 +292,7 @@ class Command(BaseCommand):
             )
             return
 
-        # Bulk create designations
+        # Bulk create designations (one per sezione, no duplicates)
         DesignazioneRDL.objects.bulk_create(designazioni_to_create)
 
         self.stdout.write(
