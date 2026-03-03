@@ -97,8 +97,10 @@ class MiaCatenaView(views.APIView):
             is_attiva=True
         )
         if consultazione:
+            # Include both designazioni via sub-delega and TEST designazioni (with direct delegato)
             designazioni_ricevute = designazioni_ricevute.filter(
-                sub_delega__delegato__consultazione=consultazione
+                Q(sub_delega__delegato__consultazione=consultazione) |
+                Q(delegato__consultazione=consultazione)
             )
         if designazioni_ricevute.exists():
             result['is_rdl'] = True
