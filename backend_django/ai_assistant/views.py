@@ -358,10 +358,11 @@ class ChatView(APIView):
                 if consultazione:
                     profile_parts.append(f"CONSULTAZIONE ATTIVA: {consultazione.nome} (dal {consultazione.data_inizio.strftime('%d/%m/%Y') if consultazione.data_inizio else '?'} al {consultazione.data_fine.strftime('%d/%m/%Y') if consultazione.data_fine else '?'})")
 
+                    from django.db.models import Q
                     designazioni = DesignazioneRDL.objects.filter(
+                        Q(effettivo_email=user.email) | Q(supplente_email=user.email),
                         processo__consultazione=consultazione,
-                        rdl_email=user.email,
-                        stato='APPROVATA'
+                        is_attiva=True,
                     ).select_related('sezione', 'sezione__comune', 'sezione__municipio')
 
                     for des in designazioni:
