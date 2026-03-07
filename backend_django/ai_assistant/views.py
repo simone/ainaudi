@@ -293,26 +293,45 @@ class ChatView(APIView):
             user_profile_context = ""
             user_sections_list = []
             try:
-                from delegations.models import DesignazioneRDL
+                from delegations.models import DesignazioneRDL, DelegatoDiLista, SubDelega
                 from elections.models import ConsultazioneElettorale
+                from django.db.models import Q
+                from datetime import datetime
 
                 user = request.user
                 user_name = f"{user.first_name} {user.last_name}".strip() or user.email
+                now = datetime.now()
 
                 consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
 
-                # Build user profile with current date
-                from datetime import datetime
-                now = datetime.now()
+                # Determine user role
+                user_role = "RDL"
+                role_description = "Rappresentante di Lista"
+                if consultazione:
+                    is_delegato = DelegatoDiLista.objects.filter(
+                        consultazione=consultazione, email=user.email
+                    ).exists()
+                    is_subdelegato = SubDelega.objects.filter(
+                        delegato__consultazione=consultazione, email=user.email
+                    ).exists()
+                    if is_delegato:
+                        user_role = "DELEGATO"
+                        role_description = "Delegato di Lista (supervisiona RDL nel suo territorio)"
+                    elif is_subdelegato:
+                        user_role = "SUBDELEGATO"
+                        role_description = "Sub-Delegato (supervisiona RDL nel suo territorio)"
+
+                # Build user profile
                 profile_parts = [
                     f"DATA E ORA: {now.strftime('%A %d %B %Y, ore %H:%M')}",
-                    f"PROFILO UTENTE: {user_name} ({user.email}), RDL del M5S",
+                    f"PROFILO UTENTE: {user_name} ({user.email})",
+                    f"RUOLO: {role_description}",
                 ]
 
                 if consultazione:
                     profile_parts.append(f"CONSULTAZIONE ATTIVA: {consultazione.nome} (dal {consultazione.data_inizio.strftime('%d/%m/%Y') if consultazione.data_inizio else '?'} al {consultazione.data_fine.strftime('%d/%m/%Y') if consultazione.data_fine else '?'})")
 
-                    from django.db.models import Q
+                    # Get assigned sections (for RDL)
                     designazioni = DesignazioneRDL.objects.filter(
                         Q(effettivo_email=user.email) | Q(supplente_email=user.email),
                         processo__consultazione=consultazione,
@@ -336,16 +355,22 @@ class ChatView(APIView):
                             f"  - Sezione {s['numero']} di {s['comune']}{' ('+s['municipio']+')' if s['municipio'] else ''}{' - '+s['indirizzo'] if s['indirizzo'] else ''}"
                             for s in user_sections_list
                         ])
-                        profile_parts.append(f"SEZIONI ASSEGNATE:\n{sections_text}")
+                        if user_role == "RDL":
+                            profile_parts.append(f"LE TUE SEZIONI ASSEGNATE (ACCETTA SOLO QUESTE per segnalazioni):\n{sections_text}")
+                        else:
+                            profile_parts.append(f"SEZIONI ASSEGNATE COME RDL:\n{sections_text}")
                     else:
-                        profile_parts.append("SEZIONI: Nessuna sezione ancora assegnata")
+                        if user_role == "RDL":
+                            profile_parts.append("SEZIONI: Nessuna sezione ancora assegnata")
+                        else:
+                            profile_parts.append("NOTA: Come delegato, puoi segnalare per qualsiasi sezione del tuo territorio")
                 else:
                     profile_parts.append("CONSULTAZIONE: Nessuna consultazione attiva al momento")
 
                 user_profile_context = "\n".join(profile_parts)
             except Exception as e:
                 logger.warning(f"Error retrieving user context: {e}")
-                user_profile_context = f"PROFILO UTENTE: {request.user.email}, RDL del M5S"
+                user_profile_context = f"PROFILO UTENTE: {request.user.email}"
 
             # Get RAG context (retrieve similar documents)
             from pgvector.django import CosineDistance
