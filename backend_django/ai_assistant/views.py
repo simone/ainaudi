@@ -9,7 +9,6 @@ import logging
 
 from core.permissions import CanAskToAIAssistant
 from .models import KnowledgeSource, ChatSession, ChatMessage
-from .rag_service import rag_service
 
 logger = logging.getLogger(__name__)
 
@@ -345,6 +344,245 @@ Esempi:
         return ' '.join(words) + ('...' if len(words) == 6 else '')
 
 
+def generate_ai_response(request, session, message):
+    """
+    Shared AI generation logic used by both ChatView and ChatBranchView.
+
+    Builds user profile context, retrieves RAG docs, calls Vertex AI with tools.
+
+    Returns:
+        dict: {
+            'answer': str,
+            'sources': list[dict],
+            'retrieved_docs': int,
+            'function_result': dict or None,
+            'user_sections_list': list,
+        }
+    """
+    from .tools import incident_management_tools
+    from .vertex_service import vertex_ai_service
+
+    # Get conversation history
+    history_messages = session.messages.order_by('created_at')
+    conversation_history = [
+        {'role': msg.role, 'content': msg.content}
+        for msg in history_messages
+    ]
+
+    # Build user profile context (passed to AI every call)
+    user_profile_context = ""
+    user_sections_list = []
+    try:
+        from delegations.models import DesignazioneRDL, DelegatoDiLista, SubDelega
+        from elections.models import ConsultazioneElettorale
+        from django.db.models import Q
+        from datetime import datetime
+
+        user = request.user
+        user_name = f"{user.first_name} {user.last_name}".strip() or user.email
+        now = datetime.now()
+
+        consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
+
+        # Determine user role
+        user_role = "RDL"
+        role_description = "Rappresentante di Lista"
+        if consultazione:
+            is_delegato = DelegatoDiLista.objects.filter(
+                consultazione=consultazione, email=user.email
+            ).exists()
+            is_subdelegato = SubDelega.objects.filter(
+                delegato__consultazione=consultazione, email=user.email
+            ).exists()
+            if is_delegato:
+                user_role = "DELEGATO"
+                role_description = "Delegato di Lista (supervisiona RDL nel suo territorio)"
+            elif is_subdelegato:
+                user_role = "SUBDELEGATO"
+                role_description = "Sub-Delegato (supervisiona RDL nel suo territorio)"
+
+        # Build user profile
+        profile_parts = [
+            f"DATA E ORA: {now.strftime('%A %d %B %Y, ore %H:%M')}",
+            f"PROFILO UTENTE: {user_name} ({user.email})",
+            f"RUOLO: {role_description}",
+        ]
+
+        if consultazione:
+            # Compute temporal relationship to consultazione
+            today = now.date()
+            data_inizio = consultazione.data_inizio
+            data_fine = consultazione.data_fine
+
+            if data_inizio and data_fine:
+                if today < data_inizio:
+                    days_until = (data_inizio - today).days
+                    fase = f"PRIMA della consultazione. Mancano {days_until} giorni all'inizio."
+                elif today > data_fine:
+                    days_since = (today - data_fine).days
+                    fase = f"DOPO la consultazione. Terminata da {days_since} giorni."
+                else:
+                    fase = "IN CORSO. Siamo nel periodo della consultazione."
+            else:
+                fase = "Date non disponibili."
+
+            tipi_elezione = consultazione.tipi_elezione.all()
+            tipi_names = ", ".join([t.get_tipo_display() if hasattr(t, 'get_tipo_display') else str(t) for t in tipi_elezione[:5]]) if tipi_elezione else ""
+
+            consultazione_info = (
+                f"L'UNICA CONSULTAZIONE ATTIVA E': {consultazione.nome}"
+                f"{' (' + tipi_names + ')' if tipi_names else ''}\n"
+                f"  Si vota dal {data_inizio.strftime('%A %d %B %Y') if data_inizio else '?'} "
+                f"al {data_fine.strftime('%A %d %B %Y') if data_fine else '?'}\n"
+                f"  {fase}\n"
+                f"  Qualsiasi domanda su scrutinio, seggi, voto, schede si riferisce a QUESTA consultazione."
+            )
+            if consultazione.descrizione:
+                consultazione_info += f"\n  Dettagli: {consultazione.descrizione[:300]}"
+            profile_parts.append(consultazione_info)
+
+            # Get assigned sections (for RDL)
+            designazioni = DesignazioneRDL.objects.filter(
+                Q(effettivo_email=user.email) | Q(supplente_email=user.email),
+                processo__consultazione=consultazione,
+                is_attiva=True,
+            ).select_related('sezione', 'sezione__comune', 'sezione__municipio')
+
+            for des in designazioni:
+                sez = des.sezione
+                if sez:
+                    section_info = {
+                        'sezione_id': sez.id,  # DB PK for precise lookup
+                        'id': sez.numero, 'numero': sez.numero,
+                        'comune': sez.comune.nome,
+                        'municipio': sez.municipio.nome if sez.municipio else None,
+                        'indirizzo': sez.indirizzo,
+                        'denominazione': sez.denominazione
+                    }
+                    user_sections_list.append(section_info)
+
+            if user_sections_list:
+                sections_text = "\n".join([
+                    f"  - Sezione {s['numero']} di {s['comune']}{' ('+s['municipio']+')' if s['municipio'] else ''}{' - '+s['indirizzo'] if s['indirizzo'] else ''}"
+                    for s in user_sections_list
+                ])
+                if user_role == "RDL":
+                    profile_parts.append(f"LE TUE SEZIONI ASSEGNATE (ACCETTA SOLO QUESTE per segnalazioni):\n{sections_text}")
+                else:
+                    profile_parts.append(f"SEZIONI ASSEGNATE COME RDL:\n{sections_text}")
+            else:
+                if user_role == "RDL":
+                    profile_parts.append("SEZIONI: Nessuna sezione ancora assegnata")
+                else:
+                    profile_parts.append("NOTA: Come delegato, puoi segnalare per qualsiasi sezione del tuo territorio")
+        else:
+            profile_parts.append("CONSULTAZIONE: Nessuna consultazione attiva al momento")
+
+        # Add existing incident info if session has one
+        existing_incident_id = (session.metadata or {}).get('incident_id')
+        if existing_incident_id:
+            try:
+                from incidents.models import IncidentReport
+                incident = IncidentReport.objects.get(id=existing_incident_id)
+                profile_parts.append(
+                    f"SEGNALAZIONE GIA APERTA IN QUESTA SESSIONE (ID #{incident.id}):\n"
+                    f"  Titolo: {incident.title}\n"
+                    f"  Descrizione: {incident.description[:200]}\n"
+                    f"  Categoria: {incident.category}\n"
+                    f"  Gravita: {incident.severity}\n"
+                    f"  Sezione: {incident.sezione.numero if incident.sezione else 'Generale'}\n"
+                    f"  → Per modificarla, usa update_incident_report. NON creare una nuova."
+                )
+            except Exception:
+                pass
+
+        user_profile_context = "\n".join(profile_parts)
+        logger.debug(f"User profile context:\n{user_profile_context}")
+    except Exception as e:
+        logger.warning(f"Error retrieving user context: {e}", exc_info=True)
+        user_profile_context = f"PROFILO UTENTE: {request.user.email}"
+
+    # Get RAG context (retrieve similar documents)
+    from pgvector.django import CosineDistance
+    context_docs_list = []
+    try:
+        query_embedding = vertex_ai_service.generate_embedding(message)
+        context_docs = (
+            KnowledgeSource.objects
+            .filter(is_active=True)
+            .annotate(distance=CosineDistance('embedding', query_embedding))
+            .filter(distance__lte=(1 - settings.RAG_SIMILARITY_THRESHOLD))
+            .order_by('distance')
+            [:settings.RAG_TOP_K]
+        )
+        context_docs_list = list(context_docs)
+
+        if context_docs_list:
+            context_parts = [f"[{doc.source_type}] {doc.title}\n{doc.content[:2000]}" for doc in context_docs_list]
+            context_text = user_profile_context + "\n\n" + "\n\n---\n\n".join(context_parts)
+        else:
+            context_text = user_profile_context
+    except Exception as e:
+        logger.warning(f"Error retrieving context: {e}")
+        context_text = user_profile_context
+
+    # Log full context for debugging (truncated)
+    logger.info(
+        f"AI context for session={session.id}: "
+        f"profile={user_profile_context[:500]} | "
+        f"rag_docs={len(context_docs_list)} | "
+        f"history_msgs={len(conversation_history)}"
+    )
+
+    # Generate with tools - may return text OR function call
+    ai_response = vertex_ai_service.generate_with_tools(
+        conversation_history=conversation_history,
+        context=context_text,
+        tools=incident_management_tools
+    )
+
+    # Handle function call if present
+    if ai_response['function_call']:
+        function_name = ai_response['function_call']['name']
+        function_args = ai_response['function_call']['args']
+        logger.info(f"AI called function: {function_name} with args: {function_args}")
+
+        function_result = execute_ai_function(
+            function_name,
+            function_args,
+            session=session,
+            request=request,
+            user_sections_list=user_sections_list,
+        )
+
+        return {
+            'answer': function_result['message'],
+            'sources': [],
+            'retrieved_docs': 0,
+            'function_result': function_result,
+            'user_sections_list': user_sections_list,
+        }
+    else:
+        # Normal text response (only 1 most relevant source IF highly relevant)
+        relevant_sources = []
+        if context_docs_list and context_docs_list[0].distance <= 0.35:
+            doc = context_docs_list[0]
+            relevant_sources = [{
+                'id': doc.id,
+                'title': doc.title,
+                'type': doc.source_type,
+                'url': doc.source_url.strip() if doc.source_url and doc.source_url.strip() else None
+            }]
+
+        return {
+            'answer': ai_response['content'],
+            'sources': relevant_sources,
+            'retrieved_docs': len(context_docs_list),
+            'function_result': None,
+            'user_sections_list': user_sections_list,
+        }
+
+
 class ChatView(APIView):
     """
     Send a message to the AI assistant or retrieve session history.
@@ -460,244 +698,17 @@ class ChatView(APIView):
 
         # === RAG with AGENTIC TOOLS (Function Calling) ===
         try:
-            logger.debug(f"ChatView.post: calling RAG with tools for session={session.id}")
+            logger.debug(f"ChatView.post: calling AI for session={session.id}")
 
-            from .tools import incident_management_tools
-            from .vertex_service import vertex_ai_service
+            rag_result = generate_ai_response(request, session, message)
 
-            # Get conversation history
-            history_messages = session.messages.order_by('created_at')
-            conversation_history = [
-                {'role': msg.role, 'content': msg.content}
-                for msg in history_messages
-            ]
-
-            # Build user profile context (passed to AI every call)
-            user_profile_context = ""
-            user_sections_list = []
-            try:
-                from delegations.models import DesignazioneRDL, DelegatoDiLista, SubDelega
-                from elections.models import ConsultazioneElettorale
-                from django.db.models import Q
-                from datetime import datetime
-
-                user = request.user
-                user_name = f"{user.first_name} {user.last_name}".strip() or user.email
-                now = datetime.now()
-
-                consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
-
-                # Determine user role
-                user_role = "RDL"
-                role_description = "Rappresentante di Lista"
-                if consultazione:
-                    is_delegato = DelegatoDiLista.objects.filter(
-                        consultazione=consultazione, email=user.email
-                    ).exists()
-                    is_subdelegato = SubDelega.objects.filter(
-                        delegato__consultazione=consultazione, email=user.email
-                    ).exists()
-                    if is_delegato:
-                        user_role = "DELEGATO"
-                        role_description = "Delegato di Lista (supervisiona RDL nel suo territorio)"
-                    elif is_subdelegato:
-                        user_role = "SUBDELEGATO"
-                        role_description = "Sub-Delegato (supervisiona RDL nel suo territorio)"
-
-                # Build user profile
-                profile_parts = [
-                    f"DATA E ORA: {now.strftime('%A %d %B %Y, ore %H:%M')}",
-                    f"PROFILO UTENTE: {user_name} ({user.email})",
-                    f"RUOLO: {role_description}",
-                ]
-
-                if consultazione:
-                    # Compute temporal relationship to consultazione
-                    today = now.date()
-                    data_inizio = consultazione.data_inizio
-                    data_fine = consultazione.data_fine
-
-                    if data_inizio and data_fine:
-                        if today < data_inizio:
-                            days_until = (data_inizio - today).days
-                            fase = f"PRIMA della consultazione. Mancano {days_until} giorni all'inizio."
-                        elif today > data_fine:
-                            days_since = (today - data_fine).days
-                            fase = f"DOPO la consultazione. Terminata da {days_since} giorni."
-                        else:
-                            fase = "IN CORSO. Siamo nel periodo della consultazione."
-                    else:
-                        fase = "Date non disponibili."
-
-                    tipi_elezione = consultazione.tipi_elezione.all()
-                    tipi_names = ", ".join([t.get_tipo_display() if hasattr(t, 'get_tipo_display') else str(t) for t in tipi_elezione[:5]]) if tipi_elezione else ""
-
-                    consultazione_info = (
-                        f"L'UNICA CONSULTAZIONE ATTIVA E': {consultazione.nome}"
-                        f"{' (' + tipi_names + ')' if tipi_names else ''}\n"
-                        f"  Si vota dal {data_inizio.strftime('%A %d %B %Y') if data_inizio else '?'} "
-                        f"al {data_fine.strftime('%A %d %B %Y') if data_fine else '?'}\n"
-                        f"  {fase}\n"
-                        f"  Qualsiasi domanda su scrutinio, seggi, voto, schede si riferisce a QUESTA consultazione."
-                    )
-                    if consultazione.descrizione:
-                        consultazione_info += f"\n  Dettagli: {consultazione.descrizione[:300]}"
-                    profile_parts.append(consultazione_info)
-
-                    # Get assigned sections (for RDL)
-                    designazioni = DesignazioneRDL.objects.filter(
-                        Q(effettivo_email=user.email) | Q(supplente_email=user.email),
-                        processo__consultazione=consultazione,
-                        is_attiva=True,
-                    ).select_related('sezione', 'sezione__comune', 'sezione__municipio')
-
-                    for des in designazioni:
-                        sez = des.sezione
-                        if sez:
-                            section_info = {
-                                'sezione_id': sez.id,  # DB PK for precise lookup
-                                'id': sez.numero, 'numero': sez.numero,
-                                'comune': sez.comune.nome,
-                                'municipio': sez.municipio.nome if sez.municipio else None,
-                                'indirizzo': sez.indirizzo,
-                                'denominazione': sez.denominazione
-                            }
-                            user_sections_list.append(section_info)
-
-                    if user_sections_list:
-                        sections_text = "\n".join([
-                            f"  - Sezione {s['numero']} di {s['comune']}{' ('+s['municipio']+')' if s['municipio'] else ''}{' - '+s['indirizzo'] if s['indirizzo'] else ''}"
-                            for s in user_sections_list
-                        ])
-                        if user_role == "RDL":
-                            profile_parts.append(f"LE TUE SEZIONI ASSEGNATE (ACCETTA SOLO QUESTE per segnalazioni):\n{sections_text}")
-                        else:
-                            profile_parts.append(f"SEZIONI ASSEGNATE COME RDL:\n{sections_text}")
-                    else:
-                        if user_role == "RDL":
-                            profile_parts.append("SEZIONI: Nessuna sezione ancora assegnata")
-                        else:
-                            profile_parts.append("NOTA: Come delegato, puoi segnalare per qualsiasi sezione del tuo territorio")
-                else:
-                    profile_parts.append("CONSULTAZIONE: Nessuna consultazione attiva al momento")
-
-                # Add existing incident info if session has one
-                existing_incident_id = (session.metadata or {}).get('incident_id')
-                if existing_incident_id:
-                    try:
-                        from incidents.models import IncidentReport
-                        incident = IncidentReport.objects.get(id=existing_incident_id)
-                        profile_parts.append(
-                            f"SEGNALAZIONE GIA APERTA IN QUESTA SESSIONE (ID #{incident.id}):\n"
-                            f"  Titolo: {incident.title}\n"
-                            f"  Descrizione: {incident.description[:200]}\n"
-                            f"  Categoria: {incident.category}\n"
-                            f"  Gravita: {incident.severity}\n"
-                            f"  Sezione: {incident.sezione.numero if incident.sezione else 'Generale'}\n"
-                            f"  → Per modificarla, usa update_incident_report. NON creare una nuova."
-                        )
-                    except Exception:
-                        pass
-
-                user_profile_context = "\n".join(profile_parts)
-                logger.debug(f"User profile context:\n{user_profile_context}")
-            except Exception as e:
-                logger.warning(f"Error retrieving user context: {e}", exc_info=True)
-                user_profile_context = f"PROFILO UTENTE: {request.user.email}"
-
-            # Get RAG context (retrieve similar documents)
-            from pgvector.django import CosineDistance
-            try:
-                query_embedding = vertex_ai_service.generate_embedding(message)
-                context_docs = (
-                    KnowledgeSource.objects
-                    .filter(is_active=True)
-                    .annotate(distance=CosineDistance('embedding', query_embedding))
-                    .filter(distance__lte=(1 - settings.RAG_SIMILARITY_THRESHOLD))
-                    .order_by('distance')
-                    [:settings.RAG_TOP_K]
-                )
-                context_docs_list = list(context_docs)
-
-                if context_docs_list:
-                    context_parts = [f"[{doc.source_type}] {doc.title}\n{doc.content[:2000]}" for doc in context_docs_list]
-                    context_text = user_profile_context + "\n\n" + "\n\n---\n\n".join(context_parts)
-                else:
-                    context_text = user_profile_context
-            except Exception as e:
-                logger.warning(f"Error retrieving context: {e}")
-                context_docs_list = []
-                context_text = user_profile_context
-
-            # Log full context for debugging (truncated)
-            logger.info(
-                f"AI context for session={session.id}: "
-                f"profile={user_profile_context[:500]} | "
-                f"rag_docs={len(context_docs_list) if context_docs_list else 0} | "
-                f"history_msgs={len(conversation_history)}"
+            # Save assistant response
+            assistant_message = ChatMessage.objects.create(
+                session=session,
+                role=ChatMessage.Role.ASSISTANT,
+                content=rag_result['answer'],
+                sources_cited=[s['id'] for s in rag_result['sources']]
             )
-
-            # Generate with tools - may return text OR function call
-            ai_response = vertex_ai_service.generate_with_tools(
-                conversation_history=conversation_history,
-                context=context_text,
-                tools=incident_management_tools
-            )
-
-            # Handle function call if present
-            if ai_response['function_call']:
-                function_name = ai_response['function_call']['name']
-                function_args = ai_response['function_call']['args']
-                logger.info(f"AI called function: {function_name} with args: {function_args}")
-
-                # Execute the function
-                function_result = execute_ai_function(
-                    function_name,
-                    function_args,
-                    session=session,
-                    request=request,
-                    user_sections_list=user_sections_list,
-                )
-
-                # Save function result as assistant message
-                assistant_message = ChatMessage.objects.create(
-                    session=session,
-                    role=ChatMessage.Role.ASSISTANT,
-                    content=function_result['message'],
-                    sources_cited=[]
-                )
-
-                rag_result = {
-                    'answer': function_result['message'],
-                    'sources': [],
-                    'retrieved_docs': 0
-                }
-            else:
-                # Normal text response (only 1 most relevant source IF highly relevant)
-                # Only show source if distance <= 0.35 (similarity >= 65%) to avoid irrelevant citations
-                relevant_sources = []
-                if context_docs_list and context_docs_list[0].distance <= 0.35:
-                    doc = context_docs_list[0]
-                    relevant_sources = [{
-                        'id': doc.id,
-                        'title': doc.title,
-                        'type': doc.source_type,
-                        'url': doc.source_url.strip() if doc.source_url and doc.source_url.strip() else None
-                    }]
-
-                rag_result = {
-                    'answer': ai_response['content'],
-                    'sources': relevant_sources,
-                    'retrieved_docs': len(context_docs_list) if context_docs_list else 0
-                }
-
-                # Save assistant response with sources
-                assistant_message = ChatMessage.objects.create(
-                    session=session,
-                    role=ChatMessage.Role.ASSISTANT,
-                    content=rag_result['answer'],
-                    sources_cited=[s['id'] for s in rag_result['sources']]
-                )
 
             # Generate title if this is the first user message
             if session.messages.count() == 2 and not session.title:  # 1 user + 1 assistant
@@ -855,11 +866,11 @@ class ChatBranchView(APIView):
             content=new_message
         )
 
-        # Generate AI response for the edited message
+        # Generate AI response for the edited message (same pipeline as ChatView)
         try:
-            logger.debug(f"ChatBranchView.post: calling RAG for branch session={new_session.id}")
-            rag_result = rag_service.answer_question(new_message, original_session.context, session=new_session)
-            logger.debug(f"ChatBranchView.post: RAG returned {rag_result['retrieved_docs']} docs, answer_len={len(rag_result['answer'])}")
+            logger.debug(f"ChatBranchView.post: calling AI for branch session={new_session.id}")
+
+            rag_result = generate_ai_response(request, new_session, new_message)
 
             assistant_message = ChatMessage.objects.create(
                 session=new_session,
