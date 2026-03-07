@@ -400,6 +400,31 @@
     margin-top: 4px;
 }
 
+.form-error {
+    font-size: 0.75rem;
+    color: #dc3545;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+.form-group.has-error label {
+    color: #dc3545;
+}
+
+.form-group.has-error input,
+.form-group.has-error select,
+.form-group.has-error textarea {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.15);
+}
+
+.form-group.has-error input:focus,
+.form-group.has-error select:focus,
+.form-group.has-error textarea:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25);
+}
+
 .form-group-row {
     display: flex;
     flex-direction: column;
@@ -1224,6 +1249,17 @@
 [data-theme="night"] .form-group textarea:focus {
     border-color: #2196F3;
     box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15);
+}
+
+[data-theme="night"] .form-group.has-error input,
+[data-theme="night"] .form-group.has-error select,
+[data-theme="night"] .form-group.has-error textarea {
+    border-color: #e57373;
+    box-shadow: 0 0 0 2px rgba(229, 115, 115, 0.2);
+}
+
+[data-theme="night"] .form-error {
+    color: #e57373;
 }
 
 /* Incident detail */

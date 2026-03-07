@@ -23,6 +23,7 @@ function SegnalazioniForm({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [dragOver, setDragOver] = useState(false);
+    const [submitAttempted, setSubmitAttempted] = useState(false);
     const fileInputRef = useRef(null);
 
     const categoryOptions = [
@@ -128,8 +129,18 @@ function SegnalazioniForm({
         return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
     };
 
+    // Validation helpers
+    const fieldErrors = {
+        title: !formData.title.trim() ? 'Il titolo è obbligatorio' : null,
+        description: !formData.description.trim() ? 'La descrizione è obbligatoria' : null,
+        sezione: (sezioneRequired && !formData.sezione) ? 'La sezione è obbligatoria per questa categoria' : null,
+    };
+    const hasErrors = Object.values(fieldErrors).some(Boolean);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setSubmitAttempted(true);
+        if (hasErrors) return;
         setError(null);
         setIsLoading(true);
 
@@ -189,7 +200,7 @@ function SegnalazioniForm({
                     Informazioni di base
                 </div>
 
-                <div className="form-group">
+                <div className={`form-group ${submitAttempted && fieldErrors.title ? 'has-error' : ''}`}>
                     <label htmlFor="title">Titolo *</label>
                     <input
                         type="text"
@@ -201,12 +212,13 @@ function SegnalazioniForm({
                         maxLength="200"
                         placeholder="Breve descrizione della segnalazione"
                     />
-                    <div className="form-helper">
-                        Titolo della segnalazione (max 200 caratteri)
-                    </div>
+                    {submitAttempted && fieldErrors.title
+                        ? <div className="form-error">{fieldErrors.title}</div>
+                        : <div className="form-helper">Titolo della segnalazione (max 200 caratteri)</div>
+                    }
                 </div>
 
-                <div className="form-group">
+                <div className={`form-group ${submitAttempted && fieldErrors.description ? 'has-error' : ''}`}>
                     <label htmlFor="description">Descrizione dettagliata *</label>
                     <textarea
                         id="description"
@@ -216,9 +228,10 @@ function SegnalazioniForm({
                         required
                         placeholder="Descrivi nel dettaglio cosa è accaduto..."
                     />
-                    <div className="form-helper">
-                        Fornisci una descrizione dettagliata dell'incidente
-                    </div>
+                    {submitAttempted && fieldErrors.description
+                        ? <div className="form-error">{fieldErrors.description}</div>
+                        : <div className="form-helper">Fornisci una descrizione dettagliata dell'incidente</div>
+                    }
                 </div>
 
                 <div className="form-group-row">
@@ -275,7 +288,7 @@ function SegnalazioniForm({
                         </div>
                     </div>
 
-                    <div className="form-group">
+                    <div className={`form-group ${submitAttempted && fieldErrors.sezione ? 'has-error' : ''}`}>
                         <label htmlFor="sezione">
                             Sezione Elettorale {sezioneRequired && '*'}
                         </label>
@@ -297,11 +310,14 @@ function SegnalazioniForm({
                                 </option>
                             ))}
                         </select>
-                        <div className="form-helper">
-                            {isSingolaSezione && 'Sei assegnato/hai visibilità su una sola sezione. Il valore è fisso.'}
-                            {!isSingolaSezione && sezioneRequired && 'Questa categoria richiede la specifica della sezione elettorale'}
-                            {!isSingolaSezione && !sezioneRequired && 'Solo per problemi tecnici della piattaforma è opzionale'}
-                        </div>
+                        {submitAttempted && fieldErrors.sezione
+                            ? <div className="form-error">{fieldErrors.sezione}</div>
+                            : <div className="form-helper">
+                                {isSingolaSezione && 'Sei assegnato/hai visibilità su una sola sezione. Il valore è fisso.'}
+                                {!isSingolaSezione && sezioneRequired && 'Questa categoria richiede la specifica della sezione elettorale'}
+                                {!isSingolaSezione && !sezioneRequired && 'Solo per problemi tecnici della piattaforma è opzionale'}
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -425,7 +441,7 @@ function SegnalazioniForm({
                     <button
                         type="submit"
                         className="segnalazioni-btn segnalazioni-btn-primary"
-                        disabled={isLoading || !formData.title || !formData.description || (sezioneRequired && !formData.sezione)}
+                        disabled={isLoading}
                     >
                         {isLoading ? (
                             <>
