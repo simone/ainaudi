@@ -240,6 +240,15 @@ function ChatInterface({ client, show, onClose }) {
                 message: userMessage,
             });
 
+            // Handle error response from backend
+            if (response.error) {
+                setMessages(prev => [...prev, {
+                    role: 'assistant',
+                    content: 'Mi dispiace, si è verificato un errore. Riprova.',
+                }]);
+                return;
+            }
+
             // Save session ID and title for continuity (both in state and localStorage)
             if (!sessionId && response.session_id) {
                 setSessionId(response.session_id);
