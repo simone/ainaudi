@@ -14,6 +14,174 @@ from .rag_service import rag_service
 logger = logging.getLogger(__name__)
 
 
+def execute_ai_function(function_name: str, args: dict, session, request) -> dict:
+    """Execute an AI-requested function and return the result."""
+    if function_name == 'suggest_incident_report':
+        # Extract incident data from conversation
+        try:
+            from .vertex_service import vertex_ai_service
+
+            # Build conversation transcript
+            messages = session.messages.order_by('created_at')
+            conversation = "\n\n".join([
+                f"{'UTENTE' if msg.role == 'user' else 'ASSISTENTE'}: {msg.content}"
+                for msg in messages
+            ])
+
+            # Get user's assigned sections with FULL details
+            user_sections = []
+            try:
+                from delegations.models import DesignazioneRDL
+                from territory.models import SezioneElettorale
+                from elections.models import ConsultazioneElettorale
+
+                consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
+                if consultazione:
+                    designazioni = DesignazioneRDL.objects.filter(
+                        processo__consultazione=consultazione,
+                        rdl_email=request.user.email,
+                        stato='APPROVATA'
+                    ).select_related('sezione', 'sezione__comune', 'sezione__municipio')
+
+                    for des in designazioni:
+                        sez = des.sezione
+                        if sez:
+                            user_sections.append({
+                                'id': sez.numero,
+                                'numero': sez.numero,
+                                'comune': sez.comune.nome,
+                                'municipio': sez.municipio.nome if sez.municipio else None,
+                                'indirizzo': sez.indirizzo,
+                                'denominazione': sez.denominazione
+                            })
+            except Exception as e:
+                logger.warning(f"Error retrieving sections for incident: {e}")
+
+            # Get user's full name
+            user_name = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.email
+
+            # Extract incident data
+            incident_data = vertex_ai_service.extract_incident_from_conversation(
+                conversation=conversation,
+                user_sections=user_sections,
+                user_name=user_name
+            )
+
+            # Format message
+            category_labels = {
+                'PROCEDURAL': 'Procedurale', 'ACCESS': 'Accesso al seggio',
+                'MATERIALS': 'Materiali', 'INTIMIDATION': 'Intimidazione',
+                'IRREGULARITY': 'Irregolarità', 'TECHNICAL': 'Tecnico', 'OTHER': 'Altro',
+            }
+            severity_labels = {
+                'LOW': 'Bassa', 'MEDIUM': 'Media', 'HIGH': 'Alta', 'CRITICAL': 'Critica',
+            }
+
+            # Get full section details for display
+            sezione_text = "Generale (non specifica a sezione)"
+            sezione_detail = None
+            if incident_data.get('sezione'):
+                # Find section details from user_sections
+                sezione_detail = next((s for s in user_sections if s['numero'] == incident_data['sezione']), None)
+                if sezione_detail:
+                    sezione_text = (
+                        f"Sezione {sezione_detail['numero']} - {sezione_detail['comune']}"
+                        f"{' ('+sezione_detail['municipio']+')' if sezione_detail.get('municipio') else ''}"
+                        f"{' - '+sezione_detail['indirizzo'] if sezione_detail.get('indirizzo') else ''}"
+                        f"{' ('+sezione_detail['denominazione']+')' if sezione_detail.get('denominazione') else ''}"
+                    )
+                else:
+                    sezione_text = f"Sezione {incident_data['sezione']}"
+
+            # Add verbalizzazione suggestion for section-specific incidents
+            verbalizzazione_text = ""
+            if sezione_detail:
+                # Extract first 120 chars of description for verbale
+                desc_short = incident_data['description'][:120] + "..." if len(incident_data['description']) > 120 else incident_data['description']
+                verbalizzazione_text = f"\n\n📝 **Suggerimento per verbale:**\n_\"Alle ore [ora], {desc_short} Firma RDL.\"_\n\nRicorda di annotarlo sul registro di sezione se non l'hai già fatto."
+
+            message = f"""Ecco la segnalazione che preparo:
+
+📋 **Titolo:** {incident_data['title']}
+
+📝 **Descrizione:** {incident_data['description']}
+
+🏷️ **Categoria:** {category_labels.get(incident_data['category'], incident_data['category'])}
+
+⚠️ **Gravità:** {severity_labels.get(incident_data['severity'], incident_data['severity'])}
+
+🗳️ **Sezione:** {sezione_text}
+{verbalizzazione_text}
+
+Confermi? Rispondi "sì" e la creo."""
+
+            # Store in session metadata
+            session.metadata = session.metadata or {}
+            session.metadata['pending_incident'] = incident_data
+            session.save()
+
+            return {'message': message, 'data': incident_data}
+
+        except Exception as e:
+            logger.error(f"Error in suggest_incident_report: {e}", exc_info=True)
+            return {
+                'message': '❌ Mi dispiace, ho avuto un problema nell\'analizzare la conversazione.',
+                'data': None
+            }
+
+    elif function_name == 'create_incident_report':
+        # Create incident from stored data
+        pending_incident = session.metadata.get('pending_incident') if session.metadata else None
+
+        if not pending_incident:
+            return {
+                'message': '❌ Non ho trovato dati di segnalazione pendenti. Riprova a descrivere il problema.',
+                'data': None
+            }
+
+        try:
+            from incidents.models import IncidentReport
+            from elections.models import ConsultazioneElettorale
+
+            consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
+            if not consultazione:
+                return {'message': '❌ Non c\'è una consultazione attiva al momento.', 'data': None}
+
+            incident = IncidentReport.objects.create(
+                consultazione=consultazione,
+                sezione_id=pending_incident.get('sezione'),
+                title=pending_incident['title'],
+                description=pending_incident['description'],
+                category=pending_incident['category'],
+                severity=pending_incident['severity'],
+                reporter=request.user,
+                is_verbalizzato=False
+            )
+
+            # Save incident_id in session metadata and update title
+            session.metadata['pending_incident'] = None
+            session.metadata['incident_id'] = incident.id
+            session.title = f"📋 {incident.title}"  # Update chat title with incident title
+            session.save()
+
+            # Add verbalizzazione reminder for section incidents
+            verbale_reminder = ""
+            if incident.sezione_id:
+                verbale_reminder = "\n\n📝 **Ricorda:** Annota l'incidente sul registro di sezione se non l'hai già fatto. Puoi segnare come \"Verbalizzato\" nella scheda della segnalazione."
+
+            return {
+                'message': f'✅ **Segnalazione creata con successo!**\n\nID: {incident.id} | Clicca sull\'intestazione della chat per visualizzarla.{verbale_reminder}',
+                'data': {'incident_id': incident.id}
+            }
+
+        except Exception as e:
+            logger.error(f"Error in create_incident_report: {e}", exc_info=True)
+            return {'message': f'❌ Errore nella creazione: {str(e)}', 'data': None}
+
+    else:
+        return {'message': f'⚠️ Funzione sconosciuta: {function_name}', 'data': None}
+
+
 def generate_session_title(first_message: str) -> str:
     """Generate a short title from the first user message using Gemini."""
     from .vertex_service import vertex_ai_service
@@ -85,6 +253,7 @@ class ChatView(APIView):
         return Response({
             'session_id': session.id,
             'title': session.title or 'Nuova conversazione',
+            'incident_id': session.metadata.get('incident_id') if session.metadata else None,
             'messages': [
                 {
                     'id': msg.id,
@@ -96,7 +265,7 @@ class ChatView(APIView):
                             'id': src.id,
                             'title': src.title,
                             'type': src.source_type,
-                            'url': src.source_url if src.source_url else None,
+                            'url': src.source_url.strip() if src.source_url and src.source_url.strip() else None,
                         }
                         for src in KnowledgeSource.objects.filter(id__in=msg.sources_cited)
                     ] if msg.sources_cited else []
@@ -157,19 +326,146 @@ class ChatView(APIView):
             content=message
         )
 
-        # === RAG IMPLEMENTATION ===
+        # === RAG with AGENTIC TOOLS (Function Calling) ===
         try:
-            logger.debug(f"ChatView.post: calling RAG for session={session.id}")
-            rag_result = rag_service.answer_question(message, context, session=session)
-            logger.debug(f"ChatView.post: RAG returned {rag_result['retrieved_docs']} docs, answer_len={len(rag_result['answer'])}")
+            logger.debug(f"ChatView.post: calling RAG with tools for session={session.id}")
 
-            # Save assistant response with sources
-            assistant_message = ChatMessage.objects.create(
-                session=session,
-                role=ChatMessage.Role.ASSISTANT,
-                content=rag_result['answer'],
-                sources_cited=[s['id'] for s in rag_result['sources']]
+            from .tools import incident_management_tools
+            from .vertex_service import vertex_ai_service
+
+            # Get conversation history
+            history_messages = session.messages.order_by('created_at')
+            conversation_history = [
+                {'role': msg.role, 'content': msg.content}
+                for msg in history_messages
+            ]
+
+            # Get user's assigned sections with FULL details for incident context
+            user_sections_context = ""
+            user_sections_list = []
+            try:
+                from delegations.models import DesignazioneRDL
+                from territory.models import SezioneElettorale
+                from elections.models import ConsultazioneElettorale
+
+                consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
+                if consultazione:
+                    designazioni = DesignazioneRDL.objects.filter(
+                        processo__consultazione=consultazione,
+                        rdl_email=request.user.email,
+                        stato='APPROVATA'
+                    ).select_related('sezione', 'sezione__comune', 'sezione__municipio')
+
+                    for des in designazioni:
+                        sez = des.sezione
+                        if sez:
+                            municipio_text = f" - {sez.municipio.nome}" if sez.municipio else ""
+                            indirizzo_text = f" - {sez.indirizzo}" if sez.indirizzo else ""
+                            denominazione_text = f" ({sez.denominazione})" if sez.denominazione else ""
+
+                            section_info = {
+                                'id': sez.numero,
+                                'numero': sez.numero,
+                                'comune': sez.comune.nome,
+                                'municipio': sez.municipio.nome if sez.municipio else None,
+                                'indirizzo': sez.indirizzo,
+                                'denominazione': sez.denominazione
+                            }
+                            user_sections_list.append(section_info)
+
+                    if user_sections_list:
+                        sections_text = "\n".join([
+                            f"- Sezione {s['numero']} - {s['comune']}{' ('+s['municipio']+')' if s['municipio'] else ''}{' - '+s['indirizzo'] if s['indirizzo'] else ''}{' ('+s['denominazione']+')' if s['denominazione'] else ''}"
+                            for s in user_sections_list
+                        ])
+                        user_sections_context = f"\n\nSEZIONI ASSEGNATE ALL'UTENTE:\n{sections_text}\n(Se l'utente ha UNA SOLA sezione, deducila automaticamente. Se ne ha MULTIPLE, chiedi quale.)\n"
+            except Exception as e:
+                logger.warning(f"Error retrieving user sections: {e}")
+
+            # Get RAG context (retrieve similar documents)
+            from pgvector.django import CosineDistance
+            try:
+                query_embedding = vertex_ai_service.generate_embedding(message)
+                context_docs = (
+                    KnowledgeSource.objects
+                    .filter(is_active=True)
+                    .annotate(distance=CosineDistance('embedding', query_embedding))
+                    .filter(distance__lte=(1 - settings.RAG_SIMILARITY_THRESHOLD))
+                    .order_by('distance')
+                    [:settings.RAG_TOP_K]
+                )
+                context_docs_list = list(context_docs)
+
+                if context_docs_list:
+                    context_parts = [f"[{doc.source_type}] {doc.title}\n{doc.content[:2000]}" for doc in context_docs_list]
+                    context_text = "\n\n---\n\n".join(context_parts) + user_sections_context
+                else:
+                    context_text = user_sections_context if user_sections_context else None
+            except Exception as e:
+                logger.warning(f"Error retrieving context: {e}")
+                context_docs_list = []
+                context_text = user_sections_context if user_sections_context else None
+
+            # Generate with tools - may return text OR function call
+            ai_response = vertex_ai_service.generate_with_tools(
+                conversation_history=conversation_history,
+                context=context_text,
+                tools=incident_management_tools
             )
+
+            # Handle function call if present
+            if ai_response['function_call']:
+                function_name = ai_response['function_call']['name']
+                function_args = ai_response['function_call']['args']
+                logger.info(f"AI called function: {function_name} with args: {function_args}")
+
+                # Execute the function
+                function_result = execute_ai_function(
+                    function_name,
+                    function_args,
+                    session=session,
+                    request=request
+                )
+
+                # Save function result as assistant message
+                assistant_message = ChatMessage.objects.create(
+                    session=session,
+                    role=ChatMessage.Role.ASSISTANT,
+                    content=function_result['message'],
+                    sources_cited=[]
+                )
+
+                rag_result = {
+                    'answer': function_result['message'],
+                    'sources': [],
+                    'retrieved_docs': 0
+                }
+            else:
+                # Normal text response (only 1 most relevant source IF highly relevant)
+                # Only show source if distance <= 0.35 (similarity >= 65%) to avoid irrelevant citations
+                relevant_sources = []
+                if context_docs_list and context_docs_list[0].distance <= 0.35:
+                    doc = context_docs_list[0]
+                    relevant_sources = [{
+                        'id': doc.id,
+                        'title': doc.title,
+                        'type': doc.source_type,
+                        'url': doc.source_url.strip() if doc.source_url and doc.source_url.strip() else None
+                    }]
+
+                rag_result = {
+                    'answer': ai_response['content'],
+                    'sources': relevant_sources,
+                    'retrieved_docs': len(context_docs_list) if context_docs_list else 0
+                }
+
+                # Save assistant response with sources
+                assistant_message = ChatMessage.objects.create(
+                    session=session,
+                    role=ChatMessage.Role.ASSISTANT,
+                    content=rag_result['answer'],
+                    sources_cited=[s['id'] for s in rag_result['sources']]
+                )
 
             # Generate title if this is the first user message
             if session.messages.count() == 2 and not session.title:  # 1 user + 1 assistant
@@ -269,14 +565,16 @@ class ChatBranchView(APIView):
             logger.warning(f"ChatBranchView.post: title generation failed: {e}")
             new_title = f"Branch: {new_message[:50]}..."
 
-        # Create new branch session
+        # Create new branch session (copy metadata and sezione from parent)
         new_session = ChatSession.objects.create(
             user_email=request.user.email,
             title=new_title,
             context=original_session.context,
-            parent_session=original_session
+            parent_session=original_session,
+            sezione=original_session.sezione,
+            metadata=original_session.metadata.copy() if original_session.metadata else {}
         )
-        logger.debug(f"ChatBranchView.post: created branch session={new_session.id} from session={session_id}")
+        logger.debug(f"ChatBranchView.post: created branch session={new_session.id} from session={session_id}, copied metadata={bool(original_session.metadata)}")
 
         # Copy all messages BEFORE the edited one
         messages_before = original_session.messages.filter(

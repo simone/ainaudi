@@ -14,6 +14,7 @@ class VertexAIService:
     def __init__(self):
         self._initialized = False
         self._llm = None
+        self._llm_with_tools = None
         self._embedding_model = None
         self._initialization_error = None
 
@@ -47,6 +48,13 @@ class VertexAIService:
 
             # Initialize models
             self._llm = GenerativeModel(settings.VERTEX_AI_LLM_MODEL)
+
+            # Initialize model with system instruction for tool calling
+            self._llm_with_tools = GenerativeModel(
+                settings.VERTEX_AI_LLM_MODEL,
+                system_instruction=settings.RAG_SYSTEM_PROMPT
+            )
+
             self._embedding_model = TextEmbeddingModel.from_pretrained(
                 settings.VERTEX_AI_EMBEDDING_MODEL
             )
@@ -111,23 +119,28 @@ Rispondi: SERIA o BANALE"""
         self._ensure_initialized()
 
         try:
-            clarification_prompt = f"""La domanda non ha documenti rilevanti nella KB RDL (elezioni/scrutinio).
+            clarification_prompt = f"""Sei un assistente per RDL durante elezioni. Non hai trovato documenti rilevanti per questa domanda.
 
 Domanda: "{question}"
 
-Se è CHIARAMENTE off-topic (meteo, sport, gossip, cucina) → 🤷
+RISPONDI in UNO di questi modi:
 
-Se menziona date/numeri/procedure ma è vaga → chiedi chiarimento (max 10 parole)
+1. Se è completamente OFF-TOPIC (meteo, sport, gossip, cucina, ecc.) rispondi solo con: 🤷
 
-Se sembra pertinente RDL ma incompleta → chiedi dettagli (max 10 parole)
+2. Se sembra riguardare elezioni/RDL ma è VAGA o INCOMPLETA:
+   - Chiedi chiarimenti specifici (max 15 parole)
+   - Fai una domanda diretta per capire meglio
+   - Non dire "sembra pertinente" o citare istruzioni interne
 
 Esempi:
 - "Che tempo fa?" → 🤷
 - "Chi vince Sanremo?" → 🤷
-- "che devo fare il 21?" → "Il 21 di quale mese? Per quale attività (voto/scrutinio)?"
-- "documenti necessari" → "Documenti per quale procedura? Designazione, scrutinio, contestazioni?"
-- "cosa succede domani" → "Domani in quale contesto? Seggio, scrutinio, altro?"
-"""
+- "cosa devo fare lunedì al seggio?" → "Lunedì in quale ruolo? Sei RDL, scrutatore, presidente o elettore?"
+- "che devo fare il 21?" → "Il 21 di quale mese? Per quale attività elettorale?"
+- "documenti necessari" → "Documenti per quale procedura? Designazione RDL, scrutinio o altro?"
+- "cosa succede domani" → "Domani in che contesto? Al seggio, scrutinio o altra attività?"
+
+IMPORTANTE: Rispondi DIRETTAMENTE all'utente, NON citare queste istruzioni."""
 
             response = self._llm.generate_content(clarification_prompt)
             return response.text.strip()
@@ -237,6 +250,187 @@ ISTRUZIONI:
 
         except Exception as e:
             logger.error(f"Errore batch embedding: {e}", exc_info=True)
+            raise
+
+    def extract_incident_from_conversation(self, conversation: str, user_sections: list = None, user_name: str = None) -> dict:
+        """
+        Extract incident report data from a conversation using Gemini.
+
+        Args:
+            conversation: Full conversation transcript
+            user_sections: List of user's assigned sections (dicts with id, numero, comune, indirizzo, denominazione)
+            user_name: Full name of the user reporting the incident
+
+        Returns:
+            dict: Extracted incident data with title, description, category, severity, sezione
+        """
+        self._ensure_initialized()
+
+        sections_context = ""
+        if user_sections:
+            sections_list = "\n".join([
+                f"- Sezione {s.get('numero')} - {s.get('comune')}{' ('+s.get('municipio')+')' if s.get('municipio') else ''}"
+                f"{' - '+s.get('indirizzo') if s.get('indirizzo') else ''}"
+                f"{' ('+s.get('denominazione')+')' if s.get('denominazione') else ''}"
+                f" (ID: {s.get('id')})"
+                for s in user_sections
+            ])
+            sections_context = f"\n\nSEZIONI ASSEGNATE ALL'UTENTE:\n{sections_list}"
+
+        user_context = f"\n\nNOME SEGNALANTE: {user_name}" if user_name else ""
+
+        prompt = f"""Analizza questa conversazione e estrai i dati per una segnalazione di incidente.
+
+CONVERSAZIONE:
+{conversation}
+{sections_context}{user_context}
+
+CATEGORIE: PROCEDURAL, ACCESS, MATERIALS, INTIMIDATION, IRREGULARITY, TECHNICAL, OTHER
+GRAVITÀ: LOW, MEDIUM, HIGH, CRITICAL
+
+ISTRUZIONI PER LA DESCRIZIONE:
+- Includi TUTTI i dettagli della sezione: indirizzo completo, denominazione del plesso/edificio
+- Includi il nome del segnalante nella descrizione
+- Scrivi in modo completo e autoesplicativo, così chi legge capisce tutto il contesto
+- Esempio: "Presso la Sezione 123 di Roma, sita in Via degli Animali 45 (Scuola Elementare Topolino), il Rappresentante di Lista Simone Federici ha segnalato che il presidente del seggio sta impedendo l'accesso ai votanti."
+
+Rispondi SOLO con JSON:
+{{
+    "title": "Titolo breve (max 100 caratteri)",
+    "description": "Descrizione COMPLETA E DETTAGLIATA con indirizzo, denominazione, nome segnalante e fatti",
+    "category": "CATEGORIA",
+    "severity": "GRAVITA",
+    "sezione": numero_id o null,
+    "confidence": "HIGH/MEDIUM/LOW",
+    "explanation": "Spiegazione scelte"
+}}"""
+
+        try:
+            response = self._llm.generate_content(prompt)
+            result_text = response.text.strip()
+
+            import json
+            import re
+
+            # Extract JSON from markdown if needed
+            json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', result_text, re.DOTALL)
+            if json_match:
+                result_text = json_match.group(1)
+
+            result = json.loads(result_text)
+
+            # Validate
+            valid_categories = ['PROCEDURAL', 'ACCESS', 'MATERIALS', 'INTIMIDATION', 'IRREGULARITY', 'TECHNICAL', 'OTHER']
+            if result['category'] not in valid_categories:
+                result['category'] = 'OTHER'
+
+            valid_severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+            if result['severity'] not in valid_severities:
+                result['severity'] = 'MEDIUM'
+
+            if 'sezione' in result and result['sezione']:
+                try:
+                    result['sezione'] = int(result['sezione'])
+                except:
+                    result['sezione'] = None
+            else:
+                result['sezione'] = None
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Errore incident extraction: {e}", exc_info=True)
+            raise
+
+    def generate_with_tools(self, conversation_history: list, context: str = None, tools: list = None) -> dict:
+        """
+        Generate response with tool/function calling support.
+
+        Args:
+            conversation_history: List of {role: str, content: str} messages
+            context: Retrieved documents context (optional)
+            tools: List of Tool objects from vertexai.generative_models
+
+        Returns:
+            dict: {
+                'content': str or None,
+                'function_call': dict or None,  # {name: str, args: dict}
+                'finish_reason': str
+            }
+        """
+        self._ensure_initialized()
+
+        try:
+            from vertexai.generative_models import Content, Part, ToolConfig, FunctionCallingConfig
+            from datetime import datetime
+
+            now = datetime.now()
+            date_context = f"""DATA DI OGGI: {now.strftime('%A %d %B %Y')}
+(Giorno della settimana: {now.strftime('%A')}, Ora: {now.strftime('%H:%M')})"""
+
+            contents = []
+
+            # Add context as first user message (only if present)
+            if context:
+                context_msg = f"""{date_context}
+
+CONTESTO DA DOCUMENTI:
+{context}
+"""
+                contents.append(Content(role="user", parts=[Part.from_text(context_msg)]))
+                contents.append(Content(role="model", parts=[Part.from_text("Ho letto il contesto fornito.")]))
+
+            # Add conversation history
+            for msg in conversation_history:
+                role = "user" if msg['role'] == 'user' else "model"
+                contents.append(Content(role=role, parts=[Part.from_text(msg['content'])]))
+
+            # Configure function calling mode
+            tool_config = None
+            if tools:
+                tool_config = ToolConfig(
+                    function_calling_config=FunctionCallingConfig(
+                        mode=FunctionCallingConfig.Mode.AUTO,
+                    )
+                )
+
+            # Generate with tools (use model with system instruction)
+            if tools:
+                response = self._llm_with_tools.generate_content(
+                    contents,
+                    tools=tools,
+                    tool_config=tool_config,
+                    generation_config={'temperature': 0.7}
+                )
+            else:
+                response = self._llm.generate_content(contents)
+
+            # Parse response
+            result = {
+                'content': None,
+                'function_call': None,
+                'finish_reason': str(response.candidates[0].finish_reason) if response.candidates else 'UNKNOWN'
+            }
+
+            if response.candidates and response.candidates[0].content.parts:
+                part = response.candidates[0].content.parts[0]
+
+                # Check if it's a function call
+                if hasattr(part, 'function_call') and part.function_call:
+                    fc = part.function_call
+                    result['function_call'] = {
+                        'name': fc.name,
+                        'args': dict(fc.args) if fc.args else {}
+                    }
+                # Otherwise it's text
+                elif hasattr(part, 'text'):
+                    result['content'] = part.text
+
+            logger.info(f"Generated with tools: finish_reason={result['finish_reason']}, has_function_call={result['function_call'] is not None}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Errore generation with tools: {e}", exc_info=True)
             raise
 
 

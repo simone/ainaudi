@@ -88,6 +88,12 @@ class ChatSession(models.Model):
         verbose_name=_('sessione parent'),
         help_text=_('Sessione da cui è stato fatto il branch (edit messaggio)')
     )
+    metadata = models.JSONField(
+        _('metadati'),
+        default=dict,
+        blank=True,
+        help_text=_('Dati aggiuntivi per funzionalità agentiche (es. pending_incident)')
+    )
     created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
     updated_at = models.DateTimeField(_('ultimo aggiornamento'), auto_now=True)
 

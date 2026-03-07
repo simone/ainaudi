@@ -7,6 +7,7 @@ import requests
 from bs4 import BeautifulSoup
 import html2text
 from io import BytesIO
+import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,18 @@ class PDFExtractor:
                 response = requests.get(pdf_source, timeout=30)
                 response.raise_for_status()
                 pdf_source = BytesIO(response.content)
+            # If local path doesn't exist, try downloading from ainaudi.it
+            elif isinstance(pdf_source, str) and not os.path.exists(pdf_source):
+                ainaudi_url = f"https://ainaudi.it{pdf_source}"
+                logger.info(f"Local file not found, trying to download from {ainaudi_url}")
+                try:
+                    response = requests.get(ainaudi_url, timeout=30)
+                    response.raise_for_status()
+                    pdf_source = BytesIO(response.content)
+                    logger.info(f"Successfully downloaded PDF from {ainaudi_url}")
+                except Exception as e:
+                    logger.error(f"Failed to download from {ainaudi_url}: {e}")
+                    raise FileNotFoundError(f"PDF not found locally at {pdf_source} and could not download from {ainaudi_url}")
 
             # Try pdfplumber (better quality)
             try:
@@ -52,7 +65,7 @@ class PDFExtractor:
                         text.append(page.extract_text() or '')
                     return '\n\n'.join(text)
             else:
-                # BytesIO
+                # BytesIO (from download or URL)
                 reader = PyPDF2.PdfReader(pdf_source)
                 text = []
                 for page in reader.pages:
