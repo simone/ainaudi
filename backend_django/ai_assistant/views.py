@@ -7,8 +7,9 @@ from rest_framework.response import Response
 from rest_framework import permissions, status
 import logging
 
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from core.permissions import CanAskToAIAssistant
-from .models import KnowledgeSource, ChatSession, ChatMessage
+from .models import KnowledgeSource, ChatSession, ChatMessage, ChatAttachment
 
 logger = logging.getLogger(__name__)
 
@@ -704,11 +705,17 @@ Esempi:
         return ' '.join(words) + ('...' if len(words) == 6 else '')
 
 
-def generate_ai_response(request, session, message):
+def generate_ai_response(request, session, message, attachment_data=None):
     """
     Shared AI generation logic used by both ChatView and ChatBranchView.
 
     Builds user profile context, retrieves RAG docs, calls Vertex AI with tools.
+
+    Args:
+        request: HTTP request
+        session: ChatSession instance
+        message: User message text
+        attachment_data: Optional list of dicts with 'data' (bytes) and 'mime_type' (str)
 
     Returns:
         dict: {
@@ -981,7 +988,8 @@ def generate_ai_response(request, session, message):
     ai_response = vertex_ai_service.generate_with_tools(
         conversation_history=conversation_history,
         context=context_text,
-        tools=all_ai_tools
+        tools=all_ai_tools,
+        attachments=attachment_data,
     )
 
     # Handle function call if present
@@ -1031,16 +1039,14 @@ class ChatView(APIView):
     Send a message to the AI assistant or retrieve session history.
 
     POST /api/ai/chat/
-    {
-        "session_id": 1,  // optional, creates new if not provided
-        "message": "Come si compila la scheda del referendum?",
-        "context": "SCRUTINY"  // optional
-    }
+    JSON: {"session_id": 1, "message": "...", "context": "SCRUTINY"}
+    Multipart: message (text), session_id (text), attachment (file)
 
     GET /api/ai/chat/?session_id=1
     Returns all messages in the session
     """
     permission_classes = [permissions.IsAuthenticated, CanAskToAIAssistant]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
         """Retrieve messages from a session."""
@@ -1060,8 +1066,8 @@ class ChatView(APIView):
         except ChatSession.DoesNotExist:
             return Response({'error': 'Session not found'}, status=404)
 
-        # Get all messages in chronological order
-        messages = session.messages.order_by('created_at')
+        # Get all messages in chronological order with attachments prefetched
+        messages = session.messages.order_by('created_at').prefetch_related('attachments')
 
         return Response({
             'session_id': session.id,
@@ -1081,7 +1087,18 @@ class ChatView(APIView):
                             'url': src.source_url.strip() if src.source_url and src.source_url.strip() else None,
                         }
                         for src in KnowledgeSource.objects.filter(id__in=msg.sources_cited)
-                    ] if msg.sources_cited else []
+                    ] if msg.sources_cited else [],
+                    'attachments': [
+                        {
+                            'id': att.id,
+                            'filename': att.filename,
+                            'file_type': att.file_type,
+                            'mime_type': att.mime_type,
+                            'file_size': att.file_size,
+                            'url': att.file.url if att.file else None,
+                        }
+                        for att in msg.attachments.all()
+                    ]
                 }
                 for msg in messages
             ]
@@ -1132,6 +1149,29 @@ class ChatView(APIView):
             )
             logger.info(f"ChatView.post: new session={session.id}")
 
+        # Handle file attachment
+        attachment_data = None
+        attachment_file = request.FILES.get('attachment')
+        if attachment_file:
+            mime_type = attachment_file.content_type or ''
+            supported_types = ChatAttachment.SUPPORTED_IMAGE_TYPES | ChatAttachment.SUPPORTED_AUDIO_TYPES
+            if mime_type not in supported_types:
+                return Response(
+                    {'error': f'Tipo file non supportato: {mime_type}. Supportati: immagini (JPEG, PNG, GIF, WebP) e audio (MP3, WAV, OGG, AAC, FLAC, M4A).'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if attachment_file.size > ChatAttachment.MAX_FILE_SIZE:
+                max_mb = ChatAttachment.MAX_FILE_SIZE // (1024 * 1024)
+                return Response(
+                    {'error': f'File troppo grande (max {max_mb}MB).'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # Read file bytes for Gemini
+            file_bytes = attachment_file.read()
+            attachment_file.seek(0)  # Reset for saving
+            attachment_data = [{'data': file_bytes, 'mime_type': mime_type}]
+            logger.info(f"ChatView.post: attachment {attachment_file.name} ({mime_type}, {attachment_file.size} bytes)")
+
         # Save user message
         user_message = ChatMessage.objects.create(
             session=session,
@@ -1139,11 +1179,24 @@ class ChatView(APIView):
             content=message
         )
 
+        # Save attachment if present
+        saved_attachment = None
+        if attachment_file:
+            saved_attachment = ChatAttachment.objects.create(
+                message=user_message,
+                file=attachment_file,
+                file_type=ChatAttachment.detect_file_type(attachment_file.content_type or ''),
+                mime_type=attachment_file.content_type or '',
+                filename=attachment_file.name or 'attachment',
+                file_size=attachment_file.size,
+            )
+            logger.info(f"ChatView.post: saved attachment {saved_attachment.id} for message {user_message.id}")
+
         # === RAG with AGENTIC TOOLS (Function Calling) ===
         try:
             logger.debug(f"ChatView.post: calling AI for session={session.id}")
 
-            rag_result = generate_ai_response(request, session, message)
+            rag_result = generate_ai_response(request, session, message, attachment_data=attachment_data)
 
             # Save assistant response
             assistant_message = ChatMessage.objects.create(
@@ -1163,14 +1216,24 @@ class ChatView(APIView):
                     logger.warning(f"ChatView.post: title generation failed: {e}")
 
             logger.info(f"ChatView.post: OK session={session.id} assistant_msg={assistant_message.id}")
+            user_msg_data = {
+                'id': user_message.id,
+                'role': user_message.role,
+                'content': user_message.content,
+            }
+            if saved_attachment:
+                user_msg_data['attachments'] = [{
+                    'id': saved_attachment.id,
+                    'filename': saved_attachment.filename,
+                    'file_type': saved_attachment.file_type,
+                    'mime_type': saved_attachment.mime_type,
+                    'file_size': saved_attachment.file_size,
+                    'url': saved_attachment.file.url if saved_attachment.file else None,
+                }]
             return Response({
                 'session_id': session.id,
                 'title': session.title,
-                'user_message': {
-                    'id': user_message.id,
-                    'role': user_message.role,
-                    'content': user_message.content,
-                },
+                'user_message': user_msg_data,
                 'message': {
                     'id': assistant_message.id,
                     'role': assistant_message.role,

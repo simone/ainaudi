@@ -342,14 +342,15 @@ Rispondi SOLO con JSON:
             logger.error(f"Errore incident extraction: {e}", exc_info=True)
             raise
 
-    def generate_with_tools(self, conversation_history: list, context: str = None, tools: list = None) -> dict:
+    def generate_with_tools(self, conversation_history: list, context: str = None, tools: list = None, attachments: list = None) -> dict:
         """
-        Generate response with tool/function calling support.
+        Generate response with tool/function calling support and optional multimodal input.
 
         Args:
             conversation_history: List of {role: str, content: str} messages
             context: Retrieved documents context (optional)
             tools: List of Tool objects from vertexai.generative_models
+            attachments: List of dicts with 'data' (bytes) and 'mime_type' (str) for current message
 
         Returns:
             dict: {
@@ -371,18 +372,37 @@ Rispondi SOLO con JSON:
                 role = "user" if msg['role'] == 'user' else "model"
                 contents.append(Content(role=role, parts=[Part.from_text(msg['content'])]))
 
-            # Build the current user message with context appended (not as separate synthetic messages)
+            # Build the current user message parts
+            current_parts = []
             current_message = conversation_history[-1]['content'] if conversation_history else ""
+
+            # Add text part (with context appended)
             if context:
-                current_message_with_context = f"""{current_message}
+                text_content = f"""{current_message}
 
 ---
 CONTESTO (dati reali dal sistema e documenti di riferimento — per date e consultazione, fidati SOLO di questi):
 {context}"""
-                contents.append(Content(role="user", parts=[Part.from_text(current_message_with_context)]))
             else:
-                if current_message:
-                    contents.append(Content(role="user", parts=[Part.from_text(current_message)]))
+                text_content = current_message
+
+            if text_content:
+                current_parts.append(Part.from_text(text_content))
+
+            # Add multimodal attachments (images, audio)
+            if attachments:
+                for att in attachments:
+                    try:
+                        current_parts.append(Part.from_data(
+                            data=att['data'],
+                            mime_type=att['mime_type']
+                        ))
+                        logger.info(f"Added multimodal part: {att['mime_type']} ({len(att['data'])} bytes)")
+                    except Exception as e:
+                        logger.warning(f"Failed to add attachment part ({att['mime_type']}): {e}")
+
+            if current_parts:
+                contents.append(Content(role="user", parts=current_parts))
 
             # Configure function calling (AUTO mode)
             tool_config = None

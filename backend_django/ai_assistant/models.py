@@ -146,3 +146,55 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f'{self.get_role_display()}: {self.content[:50]}...'
+
+
+class ChatAttachment(models.Model):
+    """
+    File attachment on a chat message (image, audio, document).
+    Used for multimodal AI processing (Gemini vision/audio).
+    """
+    class FileType(models.TextChoices):
+        IMAGE = 'IMAGE', _('Immagine')
+        AUDIO = 'AUDIO', _('Audio')
+        DOCUMENT = 'DOCUMENT', _('Documento')
+
+    message = models.ForeignKey(
+        ChatMessage,
+        on_delete=models.CASCADE,
+        related_name='attachments',
+        verbose_name=_('messaggio')
+    )
+    file = models.FileField(
+        _('file'),
+        upload_to='chat_attachments/%Y/%m/%d/'
+    )
+    file_type = models.CharField(
+        _('tipo file'),
+        max_length=20,
+        choices=FileType.choices
+    )
+    mime_type = models.CharField(_('MIME type'), max_length=100)
+    filename = models.CharField(_('nome file'), max_length=255)
+    file_size = models.IntegerField(_('dimensione (bytes)'))
+    created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('allegato chat')
+        verbose_name_plural = _('allegati chat')
+
+    def __str__(self):
+        return f'{self.filename} ({self.get_file_type_display()})'
+
+    @staticmethod
+    def detect_file_type(mime_type):
+        """Detect FileType from MIME type."""
+        if mime_type.startswith('image/'):
+            return ChatAttachment.FileType.IMAGE
+        if mime_type.startswith('audio/'):
+            return ChatAttachment.FileType.AUDIO
+        return ChatAttachment.FileType.DOCUMENT
+
+    # Supported MIME types for Gemini multimodal
+    SUPPORTED_IMAGE_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
+    SUPPORTED_AUDIO_TYPES = {'audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/aac', 'audio/flac', 'audio/mp4', 'audio/x-m4a'}
+    MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB

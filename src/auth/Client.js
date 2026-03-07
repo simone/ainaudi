@@ -2202,9 +2202,24 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
 
     // AI Assistant endpoints
     const ai = {
-        // Send message to AI chat
-        chat: async (data) =>
-            fetch(`${server}/api/ai/chat/`, {
+        // Send message to AI chat (text only or with attachment)
+        chat: async (data, attachment = null) => {
+            if (attachment) {
+                const formData = new FormData();
+                formData.append('message', data.message);
+                if (data.session_id) formData.append('session_id', data.session_id);
+                if (data.context) formData.append('context', data.context);
+                formData.append('attachment', attachment);
+                return fetch(`${server}/api/ai/chat/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': authHeader },
+                    body: formData
+                }).then(response => safeJson(response)).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                });
+            }
+            return fetch(`${server}/api/ai/chat/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2214,7 +2229,8 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             }).then(response => safeJson(response)).catch(error => {
                 console.error(error);
                 return { error: error.message };
-            }),
+            });
+        },
 
         // Get messages from a session
         getSession: async (sessionId) =>

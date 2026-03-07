@@ -26,6 +26,8 @@ function ChatInterface({ client, show, onClose }) {
     });
     const [voiceModalText, setVoiceModalText] = useState(''); // Testo riconosciuto nella modale vocale
     const [incidentId, setIncidentId] = useState(null); // ID segnalazione associata alla chat
+    const [attachedFile, setAttachedFile] = useState(null); // File allegato da inviare
+    const [attachmentPreview, setAttachmentPreview] = useState(null); // URL preview per immagini
 
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
@@ -34,6 +36,7 @@ function ChatInterface({ client, show, onClose }) {
     const voiceModalTextRef = useRef('');  // Testo riconosciuto vocalmente (per callback)
     const textareaRef = useRef(null);
     const speechSynthesisRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     // Scroll to bottom helper
     const scrollToBottom = (behavior = 'auto') => {
@@ -220,17 +223,62 @@ function ChatInterface({ client, show, onClose }) {
         }
     };
 
+    const SUPPORTED_TYPES = [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        'audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/aac', 'audio/flac', 'audio/mp4', 'audio/x-m4a'
+    ];
+    const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+
+    const handleFileSelect = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!SUPPORTED_TYPES.includes(file.type)) {
+            alert('Tipo file non supportato. Usa immagini (JPEG, PNG, GIF, WebP) o audio (MP3, WAV, OGG, AAC, FLAC, M4A).');
+            return;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+            alert('File troppo grande (max 20MB).');
+            return;
+        }
+        setAttachedFile(file);
+        if (file.type.startsWith('image/')) {
+            const url = URL.createObjectURL(file);
+            setAttachmentPreview(url);
+        } else {
+            setAttachmentPreview(null);
+        }
+        // Reset input so same file can be re-selected
+        e.target.value = '';
+    };
+
+    const clearAttachment = () => {
+        if (attachmentPreview) URL.revokeObjectURL(attachmentPreview);
+        setAttachedFile(null);
+        setAttachmentPreview(null);
+    };
+
     const handleSendMessage = async () => {
         // Non permettere invio mentre sta registrando
-        if (!inputText.trim() || isLoading || isRecording) return;
+        if ((!inputText.trim() && !attachedFile) || isLoading || isRecording) return;
 
         stopRecording();
 
-        const userMessage = inputText.trim();
+        const userMessage = inputText.trim() || (attachedFile ? `[${attachedFile.name}]` : '');
+        const fileToSend = attachedFile;
         setInputText('');
+        clearAttachment();
 
         // Add user message to UI (optimistic, without ID yet)
-        setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+        const optimisticMsg = { role: 'user', content: userMessage };
+        if (fileToSend) {
+            optimisticMsg.attachments = [{
+                filename: fileToSend.name,
+                file_type: fileToSend.type.startsWith('image/') ? 'IMAGE' : 'AUDIO',
+                mime_type: fileToSend.type,
+                url: fileToSend.type.startsWith('image/') ? URL.createObjectURL(fileToSend) : null,
+            }];
+        }
+        setMessages(prev => [...prev, optimisticMsg]);
         setIsLoading(true);
 
         try {
@@ -238,7 +286,7 @@ function ChatInterface({ client, show, onClose }) {
             const response = await client.ai.chat({
                 session_id: sessionId,
                 message: userMessage,
-            });
+            }, fileToSend || null);
 
             // Handle error response or missing data gracefully
             if (!response || response.error || !response.message) {
@@ -659,6 +707,20 @@ function ChatInterface({ client, show, onClose }) {
                                 ) : (
                                     /* Normal message display */
                                     <>
+                                        {msg.attachments && msg.attachments.length > 0 && (
+                                            <div className="message-attachments">
+                                                {msg.attachments.map((att, attIdx) => (
+                                                    att.file_type === 'IMAGE' && att.url ? (
+                                                        <img key={attIdx} src={att.url} alt={att.filename} className="message-attachment-image" />
+                                                    ) : (
+                                                        <div key={attIdx} className="message-attachment-audio">
+                                                            <i className="fas fa-file-audio me-2"></i>
+                                                            <span>{att.filename}</span>
+                                                        </div>
+                                                    )
+                                                ))}
+                                            </div>
+                                        )}
                                         <div className="message-content">
                                             <ReactMarkdown>{msg.content}</ReactMarkdown>
                                         </div>
@@ -726,6 +788,24 @@ function ChatInterface({ client, show, onClose }) {
                     <div ref={messagesEndRef} />
                 </div>
 
+                {/* Attachment Preview */}
+                {attachedFile && (
+                    <div className="attachment-preview-bar">
+                        <div className="attachment-preview-content">
+                            {attachmentPreview ? (
+                                <img src={attachmentPreview} alt="preview" className="attachment-thumb" />
+                            ) : (
+                                <i className="fas fa-file-audio attachment-icon"></i>
+                            )}
+                            <span className="attachment-name">{attachedFile.name}</span>
+                            <span className="attachment-size">({(attachedFile.size / 1024).toFixed(0)} KB)</span>
+                        </div>
+                        <button className="btn-attachment-remove" onClick={clearAttachment} title="Rimuovi allegato">
+                            <i className="fas fa-times"></i>
+                        </button>
+                    </div>
+                )}
+
                 {/* Input */}
                 <div className="chat-input-container">
                     <button
@@ -736,6 +816,22 @@ function ChatInterface({ client, show, onClose }) {
                     >
                         <i className={`fas ${isRecording ? 'fa-stop' : 'fa-microphone'}`}></i>
                     </button>
+
+                    <button
+                        className="btn btn-attach"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isLoading || isRecording}
+                        title="Allega foto o audio"
+                    >
+                        <i className="fas fa-paperclip"></i>
+                    </button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp,audio/mp3,audio/mpeg,audio/wav,audio/ogg,audio/aac,audio/flac,audio/mp4,audio/x-m4a"
+                        onChange={handleFileSelect}
+                        style={{ display: 'none' }}
+                    />
 
                     <textarea
                         ref={textareaRef}
@@ -751,7 +847,7 @@ function ChatInterface({ client, show, onClose }) {
                     <button
                         className="btn btn-primary btn-send"
                         onClick={handleSendMessage}
-                        disabled={!inputText.trim() || isLoading || isRecording}
+                        disabled={(!inputText.trim() && !attachedFile) || isLoading || isRecording}
                         title={isRecording ? 'Ferma prima la registrazione' : 'Invia messaggio'}
                     >
                         <i className="fas fa-paper-plane"></i>
