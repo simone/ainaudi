@@ -14,13 +14,61 @@ from .rag_service import rag_service
 logger = logging.getLogger(__name__)
 
 
+def _resolve_sezione(sezione_numero_raw):
+    """Resolve sezione from user-provided number string. Returns (sezione, sezione_numero, not_found)."""
+    from territory.models import SezioneElettorale
+
+    sezione = None
+    sezione_numero = str(sezione_numero_raw or '').strip().replace('.', '').replace(' ', '')
+    sezione_not_found = False
+    if sezione_numero:
+        try:
+            sezione = SezioneElettorale.objects.filter(
+                numero=int(sezione_numero),
+                is_attiva=True
+            ).first()
+            if not sezione:
+                sezione_not_found = True
+                logger.warning(f"Sezione {sezione_numero} not found in DB")
+        except (ValueError, TypeError):
+            sezione_not_found = True
+            logger.warning(f"Invalid sezione_numero: {sezione_numero}")
+    return sezione, sezione_numero, sezione_not_found
+
+
+def _format_incident_message(incident, action, sezione, sezione_numero):
+    """Format a confirmation message for an incident create/update."""
+    category_labels = {
+        'PROCEDURAL': 'Procedurale', 'ACCESS': 'Accesso al seggio',
+        'MATERIALS': 'Materiali', 'INTIMIDATION': 'Intimidazione',
+        'IRREGULARITY': 'Irregolarita', 'TECHNICAL': 'Tecnico', 'OTHER': 'Altro',
+    }
+    severity_labels = {
+        'LOW': 'Bassa', 'MEDIUM': 'Media', 'HIGH': 'Alta', 'CRITICAL': 'Critica',
+    }
+    sezione_text = (
+        f"Sezione {sezione.numero} - {sezione.comune.nome}" if sezione
+        else f"Sezione {sezione_numero} (non censita)" if sezione_numero
+        else "Generale"
+    )
+    return (
+        f"**Segnalazione #{incident.id} {action}!**\n\n"
+        f"**Titolo:** {incident.title}\n"
+        f"**Descrizione:** {incident.description[:200]}{'...' if len(incident.description) > 200 else ''}\n"
+        f"**Categoria:** {category_labels.get(incident.category, incident.category)}\n"
+        f"**Gravita:** {severity_labels.get(incident.severity, incident.severity)}\n"
+        f"**Sezione:** {sezione_text}\n"
+        f"**Verbalizzato:** {'Si' if incident.is_verbalizzato else 'No'}"
+    )
+
+
 def execute_ai_function(function_name: str, args: dict, session, request) -> dict:
     """Execute an AI-requested function and return the result."""
+
     if function_name == 'create_incident_report':
         try:
             from incidents.models import IncidentReport
             from elections.models import ConsultazioneElettorale
-            from territory.models import SezioneElettorale
 
             logger.info(f"create_incident_report called with args: {args}")
 
@@ -28,24 +76,8 @@ def execute_ai_function(function_name: str, args: dict, session, request) -> dic
             if not consultazione:
                 return {'message': 'Non c\'e una consultazione attiva al momento.', 'data': None}
 
-            # Resolve sezione from number
-            sezione = None
-            sezione_numero = str(args.get('sezione_numero', '') or '').strip().replace('.', '').replace(' ', '')
-            sezione_not_found = False
-            if sezione_numero:
-                try:
-                    sezione = SezioneElettorale.objects.filter(
-                        numero=int(sezione_numero),
-                        is_attiva=True
-                    ).first()
-                    if not sezione:
-                        sezione_not_found = True
-                        logger.warning(f"Sezione {sezione_numero} not found in DB")
-                except (ValueError, TypeError):
-                    sezione_not_found = True
-                    logger.warning(f"Invalid sezione_numero: {sezione_numero}")
+            sezione, sezione_numero, sezione_not_found = _resolve_sezione(args.get('sezione_numero', ''))
 
-            # Map args to model fields
             title = args.get('title', 'Segnalazione da chat')[:200]
             description = args.get('description', '')
             category = args.get('category', 'OTHER').upper()
@@ -59,7 +91,6 @@ def execute_ai_function(function_name: str, args: dict, session, request) -> dic
             if severity not in valid_severities:
                 severity = 'HIGH'
 
-            # If sezione not found in DB, append info to description
             if sezione_not_found and sezione_numero:
                 description = f"{description}\n\n[Sezione indicata dall'utente: {sezione_numero} - non trovata nel sistema]"
 
@@ -76,7 +107,7 @@ def execute_ai_function(function_name: str, args: dict, session, request) -> dic
                     incident.is_verbalizzato = is_verbalizzato
                     incident.save()
                     action = "aggiornata"
-                    logger.info(f"Incident #{incident.id} UPDATED via chat by {request.user.email}")
+                    logger.info(f"Incident #{incident.id} UPDATED via chat (create called again) by {request.user.email}")
                 except IncidentReport.DoesNotExist:
                     existing_incident_id = None  # Fall through to create
 
@@ -94,37 +125,66 @@ def execute_ai_function(function_name: str, args: dict, session, request) -> dic
                 action = "creata"
                 logger.info(f"Incident #{incident.id} CREATED via chat by {request.user.email}")
 
-            # Update session metadata
             session.metadata = session.metadata or {}
             session.metadata['incident_id'] = incident.id
             session.title = f"Segnalazione: {title[:40]}"
             session.save()
 
-            category_labels = {
-                'PROCEDURAL': 'Procedurale', 'ACCESS': 'Accesso al seggio',
-                'MATERIALS': 'Materiali', 'INTIMIDATION': 'Intimidazione',
-                'IRREGULARITY': 'Irregolarita', 'TECHNICAL': 'Tecnico', 'OTHER': 'Altro',
-            }
-            severity_labels = {
-                'LOW': 'Bassa', 'MEDIUM': 'Media', 'HIGH': 'Alta', 'CRITICAL': 'Critica',
-            }
-            sezione_text = f"Sezione {sezione.numero} - {sezione.comune.nome}" if sezione else f"Sezione {sezione_numero} (non censita)" if sezione_numero else "Generale"
-
-            message = (
-                f"**Segnalazione #{incident.id} {action}!**\n\n"
-                f"**Titolo:** {incident.title}\n"
-                f"**Descrizione:** {incident.description[:200]}{'...' if len(incident.description) > 200 else ''}\n"
-                f"**Categoria:** {category_labels.get(category, category)}\n"
-                f"**Gravita:** {severity_labels.get(severity, severity)}\n"
-                f"**Sezione:** {sezione_text}\n"
-                f"**Verbalizzato:** {'Si' if is_verbalizzato else 'No'}"
-            )
-
+            message = _format_incident_message(incident, action, sezione, sezione_numero)
             return {'message': message, 'data': {'incident_id': incident.id}}
 
         except Exception as e:
             logger.error(f"Error in create_incident_report: {e}", exc_info=True)
             return {'message': f'Errore nella creazione della segnalazione: {str(e)}', 'data': None}
+
+    elif function_name == 'update_incident_report':
+        try:
+            from incidents.models import IncidentReport
+
+            logger.info(f"update_incident_report called with args: {args}")
+
+            existing_incident_id = (session.metadata or {}).get('incident_id')
+            if not existing_incident_id:
+                return {'message': 'Non c\'e nessuna segnalazione da aggiornare in questa sessione. Vuoi crearne una nuova?', 'data': None}
+
+            try:
+                incident = IncidentReport.objects.get(id=existing_incident_id, reporter=request.user)
+            except IncidentReport.DoesNotExist:
+                return {'message': 'La segnalazione precedente non e stata trovata. Vuoi crearne una nuova?', 'data': None}
+
+            # Update only provided fields
+            if 'title' in args and args['title']:
+                incident.title = args['title'][:200]
+            if 'description' in args and args['description']:
+                incident.description = args['description']
+            if 'category' in args and args['category']:
+                cat = args['category'].upper()
+                valid_categories = ['PROCEDURAL', 'ACCESS', 'MATERIALS', 'INTIMIDATION', 'IRREGULARITY', 'TECHNICAL', 'OTHER']
+                if cat in valid_categories:
+                    incident.category = cat
+            if 'severity' in args and args['severity']:
+                sev = args['severity'].upper()
+                valid_severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+                if sev in valid_severities:
+                    incident.severity = sev
+            if 'sezione_numero' in args and args['sezione_numero']:
+                sezione, sezione_numero, sezione_not_found = _resolve_sezione(args['sezione_numero'])
+                incident.sezione = sezione
+                if sezione_not_found and sezione_numero:
+                    incident.description = f"{incident.description}\n\n[Sezione aggiornata dall'utente: {sezione_numero} - non trovata nel sistema]"
+            if 'is_verbalizzato' in args:
+                incident.is_verbalizzato = args['is_verbalizzato']
+
+            incident.save()
+            logger.info(f"Incident #{incident.id} UPDATED via update_incident_report by {request.user.email}")
+
+            sezione_numero = str(incident.sezione.numero) if incident.sezione else ''
+            message = _format_incident_message(incident, "aggiornata", incident.sezione, sezione_numero)
+            return {'message': message, 'data': {'incident_id': incident.id}}
+
+        except Exception as e:
+            logger.error(f"Error in update_incident_report: {e}", exc_info=True)
+            return {'message': f'Errore nell\'aggiornamento della segnalazione: {str(e)}', 'data': None}
 
     else:
         logger.warning(f"Unknown function called: {function_name} with args: {args}")
@@ -366,6 +426,24 @@ class ChatView(APIView):
                             profile_parts.append("NOTA: Come delegato, puoi segnalare per qualsiasi sezione del tuo territorio")
                 else:
                     profile_parts.append("CONSULTAZIONE: Nessuna consultazione attiva al momento")
+
+                # Add existing incident info if session has one
+                existing_incident_id = (session.metadata or {}).get('incident_id')
+                if existing_incident_id:
+                    try:
+                        from incidents.models import IncidentReport
+                        incident = IncidentReport.objects.get(id=existing_incident_id)
+                        profile_parts.append(
+                            f"SEGNALAZIONE GIA APERTA IN QUESTA SESSIONE (ID #{incident.id}):\n"
+                            f"  Titolo: {incident.title}\n"
+                            f"  Descrizione: {incident.description[:200]}\n"
+                            f"  Categoria: {incident.category}\n"
+                            f"  Gravita: {incident.severity}\n"
+                            f"  Sezione: {incident.sezione.numero if incident.sezione else 'Generale'}\n"
+                            f"  → Per modificarla, usa update_incident_report. NON creare una nuova."
+                        )
+                    except Exception:
+                        pass
 
                 user_profile_context = "\n".join(profile_parts)
             except Exception as e:

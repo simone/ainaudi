@@ -463,6 +463,13 @@ Quando l'utente segnala un problema o incidente al seggio:
    → CHIAMA IMMEDIATAMENTE la funzione create_incident_report con TUTTI i dati
    → NON dire "apro la segnalazione" SENZA chiamare la funzione!
    → Se dici che la apri, DEVI chiamare create_incident_report nello stesso turno!
+
+MODIFICA SEGNALAZIONI:
+- Se nel contesto vedi "SEGNALAZIONE GIA APERTA IN QUESTA SESSIONE", quella segnalazione ESISTE gia
+- Se l'utente chiede di modificare/aggiornare/correggere → usa update_incident_report
+- Passa SOLO i campi da modificare (non serve ripassare tutto)
+- NON creare una nuova segnalazione se ne esiste gia una nella sessione
+- Se l'utente vuole aprirne una DIVERSA (altro incidente), chiedi conferma prima
 """
 
 
