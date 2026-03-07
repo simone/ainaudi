@@ -13,6 +13,7 @@ from .serializers import (
     CategoriaDocumentoSerializer, DocumentoSerializer,
     CategoriaFAQSerializer, FAQSerializer, FAQListSerializer
 )
+from .badge_generator import generate_badge_to_bytes, get_available_variants
 
 
 class PDFProxyView(views.APIView):
@@ -266,3 +267,60 @@ class FAQViewSet(viewsets.ReadOnlyModelViewSet):
             'utile_no': faq.utile_no,
             'percentuale_utile': faq.percentuale_utile
         })
+
+
+class BadgeVariantsView(views.APIView):
+    """
+    GET /api/risorse/badge-variants/
+
+    Restituisce la lista delle varianti badge disponibili.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        variants = get_available_variants()
+        return Response({
+            'variants': variants,
+            'total': len(variants),
+        })
+
+
+class GenerateBadgeView(views.APIView):
+    """
+    GET /api/risorse/generate-badge/?variant=card_1
+
+    Genera un badge RDL con il nome dell'utente corrente.
+    Restituisce l'immagine PNG.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        variant_id = request.query_params.get('variant', 'card_1')
+
+        # Ottieni nome utente
+        user = request.user
+        name = f"{user.first_name} {user.last_name}".strip()
+        if not name or name == " ":
+            name = user.email.split('@')[0].replace('.', ' ').title()
+
+        try:
+            # Genera badge
+            img_buffer = generate_badge_to_bytes(variant_id, name, format='PNG')
+
+            # Restituisci immagine
+            response = HttpResponse(img_buffer.getvalue(), content_type='image/png')
+            response['Content-Disposition'] = f'inline; filename="badge_rdl_{variant_id}.png"'
+            response['Access-Control-Allow-Origin'] = '*'
+
+            return response
+
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Errore nella generazione del badge: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
