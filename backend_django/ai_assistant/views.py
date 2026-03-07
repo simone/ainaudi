@@ -512,7 +512,15 @@ class ChatView(APIView):
                 ]
 
                 if consultazione:
-                    profile_parts.append(f"CONSULTAZIONE ATTIVA: {consultazione.nome} (dal {consultazione.data_inizio.strftime('%d/%m/%Y') if consultazione.data_inizio else '?'} al {consultazione.data_fine.strftime('%d/%m/%Y') if consultazione.data_fine else '?'})")
+                    consultazione_info = f"CONSULTAZIONE ATTIVA: {consultazione.nome} (dal {consultazione.data_inizio.strftime('%d/%m/%Y') if consultazione.data_inizio else '?'} al {consultazione.data_fine.strftime('%d/%m/%Y') if consultazione.data_fine else '?'})"
+                    if consultazione.descrizione:
+                        consultazione_info += f"\n  Descrizione: {consultazione.descrizione[:300]}"
+                    # Include election types
+                    tipi_elezione = consultazione.tipi_elezione.all()
+                    if tipi_elezione:
+                        tipi_names = ", ".join([t.get_tipo_display() if hasattr(t, 'get_tipo_display') else str(t) for t in tipi_elezione[:5]])
+                        consultazione_info += f"\n  Tipi elezione: {tipi_names}"
+                    profile_parts.append(consultazione_info)
 
                     # Get assigned sections (for RDL)
                     designazioni = DesignazioneRDL.objects.filter(

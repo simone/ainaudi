@@ -383,7 +383,7 @@ Rispondi SOLO con JSON:
 ---
 {date_context}
 
-CONTESTO DOCUMENTALE (usa solo se pertinente alla domanda):
+DATI E DOCUMENTI DI RIFERIMENTO (FIDATI di questi dati, sono reali e aggiornati):
 {context}"""
                 contents.append(Content(role="user", parts=[Part.from_text(current_message_with_context)]))
             else:
