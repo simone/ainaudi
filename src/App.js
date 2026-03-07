@@ -30,6 +30,7 @@ import PwaOnboarding from "./pwa/PwaOnboarding";
 import EventDetail from "./events/EventDetail";
 import AssignmentDetail from "./events/AssignmentDetail";
 import EventList from "./events/EventList";
+import SegnalazioniUI from "./segnalazioni/SegnalazioniUI";
 import { onForegroundMessage } from "./firebase";
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -802,6 +803,17 @@ function AppContent() {
                                             </li>
                                         )}
 
+                                        {/* 7. SEGNALAZIONI - gestione incidenti */}
+                                        {consultazione && permissions.can_manage_incidents && (
+                                            <li className="nav-item">
+                                                <a className={`nav-link ${activeTab === 'segnalazioni' ? 'active' : ''}`}
+                                                   onClick={() => activate('segnalazioni')} href="#">
+                                                    <i className="fas fa-exclamation-triangle me-1"></i>
+                                                    Segnalazioni
+                                                </a>
+                                            </li>
+                                        )}
+
                                         {/* 8. RISORSE - documenti e materiali */}
                                         {permissions.can_view_resources && (
                                             <li className="nav-item">
@@ -1086,6 +1098,17 @@ function AppContent() {
                                         client={client}
                                         setError={setError}
                                         referenti={permissions.can_manage_elections}
+                                    />
+                                </div>
+                            )}
+                            {activeTab === 'segnalazioni' && permissions.can_manage_incidents && (
+                                <div className="tab-pane active">
+                                    <SegnalazioniUI
+                                        client={client}
+                                        consultazione={consultazione}
+                                        user={user}
+                                        permissions={permissions}
+                                        setError={setError}
                                     />
                                 </div>
                             )}
