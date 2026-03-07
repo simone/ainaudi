@@ -240,12 +240,19 @@ function ChatInterface({ client, show, onClose }) {
                 message: userMessage,
             });
 
-            // Handle error response from backend
-            if (response.error) {
+            // Handle error response or missing data gracefully
+            if (!response || response.error || !response.message) {
+                const errorMsg = response?.message?.content
+                    || '🙈 Ainaudino è un po\' sovraccarico. Riprova tra qualche secondo!';
                 setMessages(prev => [...prev, {
                     role: 'assistant',
-                    content: 'Mi dispiace, si è verificato un errore. Riprova.',
+                    content: errorMsg,
                 }]);
+                // Still save session if returned
+                if (response?.session_id && !sessionId) {
+                    setSessionId(response.session_id);
+                    localStorage.setItem('ai_chat_session_id', response.session_id);
+                }
                 return;
             }
 
@@ -262,17 +269,15 @@ function ChatInterface({ client, show, onClose }) {
 
             // Replace optimistic user message with real one (with ID) + add assistant message
             setMessages(prev => {
-                // Remove the last message (optimistic user message without ID)
                 const messagesWithoutOptimistic = prev.slice(0, -1);
-                // Add both user message (with ID) and assistant message
                 return [
                     ...messagesWithoutOptimistic,
-                    response.user_message,
+                    response.user_message || { role: 'user', content: userMessage },
                     {
-                        id: response.message.id,
+                        id: response.message?.id || Date.now(),
                         role: 'assistant',
-                        content: response.message.content,
-                        sources: response.message.sources,
+                        content: response.message?.content || 'Risposta ricevuta.',
+                        sources: response.message?.sources || [],
                     }
                 ];
             });
@@ -281,7 +286,7 @@ function ChatInterface({ client, show, onClose }) {
             console.error('Chat error:', error);
             setMessages(prev => [...prev, {
                 role: 'assistant',
-                content: 'Mi dispiace, si è verificato un errore. Riprova.',
+                content: '🙈 Ainaudino è un po\' sovraccarico. Riprova tra qualche secondo!',
             }]);
         } finally {
             setIsLoading(false);
@@ -348,8 +353,10 @@ function ChatInterface({ client, show, onClose }) {
 
         } catch (error) {
             console.error('Edit error:', error);
-            alert('Errore durante la modifica del messaggio. Riprova.');
-            setEditingMessageId(messageId);
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: '🙈 Ainaudino non è riuscito a modificare il messaggio. Riprova!',
+            }]);
         } finally {
             setIsLoading(false);
             setEditText('');
