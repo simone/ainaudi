@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PDFViewer from '../components/PDFViewer';
 import ReactMarkdown from 'react-markdown';
 import MarkdownModal from '../components/MarkdownModal';
+import BadgeGenerator from './BadgeGenerator';
 
 /**
  * Pagina Risorse: Documenti e FAQ
@@ -133,6 +134,7 @@ function Risorse({ client, consultazione, setError }) {
     const [data, setData] = useState({ documenti: null, faqs: null });
     const [pdfViewer, setPdfViewer] = useState(null); // { url, titolo } quando aperto
     const [showManuale, setShowManuale] = useState(false); // Manuale utente RDL
+    const [showBadgeGenerator, setShowBadgeGenerator] = useState(false); // Badge generator modal
 
     // RDL designations state
     const [mieDesignazioni, setMieDesignazioni] = useState(null);
@@ -530,6 +532,71 @@ function Risorse({ client, consultazione, setError }) {
                 </div>
             )}
 
+            {/* Badge Generator Card */}
+            <div className="card mb-4" style={{ borderLeft: '4px solid #FFC800' }}>
+                <div className="card-header" style={{ background: 'linear-gradient(135deg, #FFC800 0%, #e6b400 100%)', color: '#2C4E5F' }}>
+                    <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i className="fas fa-id-card me-2"></i>
+                            <strong>Genera Badge RDL</strong>
+                        </div>
+                        <span className="badge" style={{ backgroundColor: '#2C4E5F', color: '#FFC800' }}>
+                            17 design disponibili
+                        </span>
+                    </div>
+                </div>
+                <div className="card-body">
+                    <p className="card-text mb-3">
+                        Crea il tuo badge personalizzato da Rappresentante di Lista! Scegli tra Badge RDL da stampare o sfondi per la schermata di blocco del tuo telefono.
+                    </p>
+
+                    <div className="row g-3 mb-3">
+                        <div className="col-md-6">
+                            <div className="d-flex align-items-start">
+                                <i className="fas fa-id-card text-primary me-2 mt-1" style={{ fontSize: '1.5rem' }}></i>
+                                <div>
+                                    <strong>10 Badge RDL</strong>
+                                    <p className="text-muted mb-0" style={{ fontSize: '0.9rem' }}>
+                                        Design moderni da stampare e portare con te
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="col-md-6">
+                            <div className="d-flex align-items-start">
+                                <i className="fas fa-mobile-alt text-success me-2 mt-1" style={{ fontSize: '1.5rem' }}></i>
+                                <div>
+                                    <strong>6 Sfondi Lockscreen</strong>
+                                    <p className="text-muted mb-0" style={{ fontSize: '0.9rem' }}>
+                                        Perfetti per RDL paperless - mostra le tue credenziali
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="d-flex gap-2 flex-wrap">
+                        <button
+                            className="btn"
+                            style={{
+                                backgroundColor: '#2C4E5F',
+                                color: '#FFC800',
+                                fontWeight: '600',
+                                border: 'none'
+                            }}
+                            onClick={() => setShowBadgeGenerator(true)}
+                        >
+                            <i className="fas fa-magic me-2"></i>
+                            Inizia a Creare
+                        </button>
+                        <div className="text-muted" style={{ fontSize: '0.85rem', alignSelf: 'center' }}>
+                            <i className="fas fa-info-circle me-1"></i>
+                            Il badge includerà automaticamente il tuo nome
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Tabs */}
             <ul className="nav nav-tabs mb-3">
                 <li className="nav-item">
@@ -742,6 +809,14 @@ function Risorse({ client, consultazione, setError }) {
                 markdownUrl="/MANUALE_RDL.md"
                 title="Manuale Utente AInaudi"
             />
+
+            {/* Badge Generator Modal */}
+            {showBadgeGenerator && (
+                <BadgeGenerator
+                    client={client}
+                    onClose={() => setShowBadgeGenerator(false)}
+                />
+            )}
         </>
     );
 }
