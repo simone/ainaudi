@@ -373,7 +373,7 @@ def generate_ai_response(request, session, message):
     user_profile_context = ""
     user_sections_list = []
     try:
-        from delegations.models import DesignazioneRDL, DelegatoDiLista, SubDelega
+        from delegations.models import DesignazioneRDL, Delegato, SubDelega
         from elections.models import ConsultazioneElettorale
         from django.db.models import Q
         from datetime import datetime
@@ -388,7 +388,7 @@ def generate_ai_response(request, session, message):
         user_role = "RDL"
         role_description = "Rappresentante di Lista"
         if consultazione:
-            is_delegato = DelegatoDiLista.objects.filter(
+            is_delegato = Delegato.objects.filter(
                 consultazione=consultazione, email=user.email
             ).exists()
             is_subdelegato = SubDelega.objects.filter(
