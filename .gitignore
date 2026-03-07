@@ -16,3 +16,9 @@ secrets/
 
 # Firebase config with API key (use firebase-config.js.example as template)
 public/firebase-config.js
+backend_django/firebase-debug.log
+
+# Badge generator - generated images
+rdl_card*.png
+rdl_lockscreen*.png
+generate_rdl_*.py

@@ -87,6 +87,9 @@ urlpatterns = [
     path('api/documents/', include('documents.urls')),
     path('api/ai/', include('ai_assistant.urls')),  # AI Assistant
 
+    # Incidents reporting
+    path('api/incidents/', include('incidents.urls')),
+
     # Public campaign endpoints (no auth required)
     # Italian paths used by frontend
     path('api/campagna/<slug:slug>/', CampagnaPublicView.as_view(), name='campagna-public'),

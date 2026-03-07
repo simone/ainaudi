@@ -18,6 +18,10 @@ PyPDF2>=3.0,<4.0
 reportlab>=4.1,<5.0
 jsonpath-ng>=1.6,<2.0
 
+# Image Generation
+Pillow>=10.0,<11.0
+numpy>=1.26,<2.0
+
 # Data Processing
 pandas>=2.2,<3.0
 openpyxl>=3.1,<4.0
