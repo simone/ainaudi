@@ -14,8 +14,13 @@ from .rag_service import rag_service
 logger = logging.getLogger(__name__)
 
 
-def _resolve_sezione(sezione_numero_raw):
-    """Resolve sezione from user-provided number string. Returns (sezione, sezione_numero, not_found)."""
+def _resolve_sezione(sezione_numero_raw, user_sections_list=None):
+    """
+    Resolve sezione from user-provided number string.
+    First tries to match against user's assigned sections (precise),
+    then falls back to global lookup.
+    Returns (sezione, sezione_numero, not_found).
+    """
     from territory.models import SezioneElettorale
 
     sezione = None
@@ -23,8 +28,22 @@ def _resolve_sezione(sezione_numero_raw):
     sezione_not_found = False
     if sezione_numero:
         try:
+            numero_int = int(sezione_numero)
+
+            # First: match against user's assigned sections (these have unique sezione PKs)
+            if user_sections_list:
+                for s in user_sections_list:
+                    if s.get('numero') == numero_int and s.get('sezione_id'):
+                        sezione = SezioneElettorale.objects.filter(
+                            id=s['sezione_id'], is_attiva=True
+                        ).first()
+                        if sezione:
+                            logger.info(f"Sezione {sezione_numero} matched via user assignment: pk={sezione.id}")
+                            return sezione, sezione_numero, False
+
+            # Fallback: global lookup by numero (may be ambiguous across comuni)
             sezione = SezioneElettorale.objects.filter(
-                numero=int(sezione_numero),
+                numero=numero_int,
                 is_attiva=True
             ).first()
             if not sezione:
@@ -62,8 +81,44 @@ def _format_incident_message(incident, action, sezione, sezione_numero):
     )
 
 
-def execute_ai_function(function_name: str, args: dict, session, request) -> dict:
+def _audit_log(user, action, incident, details):
+    """Write an AuditLog entry for incident operations."""
+    try:
+        from core.models import AuditLog
+        AuditLog.objects.create(
+            user_email=user.email,
+            action=action,
+            target_model='IncidentReport',
+            target_id=str(incident.id),
+            details=details,
+        )
+    except Exception as e:
+        logger.error(f"Failed to write audit log: {e}")
+
+
+def _track_changes(incident, changes, user):
+    """Create an IncidentComment documenting what changed and by whom."""
+    from incidents.models import IncidentComment
+
+    lines = [f"**Modifica tramite AI chat** da {user.email}:"]
+    for field, (old_val, new_val) in changes.items():
+        old_display = str(old_val)[:100] if old_val else '(vuoto)'
+        new_display = str(new_val)[:100] if new_val else '(vuoto)'
+        lines.append(f"- **{field}**: {old_display} → {new_display}")
+
+    IncidentComment.objects.create(
+        incident=incident,
+        author=user,
+        content="\n".join(lines),
+        is_internal=True,
+    )
+
+
+def execute_ai_function(function_name: str, args: dict, session, request, user_sections_list=None) -> dict:
     """Execute an AI-requested function and return the result."""
+
+    valid_categories = ['PROCEDURAL', 'ACCESS', 'MATERIALS', 'INTIMIDATION', 'IRREGULARITY', 'TECHNICAL', 'OTHER']
+    valid_severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
 
     if function_name == 'create_incident_report':
         try:
@@ -76,7 +131,9 @@ def execute_ai_function(function_name: str, args: dict, session, request) -> dic
             if not consultazione:
                 return {'message': 'Non c\'e una consultazione attiva al momento.', 'data': None}
 
-            sezione, sezione_numero, sezione_not_found = _resolve_sezione(args.get('sezione_numero', ''))
+            sezione, sezione_numero, sezione_not_found = _resolve_sezione(
+                args.get('sezione_numero', ''), user_sections_list
+            )
 
             title = args.get('title', 'Segnalazione da chat')[:200]
             description = args.get('description', '')
@@ -84,8 +141,6 @@ def execute_ai_function(function_name: str, args: dict, session, request) -> dic
             severity = args.get('severity', 'HIGH').upper()
             is_verbalizzato = args.get('is_verbalizzato', False)
 
-            valid_categories = ['PROCEDURAL', 'ACCESS', 'MATERIALS', 'INTIMIDATION', 'IRREGULARITY', 'TECHNICAL', 'OTHER']
-            valid_severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
             if category not in valid_categories:
                 category = 'OTHER'
             if severity not in valid_severities:
@@ -99,6 +154,22 @@ def execute_ai_function(function_name: str, args: dict, session, request) -> dic
             if existing_incident_id:
                 try:
                     incident = IncidentReport.objects.get(id=existing_incident_id, reporter=request.user)
+                    # Track what changed
+                    changes = {}
+                    if incident.title != title:
+                        changes['titolo'] = (incident.title, title)
+                    if incident.description != description:
+                        changes['descrizione'] = (incident.description[:80], description[:80])
+                    if incident.category != category:
+                        changes['categoria'] = (incident.category, category)
+                    if incident.severity != severity:
+                        changes['gravita'] = (incident.severity, severity)
+                    if incident.sezione != sezione:
+                        changes['sezione'] = (
+                            str(incident.sezione.numero) if incident.sezione else None,
+                            str(sezione.numero) if sezione else sezione_numero or None
+                        )
+
                     incident.title = title
                     incident.description = description
                     incident.category = category
@@ -107,6 +178,13 @@ def execute_ai_function(function_name: str, args: dict, session, request) -> dic
                     incident.is_verbalizzato = is_verbalizzato
                     incident.save()
                     action = "aggiornata"
+
+                    if changes:
+                        _track_changes(incident, changes, request.user)
+                    _audit_log(request.user, 'UPDATE', incident, {
+                        'source': 'ai_chat', 'session_id': session.id,
+                        'changes': {k: {'old': str(v[0])[:100], 'new': str(v[1])[:100]} for k, v in changes.items()}
+                    })
                     logger.info(f"Incident #{incident.id} UPDATED via chat (create called again) by {request.user.email}")
                 except IncidentReport.DoesNotExist:
                     existing_incident_id = None  # Fall through to create
@@ -123,6 +201,11 @@ def execute_ai_function(function_name: str, args: dict, session, request) -> dic
                     is_verbalizzato=is_verbalizzato,
                 )
                 action = "creata"
+                _audit_log(request.user, 'CREATE', incident, {
+                    'source': 'ai_chat', 'session_id': session.id,
+                    'title': title, 'category': category, 'severity': severity,
+                    'sezione_numero': sezione_numero or None,
+                })
                 logger.info(f"Incident #{incident.id} CREATED via chat by {request.user.email}")
 
             session.metadata = session.metadata or {}
@@ -148,35 +231,75 @@ def execute_ai_function(function_name: str, args: dict, session, request) -> dic
                 return {'message': 'Non c\'e nessuna segnalazione da aggiornare in questa sessione. Vuoi crearne una nuova?', 'data': None}
 
             try:
-                incident = IncidentReport.objects.get(id=existing_incident_id, reporter=request.user)
+                incident = IncidentReport.objects.select_related('sezione').get(
+                    id=existing_incident_id, reporter=request.user
+                )
             except IncidentReport.DoesNotExist:
                 return {'message': 'La segnalazione precedente non e stata trovata. Vuoi crearne una nuova?', 'data': None}
 
-            # Update only provided fields
+            # Track changes for audit + comment
+            changes = {}
+
             if 'title' in args and args['title']:
-                incident.title = args['title'][:200]
+                new_title = args['title'][:200]
+                if incident.title != new_title:
+                    changes['titolo'] = (incident.title, new_title)
+                    incident.title = new_title
+
             if 'description' in args and args['description']:
-                incident.description = args['description']
+                new_desc = args['description']
+                if incident.description != new_desc:
+                    changes['descrizione'] = (incident.description[:80], new_desc[:80])
+                    incident.description = new_desc
+
             if 'category' in args and args['category']:
                 cat = args['category'].upper()
-                valid_categories = ['PROCEDURAL', 'ACCESS', 'MATERIALS', 'INTIMIDATION', 'IRREGULARITY', 'TECHNICAL', 'OTHER']
-                if cat in valid_categories:
+                if cat in valid_categories and incident.category != cat:
+                    changes['categoria'] = (incident.category, cat)
                     incident.category = cat
+
             if 'severity' in args and args['severity']:
                 sev = args['severity'].upper()
-                valid_severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
-                if sev in valid_severities:
+                if sev in valid_severities and incident.severity != sev:
+                    changes['gravita'] = (incident.severity, sev)
                     incident.severity = sev
+
             if 'sezione_numero' in args and args['sezione_numero']:
-                sezione, sezione_numero, sezione_not_found = _resolve_sezione(args['sezione_numero'])
-                incident.sezione = sezione
+                sezione, sezione_numero, sezione_not_found = _resolve_sezione(
+                    args['sezione_numero'], user_sections_list
+                )
+                if incident.sezione != sezione:
+                    changes['sezione'] = (
+                        str(incident.sezione.numero) if incident.sezione else None,
+                        str(sezione.numero) if sezione else sezione_numero
+                    )
+                    incident.sezione = sezione
                 if sezione_not_found and sezione_numero:
                     incident.description = f"{incident.description}\n\n[Sezione aggiornata dall'utente: {sezione_numero} - non trovata nel sistema]"
+
             if 'is_verbalizzato' in args:
-                incident.is_verbalizzato = args['is_verbalizzato']
+                new_verb = args['is_verbalizzato']
+                if incident.is_verbalizzato != new_verb:
+                    changes['verbalizzato'] = (incident.is_verbalizzato, new_verb)
+                    incident.is_verbalizzato = new_verb
+
+            if not changes:
+                message = _format_incident_message(
+                    incident, "invariata (nessuna modifica)",
+                    incident.sezione, str(incident.sezione.numero) if incident.sezione else ''
+                )
+                return {'message': message, 'data': {'incident_id': incident.id}}
 
             incident.save()
-            logger.info(f"Incident #{incident.id} UPDATED via update_incident_report by {request.user.email}")
+
+            # Log changes as internal comment + audit
+            _track_changes(incident, changes, request.user)
+            _audit_log(request.user, 'UPDATE', incident, {
+                'source': 'ai_chat', 'session_id': session.id,
+                'changes': {k: {'old': str(v[0])[:100], 'new': str(v[1])[:100]} for k, v in changes.items()}
+            })
+
+            logger.info(f"Incident #{incident.id} UPDATED via update_incident_report by {request.user.email}: {list(changes.keys())}")
 
             sezione_numero = str(incident.sezione.numero) if incident.sezione else ''
             message = _format_incident_message(incident, "aggiornata", incident.sezione, sezione_numero)
@@ -402,6 +525,7 @@ class ChatView(APIView):
                         sez = des.sezione
                         if sez:
                             section_info = {
+                                'sezione_id': sez.id,  # DB PK for precise lookup
                                 'id': sez.numero, 'numero': sez.numero,
                                 'comune': sez.comune.nome,
                                 'municipio': sez.municipio.nome if sez.municipio else None,
@@ -492,7 +616,8 @@ class ChatView(APIView):
                     function_name,
                     function_args,
                     session=session,
-                    request=request
+                    request=request,
+                    user_sections_list=user_sections_list,
                 )
 
                 # Save function result as assistant message
