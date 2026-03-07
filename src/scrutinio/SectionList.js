@@ -296,6 +296,8 @@ function SectionList({client, user, setError, referenti}) {
                 sectionData={sectionData}
                 saveSection={saveSection}
                 saveAndClose={saveAndClose}
+                client={client}
+                consultazione={consultazione}
             />
         );
     }
@@ -317,6 +319,11 @@ function SectionList({client, user, setError, referenti}) {
                 <div className="sezione-info">
                     <div className="sezione-title">
                         Sezione {section.sezione}
+                        {section.num_incidents > 0 && (
+                            <span className="incident-indicator" title={`${section.num_incidents} segnalazione${section.num_incidents > 1 ? 'i' : ''}`}>
+                                <i className="fas fa-exclamation-triangle"></i>
+                            </span>
+                        )}
                     </div>
                     <div className="sezione-subtitle">
                         {section.comune}

@@ -583,10 +583,12 @@ const wizardStyles = `
     }
 `;
 
-function SectionForm({schede, section, sectionData, saveSection, saveAndClose}) {
-    // Steps: 0 = Dati Seggio, 1..N = Schede
-    const totalSteps = schede.length + 1;
+function SectionForm({schede, section, sectionData, saveSection, saveAndClose, client, consultazione}) {
+    // Steps: 0 = Dati Seggio, 1..N = Schede, N+1 = Segnalazioni
+    const totalSteps = schede.length + 2;
     const [currentStep, setCurrentStep] = useState(0);
+    const [incidents, setIncidents] = useState([]);
+    const [loadingIncidents, setLoadingIncidents] = useState(false);
     const [showSaved, setShowSaved] = useState(false);
     const hasChangesRef = useRef(false);
 
@@ -853,6 +855,22 @@ function SectionForm({schede, section, sectionData, saveSection, saveAndClose}) 
         return data.schede_ricevute !== '' && hasVotes;
     };
 
+    // Load incidents when navigating to incidents step (last step)
+    useEffect(() => {
+        const isIncidentsStep = currentStep === totalSteps - 1;
+        if (isIncidentsStep && client && consultazione) {
+            setLoadingIncidents(true);
+            client.incidents.list({ sezione: section.sezione, consultazione_id: consultazione.id })
+                .then(result => {
+                    if (result.results) {
+                        setIncidents(result.results);
+                    }
+                })
+                .catch(err => console.error('Error loading incidents:', err))
+                .finally(() => setLoadingIncidents(false));
+        }
+    }, [currentStep, totalSteps, client, consultazione, section.sezione]);
+
     // Render step content
     const renderStepContent = () => {
         // Step 0: Dati Seggio
@@ -938,6 +956,74 @@ function SectionForm({schede, section, sectionData, saveSection, saveAndClose}) 
                             </div>
                         )}
                     </div>
+                </div>
+            );
+        }
+
+        // Last step: Segnalazioni
+        if (currentStep === totalSteps - 1) {
+            return (
+                <div className="wizard-card">
+                    <div className="wizard-card-title">
+                        <i className="fas fa-exclamation-triangle"></i>
+                        Segnalazioni
+                    </div>
+                    <div className="wizard-card-subtitle">
+                        Problemi e incidenti per questa sezione
+                    </div>
+
+                    {loadingIncidents ? (
+                        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                            <div className="spinner-border text-primary"></div>
+                            <p style={{ marginTop: '12px', color: '#666' }}>Caricamento...</p>
+                        </div>
+                    ) : incidents.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                            <i className="fas fa-check-circle" style={{ fontSize: '3rem', color: '#28a745', marginBottom: '16px' }}></i>
+                            <p style={{ fontSize: '1.1rem', fontWeight: '500', marginBottom: '8px' }}>Nessuna segnalazione</p>
+                            <p style={{ fontSize: '0.9rem', color: '#666' }}>Tutto regolare per questa sezione</p>
+                        </div>
+                    ) : (
+                        <div style={{ marginTop: '16px' }}>
+                            {incidents.map(incident => (
+                                <div key={incident.id} style={{
+                                    background: '#fff',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '8px',
+                                    padding: '12px',
+                                    marginBottom: '12px'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
+                                        <strong style={{ fontSize: '1rem' }}>{incident.title}</strong>
+                                        <span style={{
+                                            fontSize: '0.75rem',
+                                            padding: '4px 8px',
+                                            borderRadius: '4px',
+                                            background: incident.severity === 'CRITICAL' ? '#dc3545' :
+                                                        incident.severity === 'HIGH' ? '#fd7e14' :
+                                                        incident.severity === 'MEDIUM' ? '#ffc107' : '#6c757d',
+                                            color: '#fff'
+                                        }}>
+                                            {incident.severity === 'CRITICAL' ? 'Critico' :
+                                             incident.severity === 'HIGH' ? 'Alto' :
+                                             incident.severity === 'MEDIUM' ? 'Medio' : 'Basso'}
+                                        </span>
+                                    </div>
+                                    <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '8px' }}>
+                                        {incident.description.substring(0, 150)}{incident.description.length > 150 ? '...' : ''}
+                                    </p>
+                                    <div style={{ fontSize: '0.8rem', color: '#999' }}>
+                                        <i className="fas fa-user me-1"></i>
+                                        {incident.reporter_name} • {new Date(incident.created_at).toLocaleString('it-IT')}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <p style={{ fontSize: '0.85rem', color: '#999', marginTop: '20px', textAlign: 'center' }}>
+                        Per creare o modificare segnalazioni, usa la chat AI o il tab "Segnalazioni" generale
+                    </p>
                 </div>
             );
         }
@@ -1142,6 +1228,13 @@ function SectionForm({schede, section, sectionData, saveSection, saveAndClose}) 
                                     {scheda.nome?.length > 12 ? scheda.nome.substring(0, 12) + '…' : scheda.nome}
                                 </button>
                             ))}
+                            <button
+                                className={`wizard-tab ${currentStep === totalSteps - 1 ? 'active' : ''}`}
+                                onClick={() => goToStep(totalSteps - 1)}
+                            >
+                                <i className="fas fa-exclamation-triangle wizard-tab-check"></i>
+                                Segnalazioni
+                            </button>
                         </div>
                     </div>
 
