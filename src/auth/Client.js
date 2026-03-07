@@ -1486,7 +1486,27 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     console.error(error);
                     return { error: error.message };
                 }),
-        }
+        },
+
+        // Badge generator APIs
+        badgeVariants: async () =>
+            fetch(`${server}/api/risorse/badge-variants/`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        generateBadge: async (variantId) =>
+            fetch(`${server}/api/risorse/generate-badge/?variant=${variantId}`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.blob();
+            }).catch(error => {
+                console.error(error);
+                throw error;
+            }),
     };
 
     const territorio = {
@@ -2230,6 +2250,111 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
     };
 
     // ========================================================================
+    // INCIDENTS: Incident reporting system
+    // ========================================================================
+    const incidents = {
+        // List incidents with optional filters
+        list: async (filters = {}) => {
+            const params = new URLSearchParams();
+            if (filters.consultazione_id) params.append('consultazione', filters.consultazione_id);
+            if (filters.sezione) params.append('sezione', filters.sezione);
+            if (filters.category) params.append('category', filters.category);
+            if (filters.status) params.append('status', filters.status);
+            if (filters.severity) params.append('severity', filters.severity);
+            if (filters.reporter) params.append('reporter', filters.reporter);
+            if (filters.assigned_to) params.append('assigned_to', filters.assigned_to);
+            const queryString = params.toString();
+            return fetch(`${server}/api/incidents/reports/${queryString ? `?${queryString}` : ''}`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            });
+        },
+
+        // Get single incident by ID
+        get: async (id) =>
+            fetch(`${server}/api/incidents/reports/${id}/`, {
+                headers: { 'Authorization': authHeader }
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Create new incident
+        create: async (data) =>
+            fetch(`${server}/api/incidents/reports/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify(data)
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Update incident
+        update: async (id, data) =>
+            fetch(`${server}/api/incidents/reports/${id}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify(data)
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Delete incident
+        delete: async (id) =>
+            fetch(`${server}/api/incidents/reports/${id}/`, {
+                method: 'DELETE',
+                headers: { 'Authorization': authHeader }
+            }).then(response => {
+                if (response.status === 204) return { success: true };
+                return safeJson(response);
+            }).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Add comment to incident
+        addComment: async (incidentId, data) =>
+            fetch(`${server}/api/incidents/comments/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify({ incident: incidentId, ...data })
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
+        // Upload attachment to incident
+        uploadAttachment: async (incidentId, file, description = '') => {
+            const formData = new FormData();
+            formData.append('incident', incidentId);
+            formData.append('file', file);
+            if (description) formData.append('description', description);
+
+            return fetch(`${server}/api/incidents/attachments/`, {
+                method: 'POST',
+                headers: { 'Authorization': authHeader },
+                body: formData
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            });
+        },
+    };
+
+    // ========================================================================
     // ME: Dashboard, Events, Assignments, Device Tokens
     // ========================================================================
 
@@ -2384,6 +2509,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
         territorio,
         mappatura,
         ai,  // AI Assistant
+        incidents,  // Incident reporting
         templates,  // Document templates
         me,  // Dashboard, Events, Assignments, Push tokens
         // Generic HTTP methods
