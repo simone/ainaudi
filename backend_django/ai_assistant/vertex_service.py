@@ -361,7 +361,7 @@ Rispondi SOLO con JSON:
         self._ensure_initialized()
 
         try:
-            from vertexai.generative_models import Content, Part
+            from vertexai.generative_models import Content, Part, ToolConfig
             from datetime import datetime
 
             now = datetime.now()
@@ -390,6 +390,15 @@ CONTESTO DOCUMENTALE (usa solo se pertinente alla domanda):
                 if current_message:
                     contents.append(Content(role="user", parts=[Part.from_text(f"{current_message}\n\n---\n{date_context}")]))
 
+            # Configure function calling (AUTO mode)
+            tool_config = None
+            if tools:
+                tool_config = ToolConfig(
+                    function_calling_config=ToolConfig.FunctionCallingConfig(
+                        mode=ToolConfig.FunctionCallingConfig.Mode.AUTO,
+                    )
+                )
+
             # Generate with retry (max 2 attempts)
             response = None
             last_error = None
@@ -399,6 +408,7 @@ CONTESTO DOCUMENTALE (usa solo se pertinente alla domanda):
                         response = self._llm_with_tools.generate_content(
                             contents,
                             tools=tools,
+                            tool_config=tool_config,
                             generation_config={'temperature': 0.7}
                         )
                     else:
