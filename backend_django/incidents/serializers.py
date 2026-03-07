@@ -124,6 +124,7 @@ class IncidentReportListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'category', 'category_display',
             'severity', 'severity_display', 'status', 'status_display',
-            'location_description', 'reporter_email', 'is_verbalizzato',
+            'location_description', 'reporter', 'reporter_email',
+            'assigned_to', 'is_verbalizzato',
             'is_platform_issue', 'created_at'
         ]

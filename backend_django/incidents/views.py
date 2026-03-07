@@ -50,6 +50,19 @@ class IncidentReportViewSet(viewsets.ModelViewSet):
             return IncidentReportListSerializer
         return IncidentReportSerializer
 
+    def create(self, request, *args, **kwargs):
+        """Create incident and return full serialized data (with _display fields)."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        # Re-serialize with full detail serializer for the response
+        instance = serializer.instance
+        # Re-fetch with select_related to avoid N+1
+        instance = self.queryset.get(pk=instance.pk)
+        detail_serializer = IncidentReportSerializer(instance)
+        headers = self.get_success_headers(serializer.data)
+        return Response(detail_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
     @action(detail=False, methods=['get'])
     def my(self, request):
         """Get incidents reported by current user."""
