@@ -340,32 +340,35 @@ class ChatView(APIView):
                 for msg in history_messages
             ]
 
-            # Get user's assigned sections with FULL details for incident context
-            user_sections_context = ""
+            # Build user profile context (passed to AI every call)
+            user_profile_context = ""
             user_sections_list = []
             try:
                 from delegations.models import DesignazioneRDL
-                from territory.models import SezioneElettorale
                 from elections.models import ConsultazioneElettorale
 
+                user = request.user
+                user_name = f"{user.first_name} {user.last_name}".strip() or user.email
+
                 consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
+
+                # Build user profile
+                profile_parts = [f"PROFILO UTENTE: {user_name} ({user.email}), RDL del M5S"]
+
                 if consultazione:
+                    profile_parts.append(f"CONSULTAZIONE ATTIVA: {consultazione.nome} (dal {consultazione.data_inizio.strftime('%d/%m/%Y') if consultazione.data_inizio else '?'} al {consultazione.data_fine.strftime('%d/%m/%Y') if consultazione.data_fine else '?'})")
+
                     designazioni = DesignazioneRDL.objects.filter(
                         processo__consultazione=consultazione,
-                        rdl_email=request.user.email,
+                        rdl_email=user.email,
                         stato='APPROVATA'
                     ).select_related('sezione', 'sezione__comune', 'sezione__municipio')
 
                     for des in designazioni:
                         sez = des.sezione
                         if sez:
-                            municipio_text = f" - {sez.municipio.nome}" if sez.municipio else ""
-                            indirizzo_text = f" - {sez.indirizzo}" if sez.indirizzo else ""
-                            denominazione_text = f" ({sez.denominazione})" if sez.denominazione else ""
-
                             section_info = {
-                                'id': sez.numero,
-                                'numero': sez.numero,
+                                'id': sez.numero, 'numero': sez.numero,
                                 'comune': sez.comune.nome,
                                 'municipio': sez.municipio.nome if sez.municipio else None,
                                 'indirizzo': sez.indirizzo,
@@ -375,12 +378,19 @@ class ChatView(APIView):
 
                     if user_sections_list:
                         sections_text = "\n".join([
-                            f"- Sezione {s['numero']} - {s['comune']}{' ('+s['municipio']+')' if s['municipio'] else ''}{' - '+s['indirizzo'] if s['indirizzo'] else ''}{' ('+s['denominazione']+')' if s['denominazione'] else ''}"
+                            f"  - Sezione {s['numero']} di {s['comune']}{' ('+s['municipio']+')' if s['municipio'] else ''}{' - '+s['indirizzo'] if s['indirizzo'] else ''}"
                             for s in user_sections_list
                         ])
-                        user_sections_context = f"\n\nSEZIONI ASSEGNATE ALL'UTENTE:\n{sections_text}\n(Se l'utente ha UNA SOLA sezione, deducila automaticamente. Se ne ha MULTIPLE, chiedi quale.)\n"
+                        profile_parts.append(f"SEZIONI ASSEGNATE:\n{sections_text}")
+                    else:
+                        profile_parts.append("SEZIONI: Nessuna sezione ancora assegnata")
+                else:
+                    profile_parts.append("CONSULTAZIONE: Nessuna consultazione attiva al momento")
+
+                user_profile_context = "\n".join(profile_parts)
             except Exception as e:
-                logger.warning(f"Error retrieving user sections: {e}")
+                logger.warning(f"Error retrieving user context: {e}")
+                user_profile_context = f"PROFILO UTENTE: {request.user.email}, RDL del M5S"
 
             # Get RAG context (retrieve similar documents)
             from pgvector.django import CosineDistance
@@ -398,13 +408,13 @@ class ChatView(APIView):
 
                 if context_docs_list:
                     context_parts = [f"[{doc.source_type}] {doc.title}\n{doc.content[:2000]}" for doc in context_docs_list]
-                    context_text = "\n\n---\n\n".join(context_parts) + user_sections_context
+                    context_text = user_profile_context + "\n\n" + "\n\n---\n\n".join(context_parts)
                 else:
-                    context_text = user_sections_context if user_sections_context else None
+                    context_text = user_profile_context
             except Exception as e:
                 logger.warning(f"Error retrieving context: {e}")
                 context_docs_list = []
-                context_text = user_sections_context if user_sections_context else None
+                context_text = user_profile_context
 
             # Generate with tools - may return text OR function call
             ai_response = vertex_ai_service.generate_with_tools(
