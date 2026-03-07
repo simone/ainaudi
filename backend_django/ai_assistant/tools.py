@@ -41,38 +41,36 @@ _incident_fields = {
     }
 }
 
-incident_management_tool = Tool(
-    function_declarations=[
-        FunctionDeclaration(
-            name="create_incident_report",
-            description=(
-                "Crea una NUOVA segnalazione di incidente nel database. "
-                "CHIAMA QUESTA FUNZIONE quando l'utente ha confermato di voler aprire la segnalazione "
-                "(es. 'si', 'ok', 'confermo', 'apri', 'vai'). "
-                "Passa TUTTI i dati raccolti dalla conversazione."
-            ),
-            parameters={
-                "type": "object",
-                "properties": _incident_fields,
-                "required": ["title", "description", "category", "severity"]
-            }
+_incident_declarations = [
+    FunctionDeclaration(
+        name="create_incident_report",
+        description=(
+            "Crea una NUOVA segnalazione di incidente nel database. "
+            "CHIAMA QUESTA FUNZIONE quando l'utente ha confermato di voler aprire la segnalazione "
+            "(es. 'si', 'ok', 'confermo', 'apri', 'vai'). "
+            "Passa TUTTI i dati raccolti dalla conversazione."
         ),
-        FunctionDeclaration(
-            name="update_incident_report",
-            description=(
-                "Aggiorna una segnalazione GIA ESISTENTE in questa sessione. "
-                "Usa questa funzione quando l'utente chiede di MODIFICARE, AGGIORNARE o CORREGGERE "
-                "una segnalazione gia creata (es. 'aggiorna la segnalazione', 'modifica la descrizione', "
-                "'cambia la gravita'). Passa SOLO i campi da aggiornare."
-            ),
-            parameters={
-                "type": "object",
-                "properties": _incident_fields,
-                "required": []
-            }
+        parameters={
+            "type": "object",
+            "properties": _incident_fields,
+            "required": ["title", "description", "category", "severity"]
+        }
+    ),
+    FunctionDeclaration(
+        name="update_incident_report",
+        description=(
+            "Aggiorna una segnalazione GIA ESISTENTE in questa sessione. "
+            "Usa questa funzione quando l'utente chiede di MODIFICARE, AGGIORNARE o CORREGGERE "
+            "una segnalazione gia creata (es. 'aggiorna la segnalazione', 'modifica la descrizione', "
+            "'cambia la gravita'). Passa SOLO i campi da aggiornare."
         ),
-    ]
-)
+        parameters={
+            "type": "object",
+            "properties": _incident_fields,
+            "required": []
+        }
+    ),
+]
 
 
 # =============================================================================
@@ -140,50 +138,50 @@ _scrutinio_save_fields = {
     },
 }
 
-scrutinio_data_tool = Tool(
-    function_declarations=[
-        FunctionDeclaration(
-            name="get_scrutinio_status",
-            description=(
-                "Recupera lo stato attuale dei dati di scrutinio per una sezione. "
-                "Usa questa funzione quando l'utente chiede di vedere i dati inseriti, "
-                "oppure quando un DELEGATO vuole ispezionare una sezione specifica. "
-                "Per gli RDL i dati sono gia nel contesto, quindi usa questa funzione "
-                "solo se i dati non sono presenti."
-            ),
-            parameters={
-                "type": "object",
-                "properties": {
-                    "sezione_numero": {
-                        "type": "string",
-                        "description": "Numero della sezione elettorale"
-                    }
-                },
-                "required": ["sezione_numero"]
-            }
+_scrutinio_declarations = [
+    FunctionDeclaration(
+        name="get_scrutinio_status",
+        description=(
+            "Recupera lo stato attuale dei dati di scrutinio per una sezione. "
+            "Usa questa funzione quando l'utente chiede di vedere i dati inseriti, "
+            "oppure quando un DELEGATO vuole ispezionare una sezione specifica. "
+            "Per gli RDL i dati sono gia nel contesto, quindi usa questa funzione "
+            "solo se i dati non sono presenti."
         ),
-        FunctionDeclaration(
-            name="save_scrutinio_data",
-            description=(
-                "Salva dati di scrutinio per una sezione. "
-                "CHIAMA SOLO dopo che l'utente ha CONFERMATO esplicitamente (es. 'si', 'ok', 'confermo', 'salva'). "
-                "Passa SOLO i campi forniti dall'utente. "
-                "I campi seggio (elettori, votanti) sono comuni a tutte le schede. "
-                "I campi scheda (schede_ricevute, voti, ecc.) richiedono scheda_nome per identificare quale scheda. "
-                "Per aggiornare piu schede, chiama questa funzione piu volte."
-            ),
-            parameters={
-                "type": "object",
-                "properties": _scrutinio_save_fields,
-                "required": ["sezione_numero"]
-            }
+        parameters={
+            "type": "object",
+            "properties": {
+                "sezione_numero": {
+                    "type": "string",
+                    "description": "Numero della sezione elettorale"
+                }
+            },
+            "required": ["sezione_numero"]
+        }
+    ),
+    FunctionDeclaration(
+        name="save_scrutinio_data",
+        description=(
+            "Salva dati di scrutinio per una sezione. "
+            "CHIAMA SOLO dopo che l'utente ha CONFERMATO esplicitamente (es. 'si', 'ok', 'confermo', 'salva'). "
+            "Passa SOLO i campi forniti dall'utente. "
+            "I campi seggio (elettori, votanti) sono comuni a tutte le schede. "
+            "I campi scheda (schede_ricevute, voti, ecc.) richiedono scheda_nome per identificare quale scheda. "
+            "Per aggiornare piu schede, chiama questa funzione piu volte."
         ),
-    ]
-)
+        parameters={
+            "type": "object",
+            "properties": _scrutinio_save_fields,
+            "required": ["sezione_numero"]
+        }
+    ),
+]
 
 
 # =============================================================================
-# COMBINED TOOLS LIST (used by views.py)
+# SINGLE COMBINED TOOL (Gemini requires all declarations in one Tool object)
 # =============================================================================
 
-all_ai_tools = [incident_management_tool, scrutinio_data_tool]
+all_ai_tools = [Tool(
+    function_declarations=_incident_declarations + _scrutinio_declarations
+)]

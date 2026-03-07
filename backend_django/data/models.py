@@ -361,7 +361,7 @@ Struttura voti dipende dal tipo scheda:
             if totale > self.schede_autenticate:
                 errors.append(_('Totale schede > schede autenticate'))
 
-        self.errori_validazione = '\n'.join(errors) if errors else None
+        self.errori_validazione = '\n'.join(str(e) for e in errors) if errors else None
         self.is_valid = len(errors) == 0
         return errors
 
