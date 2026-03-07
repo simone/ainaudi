@@ -529,18 +529,19 @@ class ChatView(APIView):
                     else:
                         fase = "Date non disponibili."
 
+                    tipi_elezione = consultazione.tipi_elezione.all()
+                    tipi_names = ", ".join([t.get_tipo_display() if hasattr(t, 'get_tipo_display') else str(t) for t in tipi_elezione[:5]]) if tipi_elezione else ""
+
                     consultazione_info = (
-                        f"CONSULTAZIONE ATTIVA: {consultazione.nome}\n"
-                        f"  Date: dal {data_inizio.strftime('%A %d %B %Y') if data_inizio else '?'} "
+                        f"L'UNICA CONSULTAZIONE ATTIVA E': {consultazione.nome}"
+                        f"{' (' + tipi_names + ')' if tipi_names else ''}\n"
+                        f"  Si vota dal {data_inizio.strftime('%A %d %B %Y') if data_inizio else '?'} "
                         f"al {data_fine.strftime('%A %d %B %Y') if data_fine else '?'}\n"
-                        f"  STATO TEMPORALE: {fase}"
+                        f"  {fase}\n"
+                        f"  Qualsiasi domanda su scrutinio, seggi, voto, schede si riferisce a QUESTA consultazione."
                     )
                     if consultazione.descrizione:
-                        consultazione_info += f"\n  Descrizione: {consultazione.descrizione[:300]}"
-                    tipi_elezione = consultazione.tipi_elezione.all()
-                    if tipi_elezione:
-                        tipi_names = ", ".join([t.get_tipo_display() if hasattr(t, 'get_tipo_display') else str(t) for t in tipi_elezione[:5]])
-                        consultazione_info += f"\n  Tipi elezione: {tipi_names}"
+                        consultazione_info += f"\n  Dettagli: {consultazione.descrizione[:300]}"
                     profile_parts.append(consultazione_info)
 
                     # Get assigned sections (for RDL)
@@ -627,6 +628,14 @@ class ChatView(APIView):
                 logger.warning(f"Error retrieving context: {e}")
                 context_docs_list = []
                 context_text = user_profile_context
+
+            # Log full context for debugging (truncated)
+            logger.info(
+                f"AI context for session={session.id}: "
+                f"profile={user_profile_context[:500]} | "
+                f"rag_docs={len(context_docs_list) if context_docs_list else 0} | "
+                f"history_msgs={len(conversation_history)}"
+            )
 
             # Generate with tools - may return text OR function call
             ai_response = vertex_ai_service.generate_with_tools(
