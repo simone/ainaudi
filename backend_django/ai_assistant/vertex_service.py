@@ -374,11 +374,11 @@ Rispondi SOLO con JSON:
             # Build the current user message with context appended (not as separate synthetic messages)
             current_message = conversation_history[-1]['content'] if conversation_history else ""
             if context:
-                current_message_with_context = f"""=== DATI REALI DAL SISTEMA (NON INVENTARE, USA SOLO QUESTI) ===
-{context}
-=== FINE DATI REALI ===
+                current_message_with_context = f"""{current_message}
 
-Domanda dell'utente: {current_message}"""
+---
+CONTESTO (dati reali dal sistema e documenti di riferimento — per date e consultazione, fidati SOLO di questi):
+{context}"""
                 contents.append(Content(role="user", parts=[Part.from_text(current_message_with_context)]))
             else:
                 if current_message:
