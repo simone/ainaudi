@@ -26,13 +26,13 @@ function SegnalazioniForm({
     const fileInputRef = useRef(null);
 
     const categoryOptions = [
-        { value: 'PROCEDURAL', label: 'Procedurale' },
-        { value: 'ACCESS', label: 'Accesso al seggio' },
-        { value: 'MATERIALS', label: 'Materiali' },
-        { value: 'INTIMIDATION', label: 'Intimidazione' },
-        { value: 'IRREGULARITY', label: 'Irregolarità' },
-        { value: 'TECHNICAL', label: 'Tecnico' },
-        { value: 'OTHER', label: 'Altro' },
+        { value: 'PROCEDURAL', label: 'Procedurale', requiresSezione: true, description: 'Problemi con le procedure di voto/scrutinio' },
+        { value: 'ACCESS', label: 'Accesso al seggio', requiresSezione: true, description: 'Accesso negato o irregolare al seggio' },
+        { value: 'MATERIALS', label: 'Materiali', requiresSezione: true, description: 'Materiali mancanti o danneggiati' },
+        { value: 'INTIMIDATION', label: 'Intimidazione', requiresSezione: true, description: 'Intimidazioni o pressioni sugli elettori' },
+        { value: 'IRREGULARITY', label: 'Irregolarità', requiresSezione: true, description: 'Altre irregolarità durante le operazioni' },
+        { value: 'TECHNICAL', label: 'Tecnico (Piattaforma)', requiresSezione: false, description: 'Problemi tecnici con la piattaforma AInaudi' },
+        { value: 'OTHER', label: 'Altro', requiresSezione: true, description: 'Altre problematiche' },
     ];
 
     const severityOptions = [
@@ -42,10 +42,14 @@ function SegnalazioniForm({
         { value: 'CRITICAL', label: 'Critica' },
     ];
 
-    // Get sezioni for RDL user
+    // Get sezioni for user (RDL or Delegato)
     const sezioniArray = Array.isArray(userSezioni) ? userSezioni : (userSezioni?.results || []);
     const sezioniOptions = sezioniArray || [];
     const isSingolaSezione = sezioniOptions.length === 1;
+
+    // Check if current category requires sezione
+    const currentCategory = categoryOptions.find(opt => opt.value === formData.category);
+    const sezioneRequired = currentCategory?.requiresSezione || false;
 
     const verbalizzazioneTemplates = {
         PROCEDURAL: 'Procedura irregolare segnalata presso la sezione. È necessario verificare il protocollo d\'apertura dei seggi.',
@@ -58,9 +62,25 @@ function SegnalazioniForm({
 
     const handleFormChange = (e) => {
         const { name, value, type, checked } = e.target;
+        const newValue = type === 'checkbox' ? checked : value;
+
+        // If changing category, check if sezione is still valid
+        if (name === 'category') {
+            const newCategory = categoryOptions.find(opt => opt.value === newValue);
+            // If switching to a category that doesn't require sezione, clear it
+            if (!newCategory?.requiresSezione && formData.sezione) {
+                setFormData({
+                    ...formData,
+                    [name]: newValue,
+                    sezione: '', // Clear sezione for TECHNICAL
+                });
+                return;
+            }
+        }
+
         setFormData({
             ...formData,
-            [name]: type === 'checkbox' ? checked : value,
+            [name]: newValue,
         });
     };
 
@@ -217,6 +237,9 @@ function SegnalazioniForm({
                                 </option>
                             ))}
                         </select>
+                        <div className="form-helper">
+                            {currentCategory?.description}
+                        </div>
                     </div>
 
                     <div className="form-group">
@@ -253,27 +276,32 @@ function SegnalazioniForm({
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="sezione">Sezione Elettorale</label>
+                        <label htmlFor="sezione">
+                            Sezione Elettorale {sezioneRequired && '*'}
+                        </label>
                         <select
                             id="sezione"
                             name="sezione"
                             value={formData.sezione}
                             onChange={handleFormChange}
                             disabled={isSingolaSezione}
+                            required={sezioneRequired}
                             className={isSingolaSezione ? 'read-only' : ''}
                         >
-                            <option value="">Generale (non specifico a sezione)</option>
+                            {!sezioneRequired && <option value="">Generale (non specifico a sezione)</option>}
+                            {sezioneRequired && !formData.sezione && <option value="">-- Seleziona sezione --</option>}
                             {sezioniOptions.map((sezione) => (
                                 <option key={sezione.id} value={sezione.id}>
                                     Sezione {sezione.numero} - {sezione.comune}
+                                    {sezione.municipio ? ` (${sezione.municipio})` : ''}
                                 </option>
                             ))}
                         </select>
-                        {isSingolaSezione && (
-                            <div className="form-helper">
-                                Sei assegnato a una sola sezione. Il valore è fisso.
-                            </div>
-                        )}
+                        <div className="form-helper">
+                            {isSingolaSezione && 'Sei assegnato/hai visibilità su una sola sezione. Il valore è fisso.'}
+                            {!isSingolaSezione && sezioneRequired && 'Questa categoria richiede la specifica della sezione elettorale'}
+                            {!isSingolaSezione && !sezioneRequired && 'Solo per problemi tecnici della piattaforma è opzionale'}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -397,7 +425,7 @@ function SegnalazioniForm({
                     <button
                         type="submit"
                         className="segnalazioni-btn segnalazioni-btn-primary"
-                        disabled={isLoading || !formData.title || !formData.description}
+                        disabled={isLoading || !formData.title || !formData.description || (sezioneRequired && !formData.sezione)}
                     >
                         {isLoading ? (
                             <>

@@ -47,19 +47,20 @@ function SegnalazioniUI({
 
     const loadUserSezioni = async () => {
         try {
-            // Get RDL sections assigned to this user
-            // API returns: { assigned: [[num, comune, municipio, email], ...], unassigned: [...] }
-            const response = await client.rdl.sections();
+            // Get sections accessible to this user (RDL or Delegato/SubDelegato)
+            // For RDL: sections assigned via DesignazioneRDL
+            // For Delegato/SubDelegato: all sections in their territory
+            const response = await client.scrutinio.sezioni(1, 1000);
 
             let sezioni = [];
-            if (response && response.assigned && Array.isArray(response.assigned)) {
-                // Convert from [num, comune, municipio, email] format to object
-                sezioni = response.assigned.map(([numero, comune, municipio, email]) => ({
-                    id: numero,
-                    numero: numero,
-                    comune: comune,
-                    municipio: municipio,
-                    email: email,
+            if (response && response.sezioni && Array.isArray(response.sezioni)) {
+                // Extract basic section info from scrutinio response
+                sezioni = response.sezioni.map(sez => ({
+                    id: sez.sezione,
+                    numero: sez.sezione,
+                    comune: sez.comune,
+                    municipio: sez.municipio || '',
+                    indirizzo: sez.indirizzo || '',
                 }));
             }
             setUserSezioni(sezioni);
