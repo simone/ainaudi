@@ -81,14 +81,16 @@ def _format_incident_message(incident, action, sezione, sezione_numero):
 
 
 def _audit_log(user, action, incident, details):
-    """Write an AuditLog entry for incident operations."""
+    """Write an AuditLog entry for AI operations (incidents, scrutinio, etc.)."""
     try:
         from core.models import AuditLog
+        target_model = 'IncidentReport' if incident else 'DatiSezione'
+        target_id = str(incident.id) if incident else str(details.get('sezione_id', ''))
         AuditLog.objects.create(
             user_email=user.email,
             action=action,
-            target_model='IncidentReport',
-            target_id=str(incident.id),
+            target_model=target_model,
+            target_id=target_id,
             details=details,
         )
     except Exception as e:
@@ -113,12 +115,370 @@ def _track_changes(incident, changes, user):
     )
 
 
+def _parse_int(value):
+    """Parse integer from function call arg (may be string, float, or int)."""
+    if value is None:
+        return None
+    try:
+        return int(float(str(value)))
+    except (ValueError, TypeError):
+        return None
+
+
+def _match_scheda(scheda_nome, schede_qs):
+    """
+    Find the best matching SchedaElettorale from a queryset.
+    Tries: exact match, contains match, numeric suffix match.
+    Returns (scheda, error_message).
+    """
+    import re
+
+    if not scheda_nome:
+        # If only one scheda, use it
+        if schede_qs.count() == 1:
+            return schede_qs.first(), None
+        return None, None
+
+    nome_lower = scheda_nome.lower().strip()
+    schede_list = list(schede_qs)
+
+    # Exact match (case-insensitive)
+    for s in schede_list:
+        if s.nome.lower() == nome_lower:
+            return s, None
+
+    # Contains match
+    for s in schede_list:
+        if nome_lower in s.nome.lower() or s.nome.lower() in nome_lower:
+            return s, None
+
+    # Number extraction (e.g., "3" or "referendum 3" matches "Referendum abrogativo n.3")
+    numbers = re.findall(r'\d+', scheda_nome)
+    if numbers:
+        target_num = numbers[-1]
+        for s in schede_list:
+            scheda_nums = re.findall(r'\d+', s.nome)
+            if scheda_nums and scheda_nums[-1] == target_num:
+                return s, None
+
+    nomi_disponibili = ", ".join([s.nome for s in schede_list])
+    return None, f"Scheda '{scheda_nome}' non trovata. Schede disponibili: {nomi_disponibili}"
+
+
+def _handle_get_scrutinio_status(args, request, user_sections_list):
+    """Handle get_scrutinio_status function call."""
+    from territory.models import SezioneElettorale
+    from elections.models import ConsultazioneElettorale, SchedaElettorale
+    from data.models import DatiSezione, DatiScheda
+    from delegations.permissions import can_enter_section_data
+
+    sezione, sezione_numero, not_found = _resolve_sezione(
+        args.get('sezione_numero', ''), user_sections_list
+    )
+    if not sezione:
+        if not_found:
+            return {'message': f'Sezione {sezione_numero} non trovata.', 'data': None}
+        return {'message': 'Numero sezione non specificato.', 'data': None}
+
+    consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
+    if not consultazione:
+        return {'message': 'Nessuna consultazione attiva.', 'data': None}
+
+    if not can_enter_section_data(request.user, sezione, consultazione.id):
+        return {'message': f'Non hai i permessi per accedere alla sezione {sezione.numero}.', 'data': None}
+
+    # Get or create DatiSezione
+    dati_sezione, _ = DatiSezione.objects.get_or_create(
+        sezione=sezione, consultazione=consultazione,
+        defaults={'inserito_da_email': request.user.email}
+    )
+
+    # Build formatted response
+    loc = f"Sezione {sezione.numero} ({sezione.comune.nome}"
+    if sezione.indirizzo:
+        loc += f", {sezione.indirizzo}"
+    if sezione.denominazione:
+        loc += f" - {sezione.denominazione}"
+    loc += ")"
+
+    lines = [f"**Stato scrutinio — {loc}**\n"]
+
+    # Dati Seggio
+    lines.append("**Dati Seggio:**")
+    seggio_fields = [
+        ('Elettori maschi', dati_sezione.elettori_maschi),
+        ('Elettori femmine', dati_sezione.elettori_femmine),
+        ('Votanti maschi', dati_sezione.votanti_maschi),
+        ('Votanti femmine', dati_sezione.votanti_femmine),
+    ]
+    for label, val in seggio_fields:
+        lines.append(f"  {label}: {val if val is not None else '—'}")
+
+    if dati_sezione.totale_elettori is not None:
+        lines.append(f"  _Totale elettori: {dati_sezione.totale_elettori}_")
+    if dati_sezione.affluenza_percentuale is not None:
+        lines.append(f"  _Affluenza: {dati_sezione.affluenza_percentuale}%_")
+
+    # Schede
+    schede = SchedaElettorale.objects.filter(
+        tipo_elezione__consultazione=consultazione
+    ).order_by('ordine')
+
+    for scheda in schede:
+        try:
+            ds = DatiScheda.objects.get(dati_sezione=dati_sezione, scheda=scheda)
+            has_data = any([
+                ds.schede_ricevute is not None, ds.schede_autenticate is not None,
+                ds.voti, ds.schede_bianche is not None
+            ])
+            if has_data:
+                lines.append(f"\n**{scheda.nome}:**")
+                if ds.schede_ricevute is not None:
+                    lines.append(f"  Schede ricevute: {ds.schede_ricevute}")
+                if ds.schede_autenticate is not None:
+                    lines.append(f"  Schede autenticate: {ds.schede_autenticate}")
+                if ds.voti:
+                    if 'si' in ds.voti:
+                        lines.append(f"  Voti SI: {ds.voti['si']} | NO: {ds.voti.get('no', '—')}")
+                    else:
+                        lines.append(f"  Voti: {ds.voti}")
+                for lbl, field in [('Bianche', ds.schede_bianche), ('Nulle', ds.schede_nulle), ('Contestate', ds.schede_contestate)]:
+                    if field is not None:
+                        lines.append(f"  {lbl}: {field}")
+            else:
+                lines.append(f"\n**{scheda.nome}:** nessun dato")
+        except DatiScheda.DoesNotExist:
+            lines.append(f"\n**{scheda.nome}:** nessun dato")
+
+    if dati_sezione.updated_by_email:
+        lines.append(f"\n_Ultimo aggiornamento: {dati_sezione.updated_by_email}, {dati_sezione.updated_at.strftime('%d/%m/%Y %H:%M') if dati_sezione.updated_at else '—'}_")
+
+    lines.append("\nDimmi quali dati vuoi inserire o aggiornare.")
+
+    return {'message': "\n".join(lines), 'data': {'sezione_id': sezione.id}}
+
+
+def _handle_save_scrutinio_data(args, session, request, user_sections_list):
+    """Handle save_scrutinio_data function call with partial update and audit trail."""
+    from django.db import transaction
+    from django.db.models import F
+    from django.utils import timezone
+    from territory.models import SezioneElettorale
+    from elections.models import ConsultazioneElettorale, SchedaElettorale
+    from data.models import DatiSezione, DatiScheda, SectionDataHistory
+    from delegations.permissions import can_enter_section_data
+
+    logger.info(f"save_scrutinio_data called with args: {args}")
+
+    sezione, sezione_numero, not_found = _resolve_sezione(
+        args.get('sezione_numero', ''), user_sections_list
+    )
+    if not sezione:
+        if not_found:
+            return {'message': f'Sezione {sezione_numero} non trovata nel sistema.', 'data': None}
+        return {'message': 'Numero sezione non specificato.', 'data': None}
+
+    consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
+    if not consultazione:
+        return {'message': 'Nessuna consultazione attiva.', 'data': None}
+
+    if not can_enter_section_data(request.user, sezione, consultazione.id):
+        return {'message': f'Non hai i permessi per inserire dati nella sezione {sezione.numero}.', 'data': None}
+
+    ip_address = request.META.get('REMOTE_ADDR')
+    changes = []  # [(campo, old, new, dati_scheda_or_None)]
+
+    try:
+        with transaction.atomic():
+            # Get or create + lock DatiSezione
+            dati_sezione, created = DatiSezione.objects.get_or_create(
+                sezione=sezione, consultazione=consultazione,
+                defaults={'inserito_da_email': request.user.email, 'inserito_at': timezone.now()}
+            )
+            if not created:
+                dati_sezione = DatiSezione.objects.select_for_update().get(pk=dati_sezione.pk)
+
+            # --- Update DatiSezione (turnout) fields ---
+            seggio_fields = {
+                'elettori_maschi': 'Elettori maschi',
+                'elettori_femmine': 'Elettori femmine',
+                'votanti_maschi': 'Votanti maschi',
+                'votanti_femmine': 'Votanti femmine',
+            }
+            seggio_changed = False
+            for field_name, label in seggio_fields.items():
+                if field_name in args and args[field_name] is not None:
+                    new_val = _parse_int(args[field_name])
+                    if new_val is not None:
+                        old_val = getattr(dati_sezione, field_name)
+                        if old_val != new_val:
+                            changes.append((label, old_val, new_val, None))
+                            SectionDataHistory.objects.create(
+                                dati_sezione=dati_sezione,
+                                campo=field_name,
+                                valore_precedente=str(old_val) if old_val is not None else None,
+                                valore_nuovo=str(new_val),
+                                modificato_da_email=request.user.email,
+                                ip_address=ip_address,
+                            )
+                            setattr(dati_sezione, field_name, new_val)
+                            seggio_changed = True
+
+            if seggio_changed:
+                dati_sezione.version = F('version') + 1
+                dati_sezione.updated_by_email = request.user.email
+                dati_sezione.inserito_da_email = dati_sezione.inserito_da_email or request.user.email
+                dati_sezione.inserito_at = dati_sezione.inserito_at or timezone.now()
+                dati_sezione.save()
+                dati_sezione.refresh_from_db()
+
+            # --- Update DatiScheda (ballot-specific) fields ---
+            scheda_field_names = ['schede_ricevute', 'schede_autenticate', 'schede_bianche',
+                                  'schede_nulle', 'schede_contestate', 'voti_si', 'voti_no']
+            has_scheda_data = any(
+                field in args and args[field] is not None
+                for field in scheda_field_names
+            )
+
+            if has_scheda_data:
+                schede_qs = SchedaElettorale.objects.filter(
+                    tipo_elezione__consultazione=consultazione
+                ).order_by('ordine')
+
+                matched_scheda, match_error = _match_scheda(args.get('scheda_nome'), schede_qs)
+
+                if match_error:
+                    return {'message': match_error, 'data': None}
+                if not matched_scheda:
+                    nomi = ", ".join([s.nome for s in schede_qs])
+                    return {
+                        'message': f'Quale scheda vuoi aggiornare? Schede disponibili: {nomi}',
+                        'data': None
+                    }
+
+                # Get or create + lock DatiScheda
+                dati_scheda, _ = DatiScheda.objects.get_or_create(
+                    dati_sezione=dati_sezione, scheda=matched_scheda
+                )
+                dati_scheda = DatiScheda.objects.select_for_update().get(pk=dati_scheda.pk)
+
+                scheda_fields = {
+                    'schede_ricevute': 'Schede ricevute',
+                    'schede_autenticate': 'Schede autenticate',
+                    'schede_bianche': 'Schede bianche',
+                    'schede_nulle': 'Schede nulle',
+                    'schede_contestate': 'Schede contestate',
+                }
+                scheda_changed = False
+                for field_name, label in scheda_fields.items():
+                    if field_name in args and args[field_name] is not None:
+                        new_val = _parse_int(args[field_name])
+                        if new_val is not None:
+                            old_val = getattr(dati_scheda, field_name)
+                            if old_val != new_val:
+                                changes.append((f"{label} ({matched_scheda.nome})", old_val, new_val, dati_scheda))
+                                SectionDataHistory.objects.create(
+                                    dati_sezione=dati_sezione,
+                                    dati_scheda=dati_scheda,
+                                    campo=field_name,
+                                    valore_precedente=str(old_val) if old_val is not None else None,
+                                    valore_nuovo=str(new_val),
+                                    modificato_da_email=request.user.email,
+                                    ip_address=ip_address,
+                                )
+                                setattr(dati_scheda, field_name, new_val)
+                                scheda_changed = True
+
+                # Handle voti (SI/NO for referendum)
+                voti_si = _parse_int(args.get('voti_si'))
+                voti_no = _parse_int(args.get('voti_no'))
+                if voti_si is not None or voti_no is not None:
+                    old_voti = dati_scheda.voti or {}
+                    new_voti = dict(old_voti)
+                    if voti_si is not None:
+                        old_si = old_voti.get('si')
+                        new_voti['si'] = voti_si
+                        if old_si != voti_si:
+                            changes.append((f"Voti SI ({matched_scheda.nome})", old_si, voti_si, dati_scheda))
+                            scheda_changed = True
+                    if voti_no is not None:
+                        old_no = old_voti.get('no')
+                        new_voti['no'] = voti_no
+                        if old_no != voti_no:
+                            changes.append((f"Voti NO ({matched_scheda.nome})", old_no, voti_no, dati_scheda))
+                            scheda_changed = True
+                    if scheda_changed:
+                        dati_scheda.voti = new_voti
+                        SectionDataHistory.objects.create(
+                            dati_sezione=dati_sezione,
+                            dati_scheda=dati_scheda,
+                            campo='voti',
+                            valore_precedente=str(old_voti) if old_voti else None,
+                            valore_nuovo=str(new_voti),
+                            modificato_da_email=request.user.email,
+                            ip_address=ip_address,
+                        )
+
+                if scheda_changed:
+                    dati_scheda.validate_data()
+                    dati_scheda.version = F('version') + 1
+                    dati_scheda.updated_by_email = request.user.email
+                    dati_scheda.inserito_at = dati_scheda.inserito_at or timezone.now()
+                    dati_scheda.save()
+
+            # Invalidate cache
+            if changes:
+                ConsultazioneElettorale.objects.filter(id=consultazione.id).update(
+                    data_version=timezone.now()
+                )
+
+    except Exception as e:
+        logger.error(f"Error in save_scrutinio_data: {e}", exc_info=True)
+        return {'message': f'Errore nel salvataggio: {str(e)}', 'data': None}
+
+    if not changes:
+        return {'message': 'Nessun dato da aggiornare (i valori sono gli stessi).', 'data': None}
+
+    # Format confirmation
+    loc = f"Sezione {sezione.numero} ({sezione.comune.nome})"
+    lines = [f"**Dati salvati per {loc}:**\n"]
+    for campo, old_val, new_val, _ in changes:
+        old_str = str(old_val) if old_val is not None else '—'
+        lines.append(f"  {campo}: {old_str} -> **{new_val}**")
+
+    # Audit log
+    _audit_log(request.user, 'SCRUTINIO_UPDATE', None, {
+        'source': 'ai_chat',
+        'session_id': session.id,
+        'sezione_id': sezione.id,
+        'sezione_numero': sezione.numero,
+        'changes': [{
+            'campo': c[0], 'old': str(c[1]) if c[1] is not None else None, 'new': str(c[2])
+        } for c in changes],
+    })
+
+    logger.info(
+        f"Scrutinio data saved for sezione {sezione.numero} by {request.user.email}: "
+        f"{len(changes)} changes via AI chat"
+    )
+
+    return {'message': "\n".join(lines), 'data': {'sezione_id': sezione.id, 'changes': len(changes)}}
+
+
 def execute_ai_function(function_name: str, args: dict, session, request, user_sections_list=None) -> dict:
     """Execute an AI-requested function and return the result."""
 
     valid_categories = ['PROCEDURAL', 'ACCESS', 'MATERIALS', 'INTIMIDATION', 'IRREGULARITY', 'TECHNICAL', 'OTHER']
     valid_severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
 
+    # --- Scrutinio functions ---
+    if function_name == 'get_scrutinio_status':
+        return _handle_get_scrutinio_status(args, request, user_sections_list)
+
+    if function_name == 'save_scrutinio_data':
+        return _handle_save_scrutinio_data(args, session, request, user_sections_list)
+
+    # --- Incident functions ---
     if function_name == 'create_incident_report':
         try:
             from incidents.models import IncidentReport
@@ -359,7 +719,7 @@ def generate_ai_response(request, session, message):
             'user_sections_list': list,
         }
     """
-    from .tools import incident_management_tools
+    from .tools import all_ai_tools
     from .vertex_service import vertex_ai_service
 
     # Get conversation history
@@ -478,6 +838,89 @@ def generate_ai_response(request, session, message):
         else:
             profile_parts.append("CONSULTAZIONE: Nessuna consultazione attiva al momento")
 
+        # Add scrutinio status for user's sections
+        if user_sections_list and consultazione:
+            try:
+                from data.models import DatiSezione, DatiScheda
+                from elections.models import SchedaElettorale
+
+                # Get schede for this consultazione
+                schede = list(SchedaElettorale.objects.filter(
+                    tipo_elezione__consultazione=consultazione
+                ).order_by('ordine'))
+                if schede:
+                    schede_names = ", ".join([s.nome for s in schede])
+                    profile_parts.append(f"SCHEDE NELLA CONSULTAZIONE: {schede_names}")
+
+                # Get scrutinio data for user's sections (compact)
+                sezione_ids = [s['sezione_id'] for s in user_sections_list if s.get('sezione_id')]
+                if sezione_ids:
+                    dati_sezioni = {
+                        ds.sezione_id: ds
+                        for ds in DatiSezione.objects.filter(
+                            sezione_id__in=sezione_ids, consultazione=consultazione
+                        ).select_related('sezione')
+                    }
+
+                    scrutinio_lines = []
+                    for sec_info in user_sections_list:
+                        sez_id = sec_info.get('sezione_id')
+                        ds = dati_sezioni.get(sez_id)
+                        if not ds:
+                            scrutinio_lines.append(f"  Sez.{sec_info['numero']}: nessun dato inserito")
+                            continue
+
+                        # Compact summary of seggio data
+                        parts = []
+                        if ds.elettori_maschi is not None or ds.elettori_femmine is not None:
+                            em = ds.elettori_maschi if ds.elettori_maschi is not None else '?'
+                            ef = ds.elettori_femmine if ds.elettori_femmine is not None else '?'
+                            parts.append(f"elettori M={em}/F={ef}")
+                        if ds.votanti_maschi is not None or ds.votanti_femmine is not None:
+                            vm = ds.votanti_maschi if ds.votanti_maschi is not None else '?'
+                            vf = ds.votanti_femmine if ds.votanti_femmine is not None else '?'
+                            parts.append(f"votanti M={vm}/F={vf}")
+
+                        # Schede status
+                        schede_dati = {
+                            sd.scheda_id: sd
+                            for sd in DatiScheda.objects.filter(dati_sezione=ds)
+                        }
+                        schede_complete = 0
+                        schede_details = []
+                        for scheda in schede:
+                            sd = schede_dati.get(scheda.id)
+                            if sd and any([sd.schede_ricevute is not None, sd.voti]):
+                                schede_complete += 1
+                                voti_str = ""
+                                if sd.voti and 'si' in sd.voti:
+                                    voti_str = f" SI={sd.voti['si']}/NO={sd.voti.get('no', '?')}"
+                                detail = f"ric={sd.schede_ricevute or '?'}/aut={sd.schede_autenticate or '?'}{voti_str}"
+                                if sd.schede_bianche is not None:
+                                    detail += f" bia={sd.schede_bianche}"
+                                if sd.schede_nulle is not None:
+                                    detail += f" nul={sd.schede_nulle}"
+                                schede_details.append(f"    {scheda.nome}: {detail}")
+                            else:
+                                schede_details.append(f"    {scheda.nome}: vuoto")
+
+                        if parts:
+                            summary = ", ".join(parts)
+                            summary += f" | schede: {schede_complete}/{len(schede)}"
+                        else:
+                            summary = "nessun dato inserito"
+
+                        scrutinio_lines.append(f"  Sez.{sec_info['numero']}: {summary}")
+                        scrutinio_lines.extend(schede_details)
+
+                    if scrutinio_lines:
+                        profile_parts.append(
+                            "DATI SCRUTINIO ATTUALI (usa save_scrutinio_data per aggiornare):\n"
+                            + "\n".join(scrutinio_lines)
+                        )
+            except Exception as e:
+                logger.warning(f"Error loading scrutinio context: {e}", exc_info=True)
+
         # Add existing incident info if session has one
         existing_incident_id = (session.metadata or {}).get('incident_id')
         if existing_incident_id:
@@ -538,7 +981,7 @@ def generate_ai_response(request, session, message):
     ai_response = vertex_ai_service.generate_with_tools(
         conversation_history=conversation_history,
         context=context_text,
-        tools=incident_management_tools
+        tools=all_ai_tools
     )
 
     # Handle function call if present
