@@ -399,16 +399,37 @@ CONTESTO DOCUMENTALE (usa solo se pertinente alla domanda):
                     )
                 )
 
-            # Generate with tools (use model with system instruction)
-            if tools:
-                response = self._llm_with_tools.generate_content(
-                    contents,
-                    tools=tools,
-                    tool_config=tool_config,
-                    generation_config={'temperature': 0.7}
+            # Generate with retry (max 2 attempts)
+            response = None
+            last_error = None
+            for attempt in range(1, 3):
+                try:
+                    if tools:
+                        response = self._llm_with_tools.generate_content(
+                            contents,
+                            tools=tools,
+                            tool_config=tool_config,
+                            generation_config={'temperature': 0.7}
+                        )
+                    else:
+                        response = self._llm.generate_content(contents)
+                    break  # Success
+                except Exception as e:
+                    last_error = e
+                    logger.warning(
+                        f"Vertex AI attempt {attempt}/2 failed: {type(e).__name__}: {e}",
+                        exc_info=(attempt == 2)  # Full traceback only on last attempt
+                    )
+                    if attempt < 2:
+                        import time
+                        time.sleep(1)  # Brief pause before retry
+
+            if response is None:
+                logger.error(
+                    f"Vertex AI failed after 2 attempts. Last error: {type(last_error).__name__}: {last_error}",
+                    exc_info=True
                 )
-            else:
-                response = self._llm.generate_content(contents)
+                raise last_error
 
             # Parse response
             result = {
@@ -435,7 +456,12 @@ CONTESTO DOCUMENTALE (usa solo se pertinente alla domanda):
             return result
 
         except Exception as e:
-            logger.error(f"Errore generation with tools: {e}", exc_info=True)
+            logger.error(
+                f"generate_with_tools FAILED: {type(e).__name__}: {e} | "
+                f"history_len={len(conversation_history)} | context_len={len(context) if context else 0} | "
+                f"tools={[t.function_declarations[0].name for t in tools] if tools else None}",
+                exc_info=True
+            )
             raise
 
 

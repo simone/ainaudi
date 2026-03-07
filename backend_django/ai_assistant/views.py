@@ -506,13 +506,39 @@ class ChatView(APIView):
 
         except Exception as e:
             logger.error(
-                f"ChatView.post FAILED: user={request.user.email} session={session.id} message='{message[:100]}' error={e}",
+                f"ChatView.post FAILED: user={request.user.email} session={session.id} "
+                f"message='{message[:100]}' error={type(e).__name__}: {e}",
                 exc_info=True
             )
-            return Response(
-                {'error': 'Errore durante la generazione della risposta'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+
+            # Save a friendly error message as assistant response so the conversation stays coherent
+            error_content = (
+                "🙈 Scusa, Ainaudino è un po' sovraccarico in questo momento e non riesce a rispondere. "
+                "Riprova tra qualche secondo! Se il problema persiste, prova ad aprire una nuova conversazione."
             )
+            ChatMessage.objects.create(
+                session=session,
+                role=ChatMessage.Role.ASSISTANT,
+                content=error_content,
+                sources_cited=[]
+            )
+
+            return Response({
+                'session_id': session.id,
+                'title': session.title,
+                'user_message': {
+                    'id': user_message.id,
+                    'role': user_message.role,
+                    'content': user_message.content,
+                },
+                'message': {
+                    'id': 0,  # Placeholder
+                    'role': 'assistant',
+                    'content': error_content,
+                    'sources': [],
+                    'retrieved_docs': 0,
+                }
+            })
 
 
 class ChatBranchView(APIView):
