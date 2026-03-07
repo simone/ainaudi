@@ -370,20 +370,25 @@ Rispondi SOLO con JSON:
 
             contents = []
 
-            # Add context as first user message (only if present)
-            if context:
-                context_msg = f"""{date_context}
-
-CONTESTO DA DOCUMENTI:
-{context}
-"""
-                contents.append(Content(role="user", parts=[Part.from_text(context_msg)]))
-                contents.append(Content(role="model", parts=[Part.from_text("Ho letto il contesto fornito.")]))
-
-            # Add conversation history
-            for msg in conversation_history:
+            # Add conversation history FIRST (so the model sees the full conversation)
+            for msg in conversation_history[:-1]:  # All messages except the last (current user message)
                 role = "user" if msg['role'] == 'user' else "model"
                 contents.append(Content(role=role, parts=[Part.from_text(msg['content'])]))
+
+            # Build the current user message with context appended (not as separate synthetic messages)
+            current_message = conversation_history[-1]['content'] if conversation_history else ""
+            if context:
+                current_message_with_context = f"""{current_message}
+
+---
+{date_context}
+
+CONTESTO DOCUMENTALE (usa solo se pertinente alla domanda):
+{context}"""
+                contents.append(Content(role="user", parts=[Part.from_text(current_message_with_context)]))
+            else:
+                if current_message:
+                    contents.append(Content(role="user", parts=[Part.from_text(f"{current_message}\n\n---\n{date_context}")]))
 
             # Configure function calling mode
             tool_config = None
