@@ -30,19 +30,28 @@ def execute_ai_function(function_name: str, args: dict, session, request) -> dic
 
             # Resolve sezione from number
             sezione = None
-            sezione_numero = args.get('sezione_numero', '').strip()
+            sezione_numero = str(args.get('sezione_numero', '') or '').strip().replace('.', '').replace(' ', '')
+            sezione_not_found = False
             if sezione_numero:
                 try:
                     sezione = SezioneElettorale.objects.filter(
                         numero=int(sezione_numero),
                         is_attiva=True
                     ).first()
+                    if not sezione:
+                        sezione_not_found = True
+                        logger.warning(f"Sezione {sezione_numero} not found in DB")
                 except (ValueError, TypeError):
+                    sezione_not_found = True
                     logger.warning(f"Invalid sezione_numero: {sezione_numero}")
 
             # Map args to model fields
+            title = args.get('title', 'Segnalazione da chat')[:200]
+            description = args.get('description', '')
             category = args.get('category', 'OTHER').upper()
             severity = args.get('severity', 'HIGH').upper()
+            is_verbalizzato = args.get('is_verbalizzato', False)
+
             valid_categories = ['PROCEDURAL', 'ACCESS', 'MATERIALS', 'INTIMIDATION', 'IRREGULARITY', 'TECHNICAL', 'OTHER']
             valid_severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
             if category not in valid_categories:
@@ -50,21 +59,45 @@ def execute_ai_function(function_name: str, args: dict, session, request) -> dic
             if severity not in valid_severities:
                 severity = 'HIGH'
 
-            incident = IncidentReport.objects.create(
-                consultazione=consultazione,
-                sezione=sezione,
-                title=args.get('title', 'Segnalazione da chat')[:200],
-                description=args.get('description', ''),
-                category=category,
-                severity=severity,
-                reporter=request.user,
-                is_verbalizzato=args.get('is_verbalizzato', False),
-            )
+            # If sezione not found in DB, append info to description
+            if sezione_not_found and sezione_numero:
+                description = f"{description}\n\n[Sezione indicata dall'utente: {sezione_numero} - non trovata nel sistema]"
+
+            # If session already has an incident, UPDATE it instead of creating a duplicate
+            existing_incident_id = (session.metadata or {}).get('incident_id')
+            if existing_incident_id:
+                try:
+                    incident = IncidentReport.objects.get(id=existing_incident_id, reporter=request.user)
+                    incident.title = title
+                    incident.description = description
+                    incident.category = category
+                    incident.severity = severity
+                    incident.sezione = sezione
+                    incident.is_verbalizzato = is_verbalizzato
+                    incident.save()
+                    action = "aggiornata"
+                    logger.info(f"Incident #{incident.id} UPDATED via chat by {request.user.email}")
+                except IncidentReport.DoesNotExist:
+                    existing_incident_id = None  # Fall through to create
+
+            if not existing_incident_id:
+                incident = IncidentReport.objects.create(
+                    consultazione=consultazione,
+                    sezione=sezione,
+                    title=title,
+                    description=description,
+                    category=category,
+                    severity=severity,
+                    reporter=request.user,
+                    is_verbalizzato=is_verbalizzato,
+                )
+                action = "creata"
+                logger.info(f"Incident #{incident.id} CREATED via chat by {request.user.email}")
 
             # Update session metadata
             session.metadata = session.metadata or {}
             session.metadata['incident_id'] = incident.id
-            session.title = f"Segnalazione: {incident.title[:40]}"
+            session.title = f"Segnalazione: {title[:40]}"
             session.save()
 
             category_labels = {
@@ -75,22 +108,18 @@ def execute_ai_function(function_name: str, args: dict, session, request) -> dic
             severity_labels = {
                 'LOW': 'Bassa', 'MEDIUM': 'Media', 'HIGH': 'Alta', 'CRITICAL': 'Critica',
             }
-            sezione_text = f"Sezione {sezione.numero} - {sezione.comune.nome}" if sezione else "Generale"
-
-            verbale_reminder = ""
-            if sezione and not args.get('is_verbalizzato', False):
-                verbale_reminder = "\n\nRicorda di annotare l'incidente anche sul registro di sezione."
+            sezione_text = f"Sezione {sezione.numero} - {sezione.comune.nome}" if sezione else f"Sezione {sezione_numero} (non censita)" if sezione_numero else "Generale"
 
             message = (
-                f"**Segnalazione #{incident.id} creata!**\n\n"
+                f"**Segnalazione #{incident.id} {action}!**\n\n"
                 f"**Titolo:** {incident.title}\n"
+                f"**Descrizione:** {incident.description[:200]}{'...' if len(incident.description) > 200 else ''}\n"
                 f"**Categoria:** {category_labels.get(category, category)}\n"
                 f"**Gravita:** {severity_labels.get(severity, severity)}\n"
                 f"**Sezione:** {sezione_text}\n"
-                f"{verbale_reminder}"
+                f"**Verbalizzato:** {'Si' if is_verbalizzato else 'No'}"
             )
 
-            logger.info(f"Incident #{incident.id} created via chat by {request.user.email}")
             return {'message': message, 'data': {'incident_id': incident.id}}
 
         except Exception as e:
@@ -272,8 +301,13 @@ class ChatView(APIView):
 
                 consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
 
-                # Build user profile
-                profile_parts = [f"PROFILO UTENTE: {user_name} ({user.email}), RDL del M5S"]
+                # Build user profile with current date
+                from datetime import datetime
+                now = datetime.now()
+                profile_parts = [
+                    f"DATA E ORA: {now.strftime('%A %d %B %Y, ore %H:%M')}",
+                    f"PROFILO UTENTE: {user_name} ({user.email}), RDL del M5S",
+                ]
 
                 if consultazione:
                     profile_parts.append(f"CONSULTAZIONE ATTIVA: {consultazione.nome} (dal {consultazione.data_inizio.strftime('%d/%m/%Y') if consultazione.data_inizio else '?'} al {consultazione.data_fine.strftime('%d/%m/%Y') if consultazione.data_fine else '?'})")
