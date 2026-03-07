@@ -24,11 +24,14 @@ function ChatInterface({ client, show, onClose }) {
         const saved = localStorage.getItem('ai_chat_font_size');
         return saved ? parseInt(saved) : 100; // 100 = default (100%)
     });
+    const [voiceModalText, setVoiceModalText] = useState(''); // Testo riconosciuto nella modale vocale
+    const [incidentId, setIncidentId] = useState(null); // ID segnalazione associata alla chat
 
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const recognitionRef = useRef(null);
     const prePrefixRef = useRef('');  // Testo esistente prima della registrazione
+    const voiceModalTextRef = useRef('');  // Testo riconosciuto vocalmente (per callback)
     const textareaRef = useRef(null);
     const speechSynthesisRef = useRef(null);
 
@@ -58,6 +61,7 @@ function ChatInterface({ client, show, onClose }) {
                         console.log('Session loaded:', sessionId, 'messages:', result.messages.length, 'first msg has id:', result.messages[0]?.id);
                         setMessages(result.messages);
                         setSessionTitle(result.title || '');
+                        setIncidentId(result.incident_id || null);
                         // Scroll to bottom after messages are loaded
                         setTimeout(() => scrollToBottom(), 200);
                     } else if (result.error === 'Session not found') {
@@ -118,10 +122,10 @@ function ChatInterface({ client, show, onClose }) {
                     }
                 }
 
-                // Accoda al testo esistente (salvato all'avvio della registrazione)
-                const prefix = prePrefixRef.current;
-                const separator = prefix && transcript.trim() ? ' ' : '';
-                setInputText(prefix + separator + transcript.trim());
+                // Mostra il testo nella modale vocale fullscreen
+                const trimmedText = transcript.trim();
+                voiceModalTextRef.current = trimmedText;
+                setVoiceModalText(trimmedText);
             };
 
             recognitionRef.current.onerror = (event) => {
@@ -133,22 +137,39 @@ function ChatInterface({ client, show, onClose }) {
             };
 
             recognitionRef.current.onend = () => {
-                // Solo se non stiamo registrando (stop manuale)
+                // Trasferisci il testo dalla modale al campo input
+                const recognizedText = voiceModalTextRef.current;
+                if (recognizedText && recognizedText.trim()) {
+                    const prefix = prePrefixRef.current;
+                    const separator = prefix && recognizedText.trim() ? ' ' : '';
+                    setInputText(prefix + separator + recognizedText.trim());
+                }
+                // Resetta lo stato
+                voiceModalTextRef.current = '';
+                setVoiceModalText('');
                 setIsRecording(false);
             };
         }
     }, []);
 
-    // Keyboard ESC handler
+    // Keyboard handlers
     useEffect(() => {
         const handleKeyDown = (e) => {
+            // Se la modale vocale è aperta, qualsiasi tasto la chiude
+            if (isRecording) {
+                e.preventDefault();
+                stopRecording();
+                return;
+            }
+
+            // ESC chiude la chat
             if (e.key === 'Escape' && show) {
                 onClose();
             }
         };
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [show, onClose]);
+    }, [show, onClose, isRecording]);
 
     // Stop recording helper - used by multiple triggers
     const stopRecording = () => {
@@ -200,7 +221,8 @@ function ChatInterface({ client, show, onClose }) {
     };
 
     const handleSendMessage = async () => {
-        if (!inputText.trim() || isLoading) return;
+        // Non permettere invio mentre sta registrando
+        if (!inputText.trim() || isLoading || isRecording) return;
 
         stopRecording();
 
@@ -349,6 +371,7 @@ function ChatInterface({ client, show, onClose }) {
                 setMessages(result.messages);
                 setSessionId(newSessionId);
                 setSessionTitle(result.title || '');
+                setIncidentId(result.incident_id || null);
                 localStorage.setItem('ai_chat_session_id', newSessionId);
                 // Scroll to bottom after switching session
                 setTimeout(() => scrollToBottom(), 200);
@@ -492,7 +515,20 @@ function ChatInterface({ client, show, onClose }) {
                         <i className="fas fa-robot me-2"></i>
                         <div>
                             <strong>AI RDL</strong>
-                            {sessionTitle && <div className="chat-title-subtitle">{sessionTitle}</div>}
+                            {sessionTitle && (
+                                <div className="chat-title-subtitle">
+                                    {sessionTitle}
+                                    {incidentId && (
+                                        <span
+                                            className="incident-badge"
+                                            onClick={() => alert(`Segnalazione ID: ${incidentId}\n\nQuando sarà integrata nello scrutinio, cliccando qui verrai portato alla scheda della segnalazione.`)}
+                                            title="Clicca per vedere la segnalazione"
+                                        >
+                                            <i className="fas fa-exclamation-triangle ms-2"></i>
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div>
@@ -612,31 +648,23 @@ function ChatInterface({ client, show, onClose }) {
                                         </div>
                                         {msg.sources && msg.sources.length > 0 && (
                                             <div className="message-sources">
-                                                <div className="mb-2">
-                                                    <small className="text-muted">
-                                                        <i className="fas fa-book me-1"></i>
-                                                        <strong>Fonti:</strong>
-                                                    </small>
-                                                </div>
-                                                {msg.sources.map((source, sidx) => (
-                                                    <div key={sidx} className="source-item">
-                                                        <small className="text-muted">
-                                                            {source.title}
-                                                            {source.url && (
-                                                                <a
-                                                                    href={source.url}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="ms-2 source-link"
-                                                                    title="Apri documento"
-                                                                >
-                                                                    <i className="fas fa-external-link-alt me-1"></i>
-                                                                    Apri PDF
-                                                                </a>
-                                                            )}
-                                                        </small>
-                                                    </div>
-                                                ))}
+                                                <small className="text-muted">
+                                                    <i className="fas fa-book me-1"></i>
+                                                    <strong>Fonte:</strong>{' '}
+                                                    <a
+                                                        href={msg.sources[0].url || '#'}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="source-link"
+                                                        title={msg.sources[0].url ? "Apri documento" : "Documento non disponibile"}
+                                                        style={!msg.sources[0].url ? { opacity: 0.5, pointerEvents: 'none' } : {}}
+                                                    >
+                                                        {msg.sources[0].title}
+                                                        {msg.sources[0].url && (
+                                                            <i className="fas fa-external-link-alt ms-1"></i>
+                                                        )}
+                                                    </a>
+                                                </small>
                                             </div>
                                         )}
                                         {/* Actions row */}
@@ -696,18 +724,19 @@ function ChatInterface({ client, show, onClose }) {
                     <textarea
                         ref={textareaRef}
                         className="form-control chat-input"
-                        placeholder={isRecording ? 'Sto ascoltando... (clicca STOP per fermare)' : 'Scrivi o usa il microfono...'}
+                        placeholder={isRecording ? 'Registrazione in corso...' : 'Scrivi o usa il microfono...'}
                         value={inputText}
                         onChange={(e) => { stopRecording(); setInputText(e.target.value); }}
                         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
-                        disabled={isLoading}
+                        disabled={isLoading || isRecording}
                         rows={1}
                     />
 
                     <button
                         className="btn btn-primary btn-send"
                         onClick={handleSendMessage}
-                        disabled={!inputText.trim() || isLoading}
+                        disabled={!inputText.trim() || isLoading || isRecording}
+                        title={isRecording ? 'Ferma prima la registrazione' : 'Invia messaggio'}
                     >
                         <i className="fas fa-paper-plane"></i>
                     </button>
@@ -760,6 +789,57 @@ function ChatInterface({ client, show, onClose }) {
                                         </div>
                                     ))
                                 )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Voice Recognition Fullscreen Modal */}
+                {isRecording && (
+                    <div className="voice-modal-overlay" onClick={stopRecording}>
+                        <div className="voice-modal-content">
+                            {/* Clear button */}
+                            <button
+                                className="voice-modal-clear"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Cancella il testo riconosciuto finora
+                                    voiceModalTextRef.current = '';
+                                    setVoiceModalText('');
+                                    // Riavvia recognition per continuare ad ascoltare
+                                    if (recognitionRef.current) {
+                                        recognitionRef.current.stop();
+                                        setTimeout(() => {
+                                            recognitionRef.current.start();
+                                        }, 100);
+                                    }
+                                }}
+                                title="Cancella e ricomincia"
+                            >
+                                <i className="fas fa-times"></i>
+                            </button>
+
+                            {/* Pulsar animation */}
+                            <div className="voice-pulsar">
+                                <div className="pulse-ring pulse-ring-1"></div>
+                                <div className="pulse-ring pulse-ring-2"></div>
+                                <div className="pulse-ring pulse-ring-3"></div>
+                                <div className="voice-mic-icon">
+                                    <i className="fas fa-microphone"></i>
+                                </div>
+                            </div>
+
+                            {/* Recognized text - show prefix + new text */}
+                            <div className="voice-text">
+                                {prePrefixRef.current && (
+                                    <span className="voice-text-prefix">{prePrefixRef.current} </span>
+                                )}
+                                <span className="voice-text-new">{voiceModalText || 'Parla...'}</span>
+                            </div>
+
+                            {/* Hint */}
+                            <div className="voice-hint">
+                                Premi un tasto qualsiasi per fermare
                             </div>
                         </div>
                     </div>

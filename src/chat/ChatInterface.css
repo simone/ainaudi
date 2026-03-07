@@ -115,6 +115,32 @@
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 180px;
+    display: flex;
+    align-items: center;
+}
+
+.incident-badge {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    color: #FFD700;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.incident-badge:hover {
+    color: #FFA500;
+    transform: scale(1.1);
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
 }
 
 /* Zoom Controls - Word-style A icons */
@@ -1041,5 +1067,250 @@
     .message-content ul,
     .message-content ol {
         line-height: 1.75;
+    }
+}
+
+/* ============================================================
+   VOICE RECOGNITION FULLSCREEN MODAL
+   ============================================================ */
+
+.voice-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(31, 78, 95, 0.98) 0%, rgba(44, 95, 111, 0.98) 100%);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: voiceModalFadeIn 0.3s ease-out;
+    cursor: pointer;
+}
+
+.voice-modal-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    padding: 40px 20px;
+    width: 100%;
+    max-width: 600px;
+    position: relative;
+}
+
+/* Clear button */
+.voice-modal-clear {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.voice-modal-clear:hover {
+    background: rgba(255, 59, 48, 0.3);
+    border-color: rgba(255, 59, 48, 0.6);
+    transform: scale(1.1);
+}
+
+.voice-modal-clear:active {
+    transform: scale(0.95);
+}
+
+/* Pulsar Animation Container */
+.voice-pulsar {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Microphone Icon */
+.voice-mic-icon {
+    position: relative;
+    z-index: 3;
+    width: 60px;
+    height: 60px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.voice-mic-icon i {
+    font-size: 28px;
+    color: #1F4E5F;
+}
+
+/* Pulse Rings */
+.pulse-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 3px solid rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.pulse-ring-1 {
+    width: 80px;
+    height: 80px;
+    animation-delay: 0s;
+}
+
+.pulse-ring-2 {
+    width: 100px;
+    height: 100px;
+    animation-delay: 0.3s;
+}
+
+.pulse-ring-3 {
+    width: 120px;
+    height: 120px;
+    animation-delay: 0.6s;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* Recognized Text */
+.voice-text {
+    color: white;
+    font-size: 32px;
+    font-weight: 300;
+    text-align: center;
+    line-height: 1.4;
+    padding: 0 20px;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: voiceTextPulse 1.5s ease-in-out infinite;
+}
+
+/* Previous text (prefix) - slightly dimmed */
+.voice-text-prefix {
+    opacity: 0.6;
+    font-size: 0.85em;
+    margin-bottom: 10px;
+}
+
+/* New incoming text - highlighted */
+.voice-text-new {
+    color: white;
+    font-weight: 400;
+}
+
+@keyframes voiceTextPulse {
+    0%, 100% {
+        opacity: 0.9;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Hint Text */
+.voice-hint {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 16px;
+    text-align: center;
+    padding: 12px 24px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@keyframes voiceModalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+    .voice-modal-content {
+        gap: 30px;
+        padding: 30px 15px;
+    }
+
+    .voice-pulsar {
+        width: 100px;
+        height: 100px;
+    }
+
+    .voice-mic-icon {
+        width: 50px;
+        height: 50px;
+    }
+
+    .voice-mic-icon i {
+        font-size: 24px;
+    }
+
+    .pulse-ring-1 {
+        width: 70px;
+        height: 70px;
+    }
+
+    .pulse-ring-2 {
+        width: 90px;
+        height: 90px;
+    }
+
+    .pulse-ring-3 {
+        width: 110px;
+        height: 110px;
+    }
+
+    .voice-text {
+        font-size: 24px;
+        min-height: 80px;
+    }
+
+    .voice-hint {
+        font-size: 14px;
+        padding: 10px 20px;
+    }
+
+    .voice-modal-clear {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+        top: 15px;
+        right: 15px;
     }
 }
