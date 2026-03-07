@@ -121,6 +121,20 @@ class IncidentReport(models.Model):
         verbose_name=_('assegnato a')
     )
 
+    # Verbalizzazione tracking
+    is_verbalizzato = models.BooleanField(
+        _('verbalizzato'),
+        default=False,
+        help_text=_('Se la segnalazione è stata verbalizzata ufficialmente nel registro di sezione')
+    )
+
+    # Platform vs. Electoral issues
+    is_platform_issue = models.BooleanField(
+        _('problema della piattaforma'),
+        default=False,
+        help_text=_('Se il problema riguarda la piattaforma AInaudi stessa (solo admin)')
+    )
+
     # Audit
     created_at = models.DateTimeField(_('data creazione'), auto_now_add=True)
     updated_at = models.DateTimeField(_('ultimo aggiornamento'), auto_now=True)

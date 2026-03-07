@@ -1,0 +1,929 @@
+[
+    {
+        "model": "resources.categoriafaq",
+        "pk": 100,
+        "fields": {
+            "nome": "AInaudi - Accesso e Utilizzo",
+            "descrizione": "Come accedere e utilizzare la piattaforma AInaudi",
+            "icona": "fa-laptop",
+            "ordine": 1,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1001,
+        "fields": {
+            "categoria": 100,
+            "domanda": "Dove trovo AInaudi?",
+            "risposta": "Apri https://ainaudi.it è una web app.",
+            "ordine": 1,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1002,
+        "fields": {
+            "categoria": 100,
+            "domanda": "Non riesco a \"scaricare\" AInaudi dallo store, è normale?",
+            "risposta": "Sì. Non è un'app da store: si usa via browser e, se vuoi, una volta loggato, la aggiungi alla Home.",
+            "ordine": 2,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1003,
+        "fields": {
+            "categoria": 100,
+            "domanda": "Si può usare sia da telefono che da PC/browser?",
+            "risposta": "Sì, funziona su smartphone e su browser desktop.",
+            "ordine": 3,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1004,
+        "fields": {
+            "categoria": 100,
+            "domanda": "Non mi è arrivata l'email con link/istruzioni: che faccio?",
+            "risposta": "Contatta il tuo delegato per reinvio e sistemazione dell'accesso.",
+            "ordine": 4,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.categoriafaq",
+        "pk": 101,
+        "fields": {
+            "nome": "Nomina/Designazione RDL",
+            "descrizione": "Tutto sulla nomina e designazione dei Rappresentanti di Lista",
+            "icona": "fa-file-signature",
+            "ordine": 2,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1011,
+        "fields": {
+            "categoria": 101,
+            "domanda": "Dove trovo la nomina/designazione RDL?",
+            "risposta": "Sarà disponibile in AInaudi quando la funzione verrà abilitata (nei giorni prima del voto).",
+            "ordine": 1,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1012,
+        "fields": {
+            "categoria": 101,
+            "domanda": "Quando sarà pronta la nomina?",
+            "risposta": "Verrà pubblicata su AInaudi in tempo utile prima del voto; riceverai comunicazione quando formalizzeremo l'atto all'ufficio elettorale.",
+            "ordine": 2,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1013,
+        "fields": {
+            "categoria": 101,
+            "domanda": "La nomina devo stamparla?",
+            "risposta": "Quando disponibile in AInaudi potrai scaricarla e, se necessario, stamparla.",
+            "ordine": 3,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1014,
+        "fields": {
+            "categoria": 101,
+            "domanda": "L'atto di nomina va presentato al presidente del seggio quando?",
+            "risposta": "Quando ti presenti al seggio per essere riconosciuto come RDL (sabato durante la creazione/preparazione del seggio che inizia alle 16:00 o domenica mattina presto prima dell'avvio effettivo del voto), oppure nel momento in cui ti presenti alla sezione per votare.",
+            "ordine": 4,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1015,
+        "fields": {
+            "categoria": 101,
+            "domanda": "Quando il presidente accerta la nomina, deve metterlo a verbale?",
+            "risposta": "No, non subito. Nel verbale c'è lo spazio per indicare i rappresentanti designati e annotarne la presenza. Non si fa una verbalizzazione \"uno per uno\" nel momento del controllo anche perché il presidente starà facendo mille altre cose. L'importante è essere riconosciuti in quel momento. A chiusura verbale si può controllare che il nominativo/presenza risultino nel verbale (e che la designazione sia tra gli atti allegati).",
+            "ordine": 5,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1016,
+        "fields": {
+            "categoria": 101,
+            "domanda": "Se risulto assegnato a due sezioni, a quale arriva la nomina?",
+            "risposta": "A tutte le sezioni in cui risulti assegnato. Se in piattaforma vedi incongruenze, chiedi al delegato.",
+            "ordine": 6,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.categoriafaq",
+        "pk": 102,
+        "fields": {
+            "nome": "Seggi e Assegnazioni",
+            "descrizione": "Seggi, sezioni, delegati e assegnazioni territoriali",
+            "icona": "fa-map-marked-alt",
+            "ordine": 3,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1021,
+        "fields": {
+            "categoria": 102,
+            "domanda": "Dove vedo a che seggio/scuola sono assegnato?",
+            "risposta": "Ti verrà comunicato prima del voto (messaggio/mail personale) e/o comparirà in piattaforma. Comunque sarà indicato nell'atto di nomina.",
+            "ordine": 1,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1022,
+        "fields": {
+            "categoria": 102,
+            "domanda": "Chi sono i Delegati?",
+            "risposta": "Federica Contardi si occupa del I, II, III e XV municipio, Marina Riccardi del V, VI, VII e VIII, Simone Federici IX, X e XI, Daniela Pietracci IV, XII, XIII e XIV.",
+            "ordine": 2,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1023,
+        "fields": {
+            "categoria": 102,
+            "domanda": "Il delegato che mi risulta non coincide con quello con cui ho parlato: che faccio?",
+            "risposta": "Chiedi al delegato di cambiarti quadrante/municipio/assegnazione.",
+            "ordine": 3,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.categoriafaq",
+        "pk": 103,
+        "fields": {
+            "nome": "Badge e Materiali",
+            "descrizione": "Badge identificativo e materiali per gli RDL",
+            "icona": "fa-id-badge",
+            "ordine": 4,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1031,
+        "fields": {
+            "categoria": 103,
+            "domanda": "Il badge è necessario?",
+            "risposta": "Sì, è necessario, lo dovrai indossare in modo visibile all'interno della sezione. Se sono d'accordo anche gli altri RDL, lo potrai indossare all'interno della scuola. Mai fuori la scuola.",
+            "ordine": 1,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1032,
+        "fields": {
+            "categoria": 103,
+            "domanda": "Dove si scarica il badge?",
+            "risposta": "Nelle risorse dentro AInaudi, quando pubblicato.",
+            "ordine": 2,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1033,
+        "fields": {
+            "categoria": 103,
+            "domanda": "Il badge va stampato?",
+            "risposta": "Sì, dentro al seggio devi essere riconoscibile.",
+            "ordine": 3,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.categoriafaq",
+        "pk": 104,
+        "fields": {
+            "nome": "Fuori Sede e Solo Voto",
+            "descrizione": "Informazioni per chi vota fuori sede o solo come elettore",
+            "icona": "fa-plane-departure",
+            "ordine": 5,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1041,
+        "fields": {
+            "categoria": 104,
+            "domanda": "Chi vuole solo votare deve scaricare AInaudi o registrarsi?",
+            "risposta": "No, se voti soltanto non è obbligatorio, ma AInaudi ti permette di scaricare ai fuorisede la nomina, senza la quale non sono ammessi al voto.",
+            "ordine": 1,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1042,
+        "fields": {
+            "categoria": 104,
+            "domanda": "Se voglio solo votare devo segnalarlo a qualcuno?",
+            "risposta": "Sì, al delegato, così ti assegna una sola sezione e non ti considera operativo come RDL.",
+            "ordine": 2,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1043,
+        "fields": {
+            "categoria": 104,
+            "domanda": "Le attività operative competono anche a chi deve solo votare?",
+            "risposta": "No.",
+            "ordine": 3,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.categoriafaq",
+        "pk": 105,
+        "fields": {
+            "nome": "Presenza e Orari",
+            "descrizione": "Orari di presenza al seggio (sabato, domenica, lunedì)",
+            "icona": "fa-clock",
+            "ordine": 6,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1051,
+        "fields": {
+            "categoria": 105,
+            "domanda": "A che ora ci si presenta il sabato?",
+            "risposta": "Dalle 16:00 in poi. Si consiglia non oltre le 17:00.",
+            "ordine": 1,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1052,
+        "fields": {
+            "categoria": 105,
+            "domanda": "Se arrivo alle 17 il sabato è un problema?",
+            "risposta": "In generale no, ma dipende da quanto è avanzata la costituzione del seggio; l'obiettivo è esserci quando si insedia.",
+            "ordine": 2,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1053,
+        "fields": {
+            "categoria": 105,
+            "domanda": "Dalle 16 fino a che ora massimo il sabato?",
+            "risposta": "Non c'è un orario fisso: dipende da quanto impiegano a costituire il seggio e completare le attività.",
+            "ordine": 3,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1054,
+        "fields": {
+            "categoria": 105,
+            "domanda": "Se non posso andare il sabato posso andare la domenica?",
+            "risposta": "Sì, ma è prudente arrivare prima dell'avvio effettivo del voto per evitare rischi (es. problemi sulla nomina), quindi prima delle 7:00.",
+            "ordine": 4,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1055,
+        "fields": {
+            "categoria": 105,
+            "domanda": "Devo essere al seggio alle 7?",
+            "risposta": "Se devi verificare/risolvere temi di nomina o riconoscimento, è prudente arrivare all'apertura; altrimenti vai negli orari ufficiali.",
+            "ordine": 5,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1056,
+        "fields": {
+            "categoria": 105,
+            "domanda": "Quali sono gli orari di voto?",
+            "risposta": "Domenica 22 marzo: dalle 7:00 alle 23:00. Lunedì 23 marzo: dalle 7:00 alle 15:00. Chi è presente nel seggio all'orario di chiusura è comunque ammesso al voto.",
+            "ordine": 6,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1057,
+        "fields": {
+            "categoria": 105,
+            "domanda": "Bisogna rimanere tutto il giorno domenica e lunedì?",
+            "risposta": "No.",
+            "ordine": 7,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1058,
+        "fields": {
+            "categoria": 105,
+            "domanda": "Se non posso essere presente domenica pomeriggio/sera che succede?",
+            "risposta": "Nulla, puoi anche saltare in toto la Domenica, andare Sabato all'insediamento, e lunedì mattina per il voto e le verifiche preliminari dei seggi, e poi tornare per lo scrutinio.",
+            "ordine": 8,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.categoriafaq",
+        "pk": 106,
+        "fields": {
+            "nome": "Operatività RDL",
+            "descrizione": "Raccolta dati, contestazioni e segnalazioni",
+            "icona": "fa-tasks",
+            "ordine": 7,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1061,
+        "fields": {
+            "categoria": 106,
+            "domanda": "Se salta connessione o sistema, posso prendere dati su carta e inserirli dopo?",
+            "risposta": "Sì.",
+            "ordine": 1,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1062,
+        "fields": {
+            "categoria": 106,
+            "domanda": "I dati li inserisco in orari prestabiliti o quando voglio?",
+            "risposta": "Quando vuoi; puoi anche trascriverli dopo, purché entro la serata.",
+            "ordine": 2,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1063,
+        "fields": {
+            "categoria": 106,
+            "domanda": "Quali dati minimi devo raccogliere/inserire?",
+            "risposta": "Numero elettori M/F e numero di schede arrivate/vidimate, i dati relativi all'affluenza, numero di votanti M/F e i dati relativi alle schede, quanti SI/NO, schede bianche, nulle e il numero di schede contestate da voi o da un altro RDL.",
+            "ordine": 3,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1064,
+        "fields": {
+            "categoria": 106,
+            "domanda": "Come notifichiamo le schede contestate?",
+            "risposta": "Potrai segnalarlo in app aprendo una segnalazione, o segnalarlo al tuo delegato via WhatsApp.",
+            "ordine": 4,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1065,
+        "fields": {
+            "categoria": 106,
+            "domanda": "Se contesto una scheda devo farlo mettere a verbale?",
+            "risposta": "Sì.",
+            "ordine": 5,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.categoriafaq",
+        "pk": 107,
+        "fields": {
+            "nome": "Ruoli e Regole al Seggio",
+            "descrizione": "Ruoli, sostituzioni e regole operative",
+            "icona": "fa-user-check",
+            "ordine": 8,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1071,
+        "fields": {
+            "categoria": 107,
+            "domanda": "Gli RDL possono essere chiamati in sostituzione degli scrutatori assenti?",
+            "risposta": "No.",
+            "ordine": 1,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1072,
+        "fields": {
+            "categoria": 107,
+            "domanda": "I rappresentanti delle forze dell'ordine votano nel seggio dove sono assegnati?",
+            "risposta": "Sì, se sono ufficiali o agenti della forza pubblica in servizio di ordine pubblico presso quel seggio (o militari/polizia comandati per ordine pubblico): possono votare in quella sezione anche se iscritti altrove; devono compilare la dichiarazione prevista e vengono annotati nel verbale (e aggiunti in calce alla lista).",
+            "ordine": 2,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.categoriafaq",
+        "pk": 108,
+        "fields": {
+            "nome": "Cosa Portare e Identificazione",
+            "descrizione": "Documenti necessari e modalità di identificazione",
+            "icona": "fa-id-card",
+            "ordine": 9,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1081,
+        "fields": {
+            "categoria": 108,
+            "domanda": "Cosa devo portare con me oltre alla tessera elettorale e il documento?",
+            "risposta": "La nomina RDL (che scarichi da AInaudi).",
+            "ordine": 1,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1082,
+        "fields": {
+            "categoria": 108,
+            "domanda": "La patente è un documento valido per votare?",
+            "risposta": "È accettata come documento di identificazione, in generale ogni documento rilasciato da un ente statale che permetta il riconoscimento (dove c'è una foto) va bene.",
+            "ordine": 2,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1083,
+        "fields": {
+            "categoria": 108,
+            "domanda": "Posso votare con documento scaduto?",
+            "risposta": "Sì: i documenti di identificazione sono validi anche se scaduti purché siano \"sotto ogni altro aspetto regolari\" e consentano la precisa identificazione dell'elettore; a Roma è indicato anche il limite \"scaduti da non oltre 3 anni\". https://www.comune.roma.it/web/it/scheda-servizi.page?contentId=INF827585",
+            "ordine": 3,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1084,
+        "fields": {
+            "categoria": 108,
+            "domanda": "Posso mostrare il documento dall'app IO?",
+            "risposta": "Può essere accettato se è un documento digitale verificabile (non uno screenshot/foto). Se puoi, porta anche un documento fisico per ridurre attriti con il presidente.",
+            "ordine": 4,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.categoriafaq",
+        "pk": 109,
+        "fields": {
+            "nome": "Giustificativi Lavoro e Permessi",
+            "descrizione": "Attestazioni, permessi e riposi compensativi",
+            "icona": "fa-briefcase",
+            "ordine": 10,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1091,
+        "fields": {
+            "categoria": 109,
+            "domanda": "Il giustificativo che scarichiamo dall'app è già timbrato?",
+            "risposta": "No: l'attestazione utile al datore di lavoro deve essere firmata dal presidente di sezione, che vi appone il timbro tondo della sezione.",
+            "ordine": 1,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1092,
+        "fields": {
+            "categoria": 109,
+            "domanda": "Il giustificativo vale anche per il sabato?",
+            "risposta": "Se il presidente attesta anche la tua presenza il sabato (quando sei effettivamente al seggio), può rilasciare attestazione.",
+            "ordine": 2,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1093,
+        "fields": {
+            "categoria": 109,
+            "domanda": "Esiste un minimo di ore per avere l'attestazione?",
+            "risposta": "Non c'è una soglia unica standard: dipende da cosa il presidente ritiene attestabile.",
+            "ordine": 3,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1094,
+        "fields": {
+            "categoria": 109,
+            "domanda": "Io lavoro sabato mattina: devo chiedere permesso anche per il sabato pomeriggio?",
+            "risposta": "Il permesso per servizio elettorale copre l'intera giornata indipendentemente dall'orario in cui sei fisicamente al seggio, quindi se lavori il sabato mattina dovrebbero riconoscertelo come permesso per l'intera giornata. Di norma i presidenti non specificano l'orario della presenza ma solo il giorno, pertanto avrete diritto ad assentarvi dal lavoro il sabato ed il lunedì e a recuperare la giornata di domenica con un riposo compensativo. Si consiglia in ogni caso di chiedere al Datore di Lavoro.",
+            "ordine": 4,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1095,
+        "fields": {
+            "categoria": 109,
+            "domanda": "Permessi e riposi compensativi: come funzionano?",
+            "risposta": "Dipende dal contratto e dalla tipologia di giornata (lavorativa/festiva); fai riferimento a HR e alle regole applicabili al tuo rapporto di lavoro.",
+            "ordine": 5,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1096,
+        "fields": {
+            "categoria": 109,
+            "domanda": "Per il Servizio Civile i riposi valgono allo stesso modo?",
+            "risposta": "No: le assenze sono gestite secondo le regole del progetto/ente di servizio civile.",
+            "ordine": 6,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.categoriafaq",
+        "pk": 110,
+        "fields": {
+            "nome": "Tessera Elettorale e Residenza",
+            "descrizione": "Tessera elettorale, cambio residenza e duplicati",
+            "icona": "fa-address-card",
+            "ordine": 11,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1101,
+        "fields": {
+            "categoria": 110,
+            "domanda": "Ho cambiato residenza e ho il tagliando vecchio sulla tessera: è un problema?",
+            "risposta": "Non lo è se stai votando a Roma come fuori sede, qui è importante solo avere il documento cartaceo che attesti che sei un elettore. Nel caso di elettore residente a Roma sarà il Presidente della sezione a darti indicazioni nel caso non risulti tra i votanti della sezione indicata sulla tessera elettorale.",
+            "ordine": 1,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1102,
+        "fields": {
+            "categoria": 110,
+            "domanda": "Come ottengo duplicato/attestazione sostitutiva?",
+            "risposta": "Tramite ufficio elettorale/municipio (spesso con aperture straordinarie vicino alla data del voto).",
+            "ordine": 2,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.categoriafaq",
+        "pk": 111,
+        "fields": {
+            "nome": "Slide e Registrazione",
+            "descrizione": "Materiali formativi e registrazioni",
+            "icona": "fa-file-powerpoint",
+            "ordine": 12,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1111,
+        "fields": {
+            "categoria": 111,
+            "domanda": "È possibile avere il PDF delle slides?",
+            "risposta": "Le slides sono scaricabili da AInaudi.",
+            "ordine": 1,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1112,
+        "fields": {
+            "categoria": 111,
+            "domanda": "Dove troveremo la registrazione della riunione?",
+            "risposta": "Nel canale WhatsApp organizzato dal tuo delegato.",
+            "ordine": 2,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    },
+    {
+        "model": "resources.categoriafaq",
+        "pk": 112,
+        "fields": {
+            "nome": "Evoluzione Piattaforma",
+            "descrizione": "Futuro della piattaforma AInaudi",
+            "icona": "fa-rocket",
+            "ordine": 13,
+            "is_attiva": true
+        }
+    },
+    {
+        "model": "resources.faq",
+        "pk": 1121,
+        "fields": {
+            "categoria": 112,
+            "domanda": "Questa piattaforma verrà usata anche per eventi futuri (es. 2027)?",
+            "risposta": "Speriamo di sì, è un obiettivo che ci siamo dati.",
+            "ordine": 1,
+            "is_attivo": true,
+            "scope": "TUTTI",
+            "is_pubblico": true,
+            "in_evidenza": false,
+            "created_at": "2026-03-07T02:21:58.409715",
+            "updated_at": "2026-03-07T02:21:58.409715"
+        }
+    }
+]

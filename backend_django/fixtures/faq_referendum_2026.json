@@ -102,7 +102,7 @@
         "pk": 4,
         "fields": {
             "domanda": "Quando e come si deposita l'atto di nomina?",
-            "risposta": "**Termine ordinario:**\nI Rappresentanti di Lista depositano il proprio **atto di nomina** all'atto della costituzione del seggio (**ore 15:00 di sabato 21 marzo**)\n\n**Termine ultimo:**\nÈ possibile depositare l'atto di nomina fino al **primo voto occorso nella sezione alle 07:00 di domenica 22 marzo**\n\n**⚠️ IMPORTANTE - Natura giuridica:**\nLa sottoscrizione viene apposta su un **atto pubblico (il verbale)** da parte di un soggetto (l'RDL) che in quella veste è un **Pubblico Ufficiale**.\n\nQuesto significa che la firma dell'RDL sul verbale ha valore legale e certifica quanto riportato nelle operazioni elettorali.",
+            "risposta": "**Termine ordinario:**\nI Rappresentanti di Lista depositano il proprio **atto di nomina** all'atto della costituzione del seggio (**ore 16:00 di sabato 21 marzo**)\n\n**Termine ultimo:**\nÈ possibile depositare l'atto di nomina fino al **primo voto occorso nella sezione alle 07:00 di domenica 22 marzo**\n\n**⚠️ IMPORTANTE - Natura giuridica:**\nLa sottoscrizione viene apposta su un **atto pubblico (il verbale)** da parte di un soggetto (l'RDL) che in quella veste è un **Pubblico Ufficiale**.\n\nQuesto significa che la firma dell'RDL sul verbale ha valore legale e certifica quanto riportato nelle operazioni elettorali.",
             "categoria": 2,
             "scope": "SPECIFICO",
             "consultazione_specifica": 1,
@@ -119,8 +119,8 @@
         "model": "resources.faq",
         "pk": 5,
         "fields": {
-            "domanda": "Cosa succede il 21 marzo alle ore 15:00?",
-            "risposta": "**Costituzione del seggio per la prima volta**\n\nAlle ore 15:00 del **sabato 21 marzo** iniziano le operazioni preliminari:\n\n1. **Sostituzione scrutatori assenti**: Il Presidente procede a sostituire gli scrutatori assenti, chiamando in sostituzione, alternativamente, l'anziano e il più giovane tra gli elettori presenti iscritti nelle liste del comune (art. 47 d.P.R. n. 570/1960)\n\n2. **Autenticazione delle schede**: Si procede all'autenticazione delle schede per la votazione (firma di uno scrutatore + bollo della sezione)\n   - Esempio: circa 500 schede firmate su 700 consegnate\n\n3. **Ammissione RDL come tali**: Gli RDL vengono ammessi come rappresentanti, previo deposito dell'atto di nomina\n\n4. **Compilazione del verbale**: Il Segretario compila il verbale e **gli RDL appongono la propria firma o sigla**\n\n📝 **L'RDL dovrà prendere nota di questo dato** (numero di schede consegnate e vidimate) - esempio: 500 firmate/700 consegnate",
+            "domanda": "Cosa succede il 21 marzo alle ore 16:00?",
+            "risposta": "**Costituzione del seggio per la prima volta**\n\nAlle ore 16:00 del **sabato 21 marzo** iniziano le operazioni preliminari:\n\n1. **Sostituzione scrutatori assenti**: Il Presidente procede a sostituire gli scrutatori assenti, chiamando in sostituzione, alternativamente, l'anziano e il più giovane tra gli elettori presenti iscritti nelle liste del comune (art. 47 d.P.R. n. 570/1960)\n\n2. **Autenticazione delle schede**: Si procede all'autenticazione delle schede per la votazione (firma di uno scrutatore + bollo della sezione)\n   - Esempio: circa 500 schede firmate su 700 consegnate\n\n3. **Ammissione RDL come tali**: Gli RDL vengono ammessi come rappresentanti, previo deposito dell'atto di nomina\n\n4. **Compilazione del verbale**: Il Segretario compila il verbale e **gli RDL appongono la propria firma o sigla**\n\n📝 **L'RDL dovrà prendere nota di questo dato** (numero di schede consegnate e vidimate) - esempio: 500 firmate/700 consegnate",
             "categoria": 3,
             "scope": "SPECIFICO",
             "consultazione_specifica": 1,

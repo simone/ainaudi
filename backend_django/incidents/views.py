@@ -200,3 +200,97 @@ class IncidentAttachmentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(uploaded_by=self.request.user)
+
+
+# Import this at the top of the file
+from rest_framework.views import APIView
+from ai_assistant.models import ChatSession
+from ai_assistant.vertex_service import vertex_ai_service
+
+
+class SuggestIncidentFromChatView(APIView):
+    """
+    Suggest incident report data by analyzing a chat conversation.
+
+    POST /api/incidents/suggest-from-chat/
+    {
+        "session_id": 123
+    }
+
+    Returns extracted incident data using Vertex AI analysis.
+    """
+    permission_classes = [permissions.IsAuthenticated, CanManageIncidents]
+
+    def post(self, request):
+        session_id = request.data.get('session_id')
+
+        if not session_id:
+            return Response(
+                {'error': 'session_id required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Get chat session
+        try:
+            session = ChatSession.objects.get(
+                id=session_id,
+                user_email=request.user.email
+            )
+        except ChatSession.DoesNotExist:
+            return Response(
+                {'error': 'Session not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Build conversation transcript
+        messages = session.messages.order_by('created_at')
+        conversation = "\n\n".join([
+            f"{'UTENTE' if msg.role == 'user' else 'ASSISTENTE'}: {msg.content}"
+            for msg in messages
+        ])
+
+        # Get user's assigned sections
+        try:
+            from rdl.views import RDLSectionsView
+            sections_view = RDLSectionsView()
+            sections_view.request = request
+            sections_response = sections_view.get(request)
+
+            if sections_response.status_code == 200 and sections_response.data:
+                # Format: {assigned: [[num, comune, municipio, email], ...], unassigned: [...]}
+                assigned = sections_response.data.get('assigned', [])
+                user_sections = [
+                    {
+                        'id': row[0],
+                        'numero': row[0],
+                        'comune': row[1],
+                        'municipio': row[2] if len(row) > 2 else None,
+                        'email': row[3] if len(row) > 3 else None,
+                    }
+                    for row in assigned
+                ]
+            else:
+                user_sections = []
+        except:
+            user_sections = []
+
+        # Use Vertex AI to extract incident data
+        try:
+            incident_data = vertex_ai_service.extract_incident_from_conversation(
+                conversation=conversation,
+                user_sections=user_sections
+            )
+
+            return Response({
+                'success': True,
+                'incident_data': incident_data
+            })
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error extracting incident from chat: {e}", exc_info=True)
+            return Response(
+                {'error': 'Impossibile estrarre i dati della segnalazione'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

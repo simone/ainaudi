@@ -7,6 +7,7 @@ from .views import (
     IncidentReportViewSet,
     IncidentCommentViewSet,
     IncidentAttachmentViewSet,
+    SuggestIncidentFromChatView,
 )
 
 router = DefaultRouter()
@@ -16,4 +17,5 @@ router.register(r'attachments', IncidentAttachmentViewSet, basename='incident-at
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('suggest-from-chat/', SuggestIncidentFromChatView.as_view(), name='suggest-incident-from-chat'),
 ]

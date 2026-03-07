@@ -1062,6 +1062,10 @@ small.text-muted {
   background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
 }
 
+.page-header.segnalazioni {
+  background: linear-gradient(135deg, #ff6b35 0%, #e63946 100%);
+}
+
 .page-header.mass-email {
   background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
 }
@@ -1125,6 +1129,10 @@ small.text-muted {
 
 .dashboard-card-gradient-risorse {
   background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+}
+
+.dashboard-card-gradient-segnalazioni {
+  background: linear-gradient(135deg, #ff6b35 0%, #e63946 100%);
 }
 
 /* Backward compatibility */

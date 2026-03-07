@@ -73,6 +73,7 @@ class IncidentReportSerializer(serializers.ModelSerializer):
             'occurred_at',
             'resolution', 'resolved_at', 'resolved_by', 'resolved_by_email',
             'assigned_to', 'assigned_to_email',
+            'is_verbalizzato', 'is_platform_issue',
             'created_at', 'updated_at',
             'comments', 'attachments'
         ]
@@ -89,7 +90,8 @@ class IncidentReportCreateSerializer(serializers.ModelSerializer):
         model = IncidentReport
         fields = [
             'consultazione', 'sezione', 'category', 'severity',
-            'title', 'description', 'occurred_at'
+            'title', 'description', 'occurred_at',
+            'is_verbalizzato', 'is_platform_issue'
         ]
 
     def create(self, validated_data):
@@ -105,7 +107,7 @@ class IncidentReportUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'category', 'severity', 'status',
             'title', 'description', 'occurred_at',
-            'resolution', 'assigned_to'
+            'resolution', 'assigned_to', 'is_verbalizzato'
         ]
 
 
@@ -122,5 +124,6 @@ class IncidentReportListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'category', 'category_display',
             'severity', 'severity_display', 'status', 'status_display',
-            'location_description', 'reporter_email', 'created_at'
+            'location_description', 'reporter_email', 'is_verbalizzato',
+            'is_platform_issue', 'created_at'
         ]

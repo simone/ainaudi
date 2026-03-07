@@ -29,9 +29,9 @@
   --color-accent-red-light: #ff8787;
   --color-accent-red-dark: #ff5252;
 
-  --color-accent-blue: #4a9eff;    /* Blu brillante (primary actions) */
-  --color-accent-blue-light: #6bb1ff;
-  --color-accent-blue-dark: #3a8fd4;
+  --color-accent-blue: #2196F3;    /* Blu saturo (primary actions) */
+  --color-accent-blue-light: #42A5F5;
+  --color-accent-blue-dark: #1976d2;
 
   /* Semantic colors - BRILLANTI */
   --color-info: #4fc3f7;           /* Ciano brillante */
@@ -1385,6 +1385,12 @@
   background: linear-gradient(135deg, #2d7f8f 0%, #256a78 100%) !important;
 }
 
+/* Segnalazioni - Orange-Red */
+[data-theme="night"] .page-header.segnalazioni,
+[data-theme="night"] .dashboard-card-gradient-segnalazioni {
+  background: linear-gradient(135deg, #d97638 0%, #c65d3a 100%) !important;
+}
+
 /* Mass Mail - Muted Indigo */
 [data-theme="night"] .page-header.mass-email,
 [data-theme="night"] .dashboard-card-gradient-mass_email {
@@ -1616,6 +1622,118 @@
 
 [data-theme="night"] .mappatura-header {
   background: linear-gradient(135deg, #3d7ba8 0%, #32658c 100%) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Risorse Page - FAQ & Documenti
+   -------------------------------------------------------------------------- */
+
+/* FAQ risposta markdown styling */
+[data-theme="night"] .faq-risposta {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .faq-risposta strong {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .faq-risposta code {
+  background: var(--bg-dark-elevated) !important;
+  color: var(--color-info) !important;
+}
+
+[data-theme="night"] .faq-risposta pre {
+  background: var(--bg-dark-elevated) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .faq-risposta blockquote {
+  border-left-color: var(--border-strong) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* FAQ accordion */
+[data-theme="night"] .accordion-item {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-dark) !important;
+}
+
+[data-theme="night"] .accordion-button {
+  background: var(--bg-dark-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .accordion-button:not(.collapsed) {
+  background: var(--bg-dark-tertiary) !important;
+  color: var(--text-primary) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="night"] .accordion-button:focus {
+  box-shadow: none !important;
+  border-color: var(--border-medium) !important;
+}
+
+[data-theme="night"] .accordion-button::after {
+  filter: brightness(0) invert(1);
+}
+
+[data-theme="night"] .accordion-body {
+  background: var(--bg-dark-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* RDL Designazioni card (in Risorse) */
+[data-theme="night"] .page-header.risorse {
+  background: linear-gradient(135deg, var(--bg-navy-dark) 0%, var(--bg-navy-medium) 100%) !important;
+}
+
+[data-theme="night"] .list-group-item {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-dark) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .list-group-item:hover {
+  background: var(--bg-dark-tertiary) !important;
+}
+
+[data-theme="night"] .list-group-item-action:hover {
+  background: var(--bg-dark-tertiary) !important;
+}
+
+/* Badge Generator Card in Risorse */
+[data-theme="night"] .risorse .card[style*="borderLeft"] {
+  background: var(--bg-dark-secondary) !important;
+  border-color: var(--border-dark) !important;
+}
+
+[data-theme="night"] .risorse .card-header[style*="gradient"] {
+  background: linear-gradient(135deg, var(--bg-navy-dark) 0%, var(--bg-navy-medium) 100%) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .risorse .card-body {
+  background: var(--bg-dark-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="night"] .risorse .card-text {
+  color: var(--text-secondary) !important;
+}
+
+/* Override inline styles for designazioni badges */
+[data-theme="night"] .list-group-item .badge[style*="backgroundColor"] {
+  opacity: 0.9;
+}
+
+/* Doc card descriptions */
+[data-theme="night"] .doc-card-desc {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="night"] .doc-card-arrow {
+  color: var(--text-muted) !important;
 }
 
 

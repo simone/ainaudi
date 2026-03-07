@@ -297,6 +297,26 @@ function Dashboard({ user, permissions, consultazione, onNavigate, client }) {
             action: () => onNavigate('risorse'),
             cta: 'Vedi Risorse'
         },
+
+        // 15. SEGNALAZIONI
+        {
+            id: 'segnalazioni',
+            title: 'Segnalazioni',
+            icon: 'fa-exclamation-triangle',
+            color: '#ff6b35',
+            gradient: 'linear-gradient(135deg, #ff6b35 0%, #e63946 100%)',
+            description: 'Segnala problemi, irregolarità e criticità durante le operazioni elettorali.',
+            purpose: 'Sistema di incident reporting per monitorare e risolvere problemi in tempo reale.',
+            features: [
+                'Nuova segnalazione rapida',
+                'Tracciamento stato',
+                'Storico segnalazioni',
+                'Notifiche delegati'
+            ],
+            permission: user && user.id, // Tutti gli utenti autenticati
+            action: () => onNavigate('segnalazioni'),
+            cta: 'Vedi Segnalazioni'
+        },
     ];
 
     const visibleSections = sections.filter(s => s.permission);
