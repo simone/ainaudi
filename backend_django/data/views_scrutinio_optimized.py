@@ -110,6 +110,16 @@ class ScrutinioMieiSeggiLightView(APIView):
             id__in=sezioni_ids
         ).select_related('comune', 'municipio').order_by('comune__nome', 'numero')
 
+        # Count incidents per sezione
+        from incidents.models import IncidentReport
+        from django.db.models import Count
+        incidents_count = dict(
+            IncidentReport.objects.filter(
+                consultazione=consultazione,
+                sezione_id__in=sezioni_ids
+            ).values('sezione_id').annotate(count=Count('id')).values_list('sezione_id', 'count')
+        )
+
         # Get DatiSezione with progress calculation
         seggi_light = []
         for sezione in sezioni:
@@ -150,7 +160,8 @@ class ScrutinioMieiSeggiLightView(APIView):
                 'indirizzo': sezione.indirizzo or '',
                 'progresso_percentuale': progresso,
                 'is_completo': is_completo,
-                'ultimo_aggiornamento': ultimo_aggiornamento.isoformat() if ultimo_aggiornamento else None
+                'ultimo_aggiornamento': ultimo_aggiornamento.isoformat() if ultimo_aggiornamento else None,
+                'num_incidents': incidents_count.get(sezione.id, 0)
             })
 
         return Response({

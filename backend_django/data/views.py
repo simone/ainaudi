@@ -1044,6 +1044,16 @@ class ScrutinioSezioniView(APIView):
                     'telefono': a.rdl_registration.telefono or '',
                 }
 
+        # Count incidents per sezione in page
+        from incidents.models import IncidentReport
+        from django.db.models import Count
+        incidents_count = dict(
+            IncidentReport.objects.filter(
+                consultazione=consultazione,
+                sezione_id__in=sezioni_page_ids
+            ).values('sezione_id').annotate(count=Count('id')).values_list('sezione_id', 'count')
+        )
+
         sezioni_list = []
         for sezione in sezioni_page:
             # Get or create DatiSezione
@@ -1088,6 +1098,7 @@ class ScrutinioSezioniView(APIView):
                 'schede': schede_data,
                 'effettivo': sez_assignments.get('RDL'),
                 'supplente': sez_assignments.get('SUPPLENTE'),
+                'num_incidents': incidents_count.get(sezione.id, 0),
             })
 
         return Response({
