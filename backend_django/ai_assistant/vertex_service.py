@@ -364,10 +364,6 @@ Rispondi SOLO con JSON:
             from vertexai.generative_models import Content, Part, ToolConfig
             from datetime import datetime
 
-            now = datetime.now()
-            date_context = f"""DATA DI OGGI: {now.strftime('%A %d %B %Y')}
-(Giorno della settimana: {now.strftime('%A')}, Ora: {now.strftime('%H:%M')})"""
-
             contents = []
 
             # Add conversation history FIRST (so the model sees the full conversation)
@@ -378,17 +374,15 @@ Rispondi SOLO con JSON:
             # Build the current user message with context appended (not as separate synthetic messages)
             current_message = conversation_history[-1]['content'] if conversation_history else ""
             if context:
-                current_message_with_context = f"""{current_message}
+                current_message_with_context = f"""=== DATI REALI DAL SISTEMA (NON INVENTARE, USA SOLO QUESTI) ===
+{context}
+=== FINE DATI REALI ===
 
----
-{date_context}
-
-DATI E DOCUMENTI DI RIFERIMENTO (FIDATI di questi dati, sono reali e aggiornati):
-{context}"""
+Domanda dell'utente: {current_message}"""
                 contents.append(Content(role="user", parts=[Part.from_text(current_message_with_context)]))
             else:
                 if current_message:
-                    contents.append(Content(role="user", parts=[Part.from_text(f"{current_message}\n\n---\n{date_context}")]))
+                    contents.append(Content(role="user", parts=[Part.from_text(current_message)]))
 
             # Configure function calling (AUTO mode)
             tool_config = None

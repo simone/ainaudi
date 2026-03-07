@@ -512,10 +512,31 @@ class ChatView(APIView):
                 ]
 
                 if consultazione:
-                    consultazione_info = f"CONSULTAZIONE ATTIVA: {consultazione.nome} (dal {consultazione.data_inizio.strftime('%d/%m/%Y') if consultazione.data_inizio else '?'} al {consultazione.data_fine.strftime('%d/%m/%Y') if consultazione.data_fine else '?'})"
+                    # Compute temporal relationship to consultazione
+                    today = now.date()
+                    data_inizio = consultazione.data_inizio
+                    data_fine = consultazione.data_fine
+
+                    if data_inizio and data_fine:
+                        if today < data_inizio:
+                            days_until = (data_inizio - today).days
+                            fase = f"PRIMA della consultazione. Mancano {days_until} giorni all'inizio."
+                        elif today > data_fine:
+                            days_since = (today - data_fine).days
+                            fase = f"DOPO la consultazione. Terminata da {days_since} giorni."
+                        else:
+                            fase = "IN CORSO. Siamo nel periodo della consultazione."
+                    else:
+                        fase = "Date non disponibili."
+
+                    consultazione_info = (
+                        f"CONSULTAZIONE ATTIVA: {consultazione.nome}\n"
+                        f"  Date: dal {data_inizio.strftime('%A %d %B %Y') if data_inizio else '?'} "
+                        f"al {data_fine.strftime('%A %d %B %Y') if data_fine else '?'}\n"
+                        f"  STATO TEMPORALE: {fase}"
+                    )
                     if consultazione.descrizione:
                         consultazione_info += f"\n  Descrizione: {consultazione.descrizione[:300]}"
-                    # Include election types
                     tipi_elezione = consultazione.tipi_elezione.all()
                     if tipi_elezione:
                         tipi_names = ", ".join([t.get_tipo_display() if hasattr(t, 'get_tipo_display') else str(t) for t in tipi_elezione[:5]])
@@ -578,8 +599,9 @@ class ChatView(APIView):
                         pass
 
                 user_profile_context = "\n".join(profile_parts)
+                logger.debug(f"User profile context:\n{user_profile_context}")
             except Exception as e:
-                logger.warning(f"Error retrieving user context: {e}")
+                logger.warning(f"Error retrieving user context: {e}", exc_info=True)
                 user_profile_context = f"PROFILO UTENTE: {request.user.email}"
 
             # Get RAG context (retrieve similar documents)
