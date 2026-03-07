@@ -313,7 +313,7 @@ function Dashboard({ user, permissions, consultazione, onNavigate, client }) {
                 'Storico segnalazioni',
                 'Notifiche delegati'
             ],
-            permission: user && user.id, // Tutti gli utenti autenticati
+            permission: permissions.can_manage_incidents,
             action: () => onNavigate('segnalazioni'),
             cta: 'Vedi Segnalazioni'
         },
