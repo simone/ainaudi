@@ -16,170 +16,90 @@ logger = logging.getLogger(__name__)
 
 def execute_ai_function(function_name: str, args: dict, session, request) -> dict:
     """Execute an AI-requested function and return the result."""
-    if function_name == 'suggest_incident_report':
-        # Extract incident data from conversation
+    if function_name == 'create_incident_report':
         try:
-            from .vertex_service import vertex_ai_service
+            from incidents.models import IncidentReport
+            from elections.models import ConsultazioneElettorale
+            from territory.models import SezioneElettorale
 
-            # Build conversation transcript
-            messages = session.messages.order_by('created_at')
-            conversation = "\n\n".join([
-                f"{'UTENTE' if msg.role == 'user' else 'ASSISTENTE'}: {msg.content}"
-                for msg in messages
-            ])
+            logger.info(f"create_incident_report called with args: {args}")
 
-            # Get user's assigned sections with FULL details
-            user_sections = []
-            try:
-                from delegations.models import DesignazioneRDL
-                from territory.models import SezioneElettorale
-                from elections.models import ConsultazioneElettorale
+            consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
+            if not consultazione:
+                return {'message': 'Non c\'e una consultazione attiva al momento.', 'data': None}
 
-                consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
-                if consultazione:
-                    designazioni = DesignazioneRDL.objects.filter(
-                        processo__consultazione=consultazione,
-                        rdl_email=request.user.email,
-                        stato='APPROVATA'
-                    ).select_related('sezione', 'sezione__comune', 'sezione__municipio')
+            # Resolve sezione from number
+            sezione = None
+            sezione_numero = args.get('sezione_numero', '').strip()
+            if sezione_numero:
+                try:
+                    sezione = SezioneElettorale.objects.filter(
+                        numero=int(sezione_numero),
+                        is_attiva=True
+                    ).first()
+                except (ValueError, TypeError):
+                    logger.warning(f"Invalid sezione_numero: {sezione_numero}")
 
-                    for des in designazioni:
-                        sez = des.sezione
-                        if sez:
-                            user_sections.append({
-                                'id': sez.numero,
-                                'numero': sez.numero,
-                                'comune': sez.comune.nome,
-                                'municipio': sez.municipio.nome if sez.municipio else None,
-                                'indirizzo': sez.indirizzo,
-                                'denominazione': sez.denominazione
-                            })
-            except Exception as e:
-                logger.warning(f"Error retrieving sections for incident: {e}")
+            # Map args to model fields
+            category = args.get('category', 'OTHER').upper()
+            severity = args.get('severity', 'HIGH').upper()
+            valid_categories = ['PROCEDURAL', 'ACCESS', 'MATERIALS', 'INTIMIDATION', 'IRREGULARITY', 'TECHNICAL', 'OTHER']
+            valid_severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+            if category not in valid_categories:
+                category = 'OTHER'
+            if severity not in valid_severities:
+                severity = 'HIGH'
 
-            # Get user's full name
-            user_name = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.email
-
-            # Extract incident data
-            incident_data = vertex_ai_service.extract_incident_from_conversation(
-                conversation=conversation,
-                user_sections=user_sections,
-                user_name=user_name
+            incident = IncidentReport.objects.create(
+                consultazione=consultazione,
+                sezione=sezione,
+                title=args.get('title', 'Segnalazione da chat')[:200],
+                description=args.get('description', ''),
+                category=category,
+                severity=severity,
+                reporter=request.user,
+                is_verbalizzato=args.get('is_verbalizzato', False),
             )
 
-            # Format message
+            # Update session metadata
+            session.metadata = session.metadata or {}
+            session.metadata['incident_id'] = incident.id
+            session.title = f"Segnalazione: {incident.title[:40]}"
+            session.save()
+
             category_labels = {
                 'PROCEDURAL': 'Procedurale', 'ACCESS': 'Accesso al seggio',
                 'MATERIALS': 'Materiali', 'INTIMIDATION': 'Intimidazione',
-                'IRREGULARITY': 'Irregolarità', 'TECHNICAL': 'Tecnico', 'OTHER': 'Altro',
+                'IRREGULARITY': 'Irregolarita', 'TECHNICAL': 'Tecnico', 'OTHER': 'Altro',
             }
             severity_labels = {
                 'LOW': 'Bassa', 'MEDIUM': 'Media', 'HIGH': 'Alta', 'CRITICAL': 'Critica',
             }
+            sezione_text = f"Sezione {sezione.numero} - {sezione.comune.nome}" if sezione else "Generale"
 
-            # Get full section details for display
-            sezione_text = "Generale (non specifica a sezione)"
-            sezione_detail = None
-            if incident_data.get('sezione'):
-                # Find section details from user_sections
-                sezione_detail = next((s for s in user_sections if s['numero'] == incident_data['sezione']), None)
-                if sezione_detail:
-                    sezione_text = (
-                        f"Sezione {sezione_detail['numero']} - {sezione_detail['comune']}"
-                        f"{' ('+sezione_detail['municipio']+')' if sezione_detail.get('municipio') else ''}"
-                        f"{' - '+sezione_detail['indirizzo'] if sezione_detail.get('indirizzo') else ''}"
-                        f"{' ('+sezione_detail['denominazione']+')' if sezione_detail.get('denominazione') else ''}"
-                    )
-                else:
-                    sezione_text = f"Sezione {incident_data['sezione']}"
+            verbale_reminder = ""
+            if sezione and not args.get('is_verbalizzato', False):
+                verbale_reminder = "\n\nRicorda di annotare l'incidente anche sul registro di sezione."
 
-            # Add verbalizzazione suggestion for section-specific incidents
-            verbalizzazione_text = ""
-            if sezione_detail:
-                # Extract first 120 chars of description for verbale
-                desc_short = incident_data['description'][:120] + "..." if len(incident_data['description']) > 120 else incident_data['description']
-                verbalizzazione_text = f"\n\n📝 **Suggerimento per verbale:**\n_\"Alle ore [ora], {desc_short} Firma RDL.\"_\n\nRicorda di annotarlo sul registro di sezione se non l'hai già fatto."
-
-            message = f"""Ecco la segnalazione che preparo:
-
-📋 **Titolo:** {incident_data['title']}
-
-📝 **Descrizione:** {incident_data['description']}
-
-🏷️ **Categoria:** {category_labels.get(incident_data['category'], incident_data['category'])}
-
-⚠️ **Gravità:** {severity_labels.get(incident_data['severity'], incident_data['severity'])}
-
-🗳️ **Sezione:** {sezione_text}
-{verbalizzazione_text}
-
-Confermi? Rispondi "sì" e la creo."""
-
-            # Store in session metadata
-            session.metadata = session.metadata or {}
-            session.metadata['pending_incident'] = incident_data
-            session.save()
-
-            return {'message': message, 'data': incident_data}
-
-        except Exception as e:
-            logger.error(f"Error in suggest_incident_report: {e}", exc_info=True)
-            return {
-                'message': '❌ Mi dispiace, ho avuto un problema nell\'analizzare la conversazione.',
-                'data': None
-            }
-
-    elif function_name == 'create_incident_report':
-        # Create incident from stored data
-        pending_incident = session.metadata.get('pending_incident') if session.metadata else None
-
-        if not pending_incident:
-            return {
-                'message': '❌ Non ho trovato dati di segnalazione pendenti. Riprova a descrivere il problema.',
-                'data': None
-            }
-
-        try:
-            from incidents.models import IncidentReport
-            from elections.models import ConsultazioneElettorale
-
-            consultazione = ConsultazioneElettorale.objects.filter(is_attiva=True).first()
-            if not consultazione:
-                return {'message': '❌ Non c\'è una consultazione attiva al momento.', 'data': None}
-
-            incident = IncidentReport.objects.create(
-                consultazione=consultazione,
-                sezione_id=pending_incident.get('sezione'),
-                title=pending_incident['title'],
-                description=pending_incident['description'],
-                category=pending_incident['category'],
-                severity=pending_incident['severity'],
-                reporter=request.user,
-                is_verbalizzato=False
+            message = (
+                f"**Segnalazione #{incident.id} creata!**\n\n"
+                f"**Titolo:** {incident.title}\n"
+                f"**Categoria:** {category_labels.get(category, category)}\n"
+                f"**Gravita:** {severity_labels.get(severity, severity)}\n"
+                f"**Sezione:** {sezione_text}\n"
+                f"{verbale_reminder}"
             )
 
-            # Save incident_id in session metadata and update title
-            session.metadata['pending_incident'] = None
-            session.metadata['incident_id'] = incident.id
-            session.title = f"📋 {incident.title}"  # Update chat title with incident title
-            session.save()
-
-            # Add verbalizzazione reminder for section incidents
-            verbale_reminder = ""
-            if incident.sezione_id:
-                verbale_reminder = "\n\n📝 **Ricorda:** Annota l'incidente sul registro di sezione se non l'hai già fatto. Puoi segnare come \"Verbalizzato\" nella scheda della segnalazione."
-
-            return {
-                'message': f'✅ **Segnalazione creata con successo!**\n\nID: {incident.id} | Clicca sull\'intestazione della chat per visualizzarla.{verbale_reminder}',
-                'data': {'incident_id': incident.id}
-            }
+            logger.info(f"Incident #{incident.id} created via chat by {request.user.email}")
+            return {'message': message, 'data': {'incident_id': incident.id}}
 
         except Exception as e:
             logger.error(f"Error in create_incident_report: {e}", exc_info=True)
-            return {'message': f'❌ Errore nella creazione: {str(e)}', 'data': None}
+            return {'message': f'Errore nella creazione della segnalazione: {str(e)}', 'data': None}
 
     else:
-        return {'message': f'⚠️ Funzione sconosciuta: {function_name}', 'data': None}
+        logger.warning(f"Unknown function called: {function_name} with args: {args}")
+        return {'message': f'Funzione sconosciuta: {function_name}', 'data': None}
 
 
 def generate_session_title(first_message: str) -> str:

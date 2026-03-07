@@ -1,46 +1,59 @@
 """
 Tool definitions for AI Assistant function calling.
+
+Single function: create_incident_report
+- The AI gathers info conversationally, shows a summary, asks for confirmation
+- When user confirms, AI calls this function with all the data
+- The function creates the incident in the database
 """
 from vertexai.generative_models import Tool, FunctionDeclaration
 
 
-# Single tool with both incident management functions
-# NOTE: Vertex AI requires all tools to be in a single Tool object when using function calling
 incident_management_tool = Tool(
     function_declarations=[
         FunctionDeclaration(
-            name="suggest_incident_report",
-            description="⚠️ CHIAMAMI ADESSO se hai raccolto TUTTE queste informazioni: "
-                        "(1) Sezione identificata (o NULL se generico), "
-                        "(2) Descrizione dettagliata del problema (min 20 parole), "
-                        "(3) Conferma verbalizzazione ricevuta (se sezione). "
-                        "⚠️ NON dire 'preparo il preview' senza chiamarmi - SE dici che prepari il preview, DEVI chiamarmi nello stesso turno! "
-                        "Questa funzione genera il preview formattato della segnalazione da mostrare all'utente per conferma.",
+            name="create_incident_report",
+            description=(
+                "Crea una segnalazione di incidente nel database. "
+                "CHIAMA QUESTA FUNZIONE quando l'utente ha confermato di voler aprire la segnalazione "
+                "(es. 'si', 'ok', 'confermo', 'apri', 'vai'). "
+                "Passa TUTTI i dati raccolti dalla conversazione."
+            ),
             parameters={
                 "type": "object",
                 "properties": {
-                    "ready_to_create": {
+                    "title": {
+                        "type": "string",
+                        "description": "Titolo breve della segnalazione (max 200 caratteri)"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Descrizione dettagliata dell'incidente, raccolta dalla conversazione"
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": ["PROCEDURAL", "ACCESS", "MATERIALS", "INTIMIDATION", "IRREGULARITY", "TECHNICAL", "OTHER"],
+                        "description": "Categoria: PROCEDURAL (procedure), ACCESS (accesso seggio), MATERIALS (materiali), INTIMIDATION (intimidazioni), IRREGULARITY (irregolarita), TECHNICAL (tecnico piattaforma), OTHER (altro)"
+                    },
+                    "severity": {
+                        "type": "string",
+                        "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+                        "description": "Gravita: LOW (bassa), MEDIUM (media), HIGH (alta), CRITICAL (critica)"
+                    },
+                    "sezione_numero": {
+                        "type": "string",
+                        "description": "Numero della sezione elettorale (es. '42', '12345'). Vuoto se problema generico non legato a sezione."
+                    },
+                    "is_verbalizzato": {
                         "type": "boolean",
-                        "description": "Conferma che hai tutti i dati necessari (true)"
+                        "description": "Se l'utente ha gia verbalizzato l'incidente nel registro di sezione"
                     }
                 },
-                "required": ["ready_to_create"]
-            }
-        ),
-        FunctionDeclaration(
-            name="create_incident_report",
-            description="Crea effettivamente la segnalazione nel database dopo conferma dell'utente. "
-                        "Usa questa funzione SOLO dopo aver chiamato suggest_incident_report "
-                        "E dopo aver ricevuto conferma esplicita dall'utente (es. 'sì', 'ok', 'vai', 'conferma').",
-            parameters={
-                "type": "object",
-                "properties": {},
-                "required": []
+                "required": ["title", "description", "category", "severity"]
             }
         )
     ]
 )
-
 
 # Tools list for views.py
 incident_management_tools = [incident_management_tool]
