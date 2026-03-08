@@ -146,6 +146,40 @@ class ConversationOrchestrator:
                 user_sections_list=user_sections_list,
             )
         else:
+            # Guard: never return 🤷 in the middle of a conversation
+            content = (ai_response.get("content") or "").strip()
+            if content == "🤷" and len(conversation_history) > 2:
+                logger.warning(
+                    "Orchestrator: blocked 🤷 in active conversation (history=%d msgs), retrying",
+                    len(conversation_history),
+                )
+                # Retry with explicit instruction appended to context
+                retry_context = (
+                    context_text
+                    + "\n\nIMPORTANTE: NON rispondere con 🤷. "
+                    "Questa e una conversazione attiva. "
+                    "Rispondi nel merito del messaggio dell'utente, "
+                    "anche se non hai documenti pertinenti. "
+                    "Se non puoi eseguire l'azione richiesta, spiega perche."
+                )
+                retry_response = vertex_ai_service.generate_with_tools(
+                    conversation_history=conversation_history,
+                    context=retry_context,
+                    tools=all_ai_tools,
+                    attachments=attachment_data,
+                )
+                if retry_response.get("content") and retry_response["content"].strip() != "🤷":
+                    ai_response = retry_response
+                    logger.info("Orchestrator: retry succeeded, got meaningful response")
+                else:
+                    # Fallback: generic contextual response
+                    ai_response["content"] = (
+                        "Non ho capito bene. Puoi riformulare la domanda? "
+                        "Sono qui per aiutarti con le procedure elettorali, "
+                        "lo scrutinio e le segnalazioni."
+                    )
+                    logger.info("Orchestrator: retry also returned 🤷, using fallback")
+
             # Text response = knowledge/conversational intent
             logger.info("Orchestrator: routing to text response (knowledge/conversational)")
             return self._build_text_response(
