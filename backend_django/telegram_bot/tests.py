@@ -43,6 +43,20 @@ class PhoneNormalizationTest(TestCase):
     def test_with_spaces(self):
         self.assertEqual(binding_service.normalize_phone_number('+39 347 123 4567'), '+393471234567')
 
+    def test_extract_national_number_with_country_code(self):
+        self.assertEqual(binding_service._extract_national_number('393471234567'), '3471234567')
+
+    def test_extract_national_number_without_country_code(self):
+        self.assertEqual(binding_service._extract_national_number('3471234567'), '3471234567')
+
+    def test_extract_national_number_non_italian(self):
+        """Non-Italian number (e.g. +44) should be left as-is."""
+        self.assertEqual(binding_service._extract_national_number('447911123456'), '447911123456')
+
+    def test_extract_digits(self):
+        self.assertEqual(binding_service._extract_digits('+39 347-123.4567'), '393471234567')
+        self.assertEqual(binding_service._extract_digits('347/1234567'), '3471234567')
+
 
 @override_settings(TELEGRAM_BOT_TOKEN='test-token', TELEGRAM_WEBHOOK_SECRET='')
 class BindingServiceTest(TestCase):
@@ -65,6 +79,55 @@ class BindingServiceTest(TestCase):
 
     def test_find_user_national_match(self):
         """Match by national number suffix."""
+        found = binding_service.find_user_by_phone('+393471234567')
+        self.assertEqual(found, self.user)
+
+    def test_find_user_db_has_spaces(self):
+        """DB stores '347 123 4567', Telegram sends '+393471234567'."""
+        self.user.phone_number = '347 123 4567'
+        self.user.save()
+        found = binding_service.find_user_by_phone('+393471234567')
+        self.assertEqual(found, self.user)
+
+    def test_find_user_db_has_dashes(self):
+        """DB stores '347-123-4567'."""
+        self.user.phone_number = '347-123-4567'
+        self.user.save()
+        found = binding_service.find_user_by_phone('+393471234567')
+        self.assertEqual(found, self.user)
+
+    def test_find_user_db_has_spaces_with_prefix(self):
+        """DB stores '+39 347 123 4567'."""
+        self.user.phone_number = '+39 347 123 4567'
+        self.user.save()
+        found = binding_service.find_user_by_phone('+393471234567')
+        self.assertEqual(found, self.user)
+
+    def test_find_user_db_bare_no_country_code(self):
+        """DB stores '3471234567' (no country code)."""
+        self.user.phone_number = '3471234567'
+        self.user.save()
+        found = binding_service.find_user_by_phone('+393471234567')
+        self.assertEqual(found, self.user)
+
+    def test_find_user_db_has_country_no_plus(self):
+        """DB stores '393471234567' (country code without +)."""
+        self.user.phone_number = '393471234567'
+        self.user.save()
+        found = binding_service.find_user_by_phone('+393471234567')
+        self.assertEqual(found, self.user)
+
+    def test_find_user_db_has_slash(self):
+        """DB stores '347/1234567'."""
+        self.user.phone_number = '347/1234567'
+        self.user.save()
+        found = binding_service.find_user_by_phone('+393471234567')
+        self.assertEqual(found, self.user)
+
+    def test_find_user_db_has_dots(self):
+        """DB stores '347.123.4567'."""
+        self.user.phone_number = '347.123.4567'
+        self.user.save()
         found = binding_service.find_user_by_phone('+393471234567')
         self.assertEqual(found, self.user)
 

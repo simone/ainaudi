@@ -30,29 +30,49 @@ def normalize_phone_number(raw: str) -> str:
     return cleaned
 
 
+def _extract_digits(phone: str) -> str:
+    """Extract only digit characters from a phone string."""
+    return re.sub(r'\D', '', phone)
+
+
+def _extract_national_number(digits: str) -> str:
+    """
+    Extract the national part of an Italian phone number (strip country code).
+    Handles both '39...' and '0039...' prefixes.
+    Italian mobile numbers are 10 digits (3xx xxx xxxx).
+    """
+    # Handle 0039 international prefix
+    if digits.startswith('0039') and len(digits) >= 13:
+        national = digits[4:]
+        if national[0] in ('0', '3'):
+            return national
+    # Handle 39 country code
+    if digits.startswith('39') and len(digits) >= 11:
+        national = digits[2:]
+        if national[0] in ('0', '3'):
+            return national
+    return digits
+
+
 def find_user_by_phone(phone_normalized: str) -> User | None:
     """
     Find an internal user by normalized phone number.
-    Tries exact match first, then strips country code for flexible matching.
+
+    Robust matching: extracts digits from both the incoming number and
+    each DB phone_number, then compares national numbers. This handles
+    any DB format: spaces, dashes, dots, missing/present country code.
     """
-    # Exact match
-    user = User.objects.filter(phone_number=phone_normalized, is_active=True).first()
-    if user:
-        return user
+    target_national = _extract_national_number(_extract_digits(phone_normalized))
 
-    # Try without '+' prefix (some users may have stored '39...' instead of '+39...')
-    bare = phone_normalized.lstrip('+')
-    user = User.objects.filter(phone_number=bare, is_active=True).first()
-    if user:
-        return user
+    users_with_phone = User.objects.filter(
+        phone_number__isnull=False, is_active=True,
+    ).exclude(phone_number='')
 
-    # Try matching the national part (strip country code)
-    if phone_normalized.startswith('+39'):
-        national = phone_normalized[3:]
-        user = User.objects.filter(
-            phone_number__endswith=national, is_active=True
-        ).first()
-        if user:
+    for user in users_with_phone.iterator():
+        db_digits = _extract_digits(user.phone_number)
+        if not db_digits:
+            continue
+        if _extract_national_number(db_digits) == target_national:
             return user
 
     return None
