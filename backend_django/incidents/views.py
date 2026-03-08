@@ -215,10 +215,7 @@ class IncidentAttachmentViewSet(viewsets.ModelViewSet):
         serializer.save(uploaded_by=self.request.user)
 
 
-# Import this at the top of the file
 from rest_framework.views import APIView
-from ai_assistant.models import ChatSession
-from ai_assistant.vertex_service import vertex_ai_service
 
 
 class SuggestIncidentFromChatView(APIView):
@@ -242,6 +239,10 @@ class SuggestIncidentFromChatView(APIView):
                 {'error': 'session_id required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # Lazy imports: ai_assistant may not be in INSTALLED_APPS on all services
+        from ai_assistant.models import ChatSession
+        from ai_assistant.vertex_service import vertex_ai_service  # noqa: F811
 
         # Get chat session
         try:
