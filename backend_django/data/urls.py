@@ -39,6 +39,8 @@ from .views_scrutinio_optimized import (
 )
 # Import aggregated scrutinio view
 from .views_scrutinio_aggregato import ScrutinioAggregatoView
+# Import PDF form view
+from .views_scrutinio_pdf import ScrutinioFormPDFView
 # Import mappatura gerarchica view
 from .views_mappatura_gerarchica import MappaturaGerarchicaView
 # Import mappatura analizza preferenze view
@@ -96,4 +98,6 @@ scrutinio_urlpatterns = [
     path('sezioni/<int:sezione_id>/save', ScrutinioSezioneSaveView.as_view(), name='scrutinio-sezione-save'),
     # Aggregated view for delegati/subdelegati
     path('aggregato', ScrutinioAggregatoView.as_view(), name='scrutinio-aggregato'),
+    # Printable PDF form
+    path('form-pdf', ScrutinioFormPDFView.as_view(), name='scrutinio-form-pdf'),
 ]

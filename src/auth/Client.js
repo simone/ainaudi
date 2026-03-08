@@ -417,6 +417,25 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             });
         },
 
+        // Download printable PDF form for scrutinio data collection
+        formPDF: async (sezioneId = null) => {
+            const params = new URLSearchParams();
+            if (sezioneId) params.append('sezione_id', sezioneId);
+            const url = `${server}/api/scrutinio/form-pdf${params.toString() ? '?' + params : ''}`;
+            return fetch(url, {
+                headers: { 'Authorization': authHeader }
+            }).then(async response => {
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(text || `HTTP ${response.status}`);
+                }
+                return response.blob();
+            }).catch(error => {
+                console.error('Error downloading PDF:', error);
+                throw error;
+            });
+        },
+
         // Get aggregated scrutinio data for delegati/subdelegati (hierarchical drill-down)
         aggregato: async (consultazioneId, regioneId, provinciaId, comuneId, municipioId) => {
             const params = new URLSearchParams();

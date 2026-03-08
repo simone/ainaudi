@@ -379,6 +379,28 @@ function SectionList({client, user, setError, referenti}) {
                 <div className="page-header-subtitle">
                     Inserimento dati votazioni per le tue sezioni
                 </div>
+                {sections.length > 0 && (
+                    <button
+                        className="btn btn-outline-primary btn-sm mt-2"
+                        onClick={async () => {
+                            try {
+                                const blob = await client.scrutinio.formPDF();
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = 'modulo_scrutinio.pdf';
+                                a.click();
+                                URL.revokeObjectURL(url);
+                            } catch (err) {
+                                setError('Errore nel download del modulo PDF');
+                            }
+                        }}
+                        title="Scarica modulo stampabile per raccolta dati"
+                    >
+                        <i className="fas fa-file-pdf me-1"></i>
+                        Scarica modulo cartaceo
+                    </button>
+                )}
             </div>
 
             {/* Search */}
