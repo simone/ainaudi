@@ -6,7 +6,7 @@ All API endpoints except /admin/ and /api/ai/.
 from django.urls import path, include
 from django.conf import settings
 
-from core.views import PermissionsView
+from core.views import PermissionsView, ClientErrorView
 from data.views import (
     RdlEmailsView,
     RdlSectionsView,
@@ -55,6 +55,12 @@ urlpatterns = [
 
     # Admin endpoints (elevated permissions)
     path('api/admin/', include('notifications.urls_admin')),
+
+    # Frontend error reporting
+    path('api/client-errors/', ClientErrorView.as_view(), name='client-errors'),
+
+    # Incidents reporting
+    path('api/incidents/', include('incidents.urls')),
 
     # Other API endpoints
     path('api/sections/', include('data.urls')),
