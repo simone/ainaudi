@@ -66,6 +66,9 @@ services:
       - VERTEX_AI_PROJECT=${VERTEX_AI_PROJECT:-ainaudi-prod}
       - VERTEX_AI_LOCATION=${VERTEX_AI_LOCATION:-europe-west1}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/gcp-credentials.json
+      # Telegram Bot
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET:-}
     volumes:
       - ./backend_django:/app
       - backend_static:/app/staticfiles

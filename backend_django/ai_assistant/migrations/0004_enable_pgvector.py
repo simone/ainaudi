@@ -1,7 +1,17 @@
 """
 Enable pgvector extension for vector similarity search.
 """
-from django.db import migrations
+from django.db import connection, migrations
+
+
+def enable_pgvector(apps, schema_editor):
+    if connection.vendor == 'postgresql':
+        schema_editor.execute('CREATE EXTENSION IF NOT EXISTS vector;')
+
+
+def disable_pgvector(apps, schema_editor):
+    if connection.vendor == 'postgresql':
+        schema_editor.execute('DROP EXTENSION IF EXISTS vector;')
 
 
 class Migration(migrations.Migration):
@@ -10,8 +20,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(
-            sql='CREATE EXTENSION IF NOT EXISTS vector;',
-            reverse_sql='DROP EXTENSION IF EXISTS vector;'
-        )
+        migrations.RunPython(enable_pgvector, disable_pgvector),
     ]
