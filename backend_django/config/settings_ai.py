@@ -19,6 +19,10 @@ INSTALLED_APPS = [
     # Project apps (minimum for AI)
     'core.apps.CoreConfig',
     'territory.apps.TerritoryConfig',
+    'elections.apps.ElectionsConfig',
+    'delegations.apps.DelegationsConfig',
+    'data.apps.DataConfig',
+    'incidents.apps.IncidentsConfig',
     'ai_assistant.apps.AiAssistantConfig',
 ]
 
