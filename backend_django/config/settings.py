@@ -669,6 +669,7 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 # AWS SES Configuration for django-ses
 AWS_SES_REGION_NAME = os.environ.get('AWS_SES_REGION_NAME', 'eu-west-3')
 AWS_SES_REGION_ENDPOINT = os.environ.get('AWS_SES_REGION_ENDPOINT', 'email.eu-west-3.amazonaws.com')
+AWS_SES_CONFIGURATION_SET = os.environ.get('AWS_SES_CONFIGURATION_SET', 'ainaudi-delivery')
 
 # django-ses uses these settings
 AWS_SES = {

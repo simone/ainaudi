@@ -350,23 +350,28 @@ class MagicLinkVerifyView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
-            cache_key = f"magic_link_otp_{user.id}"
-            stored_otp = cache.get(cache_key)
+            # Method 3: Check PIN code first (admin-configured, no email needed)
+            if user.pin_code and otp == user.pin_code:
+                pass  # PIN matched, proceed to login
+            else:
+                # Method 2: OTP verification via cache
+                cache_key = f"magic_link_otp_{user.id}"
+                stored_otp = cache.get(cache_key)
 
-            if not stored_otp:
-                return Response(
-                    {'error': 'Codice scaduto. Richiedine uno nuovo.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                if not stored_otp:
+                    return Response(
+                        {'error': 'Codice scaduto. Richiedine uno nuovo.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
-            if otp != stored_otp:
-                return Response(
-                    {'error': 'Codice non valido.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                if otp != stored_otp:
+                    return Response(
+                        {'error': 'Codice non valido.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
-            # OTP used successfully, delete it
-            cache.delete(cache_key)
+                # OTP used successfully, delete it
+                cache.delete(cache_key)
 
         created = False
 

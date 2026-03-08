@@ -109,6 +109,13 @@ class User(AbstractUser):
         blank=True,
         null=True
     )
+    pin_code = models.CharField(
+        _('PIN di accesso'),
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text=_('Codice PIN alternativo per login (configurato da admin, per utenti che non ricevono email)')
+    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []

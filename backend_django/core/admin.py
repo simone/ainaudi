@@ -34,6 +34,10 @@ class UserAdmin(BaseUserAdmin):
         (_('Informazioni personali'), {
             'fields': ('display_name', 'first_name', 'last_name', 'phone_number', 'avatar_url')
         }),
+        (_('PIN di accesso'), {
+            'fields': ('pin_code',),
+            'description': 'Codice PIN alternativo per utenti che non ricevono email (es. Hotmail)',
+        }),
         (_('Permessi'), {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
         }),
