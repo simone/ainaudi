@@ -90,6 +90,9 @@ urlpatterns = [
     # Incidents reporting
     path('api/incidents/', include('incidents.urls')),
 
+    # Telegram Bot webhook and setup
+    path('api/telegram/', include('telegram_bot.urls')),
+
     # Public campaign endpoints (no auth required)
     # Italian paths used by frontend
     path('api/campagna/<slug:slug>/', CampagnaPublicView.as_view(), name='campagna-public'),

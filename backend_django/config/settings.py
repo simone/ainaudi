@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     'kpi.apps.KpiConfig',
     'ai_assistant.apps.AiAssistantConfig',
     'notifications.apps.NotificationsConfig',
+    'telegram_bot.apps.TelegramBotConfig',
 ]
 
 MIDDLEWARE = [
@@ -375,6 +376,11 @@ LOGGING = {
         },
         'notifications': {
             'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'telegram_bot': {
+            'handlers': ['console_verbose'],
             'level': 'INFO',
             'propagate': False,
         },
@@ -747,3 +753,11 @@ ASSIGNMENT_NOTIFICATION_OFFSETS = [
     {'hours': -2, 'label': '2 ore prima'},
     {'time': '07:30', 'label': 'Mattina stessa'},
 ]
+
+
+# =============================================================================
+# TELEGRAM BOT CONFIGURATION
+# =============================================================================
+
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+TELEGRAM_WEBHOOK_SECRET = os.environ.get('TELEGRAM_WEBHOOK_SECRET', '')
