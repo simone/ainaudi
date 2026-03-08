@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'delegations.apps.DelegationsConfig',  # data.views imports delegations.models
     'campaign.apps.CampaignConfig',
     'documents.apps.DocumentsConfig',  # delegations.models imports documents.models
+    'incidents.apps.IncidentsConfig',  # data.views imports incidents.models
     'resources.apps.ResourcesConfig',
 ]
 
