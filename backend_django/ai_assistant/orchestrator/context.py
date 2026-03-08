@@ -152,7 +152,9 @@ def _build_sections_context(user, consultazione, user_role: str, profile_parts: 
             profile_parts.append(f"SEZIONI ASSEGNATE COME RDL:\n{sections_text}")
     else:
         if user_role == "RDL":
-            profile_parts.append("SEZIONI: Nessuna sezione ancora assegnata")
+            # Don't mention "no sections" — irrelevant for most questions.
+            # The system will block section-specific operations when no sections are assigned.
+            pass
         else:
             profile_parts.append(
                 "NOTA: Come delegato, puoi segnalare per qualsiasi sezione del tuo territorio"
