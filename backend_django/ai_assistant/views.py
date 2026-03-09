@@ -278,20 +278,24 @@ class ChatView(APIView):
                     }
                 ]
 
-            return Response(
-                {
-                    "session_id": session.id,
-                    "title": session.title,
-                    "user_message": user_msg_data,
-                    "message": {
-                        "id": assistant_message.id,
-                        "role": assistant_message.role,
-                        "content": assistant_message.content,
-                        "sources": rag_result["sources"],
-                        "retrieved_docs": rag_result["retrieved_docs"],
-                    },
-                }
-            )
+            response_data = {
+                "session_id": session.id,
+                "title": session.title,
+                "user_message": user_msg_data,
+                "message": {
+                    "id": assistant_message.id,
+                    "role": assistant_message.role,
+                    "content": assistant_message.content,
+                    "sources": rag_result["sources"],
+                    "retrieved_docs": rag_result["retrieved_docs"],
+                },
+            }
+
+            # Include function_result so frontend can invalidate caches
+            if rag_result.get("function_result"):
+                response_data["function_result"] = rag_result["function_result"]
+
+            return Response(response_data)
 
         except Exception as e:
             logger.error(

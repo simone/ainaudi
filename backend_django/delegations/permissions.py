@@ -243,18 +243,20 @@ def can_enter_section_data(user, sezione, consultazione_id=None):
 
     roles = get_user_delegation_roles(user, consultazione_id)
 
-    # Delegato o Sub-delegato possono sempre inserire
+    # Delegato o Sub-delegato: territorial visibility
     if roles['is_delegato'] or roles['is_sub_delegato']:
-        return can_manage_sezione(user, sezione, consultazione_id)
+        if can_manage_sezione(user, sezione, consultazione_id):
+            return True
 
-    # RDL può inserire solo nella sua sezione
-    if roles['is_rdl']:
-        return DesignazioneRDL.objects.filter(
+    # RDL (or Delegato/SubDelegato who is also RDL): own assigned sections
+    if roles['is_rdl'] or roles['is_delegato'] or roles['is_sub_delegato']:
+        if DesignazioneRDL.objects.filter(
             Q(effettivo_email=user.email) | Q(supplente_email=user.email),
             sezione=sezione,
             is_attiva=True,
             stato='CONFERMATA'
-        ).exists()
+        ).exists():
+            return True
 
     return False
 

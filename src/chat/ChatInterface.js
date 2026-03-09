@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { clearCache } from '../auth/Client';
 import './ChatInterface.css';
 
 function ChatInterface({ client, show, onClose }) {
@@ -313,6 +314,11 @@ function ChatInterface({ client, show, onClose }) {
             // Update title if returned (after first message)
             if (response.title && !sessionTitle) {
                 setSessionTitle(response.title);
+            }
+
+            // If AI saved data (scrutinio, incident), invalidate frontend caches
+            if (response.function_result) {
+                clearCache();
             }
 
             // Replace optimistic user message with real one (with ID) + add assistant message
