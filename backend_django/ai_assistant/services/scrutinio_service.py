@@ -52,22 +52,44 @@ def _parse_int(value):
 
 def _match_scheda(scheda_nome, schede_qs):
     """Find the best matching SchedaElettorale from a queryset."""
+    schede_list = list(schede_qs)
+
     if not scheda_nome:
-        if schede_qs.count() == 1:
-            return schede_qs.first(), None
+        if len(schede_list) == 1:
+            return schede_list[0], None
         return None, None
 
     nome_lower = scheda_nome.lower().strip()
-    schede_list = list(schede_qs)
 
+    # 1. Exact match
     for s in schede_list:
         if s.nome.lower() == nome_lower:
             return s, None
 
+    # 2. Substring containment
     for s in schede_list:
         if nome_lower in s.nome.lower() or s.nome.lower() in nome_lower:
             return s, None
 
+    # 3. Word overlap: match if enough significant words in common
+    stop_words = {'di', 'del', 'della', 'delle', 'dei', 'degli', 'il', 'la', 'le', 'lo',
+                  'un', 'una', 'e', 'per', 'con', 'su', 'da', 'in', 'a', 'n', '-', '–'}
+    input_words = {w for w in re.split(r'[\s\-–/]+', nome_lower) if w and w not in stop_words and len(w) > 1}
+
+    best_match = None
+    best_overlap = 0
+    for s in schede_list:
+        scheda_words = {w for w in re.split(r'[\s\-–/]+', s.nome.lower()) if w and w not in stop_words and len(w) > 1}
+        overlap = len(input_words & scheda_words)
+        if overlap > best_overlap:
+            best_overlap = overlap
+            best_match = s
+
+    # Require at least 2 words in common (e.g. "referendum" + "costituzionale")
+    if best_match and best_overlap >= 2:
+        return best_match, None
+
+    # 4. Number match
     numbers = re.findall(r"\d+", scheda_nome)
     if numbers:
         target_num = numbers[-1]
