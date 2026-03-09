@@ -7,12 +7,9 @@ from rest_framework.views import APIView
 from django.http import HttpResponse
 from django.db.models import Q
 
-from core.permissions import HasScrutinioAccess
-from .models import SectionAssignment
 from elections.models import ConsultazioneElettorale, SchedaElettorale
 from territory.models import SezioneElettorale
 from delegations.models import DesignazioneRDL
-from delegations.permissions import get_sezioni_filter_for_user, get_user_delegation_roles
 from .scrutinio_pdf import generate_scrutinio_form
 
 logger = logging.getLogger(__name__)
@@ -28,16 +25,14 @@ class ScrutinioFormPDFView(APIView):
 
     GET /api/scrutinio/form-pdf
     GET /api/scrutinio/form-pdf?consultazione_id=1
-    GET /api/scrutinio/form-pdf?sezione_id=42  (single section)
 
-    Returns PDF with one page per assigned section, pre-filled with
-    section info and empty boxes for each data field.
+    Only returns sections assigned to the user as RDL (effettivo or supplente).
+    Delegates use the app directly and don't need paper forms.
     """
-    permission_classes = [permissions.IsAuthenticated, HasScrutinioAccess]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         consultazione_id = request.query_params.get('consultazione_id')
-        sezione_id = request.query_params.get('sezione_id')
 
         if consultazione_id:
             try:
@@ -50,40 +45,20 @@ class ScrutinioFormPDFView(APIView):
         if not consultazione:
             return HttpResponse('Nessuna consultazione attiva', status=404)
 
-        # Get user's sections (same logic as ScrutinioMieiSeggiLightView)
-        sezioni_ids = set()
-
-        # RDL: sections from confirmed designations
-        designazioni = DesignazioneRDL.objects.filter(
-            Q(effettivo_email=request.user.email) | Q(supplente_email=request.user.email),
-            is_attiva=True,
-            stato='CONFERMATA',
-        ).filter(
-            Q(delegato__consultazione=consultazione) |
-            Q(sub_delega__delegato__consultazione=consultazione)
-        ).values_list('sezione_id', flat=True)
-        sezioni_ids.update(designazioni)
-
-        # Delegato/SubDelegato: territory sections
-        roles = get_user_delegation_roles(request.user, consultazione.id)
-        if roles['is_delegato'] or roles['is_sub_delegato']:
-            sezioni_filter = get_sezioni_filter_for_user(request.user, consultazione.id)
-            if sezioni_filter is not None and sezioni_filter != Q():
-                mapped = SectionAssignment.objects.filter(
-                    sezione__in=SezioneElettorale.objects.filter(sezioni_filter, is_attiva=True),
-                    consultazione=consultazione,
-                ).values_list('sezione_id', flat=True).distinct()
-                sezioni_ids.update(mapped)
-
-        # Filter to single section if requested
-        if sezione_id:
-            sezione_id = int(sezione_id)
-            if sezione_id not in sezioni_ids:
-                return HttpResponse('Sezione non accessibile', status=403)
-            sezioni_ids = {sezione_id}
+        # Only RDL sections from confirmed designations
+        sezioni_ids = set(
+            DesignazioneRDL.objects.filter(
+                Q(effettivo_email=request.user.email) | Q(supplente_email=request.user.email),
+                is_attiva=True,
+                stato='CONFERMATA',
+            ).filter(
+                Q(delegato__consultazione=consultazione) |
+                Q(sub_delega__delegato__consultazione=consultazione)
+            ).values_list('sezione_id', flat=True)
+        )
 
         if not sezioni_ids:
-            return HttpResponse('Nessuna sezione assegnata', status=404)
+            return HttpResponse('Nessuna sezione assegnata come RDL', status=404)
 
         # Load section details
         sezioni = SezioneElettorale.objects.filter(
