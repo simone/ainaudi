@@ -72,6 +72,14 @@ class ElectionPolicyGuard:
         Returns:
             PolicyDecision with verdict and reason
         """
+        import os
+        if os.environ.get("AI_POLICY_BYPASS", "").lower() == "true":
+            logger.info("PolicyGuard: BYPASSED by AI_POLICY_BYPASS env var")
+            return PolicyDecision(
+                verdict=PolicyVerdict.ALLOW,
+                reason="Policy bypass enabled (AI_POLICY_BYPASS=true).",
+            )
+
         if today is None:
             today = date.today()
 
