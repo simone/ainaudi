@@ -426,6 +426,66 @@ class ScrutinioService:
             sezione.numero, user.email, len(changes),
         )
 
+        # Auto-create incident report for observations/contestations
+        schede_contestate = _parse_int(args.get("schede_contestate"))
+        osservazioni = (args.get("osservazioni") or "").strip()
+
+        if osservazioni or (schede_contestate and schede_contestate > 0):
+            try:
+                from incidents.models import IncidentReport
+
+                scheda_nome = args.get("scheda_nome", "")
+                loc = f"sezione {sezione.numero} ({sezione.comune.nome})"
+
+                # Build description
+                desc_parts = [
+                    f"Durante lo scrutinio della {loc}",
+                ]
+                if scheda_nome:
+                    desc_parts[0] += f", scheda {scheda_nome}"
+
+                if osservazioni:
+                    desc_parts.append(f"Osservazioni/contestazioni dal verbale: {osservazioni}")
+
+                if schede_contestate and schede_contestate > 0:
+                    desc_parts.append(f"Schede contestate: {schede_contestate}")
+
+                desc_parts.append(f"Dati inseriti da {user.email} tramite AI chat.")
+
+                # Title
+                if osservazioni:
+                    title = f"Osservazioni scrutinio - Sezione {sezione.numero}"
+                else:
+                    title = f"Schede contestate - Sezione {sezione.numero}"
+
+                IncidentReport.objects.create(
+                    consultazione=consultazione,
+                    sezione=sezione,
+                    reporter=user,
+                    category=IncidentReport.Category.IRREGULARITY,
+                    severity=IncidentReport.Severity.MEDIUM,
+                    title=title[:200],
+                    description=". ".join(desc_parts),
+                )
+
+                if osservazioni:
+                    lines.append(
+                        f"\n⚠️ Creata segnalazione automatica con le osservazioni dal verbale."
+                    )
+                else:
+                    lines.append(
+                        f"\n⚠️ Creata segnalazione automatica per "
+                        f"{schede_contestate} schede contestate."
+                    )
+                logger.info(
+                    "Auto-created incident report for sezione %s: "
+                    "contestate=%s osservazioni=%s",
+                    sezione.numero, schede_contestate,
+                    bool(osservazioni),
+                )
+            except Exception as e:
+                logger.error("Failed to auto-create incident: %s", e)
+
         return {
             "message": "\n".join(lines),
             "data": {"sezione_id": sezione.id, "changes": len(changes)},

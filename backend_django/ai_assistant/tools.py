@@ -136,6 +136,14 @@ _scrutinio_save_fields = {
         "type": "number",
         "description": "Voti NO (solo per schede referendum)"
     },
+    "osservazioni": {
+        "type": "string",
+        "description": (
+            "Testo delle osservazioni e contestazioni dal verbale di scrutinio. "
+            "Se presenti, verranno automaticamente inserite come segnalazione. "
+            "Trascrivi il testo esattamente come scritto nel modulo."
+        )
+    },
 }
 
 _scrutinio_declarations = [
