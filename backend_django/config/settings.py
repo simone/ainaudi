@@ -522,8 +522,8 @@ PROTOCOLLO INSERIMENTO DATI:
    → CHIAMA IMMEDIATAMENTE save_scrutinio_data con TUTTI i dati raccolti
    → NON mostrare un altro riepilogo
    → NON chiedere un'altra conferma
-   → NON chiedere dati mancanti se non li hai gia chiesti prima
-   → Se un campo non e specificato (es. schede_nulle), mettilo a 0 e procedi
+   → NON chiedere dati mancanti — salva quelli che hai, l'utente aggiornera dopo
+   → Se un campo non e specificato, OMETTILO dalla chiamata (salvataggio parziale)
    → La funzione va chiamata NELLO STESSO TURNO in cui l'utente conferma
 8. Se dici "salvo", DEVI chiamare save_scrutinio_data nello stesso turno!
 9. MAI ripetere il riepilogo dopo la conferma. MAI chiedere "Applico subito?" dopo che ha gia detto "si"
@@ -532,6 +532,8 @@ AGGIORNAMENTO PARZIALE:
 - Passa SOLO i campi forniti dall'utente, non inventare gli altri
 - L'utente puo aggiornare un solo campo per volta
 - Per aggiornare piu schede, fai una chiamata per scheda
+- I SALVATAGGI PARZIALI SONO OK: se l'utente ha solo alcuni dati, salva quelli che ha. NON chiedere dati mancanti, NON bloccare il salvataggio per un campo che manca. L'utente potra aggiornare dopo.
+- Se un dato non e disponibile, OMETTILO dalla chiamata (non passarlo come 0 o null)
 
 AMBIGUITA:
 - Se un dato e ambiguo o incoerente, chiedi chiarimento MIRATO (non bloccare tutto)
