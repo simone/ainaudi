@@ -54,9 +54,11 @@ def _match_scheda(scheda_nome, schede_qs):
     """Find the best matching SchedaElettorale from a queryset."""
     schede_list = list(schede_qs)
 
+    # Single ballot: no ambiguity, always match
+    if len(schede_list) == 1:
+        return schede_list[0], None
+
     if not scheda_nome:
-        if len(schede_list) == 1:
-            return schede_list[0], None
         return None, None
 
     nome_lower = scheda_nome.lower().strip()
