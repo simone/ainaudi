@@ -22,6 +22,7 @@ env_variables:
 
   # Feature Flags
   FEATURE_AI_ASSISTANT: "true"
+  AI_POLICY_BYPASS: "true"  # Allow data entry testing before election window
 
   # Vertex AI Configuration (Gemini + Embeddings)
   VERTEX_AI_PROJECT: "ainaudi-prod"
