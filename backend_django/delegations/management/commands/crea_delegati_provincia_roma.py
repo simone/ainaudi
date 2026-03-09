@@ -50,6 +50,12 @@ class Command(BaseCommand):
                 "email": "vivianacarbonara.76@gmail.com",
                 "telefono": "+39 333 486 8734",
             },
+            {
+                "cognome": "Cesarini",
+                "nome": "Marco",
+                "email": "Benzguy75@gmail.com",
+                "telefono": "+39 335 780 4856",
+            },
         ]
 
         try:
