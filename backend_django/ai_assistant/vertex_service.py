@@ -449,23 +449,29 @@ CONTESTO (dati reali dal sistema e documenti di riferimento — per date e consu
             result = {
                 'content': None,
                 'function_call': None,
+                'function_calls': [],  # All function calls (for multi-action support)
                 'finish_reason': str(response.candidates[0].finish_reason) if response.candidates else 'UNKNOWN'
             }
 
             if response.candidates and response.candidates[0].content.parts:
-                # Check ALL parts for function calls (not just the first)
                 for part in response.candidates[0].content.parts:
                     if hasattr(part, 'function_call') and part.function_call:
                         fc = part.function_call
-                        result['function_call'] = {
+                        fc_dict = {
                             'name': fc.name,
                             'args': dict(fc.args) if fc.args else {}
                         }
-                        break  # Function call takes priority
+                        result['function_calls'].append(fc_dict)
+                        if result['function_call'] is None:
+                            result['function_call'] = fc_dict
                     elif hasattr(part, 'text') and part.text and result['content'] is None:
                         result['content'] = part.text
 
-            logger.info(f"Generated with tools: finish_reason={result['finish_reason']}, has_function_call={result['function_call'] is not None}")
+            logger.info(
+                f"Generated with tools: finish_reason={result['finish_reason']}, "
+                f"function_calls={len(result['function_calls'])}, "
+                f"has_text={result['content'] is not None}"
+            )
             return result
 
         except Exception as e:

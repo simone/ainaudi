@@ -171,12 +171,27 @@ class ConversationOrchestrator:
                     logger.warning("Orchestrator: retry still no function call, falling through")
 
         if ai_response["function_call"]:
-            return self._handle_function_call(
-                ai_response["function_call"],
-                session=session,
-                request=request,
-                user_sections_list=user_sections_list,
-            )
+            function_calls = ai_response.get("function_calls", [ai_response["function_call"]])
+
+            if len(function_calls) > 1:
+                # Multiple function calls: execute all, combine results
+                logger.info(
+                    "Orchestrator: processing %d function calls in one response",
+                    len(function_calls),
+                )
+                return self._handle_multiple_function_calls(
+                    function_calls,
+                    session=session,
+                    request=request,
+                    user_sections_list=user_sections_list,
+                )
+            else:
+                return self._handle_function_call(
+                    function_calls[0],
+                    session=session,
+                    request=request,
+                    user_sections_list=user_sections_list,
+                )
         else:
             # Guard: never return 🤷 in the middle of a conversation
             content = (ai_response.get("content") or "").strip()
@@ -217,6 +232,39 @@ class ConversationOrchestrator:
             return self._build_text_response(
                 ai_response, context_docs_list, user_sections_list
             )
+
+    def _handle_multiple_function_calls(
+        self,
+        function_calls: list,
+        session,
+        request,
+        user_sections_list: list,
+    ) -> dict:
+        """Execute multiple function calls and combine their results."""
+        combined_answers = []
+        combined_sources = []
+        combined_function_results = []
+
+        for fc in function_calls:
+            result = self._handle_function_call(
+                fc,
+                session=session,
+                request=request,
+                user_sections_list=user_sections_list,
+            )
+            if result.get("answer"):
+                combined_answers.append(result["answer"])
+            combined_sources.extend(result.get("sources", []))
+            if result.get("function_result"):
+                combined_function_results.append(result["function_result"])
+
+        return {
+            "answer": "\n\n---\n\n".join(combined_answers),
+            "sources": combined_sources,
+            "retrieved_docs": 0,
+            "function_result": combined_function_results[0] if len(combined_function_results) == 1 else {"results": combined_function_results},
+            "user_sections_list": user_sections_list,
+        }
 
     def _handle_function_call(
         self,
