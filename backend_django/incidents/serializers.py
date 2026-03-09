@@ -118,13 +118,14 @@ class IncidentReportListSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     location_description = serializers.CharField(read_only=True)
     reporter_email = serializers.EmailField(source='reporter.email', read_only=True)
+    reporter_name = serializers.CharField(source='reporter.display_name', read_only=True)
 
     class Meta:
         model = IncidentReport
         fields = [
-            'id', 'title', 'category', 'category_display',
+            'id', 'title', 'description', 'category', 'category_display',
             'severity', 'severity_display', 'status', 'status_display',
-            'location_description', 'reporter', 'reporter_email',
+            'location_description', 'reporter', 'reporter_email', 'reporter_name',
             'assigned_to', 'is_verbalizzato',
             'is_platform_issue', 'created_at'
         ]

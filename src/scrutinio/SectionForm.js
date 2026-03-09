@@ -1010,7 +1010,7 @@ function SectionForm({schede, section, sectionData, saveSection, saveAndClose, c
                                         </span>
                                     </div>
                                     <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '8px' }}>
-                                        {incident.description.substring(0, 150)}{incident.description.length > 150 ? '...' : ''}
+                                        {(incident.description || '').substring(0, 150)}{(incident.description || '').length > 150 ? '...' : ''}
                                     </p>
                                     <div style={{ fontSize: '0.8rem', color: '#999' }}>
                                         <i className="fas fa-user me-1"></i>
