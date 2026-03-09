@@ -453,18 +453,17 @@ CONTESTO (dati reali dal sistema e documenti di riferimento — per date e consu
             }
 
             if response.candidates and response.candidates[0].content.parts:
-                part = response.candidates[0].content.parts[0]
-
-                # Check if it's a function call
-                if hasattr(part, 'function_call') and part.function_call:
-                    fc = part.function_call
-                    result['function_call'] = {
-                        'name': fc.name,
-                        'args': dict(fc.args) if fc.args else {}
-                    }
-                # Otherwise it's text
-                elif hasattr(part, 'text'):
-                    result['content'] = part.text
+                # Check ALL parts for function calls (not just the first)
+                for part in response.candidates[0].content.parts:
+                    if hasattr(part, 'function_call') and part.function_call:
+                        fc = part.function_call
+                        result['function_call'] = {
+                            'name': fc.name,
+                            'args': dict(fc.args) if fc.args else {}
+                        }
+                        break  # Function call takes priority
+                    elif hasattr(part, 'text') and part.text and result['content'] is None:
+                        result['content'] = part.text
 
             logger.info(f"Generated with tools: finish_reason={result['finish_reason']}, has_function_call={result['function_call'] is not None}")
             return result

@@ -138,6 +138,38 @@ class ConversationOrchestrator:
         )
 
         # 4. Route based on LLM response
+
+        # Guard: detect code-as-text function calls (model outputs code instead of using tools)
+        if not ai_response["function_call"]:
+            content = (ai_response.get("content") or "").strip()
+            import re
+            code_fc_match = re.search(
+                r'(save_scrutinio_data|create_incident_report|update_incident_report|get_scrutinio_status)\s*\(',
+                content,
+            )
+            if code_fc_match:
+                logger.warning(
+                    "Orchestrator: model output code instead of tool call: %.200s — retrying with forced tool use",
+                    content,
+                )
+                retry_context = (
+                    context_text
+                    + "\n\nIMPORTANTE: NON scrivere codice. "
+                    "USA LA FUNZIONE save_scrutinio_data tramite tool calling. "
+                    "NON stampare il codice come testo."
+                )
+                retry_response = vertex_ai_service.generate_with_tools(
+                    conversation_history=conversation_history,
+                    context=retry_context,
+                    tools=all_ai_tools,
+                    attachments=attachment_data,
+                )
+                if retry_response["function_call"]:
+                    ai_response = retry_response
+                    logger.info("Orchestrator: retry produced proper function call")
+                else:
+                    logger.warning("Orchestrator: retry still no function call, falling through")
+
         if ai_response["function_call"]:
             return self._handle_function_call(
                 ai_response["function_call"],
