@@ -135,6 +135,8 @@ function Risorse({ client, consultazione, setError }) {
     const [pdfViewer, setPdfViewer] = useState(null); // { url, titolo } quando aperto
     const [showManuale, setShowManuale] = useState(false); // Manuale utente RDL
     const [showBadgeGenerator, setShowBadgeGenerator] = useState(false); // Badge generator modal
+    const [showModuloCartaceoInfo, setShowModuloCartaceoInfo] = useState(false); // Modulo cartaceo info popup
+    const [downloadingModulo, setDownloadingModulo] = useState(false);
 
     // RDL designations state
     const [mieDesignazioni, setMieDesignazioni] = useState(null);
@@ -503,7 +505,21 @@ function Risorse({ client, consultazione, setError }) {
                             ))}
                         </div>
 
-                        <div className="mt-3 d-flex justify-content-end">
+                        <div className="mt-3 d-flex justify-content-end gap-2 flex-wrap">
+                            <button
+                                className="btn btn-sm"
+                                style={{
+                                    backgroundColor: '#e9ecef',
+                                    color: '#1F4E5F',
+                                    fontWeight: '600',
+                                    border: 'none'
+                                }}
+                                onClick={() => setShowModuloCartaceoInfo(true)}
+                                title="Scarica modulo stampabile per raccolta dati a mano"
+                            >
+                                <i className="fas fa-print me-2"></i>
+                                Scarica Modulo Cartaceo
+                            </button>
                             <button
                                 className="btn btn-sm"
                                 style={{
@@ -809,6 +825,83 @@ function Risorse({ client, consultazione, setError }) {
                 markdownUrl="/MANUALE_RDL.md"
                 title="Manuale Utente AInaudi"
             />
+
+            {/* Modulo Cartaceo Info Modal */}
+            {showModuloCartaceoInfo && (
+                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content">
+                            <div className="modal-header" style={{ background: '#1F4E5F', color: '#fff' }}>
+                                <h5 className="modal-title">
+                                    <i className="fas fa-print me-2"></i>
+                                    Modulo Raccolta Dati Cartaceo
+                                </h5>
+                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowModuloCartaceoInfo(false)}></button>
+                            </div>
+                            <div className="modal-body">
+                                <p>
+                                    Il modulo cartaceo ti permette di raccogliere i dati dello scrutinio
+                                    con <strong>carta e penna</strong>, se preferisci non usare l'app direttamente al seggio.
+                                </p>
+                                <p>
+                                    Dopo aver compilato il modulo (anche parzialmente), puoi <strong>scattare una foto</strong> e
+                                    inviarla all'assistente AI: apri la chat con il robot, allega la foto e chiedigli
+                                    di caricare i dati per te. Penserà a tutto lui!
+                                </p>
+                                <div className="alert alert-light border mb-0" style={{ fontSize: '0.9rem' }}>
+                                    <i className="fas fa-lightbulb text-warning me-2"></i>
+                                    <strong>Suggerimento:</strong> puoi anche inviare foto parziali durante lo scrutinio,
+                                    man mano che i dati diventano disponibili.
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary"
+                                    onClick={() => setShowModuloCartaceoInfo(false)}
+                                >
+                                    Annulla
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn"
+                                    style={{ backgroundColor: '#1F4E5F', color: '#fff' }}
+                                    disabled={downloadingModulo}
+                                    onClick={async () => {
+                                        setDownloadingModulo(true);
+                                        try {
+                                            const blob = await client.scrutinio.formPDF();
+                                            const url = URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = url;
+                                            a.download = 'modulo_scrutinio.pdf';
+                                            a.click();
+                                            URL.revokeObjectURL(url);
+                                            setShowModuloCartaceoInfo(false);
+                                        } catch (err) {
+                                            setError('Errore nel download del modulo. Verifica di avere sezioni assegnate.');
+                                        } finally {
+                                            setDownloadingModulo(false);
+                                        }
+                                    }}
+                                >
+                                    {downloadingModulo ? (
+                                        <>
+                                            <span className="spinner-border spinner-border-sm me-2"></span>
+                                            Generazione...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="fas fa-download me-2"></i>
+                                            Scarica PDF
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Badge Generator Modal */}
             {showBadgeGenerator && (
