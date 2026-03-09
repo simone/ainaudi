@@ -34,7 +34,13 @@ class IncidentReportViewSet(viewsets.ModelViewSet):
         'consultazione', 'sezione', 'sezione__comune',
         'reporter', 'resolved_by', 'assigned_to'
     ).prefetch_related('comments', 'attachments').all()
-    permission_classes = [permissions.IsAuthenticated, CanManageIncidents]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        """Read operations open to all authenticated; write requires CanManageIncidents."""
+        if self.action in ['list', 'retrieve', 'my', 'assigned']:
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated(), CanManageIncidents()]
     filterset_fields = [
         'consultazione', 'sezione', 'category', 'severity', 'status',
         'reporter', 'assigned_to'
