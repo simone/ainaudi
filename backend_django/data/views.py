@@ -3060,12 +3060,12 @@ class RdlRegistrationImportView(APIView):
                     'comune_residenza': comune_residenza,
                     'indirizzo_residenza': indirizzo_residenza,
                     'seggio_preferenza': seggio_preferenza,
-                    'municipio': municipio,
                     'source': 'IMPORT',
-                    'status': RdlRegistration.Status.PENDING,  # Import creates PENDING registrations
                 }
 
-                # Add optional fields
+                # Add optional fields only if provided (don't overwrite with empty)
+                if municipio:
+                    defaults_dict['municipio'] = municipio
                 if fuorisede is not None:
                     defaults_dict['fuorisede'] = fuorisede
                 if comune_domicilio:
@@ -3079,12 +3079,7 @@ class RdlRegistrationImportView(APIView):
                 try:
                     existing = RdlRegistration.objects.get(email=email, comune=comune)
 
-                    # Skip if already APPROVED (confermato)
-                    if existing.status == RdlRegistration.Status.APPROVED:
-                        skipped += 1
-                        continue
-
-                    # Update if not approved (PENDING, REJECTED, etc.)
+                    # Update data but never touch status
                     for key, value in defaults_dict.items():
                         setattr(existing, key, value)
                     existing.save()
