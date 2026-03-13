@@ -2039,6 +2039,29 @@ class RdlRegistrationApproveView(APIView):
         if not self._has_permission(request.user, registration.comune, registration.municipio):
             return Response({'error': 'Non autorizzato per questo comune'}, status=403)
 
+        if action == 'generate_pin':
+            if registration.status != 'APPROVED':
+                return Response({
+                    'error': 'Il PIN può essere generato solo per RDL approvati'
+                }, status=400)
+
+            from core.models import User
+            import random
+            try:
+                user = User.objects.get(email=registration.email.lower())
+            except User.DoesNotExist:
+                return Response({'error': 'Utente non trovato'}, status=404)
+
+            pin = f"{random.randint(0, 999999):06d}"
+            user.pin_code = pin
+            user.save(update_fields=['pin_code'])
+
+            return Response({
+                'success': True,
+                'pin': pin,
+                'message': f'PIN generato per {registration.full_name}'
+            })
+
         if action == 'withdraw':
             # Ritiro: funziona solo su APPROVED
             if registration.status != 'APPROVED':

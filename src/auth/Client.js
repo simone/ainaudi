@@ -693,6 +693,16 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 return { error: error.message };
             }),
 
+        // Generate PIN for approved RDL
+        generatePin: async (id) =>
+            fetch(`${server}/api/rdl/registrations/${id}/generate_pin`, {
+                method: 'POST',
+                headers: { 'Authorization': authHeader }
+            }).then(response => safeJson(response)).catch(error => {
+                console.error(error);
+                return { error: error.message };
+            }),
+
         // Update registration
         update: async (id, data) =>
             fetch(`${server}/api/rdl/registrations/${id}`, {

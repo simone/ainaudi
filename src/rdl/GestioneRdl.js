@@ -101,6 +101,9 @@ function GestioneRdl({ client, setError }) {
     const [comuniOptions, setComuniOptions] = useState({});
     const [userTerritory, setUserTerritory] = useState([]);
 
+    // Generated PIN display: { [registrationId]: pin }
+    const [generatedPins, setGeneratedPins] = useState({});
+
     // Territory filter states
     const [regioni, setRegioni] = useState([]);
     const [province, setProvince] = useState([]);
@@ -417,6 +420,15 @@ function GestioneRdl({ client, setError }) {
         setProvinciaFilter('');
         setComuneFilter('');
         setMunicipioFilter('');
+    };
+
+    const handleGeneratePin = async (reg) => {
+        const result = await client.rdlRegistrations.generatePin(reg.id);
+        if (result.error) {
+            setError(result.error);
+        } else {
+            setGeneratedPins(prev => ({ ...prev, [reg.id]: result.pin }));
+        }
     };
 
     const openModal = (type, reg) => {
@@ -1652,6 +1664,26 @@ function GestioneRdl({ client, setError }) {
                                                             Rifiuta
                                                         </button>
                                                     </>
+                                                )}
+                                                {reg.status === 'APPROVED' && (
+                                                    generatedPins[reg.id] ? (
+                                                        <div
+                                                            className="btn btn-outline-success btn-sm d-flex align-items-center justify-content-center"
+                                                            style={{ flex: '1 1 calc(50% - 3px)', cursor: 'default', fontFamily: 'monospace', letterSpacing: '2px', fontWeight: 'bold' }}
+                                                        >
+                                                            <i className="fas fa-key me-1"></i>
+                                                            PIN: {generatedPins[reg.id]}
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            className="btn btn-outline-warning btn-sm"
+                                                            onClick={() => handleGeneratePin(reg)}
+                                                            style={{ flex: '1 1 calc(50% - 3px)' }}
+                                                        >
+                                                            <i className="fas fa-key me-1"></i>
+                                                            Genera PIN
+                                                        </button>
+                                                    )
                                                 )}
                                                 <button
                                                     className="btn btn-outline-primary btn-sm"
