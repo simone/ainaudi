@@ -294,11 +294,19 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Install: pip install django-storages[google]
 USE_GCS = os.environ.get('USE_GCS', 'False').lower() == 'true'
 if USE_GCS:
-    DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
     GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME', os.environ.get('GCS_BUCKET_NAME', 'ainaudi-documents'))
     GS_PROJECT_ID = os.environ.get('GS_PROJECT_ID', os.environ.get('GOOGLE_CLOUD_PROJECT', ''))
-    GS_DEFAULT_ACL = os.environ.get('GS_DEFAULT_ACL', 'publicRead')  # Files publicly accessible
+    GS_DEFAULT_ACL = os.environ.get('GS_DEFAULT_ACL', 'publicRead')
     MEDIA_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/'
+    # Django 5.x: STORAGES replaces deprecated DEFAULT_FILE_STORAGE
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 
 
 # =============================================================================
