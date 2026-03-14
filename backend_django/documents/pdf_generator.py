@@ -34,7 +34,7 @@ class PDFGenerator:
         mb = first_page.mediabox
         self.template_width = float(mb.width)
         self.template_height = float(mb.height)
-        logger.info(
+        logger.debug(
             f"[PDFGenerator] Template: {len(self.reader.pages)} pagine, "
             f"size={self.template_width:.1f}x{self.template_height:.1f}"
         )
@@ -43,7 +43,7 @@ class PDFGenerator:
         """Genera PDF usando un oggetto Template (con field_mappings)."""
         field_mappings = template_obj.field_mappings or []
 
-        logger.info(
+        logger.debug(
             f"[PDFGenerator] Template id={template_obj.id}, "
             f"nome={getattr(template_obj, 'name', '?')}, "
             f"{len(field_mappings)} field_mappings"
@@ -60,7 +60,7 @@ class PDFGenerator:
             else:
                 text_fields.append(mapping)
 
-        logger.info(f"[PDFGenerator] text_fields={len(text_fields)}, has_loop={loop_field is not None}")
+        logger.debug(f"[PDFGenerator] text_fields={len(text_fields)}, has_loop={loop_field is not None}")
 
         if not loop_field:
             return self._generate_simple(text_fields)
@@ -90,7 +90,7 @@ class PDFGenerator:
         loop_items = self._resolve_array(array_path)
         loop_fields = loop_mapping.get('loop_fields', [])
 
-        logger.info(
+        logger.debug(
             f"[PDFGenerator] Loop: jsonpath={array_path}, "
             f"{len(loop_items)} items, {len(loop_fields)} columns"
         )
@@ -133,7 +133,7 @@ class PDFGenerator:
             rows = lp['rows']
             items_for_page = loop_items[item_offset:item_offset + rows]
 
-            logger.info(
+            logger.debug(
                 f"[PDFGenerator] Pagina {page_num} ({lp_idx}): "
                 f"area={area}, rows={rows}, items={len(items_for_page)} "
                 f"(offset {item_offset})"
@@ -166,7 +166,7 @@ class PDFGenerator:
                 page_num = last_lp['page']
                 items_for_page = loop_items[item_offset:item_offset + rows]
 
-                logger.info(
+                logger.debug(
                     f"[PDFGenerator] Pagina extra (overflow): "
                     f"items={len(items_for_page)} (offset {item_offset})"
                 )
@@ -214,7 +214,7 @@ class PDFGenerator:
 
             field_width = area.get('width', 0)
 
-            logger.info(
+            logger.debug(
                 f"[PDFGenerator] TEXT '{text}' at x={x}, pdf_y={pdf_y:.1f} "
                 f"(editor_y={editor_y}, h={field_height}, w={field_width}, font={font_size:.1f})"
             )
@@ -243,7 +243,7 @@ class PDFGenerator:
 
                 field_width = lf.get('width', 0)
 
-                logger.info(
+                logger.debug(
                     f"[PDFGenerator] LOOP[{idx}] '{text}' at x={abs_x}, pdf_y={pdf_y:.1f} "
                     f"(loop={loop_x},{loop_y} rel={rel_x},{rel_y} row_h={row_height} "
                     f"w={field_width}, font={font_size:.1f})"
@@ -296,7 +296,7 @@ class PDFGenerator:
 
             field_width = area.get('width', 0)
 
-            logger.info(
+            logger.debug(
                 f"[PDFGenerator] TEXT '{text}' at x={x}, pdf_y={pdf_y:.1f} "
                 f"(editor_y={editor_y}, h={field_height}, w={field_width}, font={font_size:.1f})"
             )

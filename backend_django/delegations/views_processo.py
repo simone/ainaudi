@@ -353,20 +353,38 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
 
         sezioni = SezioneElettorale.objects.filter(id__in=processo.sezione_ids)
         errori = []
-        designazioni_create = []
+
+        # Pre-fetch tutti gli assignments in una sola query
+        all_assignments = SectionAssignment.objects.filter(
+            sezione__in=sezioni,
+            consultazione=processo.consultazione,
+            rdl_registration__isnull=False,
+        ).select_related('rdl_registration', 'sezione')
+
+        # Raggruppa per sezione_id
+        assignments_by_sezione = {}
+        for a in all_assignments:
+            assignments_by_sezione.setdefault(a.sezione_id, []).append(a)
+
+        # Pre-fetch designazioni BOZZA esistenti
+        existing_bozze = {
+            d.sezione_id: d
+            for d in DesignazioneRDL.objects.filter(
+                sezione__in=sezioni,
+                is_attiva=True,
+                stato='BOZZA'
+            )
+        }
+
+        to_update = []
+        to_create = []
 
         for sezione in sezioni:
-            # Cerca SectionAssignment per questa sezione
-            assignments = SectionAssignment.objects.filter(
-                sezione=sezione,
-                consultazione=processo.consultazione
-            ).select_related('rdl_registration')
+            sezione_assignments = assignments_by_sezione.get(sezione.id, [])
 
             effettivo = None
             supplente = None
-            for assignment in assignments:
-                if not assignment.rdl_registration:
-                    continue
+            for assignment in sezione_assignments:
                 if assignment.role == 'RDL':
                     effettivo = assignment.rdl_registration
                 elif assignment.role == 'SUPPLENTE':
@@ -376,100 +394,86 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
                 errori.append(f'Sezione {sezione.numero}: nessun RDL assegnato')
                 continue
 
-            # Cerca designazione BOZZA esistente (riusa se esiste)
-            existing = DesignazioneRDL.objects.filter(
-                sezione=sezione,
-                is_attiva=True,
-                stato='BOZZA'
-            ).first()
+            def _snapshot_fields(eff, sup):
+                data = {}
+                if eff:
+                    data.update({
+                        'effettivo_cognome': eff.cognome,
+                        'effettivo_nome': eff.nome,
+                        'effettivo_email': eff.email,
+                        'effettivo_telefono': eff.telefono or '',
+                        'effettivo_luogo_nascita': eff.comune_nascita or '',
+                        'effettivo_data_nascita': eff.data_nascita,
+                        'effettivo_domicilio': f"{eff.indirizzo_residenza}, {eff.comune_residenza}"
+                    })
+                else:
+                    data.update({
+                        'effettivo_cognome': '', 'effettivo_nome': '', 'effettivo_email': '',
+                        'effettivo_telefono': '', 'effettivo_luogo_nascita': '',
+                        'effettivo_data_nascita': None, 'effettivo_domicilio': ''
+                    })
+                if sup:
+                    data.update({
+                        'supplente_cognome': sup.cognome,
+                        'supplente_nome': sup.nome,
+                        'supplente_email': sup.email,
+                        'supplente_telefono': sup.telefono or '',
+                        'supplente_luogo_nascita': sup.comune_nascita or '',
+                        'supplente_data_nascita': sup.data_nascita,
+                        'supplente_domicilio': f"{sup.indirizzo_residenza}, {sup.comune_residenza}"
+                    })
+                else:
+                    data.update({
+                        'supplente_cognome': '', 'supplente_nome': '', 'supplente_email': '',
+                        'supplente_telefono': '', 'supplente_luogo_nascita': '',
+                        'supplente_data_nascita': None, 'supplente_domicilio': ''
+                    })
+                return data
+
+            existing = existing_bozze.get(sezione.id)
 
             if existing:
-                # Riusa la designazione esistente
                 existing.processo = processo
                 existing.sub_delega = sub_delega
                 existing.delegato = delegato
-
-                # Aggiorna snapshot dati RDL
-                if effettivo:
-                    existing.effettivo_cognome = effettivo.cognome
-                    existing.effettivo_nome = effettivo.nome
-                    existing.effettivo_email = effettivo.email
-                    existing.effettivo_telefono = effettivo.telefono or ''
-                    existing.effettivo_luogo_nascita = effettivo.comune_nascita or ''
-                    existing.effettivo_data_nascita = effettivo.data_nascita
-                    existing.effettivo_domicilio = f"{effettivo.indirizzo_residenza}, {effettivo.comune_residenza}"
-                else:
-                    existing.effettivo_cognome = ''
-                    existing.effettivo_nome = ''
-                    existing.effettivo_email = ''
-                    existing.effettivo_telefono = ''
-                    existing.effettivo_luogo_nascita = ''
-                    existing.effettivo_data_nascita = None
-                    existing.effettivo_domicilio = ''
-
-                if supplente:
-                    existing.supplente_cognome = supplente.cognome
-                    existing.supplente_nome = supplente.nome
-                    existing.supplente_email = supplente.email
-                    existing.supplente_telefono = supplente.telefono or ''
-                    existing.supplente_luogo_nascita = supplente.comune_nascita or ''
-                    existing.supplente_data_nascita = supplente.data_nascita
-                    existing.supplente_domicilio = f"{supplente.indirizzo_residenza}, {supplente.comune_residenza}"
-                else:
-                    existing.supplente_cognome = ''
-                    existing.supplente_nome = ''
-                    existing.supplente_email = ''
-                    existing.supplente_telefono = ''
-                    existing.supplente_luogo_nascita = ''
-                    existing.supplente_data_nascita = None
-                    existing.supplente_domicilio = ''
-
-                existing.save()
-                designazioni_create.append(existing)
+                for k, v in _snapshot_fields(effettivo, supplente).items():
+                    setattr(existing, k, v)
+                to_update.append(existing)
             else:
-                # Crea nuova designazione
-                designazione_data = {
-                    'processo': processo,
-                    'sezione': sezione,
-                    'sub_delega': sub_delega,
-                    'delegato': delegato,
-                    'stato': 'BOZZA',
-                    'is_attiva': True,
-                    'created_by_email': request.user.email
-                }
-
-                # Snapshot effettivo
-                if effettivo:
-                    designazione_data.update({
-                        'effettivo_cognome': effettivo.cognome,
-                        'effettivo_nome': effettivo.nome,
-                        'effettivo_email': effettivo.email,
-                        'effettivo_telefono': effettivo.telefono or '',
-                        'effettivo_luogo_nascita': effettivo.comune_nascita or '',
-                        'effettivo_data_nascita': effettivo.data_nascita,
-                        'effettivo_domicilio': f"{effettivo.indirizzo_residenza}, {effettivo.comune_residenza}"
-                    })
-
-                # Snapshot supplente
-                if supplente:
-                    designazione_data.update({
-                        'supplente_cognome': supplente.cognome,
-                        'supplente_nome': supplente.nome,
-                        'supplente_email': supplente.email,
-                        'supplente_telefono': supplente.telefono or '',
-                        'supplente_luogo_nascita': supplente.comune_nascita or '',
-                        'supplente_data_nascita': supplente.data_nascita,
-                        'supplente_domicilio': f"{supplente.indirizzo_residenza}, {supplente.comune_residenza}"
-                    })
-
-                designazione = DesignazioneRDL.objects.create(**designazione_data)
-                designazioni_create.append(designazione)
+                to_create.append(DesignazioneRDL(
+                    processo=processo,
+                    sezione=sezione,
+                    sub_delega=sub_delega,
+                    delegato=delegato,
+                    stato='BOZZA',
+                    is_attiva=True,
+                    created_by_email=request.user.email,
+                    **_snapshot_fields(effettivo, supplente)
+                ))
 
         if errori:
             return Response({'error': 'Errori nella creazione designazioni', 'dettagli': errori}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not designazioni_create:
+        if not to_create and not to_update:
             return Response({'error': 'Nessuna designazione creata'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Bulk operations (skip signals, much faster)
+        if to_update:
+            update_fields = [
+                'processo', 'sub_delega', 'delegato',
+                'effettivo_cognome', 'effettivo_nome', 'effettivo_email',
+                'effettivo_telefono', 'effettivo_luogo_nascita', 'effettivo_data_nascita',
+                'effettivo_domicilio',
+                'supplente_cognome', 'supplente_nome', 'supplente_email',
+                'supplente_telefono', 'supplente_luogo_nascita', 'supplente_data_nascita',
+                'supplente_domicilio',
+            ]
+            DesignazioneRDL.objects.bulk_update(to_update, update_fields, batch_size=500)
+
+        if to_create:
+            DesignazioneRDL.objects.bulk_create(to_create, batch_size=500)
+
+        designazioni_create = to_update + to_create
 
         # Step 2: Salva configurazione processo
         processo.template_individuale = template_ind
@@ -1049,6 +1053,7 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         Genera PDF individuale: UN SINGOLO PDF multi-pagina con una pagina per sezione.
 
         Ogni pagina contiene la designazione per una singola sezione.
+        Il template viene letto una sola volta e riusato per ogni pagina.
         """
         from documents.pdf_generator import PDFGenerator
         from documents.template_types import DesignationSingleType
@@ -1061,22 +1066,24 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             'sezione', 'sezione__comune', 'sezione__municipio'
         ).order_by('sezione__numero')
 
-        # Crea writer per PDF multi-pagina
+        # Leggi il template UNA volta in memoria
+        template_file = processo.template_individuale.template_file
+        template_bytes = io.BytesIO(template_file.read())
+        template_file.close()
+
         writer = PdfWriter()
 
         for designazione in designazioni:
             data = DesignationSingleType.serialize(processo, designazione)
 
-            # Genera PDF per questa sezione (singola pagina)
-            generator = PDFGenerator(processo.template_individuale.template_file, data)
+            template_bytes.seek(0)
+            generator = PDFGenerator(template_bytes, data)
             pdf_bytes = generator.generate_from_template(processo.template_individuale)
 
-            # Importa la pagina nel writer multi-pagina
             pdf_reader = PdfReader(pdf_bytes)
             for page in pdf_reader.pages:
                 writer.add_page(page)
 
-        # Salva PDF multi-pagina
         output = io.BytesIO()
         writer.write(output)
         output.seek(0)
@@ -1094,11 +1101,13 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         Genera PDF cumulativo (multi-pagina con tutte le sezioni).
 
         Crea un unico PDF multi-pagina contenente tutte le designazioni.
+        Il template viene letto una sola volta.
         """
-        from documents.pdf_generator import generate_pdf
+        from documents.pdf_generator import PDFGenerator
         from documents.template_types import DesignationMultiType
         from django.core.files.base import ContentFile
         from django.utils import timezone
+        import io
 
         designazioni = processo.designazioni.all().select_related(
             'sezione', 'sezione__comune', 'sezione__municipio'
@@ -1106,10 +1115,14 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
 
         data = DesignationMultiType.serialize(processo, designazioni)
 
-        # Genera PDF cumulativo (multi-pagina)
-        pdf_bytes = generate_pdf(processo.template_cumulativo, data)
+        # Leggi il template UNA volta in memoria
+        template_file = processo.template_cumulativo.template_file
+        template_bytes = io.BytesIO(template_file.read())
+        template_file.close()
 
-        # Salva PDF nel processo
+        generator = PDFGenerator(template_bytes, data)
+        pdf_bytes = generator.generate_from_template(processo.template_cumulativo)
+
         processo.documento_cumulativo.save(
             f'processo_{processo.id}_cumulativo.pdf',
             ContentFile(pdf_bytes.read()),
