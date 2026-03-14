@@ -1040,6 +1040,24 @@ function GestioneRdl({ client, setError }) {
                         {showImport ? 'Chiudi Import' : 'Import CSV'}
                     </button>
                     <button
+                        className="btn btn-sm btn-outline-success"
+                        onClick={() => {
+                            client.rdlRegistrations.exportXlsx({
+                                status: statusFilter,
+                                regione: regioneFilter,
+                                provincia: provinciaFilter,
+                                comune: comuneFilter,
+                                municipio: municipioFilter,
+                            }).then(result => {
+                                if (result.error) setError(result.error);
+                            });
+                        }}
+                        title="Esporta registrazioni filtrate in Excel"
+                    >
+                        <i className="fas fa-file-excel me-1"></i>
+                        Export XLSX
+                    </button>
+                    <button
                         className="btn btn-sm btn-outline-secondary"
                         onClick={loadRegistrations}
                         title="Ricarica dati"

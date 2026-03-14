@@ -18,6 +18,7 @@ from .views import (
     RdlRegistrationEditView,
     RdlRegistrationImportView,
     RdlRegistrationRetryView,
+    RdlRegistrationExportXlsxView,
     ComuniSearchView,
     RdlRegistrationStatusView,
     # Mappatura views
@@ -68,6 +69,7 @@ rdl_registration_urlpatterns = [
     path('registrations', RdlRegistrationListView.as_view(), name='rdl-registrations-list'),
     path('registrations/import', RdlRegistrationImportView.as_view(), name='rdl-registrations-import'),
     path('registrations/retry', RdlRegistrationRetryView.as_view(), name='rdl-registrations-retry'),
+    path('registrations/export', RdlRegistrationExportXlsxView.as_view(), name='rdl-registrations-export'),
     path('registrations/<int:pk>', RdlRegistrationEditView.as_view(), name='rdl-registrations-edit'),
     path('registrations/<int:pk>/<str:action>', RdlRegistrationApproveView.as_view(), name='rdl-registrations-action'),
 ]

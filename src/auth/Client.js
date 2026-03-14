@@ -703,6 +703,35 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 return { error: error.message };
             }),
 
+        // Export registrations as XLSX
+        exportXlsx: async (filters = {}) => {
+            const params = new URLSearchParams();
+            if (filters.status) params.append('status', filters.status);
+            if (filters.regione) params.append('regione', filters.regione);
+            if (filters.provincia) params.append('provincia', filters.provincia);
+            if (filters.comune) params.append('comune', filters.comune);
+            if (filters.municipio) params.append('municipio', filters.municipio);
+            const queryString = params.toString();
+            try {
+                const response = await fetch(
+                    `${server}/api/rdl/registrations/export${queryString ? `?${queryString}` : ''}`,
+                    { headers: { 'Authorization': authHeader } }
+                );
+                if (!response.ok) return { error: `Errore export: ${response.status}` };
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'rdl_export.xlsx';
+                a.click();
+                window.URL.revokeObjectURL(url);
+                return { success: true };
+            } catch (error) {
+                console.error(error);
+                return { error: error.message };
+            }
+        },
+
         // Update registration
         update: async (id, data) =>
             fetch(`${server}/api/rdl/registrations/${id}`, {
