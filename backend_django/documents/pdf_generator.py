@@ -383,6 +383,9 @@ class PDFGenerator:
             except:
                 jsonpath_values[path] = ''
 
+        # Uppercase su tutti i valori risolti
+        jsonpath_values = {k: v.upper() if isinstance(v, str) else v for k, v in jsonpath_values.items()}
+
         # Se contiene solo un JSONPath senza operazioni, ritorna direttamente
         if len(jsonpath_values) == 1 and '+' not in expression:
             return list(jsonpath_values.values())[0]
