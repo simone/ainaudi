@@ -314,15 +314,10 @@ class TemplateEditorView(APIView):
 
         template = get_object_or_404(Template, pk=pk)
 
-        # Convert /media/ URL to /api/documents/media/ (Vite proxy workaround)
+        # Always use API proxy URL (avoids CORS with GCS)
         template_file_url = None
         if template.template_file:
-            url = template.template_file.url  # e.g., /media/templates/file.pdf
-            if url.startswith('/media/'):
-                # Convert to API endpoint: /api/documents/media/templates/file.pdf
-                template_file_url = '/api/documents/media/' + url[7:]
-            else:
-                template_file_url = url
+            template_file_url = f'/api/documents/media/{template.template_file.name}'
 
         # Leggi schema e doc dalla registry Python (fonte di verita')
         variables_schema = {}
@@ -426,34 +421,29 @@ class TemplatePreviewView(APIView):
 
 class ServeMediaView(APIView):
     """
-    Serve media files through API endpoint.
+    Serve media files through API endpoint (proxy).
 
-    GET /api/media/templates/<filename>
+    GET /api/documents/media/<filepath>
 
-    This is needed because Vite proxy doesn't work for /media/ paths
-    (SPA fallback returns index.html). Serving through /api/media/
-    works because /api is properly proxied.
+    Reads from Django's default storage backend (local filesystem or GCS),
+    so the frontend never needs to fetch from GCS directly (avoids CORS).
     """
-    permission_classes = [permissions.AllowAny]  # Files are public (or use templates for permission check)
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request, filepath):
-        """Serve a media file."""
-        from django.conf import settings
+        """Serve a media file from the default storage backend."""
+        from django.core.files.storage import default_storage
 
         # Security: prevent directory traversal
         filepath = filepath.lstrip('/')
         if '..' in filepath or filepath.startswith('/'):
             raise Http404("Invalid file path")
 
-        # Build full path
-        full_path = os.path.join(settings.MEDIA_ROOT, filepath)
-
-        # Check if file exists
-        if not os.path.exists(full_path) or not os.path.isfile(full_path):
+        if not default_storage.exists(filepath):
             raise Http404("File not found")
 
-        # Serve file
-        return FileResponse(open(full_path, 'rb'))
+        f = default_storage.open(filepath, 'rb')
+        return FileResponse(f, content_type='application/pdf')
 
 
 class VisibleDelegatesView(APIView):

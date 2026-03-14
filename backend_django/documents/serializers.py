@@ -26,17 +26,14 @@ class TemplateSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at', 'template_file_url', 'consultazione_nome', 'template_type_display', 'variables_schema', 'is_generic']
 
     def get_template_file_url(self, obj):
-        """Return API endpoint URL for template file (works with Vite proxy)"""
+        """Return API proxy URL for template file.
+
+        Always returns /api/documents/media/... so the frontend fetches
+        through our backend (avoids CORS issues with GCS).
+        """
         if obj.template_file:
-            # Use /api/documents/media/ endpoint instead of /media/
-            # This works because /api is properly proxied by Vite
-            # Original path: /media/templates/file.pdf
-            # API path: /api/documents/media/templates/file.pdf
-            original_url = obj.template_file.url  # e.g., /media/templates/file.pdf
-            if original_url.startswith('/media/'):
-                # Strip /media/ and prepend /api/documents/media/
-                return '/api/documents/media/' + original_url[7:]  # Remove '/media/'
-            return original_url
+            # obj.template_file.name is the storage-relative path, e.g. "templates/uuid.pdf"
+            return f'/api/documents/media/{obj.template_file.name}'
         return None
 
     def get_variables_schema(self, obj):
