@@ -119,11 +119,12 @@ def ensure_role_assigned(user, role, scope_type=None, scope_value=None, assigned
 
             return assignment, created
 
-    except IntegrityError:
-        assignment = RoleAssignment.objects.filter(
-            user=user,
-            role=role
-        ).first()
+    except (IntegrityError, RoleAssignment.MultipleObjectsReturned):
+        # Duplicates exist: keep the first, delete the rest
+        duplicates = RoleAssignment.objects.filter(user=user, role=role).order_by('id')
+        assignment = duplicates.first()
+        duplicates.exclude(id=assignment.id).delete()
+        logger.warning(f"Cleaned up duplicate RoleAssignment for {user.email} role={role}")
         return assignment, False
 
 

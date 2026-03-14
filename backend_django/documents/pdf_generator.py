@@ -212,13 +212,14 @@ class PDFGenerator:
             # Converti da editor (top-left, Y cresce in basso) a PDF (bottom-left, Y cresce in alto)
             pdf_y = page_height - editor_y - field_height
 
+            field_width = area.get('width', 0)
+
             logger.info(
                 f"[PDFGenerator] TEXT '{text}' at x={x}, pdf_y={pdf_y:.1f} "
-                f"(editor_y={editor_y}, h={field_height}, font={font_size:.1f})"
+                f"(editor_y={editor_y}, h={field_height}, w={field_width}, font={font_size:.1f})"
             )
 
-            can.setFont("Helvetica", font_size)
-            can.drawString(x, pdf_y, str(text))
+            self._draw_text_fit(can, text, x, pdf_y, field_width, font_size)
 
         # 2. Renderizza loop items
         loop_x = loop_area.get('x', 0)
@@ -240,19 +241,39 @@ class PDFGenerator:
                 # Converti a coordinate PDF
                 pdf_y = page_height - editor_abs_y - field_height
 
+                field_width = lf.get('width', 0)
+
                 logger.info(
                     f"[PDFGenerator] LOOP[{idx}] '{text}' at x={abs_x}, pdf_y={pdf_y:.1f} "
                     f"(loop={loop_x},{loop_y} rel={rel_x},{rel_y} row_h={row_height} "
-                    f"font={font_size:.1f})"
+                    f"w={field_width}, font={font_size:.1f})"
                 )
 
-                can.setFont("Helvetica", font_size)
-                can.drawString(abs_x, pdf_y, str(text))
+                self._draw_text_fit(can, text, abs_x, pdf_y, field_width, font_size)
 
         can.showPage()
         can.save()
         packet.seek(0)
         return PdfReader(packet).pages[0]
+
+    def _draw_text_fit(self, can, text, x, pdf_y, width, font_size):
+        """Disegna testo riducendo la font se necessario per stare nella larghezza."""
+        text = str(text)
+        if not text or not width or width <= 0:
+            can.setFont("Helvetica", font_size)
+            can.drawString(x, pdf_y, text)
+            return
+
+        min_font = 4
+        current_size = font_size
+        while current_size >= min_font:
+            text_width = pdfmetrics.stringWidth(text, "Helvetica", current_size)
+            if text_width <= width:
+                break
+            current_size -= 0.5
+
+        can.setFont("Helvetica", max(current_size, min_font))
+        can.drawString(x, pdf_y, text)
 
     def _render_text_fields(self, text_fields, target_page):
         """Renderizza solo campi testo (no loop). Ritorna PdfReader page overlay."""
@@ -273,13 +294,14 @@ class PDFGenerator:
 
             pdf_y = page_height - editor_y - field_height
 
+            field_width = area.get('width', 0)
+
             logger.info(
                 f"[PDFGenerator] TEXT '{text}' at x={x}, pdf_y={pdf_y:.1f} "
-                f"(editor_y={editor_y}, h={field_height}, font={font_size:.1f})"
+                f"(editor_y={editor_y}, h={field_height}, w={field_width}, font={font_size:.1f})"
             )
 
-            can.setFont("Helvetica", font_size)
-            can.drawString(x, pdf_y, str(text))
+            self._draw_text_fit(can, text, x, pdf_y, field_width, font_size)
 
         can.showPage()
         can.save()
