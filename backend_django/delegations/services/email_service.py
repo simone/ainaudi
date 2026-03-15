@@ -2,7 +2,7 @@
 Email service per invio notifiche RDL.
 Gestisce rendering template, invio email asincrono con Redis, e tracciamento progress.
 """
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.template.loader import render_to_string
 from typing import Dict, Tuple
@@ -18,7 +18,7 @@ class RDLEmailService:
     """
 
     @staticmethod
-    def invia_notifiche_processo_batch(processo, user_email: str, batch_size=50):
+    def invia_notifiche_processo_batch(processo, user_email: str, batch_size=50, allega_designazione=False):
         """
         Invia un batch di notifiche (max 50) sincronamente.
         Continua dall'ultimo invio.
@@ -85,7 +85,7 @@ class RDLEmailService:
                 nome=data['nome'],
                 sezioni_effettivo=data['sezioni_effettivo'],
                 sezioni_supplente=data['sezioni_supplente'],
-                user_email=user_email
+                allega_designazione=allega_designazione
             )
             if success:
                 sent += 1
@@ -113,7 +113,8 @@ class RDLEmailService:
         email: str,
         nome: str,
         sezioni_effettivo: list,
-        sezioni_supplente: list
+        sezioni_supplente: list,
+        allega_designazione: bool = False
     ) -> Tuple[bool, Dict]:
         """
         Invia email a singolo RDL (che può avere sia sezioni come effettivo che come supplente).
@@ -124,6 +125,7 @@ class RDLEmailService:
             nome: Nome completo RDL
             sezioni_effettivo: Lista sezioni come EFFETTIVO
             sezioni_supplente: Lista sezioni come SUPPLENTE
+            allega_designazione: Se True, allega PDF designazione personalizzato
 
         Returns:
             (success: bool, log: dict)
@@ -198,14 +200,40 @@ class RDLEmailService:
             )
 
             # Invia email (console backend in dev, SMTP in prod)
-            send_mail(
+            msg = EmailMultiAlternatives(
                 subject=subject,
-                message=text_message,
+                body=text_message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                fail_silently=False,
-                html_message=html_message,
+                to=[email],
             )
+            msg.attach_alternative(html_message, "text/html")
+
+            # Allega PDF designazione se richiesto
+            if allega_designazione and processo.documento_individuale:
+                try:
+                    from delegations.services.pdf_extraction_service import PDFExtractionService
+                    from delegations.models import DesignazioneRDL
+                    from django.db.models import Q
+
+                    des_rdl = DesignazioneRDL.objects.filter(
+                        Q(effettivo_email=email) | Q(supplente_email=email),
+                        processo=processo,
+                        stato='CONFERMATA',
+                        is_attiva=True
+                    ).select_related('sezione')
+
+                    if des_rdl.exists():
+                        pdf_bytes = PDFExtractionService.estrai_pagine_rdl(des_rdl, email)
+                        msg.attach(
+                            f'Designazione_RDL.pdf',
+                            pdf_bytes,
+                            'application/pdf'
+                        )
+                        logger.info(f"PDF allegato per {email}: {len(pdf_bytes)} bytes")
+                except Exception as e:
+                    logger.warning(f"Impossibile allegare PDF per {email}: {e}")
+
+            msg.send(fail_silently=False)
 
             logger.info(f"✅ Email inviata con successo a {email} ({tipo_rdl_log})")
             logger.info("")  # Linea vuota per separare

@@ -1188,9 +1188,15 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Opzione: allega PDF designazione
+        allega_designazione = request.data.get('allega_designazione', False)
+
         # Avvia invio batch email
         try:
-            result = RDLEmailService.invia_notifiche_processo_batch(processo, request.user.email, batch_size=50)
+            result = RDLEmailService.invia_notifiche_processo_batch(
+                processo, request.user.email, batch_size=50,
+                allega_designazione=allega_designazione
+            )
 
             return Response({
                 'success': True,

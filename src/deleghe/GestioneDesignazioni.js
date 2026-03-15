@@ -53,6 +53,7 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
     const [showAnnullaModal, setShowAnnullaModal] = useState(false);
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [emailProcessoId, setEmailProcessoId] = useState(null);
+    const [allegaDesignazione, setAllegaDesignazione] = useState(false);
 
     // PDF Viewer state
     const [pdfViewer, setPdfViewer] = useState(null); // { url, titolo, blobUrl } quando aperto
@@ -578,7 +579,9 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
     const confirmInviaEmail = async () => {
         setShowEmailModal(false);
         const processoId = emailProcessoId;
+        const allegaPdf = allegaDesignazione;
         setEmailProcessoId(null);
+        setAllegaDesignazione(false);
 
         setInviandoEmail(prev => ({ ...prev, [processoId]: true }));
         setEmailProgress(prev => ({ ...prev, [processoId]: { percentage: 0, status: 'STARTED' } }));
@@ -591,7 +594,8 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify({ allega_designazione: allegaPdf })
             });
 
             const data = await response.json();
@@ -1505,6 +1509,22 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
             >
                 <div>
                     <p>Sei sicuro di voler inviare le email a tutti gli RDL di questo processo?</p>
+                    <div className="form-check mb-3">
+                        <input
+                            className="form-check-input"
+                            type="checkbox"
+                            id="allegaDesignazione"
+                            checked={allegaDesignazione}
+                            onChange={(e) => setAllegaDesignazione(e.target.checked)}
+                        />
+                        <label className="form-check-label" htmlFor="allegaDesignazione">
+                            <i className="fas fa-paperclip me-1"></i>
+                            Allega PDF designazione personalizzato
+                        </label>
+                        <div className="form-text">
+                            Ogni RDL riceverà in allegato il PDF con le proprie sezioni e la nomina del delegato.
+                        </div>
+                    </div>
                     <p className="text-muted mb-0">
                         Questa operazione puo' richiedere alcuni minuti per comuni grandi.
                         Riceverai una notifica al completamento.
