@@ -520,7 +520,7 @@ function Risorse({ client, consultazione, setError, canDownloadDesignazioni }) {
                                 <i className="fas fa-print me-2"></i>
                                 Scarica Modulo Cartaceo
                             </button>
-                            {canDownloadDesignazioni && (
+                            {canDownloadDesignazioni && mieDesignazioni?.has_documento && (
                             <button
                                 className="btn btn-sm"
                                 style={{

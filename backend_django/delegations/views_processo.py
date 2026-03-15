@@ -1188,6 +1188,16 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Verifica che il documento sia stato generato
+        if not processo.documento_individuale:
+            return Response(
+                {
+                    'success': False,
+                    'error': 'Il documento di designazione non è ancora stato generato. Genera il PDF prima di inviare le email.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # Opzione: allega PDF designazione
         allega_designazione = request.data.get('allega_designazione', False)
 
@@ -1318,8 +1328,16 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
 
         consultazione = designazioni.first().processo.consultazione
 
+        # Verifica se esiste almeno un processo con documento individuale generato
+        processi_ids = set(des.processo_id for des in designazioni)
+        has_documento = ProcessoDesignazione.objects.filter(
+            id__in=processi_ids,
+            documento_individuale__isnull=False,
+        ).exclude(documento_individuale='').exists()
+
         return Response({
             'has_designazioni': True,
+            'has_documento': has_documento,
             'consultazione': {
                 'id': consultazione.id,
                 'nome': consultazione.nome
@@ -1425,8 +1443,14 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
                 'error': 'Nessuna designazione trovata per questa consultazione'
             }, status=404)
 
-        # Se è un processo TEST, genera un PDF finto per indicare che è in test
+        # Verifica che il documento sia stato generato
         processo = designazioni.first().processo
+        if not processo.documento_individuale:
+            return Response({
+                'error': 'Il documento di designazione non è ancora stato generato.'
+            }, status=404)
+
+        # Se è un processo TEST, genera un PDF finto per indicare che è in test
         if processo.stato == 'TEST':
             return self._generate_test_pdf_response(consultazione_id)
 
@@ -1508,6 +1532,11 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         if not request.user.is_superuser:
             if not (processo.delegato and processo.delegato.email == request.user.email):
                 return Response({'error': 'Non autorizzato'}, status=403)
+
+        if not processo.documento_individuale:
+            return Response({
+                'error': 'Il documento di designazione non è ancora stato generato per questo processo.'
+            }, status=404)
 
         try:
             pdf_bytes = PDFExtractionService.estrai_pagine_rdl(designazioni, rdl_email)
