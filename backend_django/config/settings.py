@@ -298,12 +298,14 @@ if USE_GCS:
     GS_PROJECT_ID = os.environ.get('GS_PROJECT_ID', os.environ.get('GOOGLE_CLOUD_PROJECT', ''))
     GS_DEFAULT_ACL = os.environ.get('GS_DEFAULT_ACL', 'publicRead')
     MEDIA_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/'
-    # Django 5.x: STORAGES replaces deprecated DEFAULT_FILE_STORAGE
-    # Only override "default" (media files) — staticfiles keeps using
-    # STATICFILES_STORAGE setting (whitenoise) to avoid manifest issues.
+    # Django 5.x: STORAGES replaces the entire default dict, so we must
+    # include both "default" and "staticfiles" explicitly.
     STORAGES = {
         "default": {
             "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
 
