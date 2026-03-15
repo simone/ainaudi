@@ -108,6 +108,13 @@ function PDFViewer({ url, originalUrl, titolo, onClose }) {
         window.open(originalUrl || url, '_blank');
     };
 
+    const downloadPdf = () => {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (titolo || 'documento').replace(/[^a-zA-Z0-9_\-\s]/g, '') + '.pdf';
+        a.click();
+    };
+
     return (
         <div className="pdf-viewer-overlay" onClick={onClose}>
             <div className="pdf-viewer-container" onClick={e => e.stopPropagation()}>
@@ -118,6 +125,13 @@ function PDFViewer({ url, originalUrl, titolo, onClose }) {
                         <span className="text-truncate">{titolo}</span>
                     </div>
                     <div className="pdf-actions">
+                        <button
+                            className="btn btn-sm btn-outline-light me-2"
+                            onClick={downloadPdf}
+                            title="Scarica PDF"
+                        >
+                            <i className="fas fa-download"></i>
+                        </button>
                         <button
                             className="btn btn-sm btn-outline-light me-2"
                             onClick={openInNewTab}
