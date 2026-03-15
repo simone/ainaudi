@@ -1476,6 +1476,53 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
                 'error': f'Errore durante la generazione del PDF: {str(e)}'
             }, status=500)
 
+    @action(detail=False, methods=['get'], url_path='download-designazione-rdl',
+            permission_classes=[permissions.IsAuthenticated])
+    def download_designazione_rdl(self, request):
+        """
+        Delegato scarica il PDF di designazione per un RDL specifico.
+
+        GET /api/processi/download-designazione-rdl/?consultazione_id=1&email=rdl@example.com
+        """
+        logger = logging.getLogger(__name__)
+        consultazione_id = request.GET.get('consultazione_id')
+        rdl_email = request.GET.get('email')
+
+        if not consultazione_id or not rdl_email:
+            return Response({'error': 'consultazione_id e email richiesti'}, status=400)
+
+        # Trova designazioni per questo RDL
+        designazioni = DesignazioneRDL.objects.filter(
+            Q(effettivo_email=rdl_email) | Q(supplente_email=rdl_email),
+            processo__consultazione_id=consultazione_id,
+            processo__stato__in=['APPROVATO', 'INVIATO', 'TEST'],
+            stato='CONFERMATA',
+            is_attiva=True
+        ).select_related('processo', 'sezione')
+
+        if not designazioni.exists():
+            return Response({'error': 'Nessuna designazione trovata'}, status=404)
+
+        # Verifica che l'utente sia il delegato del processo (o superuser)
+        processo = designazioni.first().processo
+        if not request.user.is_superuser:
+            if not (processo.delegato and processo.delegato.email == request.user.email):
+                return Response({'error': 'Non autorizzato'}, status=403)
+
+        try:
+            pdf_bytes = PDFExtractionService.estrai_pagine_rdl(designazioni, rdl_email)
+
+            filename = f"Designazione_RDL_{rdl_email.split('@')[0]}.pdf"
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'inline; filename="{filename}"'
+            response['Content-Length'] = len(pdf_bytes)
+
+            return response
+
+        except Exception as e:
+            logger.error(f"Errore download designazione RDL: {e}", exc_info=True)
+            return Response({'error': str(e)}, status=500)
+
 
 # Alias per retrocompatibilità con URL esistenti
 BatchGenerazioneDocumentiViewSet = ProcessoDesignazioneViewSet

@@ -73,7 +73,7 @@ const toRoman = (num) => {
     return result;
 };
 
-function GestioneRdl({ client, setError }) {
+function GestioneRdl({ client, setError, consultazione }) {
     const [registrations, setRegistrations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('');
@@ -420,6 +420,33 @@ function GestioneRdl({ client, setError }) {
         setProvinciaFilter('');
         setComuneFilter('');
         setMunicipioFilter('');
+    };
+
+    const handleDownloadDesignazione = async (reg) => {
+        if (!consultazione?.id) {
+            setError('Nessuna consultazione attiva');
+            return;
+        }
+        try {
+            const serverUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
+            const url = `${serverUrl}/api/deleghe/processi/download-designazione-rdl/?consultazione_id=${consultazione.id}&email=${encodeURIComponent(reg.email)}`;
+            const response = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
+            });
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.error || `Errore ${response.status}`);
+            }
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = `Designazione_${reg.cognome}_${reg.nome}.pdf`;
+            a.click();
+            URL.revokeObjectURL(blobUrl);
+        } catch (err) {
+            setError(err.message || 'Errore download designazione');
+        }
     };
 
     const handleGeneratePin = async (reg) => {
@@ -1702,6 +1729,17 @@ function GestioneRdl({ client, setError }) {
                                                             Genera PIN
                                                         </button>
                                                     )
+                                                )}
+                                                {reg.status === 'APPROVED' && consultazione && (
+                                                    <button
+                                                        className="btn btn-outline-info btn-sm"
+                                                        onClick={() => handleDownloadDesignazione(reg)}
+                                                        style={{ flex: '1 1 calc(50% - 3px)' }}
+                                                        title="Scarica PDF designazione per questo RDL"
+                                                    >
+                                                        <i className="fas fa-file-pdf me-1"></i>
+                                                        Designazione
+                                                    </button>
                                                 )}
                                                 <button
                                                     className="btn btn-outline-primary btn-sm"

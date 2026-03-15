@@ -1153,6 +1153,7 @@ function AppContent() {
                                     <GestioneRdl
                                         client={client}
                                         setError={setError}
+                                        consultazione={consultazione}
                                     />
                                 </div>
                             )}
