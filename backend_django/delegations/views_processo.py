@@ -1068,9 +1068,11 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
 
     def _genera_pdf_individuale_batch(self, processo, batch_size=100, reset=False):
         """
-        Genera PDF individuale in batch: genera batch_size pagine per chiamata.
-        Le pagine parziali sono salvate come file temporaneo.
-        Al completamento, il file finale viene spostato su documento_individuale.
+        Genera PDF individuale in batch: ogni batch salva un piccolo PDF separato.
+        Al completamento, tutti i batch vengono mergiati nel documento finale.
+
+        Strategia: salva batch_0.pdf, batch_1.pdf, ... e merge alla fine.
+        Ogni chiamata è veloce (non rilegge tutto il pregresso).
 
         Returns:
             {'completed': bool, 'generated': int, 'total': int, 'percentage': int}
@@ -1082,6 +1084,7 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         from django.utils import timezone
         from PyPDF2 import PdfWriter, PdfReader
         import io
+        import json
 
         designazioni = list(
             processo.designazioni.all().select_related(
@@ -1090,25 +1093,22 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         )
         total = len(designazioni)
 
-        # File parziale per accumulare pagine tra batch
-        partial_path = f'deleghe/processi/processo_{processo.id}_partial.pdf'
+        # Progress file: traccia quante pagine sono state generate
+        progress_path = f'deleghe/processi/processo_{processo.id}_progress.json'
+        batch_dir = f'deleghe/processi/processo_{processo.id}_batches'
+
+        # Reset: elimina tutto il progresso precedente
+        if reset:
+            self._cleanup_batch_files(default_storage, progress_path, batch_dir, total)
+
+        # Leggi progresso attuale
         offset = 0
-
-        # Reset: elimina file parziale precedente per ripartire da zero
-        if reset and default_storage.exists(partial_path):
-            default_storage.delete(partial_path)
-
-        # Se esiste file parziale, conta le pagine già generate
-        writer = PdfWriter()
-        if default_storage.exists(partial_path):
-            with default_storage.open(partial_path, 'rb') as f:
-                existing_reader = PdfReader(f)
-                offset = len(existing_reader.pages)
-                for page in existing_reader.pages:
-                    writer.add_page(page)
+        if default_storage.exists(progress_path):
+            with default_storage.open(progress_path, 'rb') as f:
+                progress_data = json.loads(f.read().decode('utf-8'))
+                offset = progress_data.get('generated', 0)
 
         if offset >= total:
-            # Già completato in precedenza, finalizza
             offset = total
 
         # Genera batch di pagine
@@ -1117,6 +1117,9 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         template_file.close()
 
         batch_end = min(offset + batch_size, total)
+        batch_num = offset // batch_size
+
+        writer = PdfWriter()
         for designazione in designazioni[offset:batch_end]:
             data = DesignationSingleType.serialize(processo, designazione)
 
@@ -1128,33 +1131,50 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             for page in pdf_reader.pages:
                 writer.add_page(page)
 
+        # Salva questo batch come file separato (piccolo e veloce)
+        batch_output = io.BytesIO()
+        writer.write(batch_output)
+        batch_path = f'{batch_dir}/batch_{batch_num:04d}.pdf'
+        if default_storage.exists(batch_path):
+            default_storage.delete(batch_path)
+        default_storage.save(batch_path, ContentFile(batch_output.getvalue()))
+
         generated = batch_end
-
-        # Salva stato parziale/finale
-        output = io.BytesIO()
-        writer.write(output)
-        output.seek(0)
-
         completed = generated >= total
 
+        # Aggiorna progresso
+        if default_storage.exists(progress_path):
+            default_storage.delete(progress_path)
+        default_storage.save(
+            progress_path,
+            ContentFile(json.dumps({'generated': generated, 'total': total}).encode('utf-8'))
+        )
+
         if completed:
-            # Salva come documento finale
+            # Merge tutti i batch nel documento finale
+            final_writer = PdfWriter()
+            n_batches = (total + batch_size - 1) // batch_size
+            for i in range(n_batches):
+                bp = f'{batch_dir}/batch_{i:04d}.pdf'
+                if default_storage.exists(bp):
+                    with default_storage.open(bp, 'rb') as f:
+                        reader = PdfReader(f)
+                        for page in reader.pages:
+                            final_writer.add_page(page)
+
+            final_output = io.BytesIO()
+            final_writer.write(final_output)
+
             processo.documento_individuale.save(
                 f'processo_{processo.id}_individuale.pdf',
-                ContentFile(output.read()),
+                ContentFile(final_output.getvalue()),
                 save=False
             )
             processo.data_generazione_individuale = timezone.now()
             processo.n_pagine = total
 
-            # Rimuovi file parziale
-            if default_storage.exists(partial_path):
-                default_storage.delete(partial_path)
-        else:
-            # Salva progresso parziale (sovrascrivendo il precedente)
-            if default_storage.exists(partial_path):
-                default_storage.delete(partial_path)
-            default_storage.save(partial_path, ContentFile(output.read()))
+            # Cleanup batch files
+            self._cleanup_batch_files(default_storage, progress_path, batch_dir, total)
 
         percentage = int(generated / total * 100) if total > 0 else 100
 
@@ -1164,6 +1184,17 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             'total': total,
             'percentage': percentage,
         }
+
+    @staticmethod
+    def _cleanup_batch_files(storage, progress_path, batch_dir, total, batch_size=100):
+        """Rimuove i file temporanei dei batch."""
+        if storage.exists(progress_path):
+            storage.delete(progress_path)
+        n_batches = (total + batch_size - 1) // batch_size
+        for i in range(n_batches + 1):
+            bp = f'{batch_dir}/batch_{i:04d}.pdf'
+            if storage.exists(bp):
+                storage.delete(bp)
 
     def _genera_pdf_cumulativo(self, processo):
         """
