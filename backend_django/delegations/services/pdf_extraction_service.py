@@ -90,18 +90,7 @@ class PDFExtractionService:
 
         writer = PdfWriter()
 
-        # 1. Prependi pagine nomina delegato (se presente)
-        if has_nomina:
-            try:
-                with _open_file(delegato.documento_nomina) as f:
-                    nomina_reader = PdfReader(f)
-                    for page in nomina_reader.pages:
-                        writer.add_page(page)
-                logger.info(f"Aggiunta nomina delegato: {nomina_reader.pages.__len__()} pagine")
-            except Exception as e:
-                logger.warning(f"Impossibile aggiungere nomina delegato: {e}")
-
-        # 2. Pagine designazione RDL
+        # 1. Pagine designazione RDL
         with _open_file(processo.documento_individuale) as f:
             reader = PdfReader(f)
             for page_idx in pagine_da_estrarre:
@@ -109,6 +98,17 @@ class PDFExtractionService:
                     writer.add_page(reader.pages[page_idx])
                 else:
                     logger.warning(f"Pagina {page_idx} non trovata nel PDF")
+
+        # 2. Appendi pagine nomina delegato (se presente)
+        if has_nomina:
+            try:
+                with _open_file(delegato.documento_nomina) as f:
+                    nomina_reader = PdfReader(f)
+                    for page in nomina_reader.pages:
+                        writer.add_page(page)
+                logger.info(f"Aggiunta nomina delegato: {len(nomina_reader.pages)} pagine")
+            except Exception as e:
+                logger.warning(f"Impossibile aggiungere nomina delegato: {e}")
 
         # Scrivi PDF in memoria
         output_buffer = BytesIO()
