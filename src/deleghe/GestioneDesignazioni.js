@@ -48,6 +48,7 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
 
     // Wizard state
     const [showWizard, setShowWizard] = useState(false);
+    const [wizardProcessoId, setWizardProcessoId] = useState(null); // For resuming existing process
 
     // Confirm modal state
     const [showAnnullaModal, setShowAnnullaModal] = useState(false);
@@ -208,6 +209,7 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
             }
 
             // 2. Check processo in corso (batch con stato BOZZA o GENERATO)
+            let foundProcessoInCorso = false;
             const batchResult = await client.deleghe.batch.list(consultazione.id);
             console.log('[GestioneDesignazioni] Batch result:', batchResult);
 
@@ -240,6 +242,7 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                         };
                         console.log('[GestioneDesignazioni] Setting processo in corso:', processo);
                         setProcessoInCorso(processo);
+                        foundProcessoInCorso = true;
                     } else if (individuale || riepilogativo) {
                         console.warn('[GestioneDesignazioni] Batch incompleto - manca uno dei due tipi!');
                         const batch = individuale || riepilogativo;
@@ -252,6 +255,7 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                             batch_riepilogativo: riepilogativo || null,
                             created_at: batch.created_at
                         });
+                        foundProcessoInCorso = true;
                     }
                 }
 
@@ -280,7 +284,24 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
 
             if (!storicoResult.error && Array.isArray(storicoResult)) {
                 console.log('[GestioneDesignazioni] Processi storici:', storicoResult.length);
-                setProcessiStorico(storicoResult);
+
+                // Detect active processes from storico (BOZZA, SELEZIONE_TEMPLATE, IN_GENERAZIONE, GENERATO)
+                // Only set if batch detection above didn't already find one
+                const statiInCorso = ['BOZZA', 'SELEZIONE_TEMPLATE', 'IN_GENERAZIONE', 'GENERATO'];
+                const processoAttivo = storicoResult.find(p => statiInCorso.includes(p.stato));
+                if (processoAttivo && !foundProcessoInCorso) {
+                    console.log('[GestioneDesignazioni] Processo attivo trovato in storico:', processoAttivo);
+                    setProcessoInCorso({
+                        id: processoAttivo.id,
+                        batch_individuale: processoAttivo.documento_individuale_url ? { stato: 'GENERATO', id: processoAttivo.id } : { stato: processoAttivo.stato, id: processoAttivo.id },
+                        batch_riepilogativo: processoAttivo.documento_cumulativo_url ? { stato: 'GENERATO', id: processoAttivo.id } : { stato: processoAttivo.stato, id: processoAttivo.id },
+                        created_at: processoAttivo.created_at,
+                        stato: processoAttivo.stato
+                    });
+                }
+
+                // Only show truly closed processes in storico
+                setProcessiStorico(storicoResult.filter(p => !statiInCorso.includes(p.stato)));
             }
 
         } catch (err) {
@@ -379,9 +400,15 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
         }
 
         console.log('[GestioneDesignazioni] Apertura wizard per', selectedSezioni.size, 'sezioni');
-        console.log('[GestioneDesignazioni] Chiamata setShowWizard(true)');
+        setWizardProcessoId(null); // New process
         setShowWizard(true);
-        console.log('[GestioneDesignazioni] showWizard dopo:', showWizard);
+    };
+
+    const handleRiprendiProcesso = () => {
+        if (!processoInCorso?.id) return;
+        console.log('[GestioneDesignazioni] Riprendi processo:', processoInCorso.id);
+        setWizardProcessoId(processoInCorso.id);
+        setShowWizard(true);
     };
 
     const handleExportXlsx = async () => {
@@ -860,6 +887,13 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                                     <span>Annulla Atto</span>
                                 </button>
                                 <button
+                                    className="btn btn-primary"
+                                    onClick={handleRiprendiProcesso}
+                                >
+                                    <i className="fas fa-redo me-1"></i>
+                                    <span>Continua</span>
+                                </button>
+                                <button
                                     className="btn btn-success"
                                     onClick={handleConfermaProcesso}
                                     disabled={
@@ -1234,11 +1268,12 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                 {console.log('[GestioneDesignazioni] Prima di WizardDesignazioni, showWizard:', showWizard)}
                 <WizardDesignazioni
                     show={showWizard}
-                    onClose={() => setShowWizard(false)}
+                    onClose={() => { setShowWizard(false); setWizardProcessoId(null); }}
                     client={client}
                     consultazione={consultazione}
                     sezioniSelezionate={selectedSezioni}
                     onSuccess={handleWizardSuccess}
+                    existingProcessoId={wizardProcessoId}
                 />
 
                 {/* Modal conferma annullamento processo */}

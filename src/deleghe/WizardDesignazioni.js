@@ -21,7 +21,8 @@ function WizardDesignazioni({
     client,
     consultazione,
     sezioniSelezionate,
-    onSuccess
+    onSuccess,
+    existingProcessoId  // If set, resume existing process instead of creating new one
 }) {
     const [currentStep, setCurrentStep] = useState(1);
     const [loading, setLoading] = useState(false);
@@ -61,12 +62,91 @@ function WizardDesignazioni({
     const [showAnnullaModal, setShowAnnullaModal] = useState(false);
 
     useEffect(() => {
-        console.log('[Wizard] useEffect triggered, show:', show);
+        console.log('[Wizard] useEffect triggered, show:', show, 'existingProcessoId:', existingProcessoId);
         if (show) {
-            console.log('[Wizard] Chiamata initWizard()');
-            initWizard();
+            if (existingProcessoId) {
+                console.log('[Wizard] Chiamata resumeWizard() per processo:', existingProcessoId);
+                resumeWizard(existingProcessoId);
+            } else {
+                console.log('[Wizard] Chiamata initWizard()');
+                initWizard();
+            }
         }
     }, [show]);
+
+    const resumeWizard = async (procId) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const result = await client.deleghe.processi.riprendi(procId);
+            console.log('[Wizard] riprendi result:', result);
+
+            if (result.error) {
+                throw new Error(result.error);
+            }
+
+            setProcessoId(result.processo_id);
+            setDelegati(result.delegati_disponibili || []);
+            setSubdelegati(result.subdelegati_disponibili || []);
+            setIsSuperuser(result.is_superuser || false);
+
+            const templatesInd = result.template_choices?.individuali || [];
+            const templatesCum = result.template_choices?.cumulativi || [];
+            setTemplatesIndividuali(templatesInd);
+            setTemplatesCumulativi(templatesCum);
+
+            // Restore selected values from process state
+            if (result.selected_template_ind) {
+                setSelectedTemplateInd(result.selected_template_ind);
+            } else if (templatesInd.length === 1) {
+                setSelectedTemplateInd(templatesInd[0].id);
+            }
+            if (result.selected_template_cum) {
+                setSelectedTemplateCum(result.selected_template_cum);
+            } else if (templatesCum.length === 1) {
+                setSelectedTemplateCum(templatesCum[0].id);
+            }
+
+            // Restore delegato/subdelegato selection
+            if (result.selected_delegato) {
+                setSelectedDelegato(result.selected_delegato);
+                setUseDelegato(true);
+            } else if (result.selected_subdelegato) {
+                setSelectedSubDelegato(result.selected_subdelegato);
+                setUseDelegato(false);
+            } else {
+                // Fallback: auto-select current user
+                const currentUserDelegato = result.delegati_disponibili?.find(d => d.is_current_user);
+                const currentUserSubDelegato = result.subdelegati_disponibili?.find(sd => sd.is_current_user);
+                if (currentUserDelegato) {
+                    setSelectedDelegato(currentUserDelegato.id);
+                    setUseDelegato(true);
+                } else if (currentUserSubDelegato) {
+                    setSelectedSubDelegato(currentUserSubDelegato.id);
+                    setUseDelegato(false);
+                }
+            }
+
+            // Restore PDF generation state
+            if (result.has_documento_individuale) {
+                setPdfIndividualeGenerato(true);
+            }
+            if (result.has_documento_cumulativo) {
+                setPdfCumulativoGenerato(true);
+            }
+
+            // Jump to the appropriate step
+            const step = result.resume_step || 1;
+            console.log('[Wizard] Resuming at step:', step);
+            setCurrentStep(step);
+
+        } catch (err) {
+            console.error('[Wizard] Errore resume:', err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const initWizard = async () => {
         setLoading(true);
@@ -448,7 +528,7 @@ function WizardDesignazioni({
                         <i className="fas fa-magic me-2"></i>
                         Processo di Designazione
                     </h4>
-                    <button className="btn-close" onClick={handleAnnulla}></button>
+                    <button className="btn-close" onClick={existingProcessoId ? handleClose : handleAnnulla}></button>
                 </div>
 
                 {/* Progress */}

@@ -208,6 +208,101 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             'is_superuser': request.user.is_superuser
         }, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=['get'])
+    def riprendi(self, request, pk=None):
+        """
+        GET /api/processi/{id}/riprendi/
+
+        Riprende un processo esistente (BOZZA, SELEZIONE_TEMPLATE, IN_GENERAZIONE, GENERATO).
+        Restituisce lo stato corrente + dati per riprendere il wizard dal punto giusto.
+
+        Response: {
+            processo_id: int,
+            stato: str,
+            resume_step: int (1-6),
+            template_choices: {...},
+            delegati_disponibili: [...],
+            subdelegati_disponibili: [...],
+            is_superuser: bool,
+            // Se già configurato:
+            selected_template_ind: int|null,
+            selected_template_cum: int|null,
+            selected_delegato: int|null,
+            selected_subdelegato: int|null,
+            dati_delegato: {...},
+            has_documento_individuale: bool,
+            has_documento_cumulativo: bool,
+        }
+        """
+        processo = self.get_object()
+
+        if processo.stato in ['APPROVATO', 'ANNULLATO', 'INVIATO']:
+            return Response(
+                {'error': 'Processo non riprendibile (già completato o annullato)'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Determine resume step based on stato
+        if processo.stato == 'SELEZIONE_TEMPLATE':
+            resume_step = 1  # Start from beginning
+        elif processo.stato == 'BOZZA':
+            if processo.template_individuale and processo.documento_individuale:
+                resume_step = 5  # Go to cumulativo generation
+            elif processo.template_individuale:
+                resume_step = 4  # Go to individuale generation
+            else:
+                resume_step = 1  # Not yet configured
+        elif processo.stato == 'IN_GENERAZIONE':
+            resume_step = 4  # Resume individuale generation
+        elif processo.stato == 'GENERATO':
+            resume_step = 6  # Go to confirmation
+        else:
+            resume_step = 1
+
+        # Get template choices and delegati (same as create)
+        template_choices = self._get_template_choices(processo.consultazione)
+
+        from .models import SubDelega
+
+        delegati_disponibili = []
+        for delegato in Delegato.objects.filter(consultazione=processo.consultazione):
+            delegati_disponibili.append({
+                'id': delegato.id,
+                'nome_completo': delegato.nome_completo,
+                'carica': delegato.carica,
+                'email': delegato.email,
+                'is_current_user': delegato.email == request.user.email
+            })
+
+        subdelegati_disponibili = []
+        for subdelega in SubDelega.objects.filter(
+            delegato__consultazione=processo.consultazione,
+            is_attiva=True
+        ):
+            subdelegati_disponibili.append({
+                'id': subdelega.id,
+                'nome_completo': subdelega.nome_completo,
+                'email': subdelega.email,
+                'is_current_user': subdelega.email == request.user.email
+            })
+
+        return Response({
+            'processo_id': processo.id,
+            'stato': processo.stato,
+            'resume_step': resume_step,
+            'template_choices': template_choices,
+            'delegati_disponibili': delegati_disponibili,
+            'subdelegati_disponibili': subdelegati_disponibili,
+            'is_superuser': request.user.is_superuser,
+            'selected_template_ind': processo.template_individuale_id,
+            'selected_template_cum': processo.template_cumulativo_id,
+            'selected_delegato': processo.delegato_id,
+            'selected_subdelegato': processo.dati_delegato.get('_subdelegato_id') if processo.dati_delegato else None,
+            'dati_delegato': processo.dati_delegato or {},
+            'has_documento_individuale': bool(processo.documento_individuale),
+            'has_documento_cumulativo': bool(processo.documento_cumulativo),
+        })
+
     @action(detail=True, methods=['post'])
     def get_campi_richiesti(self, request, pk=None):
         """

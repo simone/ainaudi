@@ -1189,9 +1189,18 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': authHeader
+                        'Authorization': getAuthHeader()
                     },
                     body: JSON.stringify(data)
+                }).then(response => safeJson(response)).catch(error => {
+                    console.error(error);
+                    return { error: error.message };
+                }),
+
+            // Riprendi processo esistente (per riaprire wizard)
+            riprendi: async (processoId) =>
+                fetch(`${server}/api/deleghe/processi/${processoId}/riprendi/`, {
+                    headers: { 'Authorization': getAuthHeader() }
                 }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
@@ -1210,7 +1219,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': authHeader
+                        'Authorization': getAuthHeader()
                     },
                     body: JSON.stringify(body)
                 }).then(response => safeJson(response)).catch(error => {
@@ -1225,7 +1234,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': authHeader
+                        'Authorization': getAuthHeader()
                     },
                     body: JSON.stringify(data)
                 }).then(response => safeJson(response)).catch(error => {
@@ -1233,22 +1242,32 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     return { error: error.message };
                 }),
 
-            // Genera PDF individuale (batch mode)
-            generaIndividuale: async (processoId, reset = false) =>
-                fetch(`${server}/api/deleghe/processi/${processoId}/genera_individuale/`, {
+            // Genera PDF individuale (batch mode) - uses getAuthHeader() for fresh token on each call
+            generaIndividuale: async (processoId, reset = false) => {
+                let response = await fetch(`${server}/api/deleghe/processi/${processoId}/genera_individuale/`, {
                     method: 'POST',
-                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+                    headers: { 'Authorization': getAuthHeader(), 'Content-Type': 'application/json' },
                     body: JSON.stringify({ reset })
-                }).then(response => safeJson(response)).catch(error => {
-                    console.error(error);
-                    return { error: error.message };
-                }),
+                });
+                // Handle 401: refresh token and retry once
+                if (response.status === 401) {
+                    const newAuth = await handleUnauthorized();
+                    if (newAuth) {
+                        response = await fetch(`${server}/api/deleghe/processi/${processoId}/genera_individuale/`, {
+                            method: 'POST',
+                            headers: { 'Authorization': newAuth, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ reset })
+                        });
+                    }
+                }
+                return safeJson(response);
+            },
 
             // Genera PDF cumulativo
             generaCumulativo: async (processoId) =>
                 fetch(`${server}/api/deleghe/processi/${processoId}/genera_cumulativo/`, {
                     method: 'POST',
-                    headers: { 'Authorization': authHeader }
+                    headers: { 'Authorization': getAuthHeader() }
                 }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
@@ -1257,7 +1276,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             // Preview PDF individuale (restituisce blob URL per viewer)
             previewIndividuale: async (processoId) => {
                 const response = await fetch(`${server}/api/deleghe/processi/${processoId}/download_individuale/`, {
-                    headers: { 'Authorization': authHeader }
+                    headers: { 'Authorization': getAuthHeader() }
                 });
                 if (!response.ok) {
                     throw new Error('Errore caricamento PDF individuale');
@@ -1270,7 +1289,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             // Preview PDF cumulativo (restituisce blob URL per viewer)
             previewCumulativo: async (processoId) => {
                 const response = await fetch(`${server}/api/deleghe/processi/${processoId}/download_cumulativo/`, {
-                    headers: { 'Authorization': authHeader }
+                    headers: { 'Authorization': getAuthHeader() }
                 });
                 if (!response.ok) {
                     throw new Error('Errore caricamento PDF cumulativo');
@@ -1283,7 +1302,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             // Download PDF individuale
             downloadIndividuale: async (processoId) => {
                 const response = await fetch(`${server}/api/deleghe/processi/${processoId}/download_individuale/`, {
-                    headers: { 'Authorization': authHeader }
+                    headers: { 'Authorization': getAuthHeader() }
                 });
                 if (!response.ok) {
                     throw new Error('Errore download PDF individuale');
@@ -1302,7 +1321,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             // Download PDF cumulativo
             downloadCumulativo: async (processoId) => {
                 const response = await fetch(`${server}/api/deleghe/processi/${processoId}/download_cumulativo/`, {
-                    headers: { 'Authorization': authHeader }
+                    headers: { 'Authorization': getAuthHeader() }
                 });
                 if (!response.ok) {
                     throw new Error('Errore download PDF cumulativo');
@@ -1322,7 +1341,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             conferma: async (processoId) =>
                 fetch(`${server}/api/deleghe/processi/${processoId}/conferma/`, {
                     method: 'POST',
-                    headers: { 'Authorization': authHeader }
+                    headers: { 'Authorization': getAuthHeader() }
                 }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
@@ -1332,7 +1351,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
             annulla: async (processoId) =>
                 fetch(`${server}/api/deleghe/processi/${processoId}/annulla/`, {
                     method: 'POST',
-                    headers: { 'Authorization': authHeader }
+                    headers: { 'Authorization': getAuthHeader() }
                 }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
@@ -1345,7 +1364,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 if (comuneId) params.append('comune_id', comuneId);
                 if (tipo) params.append('tipo', tipo);
                 return fetch(`${server}/api/deleghe/processi/archivio/?${params.toString()}`, {
-                    headers: { 'Authorization': authHeader }
+                    headers: { 'Authorization': getAuthHeader() }
                 }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
@@ -1357,7 +1376,7 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 const params = new URLSearchParams();
                 if (consultazioneId) params.append('consultazione_id', consultazioneId);
                 return fetch(`${server}/api/deleghe/processi/mie-designazioni/?${params.toString()}`, {
-                    headers: { 'Authorization': authHeader }
+                    headers: { 'Authorization': getAuthHeader() }
                 }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
