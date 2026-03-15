@@ -50,6 +50,7 @@ function WizardDesignazioni({
 
     // Step 4-5: PDF generati
     const [pdfIndividualeGenerato, setPdfIndividualeGenerato] = useState(false);
+    const [pdfIndividualeProgress, setPdfIndividualeProgress] = useState(null); // { percentage, generated, total }
     const [pdfCumulativoGenerato, setPdfCumulativoGenerato] = useState(false);
 
     // PDF Viewer state
@@ -227,19 +228,39 @@ function WizardDesignazioni({
 
     const handleGeneraPdfIndividuale = async () => {
         setLoading(true);
+        setPdfIndividualeProgress(null);
+        setError(null);
         try {
-            const result = await client.deleghe.processi.generaIndividuale(processoId);
+            let completed = false;
+            let firstCall = true;
+            while (!completed) {
+                const result = await client.deleghe.processi.generaIndividuale(processoId, firstCall);
+                firstCall = false;
 
-            if (result.error) {
-                throw new Error(result.error);
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                setPdfIndividualeProgress({
+                    percentage: result.percentage,
+                    generated: result.generated,
+                    total: result.total
+                });
+
+                completed = result.completed;
+
+                if (!completed) {
+                    console.log(`[Wizard] PDF individuale: ${result.generated}/${result.total} (${result.percentage}%)`);
+                }
             }
 
             console.log('[Wizard] PDF individuale generato');
             setPdfIndividualeGenerato(true);
-            setError(null);
+            setPdfIndividualeProgress(null);
         } catch (err) {
             console.error('[Wizard] Errore generazione PDF individuale:', err);
             setError(err.message);
+            setPdfIndividualeProgress(null);
         } finally {
             setLoading(false);
         }
@@ -497,12 +518,14 @@ function WizardDesignazioni({
                         />
                     )}
 
-                    {!loading && currentStep === 4 && (
+                    {currentStep === 4 && (
                         <StepPdfIndividuale
                             processoId={processoId}
                             generato={pdfIndividualeGenerato}
                             onGenera={handleGeneraPdfIndividuale}
                             onPreview={handlePreviewIndividuale}
+                            progress={pdfIndividualeProgress}
+                            generating={loading}
                         />
                     )}
 
@@ -815,12 +838,30 @@ function StepFormDati({ campiRichiesti, formData, setFormData }) {
     );
 }
 
-function StepPdfIndividuale({ processoId, generato, onGenera, onPreview }) {
+function StepPdfIndividuale({ processoId, generato, onGenera, onPreview, progress, generating }) {
     return (
         <div className="step-container text-center">
             <h5 className="mb-4">Genera e controlla il PDF Individuale</h5>
 
-            {!generato ? (
+            {generating && progress ? (
+                <div>
+                    <p className="text-muted mb-3">
+                        Generazione in corso: {progress.generated} / {progress.total} pagine
+                    </p>
+                    <div className="progress mb-3" style={{ height: '25px' }}>
+                        <div
+                            className="progress-bar progress-bar-striped progress-bar-animated"
+                            role="progressbar"
+                            style={{ width: `${progress.percentage}%` }}
+                        >
+                            {progress.percentage}%
+                        </div>
+                    </div>
+                    <p className="text-muted small">
+                        Non chiudere questa pagina durante la generazione.
+                    </p>
+                </div>
+            ) : !generato ? (
                 <div>
                     <p className="text-muted mb-4">
                         Clicca sul pulsante per generare i documenti PDF individuali (uno per ogni sezione).
@@ -828,9 +869,19 @@ function StepPdfIndividuale({ processoId, generato, onGenera, onPreview }) {
                     <button
                         className="btn btn-primary btn-lg"
                         onClick={onGenera}
+                        disabled={generating}
                     >
-                        <i className="fas fa-file-pdf me-2"></i>
-                        Genera PDF Individuale
+                        {generating ? (
+                            <>
+                                <span className="spinner-border spinner-border-sm me-2"></span>
+                                Generazione...
+                            </>
+                        ) : (
+                            <>
+                                <i className="fas fa-file-pdf me-2"></i>
+                                Genera PDF Individuale
+                            </>
+                        )}
                     </button>
                 </div>
             ) : (

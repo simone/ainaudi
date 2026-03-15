@@ -497,12 +497,21 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['post'])
-    @transaction.atomic
     def genera_individuale(self, request, pk=None):
         """
         POST /api/processi/{id}/genera_individuale/
 
-        Step 4: Genera PDF individuale (uno per sezione)
+        Step 4: Genera PDF individuale in batch (max 100 pagine per chiamata).
+        Il frontend chiama ripetutamente fino a completamento.
+
+        Response:
+        {
+            "success": true,
+            "completed": false,
+            "generated": 100,
+            "total": 1500,
+            "percentage": 6
+        }
         """
         processo = self.get_object()
 
@@ -518,13 +527,22 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        reset = request.data.get('reset', False)
+
         try:
-            self._genera_pdf_individuale(processo)
+            result = self._genera_pdf_individuale_batch(processo, batch_size=100, reset=reset)
             processo.save()
 
             return Response({
                 'success': True,
-                'documento_url': request.build_absolute_uri(processo.documento_individuale.url) if processo.documento_individuale else None
+                'completed': result['completed'],
+                'generated': result['generated'],
+                'total': result['total'],
+                'percentage': result['percentage'],
+                'documento_url': (
+                    request.build_absolute_uri(processo.documento_individuale.url)
+                    if result['completed'] and processo.documento_individuale else None
+                )
             })
         except Exception as e:
             return Response(
@@ -1048,32 +1066,58 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
 
         return campi
 
-    def _genera_pdf_individuale(self, processo):
+    def _genera_pdf_individuale_batch(self, processo, batch_size=100, reset=False):
         """
-        Genera PDF individuale: UN SINGOLO PDF multi-pagina con una pagina per sezione.
+        Genera PDF individuale in batch: genera batch_size pagine per chiamata.
+        Le pagine parziali sono salvate come file temporaneo.
+        Al completamento, il file finale viene spostato su documento_individuale.
 
-        Ogni pagina contiene la designazione per una singola sezione.
-        Il template viene letto una sola volta e riusato per ogni pagina.
+        Returns:
+            {'completed': bool, 'generated': int, 'total': int, 'percentage': int}
         """
         from documents.pdf_generator import PDFGenerator
         from documents.template_types import DesignationSingleType
         from django.core.files.base import ContentFile
+        from django.core.files.storage import default_storage
         from django.utils import timezone
         from PyPDF2 import PdfWriter, PdfReader
         import io
 
-        designazioni = processo.designazioni.all().select_related(
-            'sezione', 'sezione__comune', 'sezione__municipio'
-        ).order_by('sezione__numero')
+        designazioni = list(
+            processo.designazioni.all().select_related(
+                'sezione', 'sezione__comune', 'sezione__municipio'
+            ).order_by('sezione__numero')
+        )
+        total = len(designazioni)
 
-        # Leggi il template UNA volta in memoria
+        # File parziale per accumulare pagine tra batch
+        partial_path = f'deleghe/processi/processo_{processo.id}_partial.pdf'
+        offset = 0
+
+        # Reset: elimina file parziale precedente per ripartire da zero
+        if reset and default_storage.exists(partial_path):
+            default_storage.delete(partial_path)
+
+        # Se esiste file parziale, conta le pagine già generate
+        writer = PdfWriter()
+        if default_storage.exists(partial_path):
+            with default_storage.open(partial_path, 'rb') as f:
+                existing_reader = PdfReader(f)
+                offset = len(existing_reader.pages)
+                for page in existing_reader.pages:
+                    writer.add_page(page)
+
+        if offset >= total:
+            # Già completato in precedenza, finalizza
+            offset = total
+
+        # Genera batch di pagine
         template_file = processo.template_individuale.template_file
         template_bytes = io.BytesIO(template_file.read())
         template_file.close()
 
-        writer = PdfWriter()
-
-        for designazione in designazioni:
+        batch_end = min(offset + batch_size, total)
+        for designazione in designazioni[offset:batch_end]:
             data = DesignationSingleType.serialize(processo, designazione)
 
             template_bytes.seek(0)
@@ -1084,17 +1128,42 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             for page in pdf_reader.pages:
                 writer.add_page(page)
 
+        generated = batch_end
+
+        # Salva stato parziale/finale
         output = io.BytesIO()
         writer.write(output)
         output.seek(0)
 
-        processo.documento_individuale.save(
-            f'processo_{processo.id}_individuale.pdf',
-            ContentFile(output.read()),
-            save=False
-        )
-        processo.data_generazione_individuale = timezone.now()
-        processo.n_pagine = designazioni.count()
+        completed = generated >= total
+
+        if completed:
+            # Salva come documento finale
+            processo.documento_individuale.save(
+                f'processo_{processo.id}_individuale.pdf',
+                ContentFile(output.read()),
+                save=False
+            )
+            processo.data_generazione_individuale = timezone.now()
+            processo.n_pagine = total
+
+            # Rimuovi file parziale
+            if default_storage.exists(partial_path):
+                default_storage.delete(partial_path)
+        else:
+            # Salva progresso parziale (sovrascrivendo il precedente)
+            if default_storage.exists(partial_path):
+                default_storage.delete(partial_path)
+            default_storage.save(partial_path, ContentFile(output.read()))
+
+        percentage = int(generated / total * 100) if total > 0 else 100
+
+        return {
+            'completed': completed,
+            'generated': generated,
+            'total': total,
+            'percentage': percentage,
+        }
 
     def _genera_pdf_cumulativo(self, processo):
         """

@@ -1233,11 +1233,12 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     return { error: error.message };
                 }),
 
-            // Genera PDF individuale
-            generaIndividuale: async (processoId) =>
+            // Genera PDF individuale (batch mode)
+            generaIndividuale: async (processoId, reset = false) =>
                 fetch(`${server}/api/deleghe/processi/${processoId}/genera_individuale/`, {
                     method: 'POST',
-                    headers: { 'Authorization': authHeader }
+                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reset })
                 }).then(response => safeJson(response)).catch(error => {
                     console.error(error);
                     return { error: error.message };
