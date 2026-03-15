@@ -5,10 +5,16 @@ from PyPDF2 import PdfReader, PdfWriter
 from io import BytesIO
 from pathlib import Path
 from django.conf import settings
+from django.core.files.storage import default_storage
 import hashlib
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _open_file(file_field):
+    """Apre un FileField usando default_storage (funziona con GCS e filesystem locale)."""
+    return default_storage.open(file_field.name, 'rb')
 
 
 class PDFExtractionService:
@@ -22,9 +28,7 @@ class PDFExtractionService:
     def estrai_pagine_rdl(designazioni, user_email: str) -> bytes:
         """
         Estrae pagine del PDF individuale corrispondenti alle sezioni RDL con caching.
-
-        NOTA: Estrae TUTTE le sezioni assegnate all'RDL, indipendentemente dal ruolo
-        (effettivo/supplente), poiché l'RDL può avere entrambi i ruoli.
+        Prepende le pagine della nomina del delegato (se presente).
 
         Args:
             designazioni: QuerySet di DesignazioneRDL (tutte le sezioni dell'RDL)
@@ -32,9 +36,6 @@ class PDFExtractionService:
 
         Returns:
             bytes del PDF estratto
-
-        Raises:
-            ValueError se nessun PDF individuale trovato
         """
         if not designazioni.exists():
             raise ValueError("Nessuna designazione fornita")
@@ -44,14 +45,16 @@ class PDFExtractionService:
         if not processo.documento_individuale:
             raise ValueError("PDF individuale non disponibile per questo processo")
 
-        # ===== CACHE CHECK =====
-        # Cache key basata su processo + user_email (include TUTTE le sezioni dell'RDL)
+        # Trova il delegato (dal processo)
+        delegato = processo.delegato
+
+        # Cache key include anche presenza documento_nomina delegato
+        has_nomina = bool(delegato and delegato.documento_nomina)
         sezioni_ids = sorted([des.sezione_id for des in designazioni])
         cache_key = hashlib.md5(
-            f"{processo.id}_{user_email}_{','.join(map(str, sezioni_ids))}".encode()
+            f"{processo.id}_{user_email}_{','.join(map(str, sezioni_ids))}_{has_nomina}".encode()
         ).hexdigest()
 
-        # Check filesystem cache
         cache_filename = f"{cache_key}.pdf"
         cache_file = PDFExtractionService.CACHE_DIR / cache_filename
 
@@ -62,8 +65,6 @@ class PDFExtractionService:
         logger.info(f"PDF cache MISS: {cache_key}, generando...")
 
         # ===== GENERA PDF =====
-        # Mappa sezione_id -> indice pagina (0-based)
-        # STRATEGIA: Pagine ordinate per numero sezione crescente (una sezione = una pagina)
         tutte_designazioni = list(
             processo.designazioni
             .filter(stato='CONFERMATA', is_attiva=True)
@@ -75,15 +76,9 @@ class PDFExtractionService:
             for idx, des in enumerate(tutte_designazioni)
         }
 
-        # IDs delle sezioni dell'RDL (può essere effettivo per alcune, supplente per altre)
-        # NOTA: designazioni contiene TUTTE le DesignazioneRDL dove user_email compare
-        # (come effettivo O come supplente), quindi sezioni_rdl include tutte le sezioni
         sezioni_rdl = [des.sezione_id for des in designazioni]
-
-        # Rimuovi duplicati (se presenti) e ordina
         sezioni_rdl_unique = sorted(set(sezioni_rdl))
 
-        # Indici delle pagine da estrarre
         pagine_da_estrarre = sorted([
             sezione_to_page[sezione_id]
             for sezione_id in sezioni_rdl_unique
@@ -93,17 +88,27 @@ class PDFExtractionService:
         if not pagine_da_estrarre:
             raise ValueError("Nessuna pagina trovata per le sezioni specificate")
 
-        # Leggi PDF originale
-        reader = PdfReader(processo.documento_individuale.path)
-
-        # Crea PDF di output con solo le pagine selezionate
         writer = PdfWriter()
 
-        for page_idx in pagine_da_estrarre:
-            if page_idx < len(reader.pages):
-                writer.add_page(reader.pages[page_idx])
-            else:
-                logger.warning(f"Pagina {page_idx} non trovata nel PDF")
+        # 1. Prependi pagine nomina delegato (se presente)
+        if has_nomina:
+            try:
+                with _open_file(delegato.documento_nomina) as f:
+                    nomina_reader = PdfReader(f)
+                    for page in nomina_reader.pages:
+                        writer.add_page(page)
+                logger.info(f"Aggiunta nomina delegato: {nomina_reader.pages.__len__()} pagine")
+            except Exception as e:
+                logger.warning(f"Impossibile aggiungere nomina delegato: {e}")
+
+        # 2. Pagine designazione RDL
+        with _open_file(processo.documento_individuale) as f:
+            reader = PdfReader(f)
+            for page_idx in pagine_da_estrarre:
+                if page_idx < len(reader.pages):
+                    writer.add_page(reader.pages[page_idx])
+                else:
+                    logger.warning(f"Pagina {page_idx} non trovata nel PDF")
 
         # Scrivi PDF in memoria
         output_buffer = BytesIO()
@@ -115,7 +120,8 @@ class PDFExtractionService:
         cache_file.write_bytes(pdf_bytes)
 
         logger.info(
-            f"PDF estratto e cached: {len(pagine_da_estrarre)} pagine "
+            f"PDF estratto e cached: {len(pagine_da_estrarre)} pagine designazione"
+            f"{' + nomina delegato' if has_nomina else ''} "
             f"per {len(sezioni_rdl)} sezioni"
         )
 
