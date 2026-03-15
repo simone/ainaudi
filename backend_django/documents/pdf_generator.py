@@ -350,9 +350,15 @@ class PDFGenerator:
         Supporta (SICURO - no eval):
         - $.delegato.nome
         - $.delegato.nome + ' ' + $.delegato.cognome
+        - $.data_di_oggi  (data odierna in formato dd/MM/YYYY)
         """
         if not expression:
             return ''
+
+        # Variabili built-in (non da JSONPath)
+        builtins = {
+            '$.data_di_oggi': date.today().strftime('%d/%m/%Y'),
+        }
 
         # Pattern per trovare tutti i $.path
         pattern = r'\$\.([a-zA-Z_][a-zA-Z0-9_.\[\]]*)'
@@ -361,6 +367,9 @@ class PDFGenerator:
         jsonpath_values = {}
         for match in re.finditer(pattern, expression):
             path = match.group(0)
+            if path in builtins:
+                jsonpath_values[path] = builtins[path]
+                continue
             try:
                 expr = jsonpath_parse(path)
                 matches = expr.find(data)
