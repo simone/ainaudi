@@ -478,7 +478,7 @@ function WizardDesignazioni({
 
                 {/* Content */}
                 <div className="wizard-content">
-                    {loading && (
+                    {loading && currentStep !== 4 && (
                         <div className="text-center p-5">
                             <div className="spinner-border text-primary mb-3"></div>
                             <p>Caricamento...</p>
