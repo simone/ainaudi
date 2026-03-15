@@ -232,10 +232,8 @@ function WizardDesignazioni({
         setError(null);
         try {
             let completed = false;
-            let firstCall = true;
             while (!completed) {
-                const result = await client.deleghe.processi.generaIndividuale(processoId, firstCall);
-                firstCall = false;
+                const result = await client.deleghe.processi.generaIndividuale(processoId);
 
                 if (result.error) {
                     throw new Error(result.error);
