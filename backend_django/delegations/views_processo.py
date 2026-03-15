@@ -1395,6 +1395,9 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         3. Estrae pagine del PDF individuale corrispondenti alle sezioni RDL
         4. Ritorna PDF come file response (visualizzabile in PDFViewer)
         """
+        if not (request.user.is_superuser or request.user.has_perm('core.can_download_designazioni')):
+            return Response({'error': 'Download designazioni non ancora disponibile.'}, status=403)
+
         logger = logging.getLogger(__name__)
         user_email = request.user.email
         consultazione_id = request.GET.get('consultazione_id')

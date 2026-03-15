@@ -391,6 +391,7 @@ class CustomPermission(models.Model):
             ('can_generate_documents', 'Can generate PDF documents'),
             ('has_scrutinio_access', 'Can enter section scrutinio data'),
             ('can_view_resources', 'Can view resources and documents'),
+            ('can_download_designazioni', 'Can download designation documents'),
             ('can_view_live_results', 'Can view live election results'),
             ('can_view_kpi', 'Can view KPI dashboard'),
 

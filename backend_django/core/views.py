@@ -621,6 +621,7 @@ class PermissionsView(APIView):
                 'can_generate_documents': True,
                 'has_scrutinio_access': True,
                 'can_view_resources': True,
+                'can_download_designazioni': True,
                 'can_view_live_results': True,
                 'can_view_kpi': True,
 
@@ -688,6 +689,7 @@ class PermissionsView(APIView):
             'can_generate_documents': user.has_perm('core.can_generate_documents'),
             'has_scrutinio_access': user.has_perm('core.has_scrutinio_access'),
             'can_view_resources': user.has_perm('core.can_view_resources'),
+            'can_download_designazioni': user.has_perm('core.can_download_designazioni'),
             'can_view_live_results': user.has_perm('core.can_view_live_results'),
             'can_view_kpi': user.has_perm('core.can_view_kpi'),
 

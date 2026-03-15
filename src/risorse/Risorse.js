@@ -128,7 +128,7 @@ const docCardStyles = `
     }
 `;
 
-function Risorse({ client, consultazione, setError }) {
+function Risorse({ client, consultazione, setError, canDownloadDesignazioni }) {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('documenti'); // 'documenti' | 'faq'
     const [data, setData] = useState({ documenti: null, faqs: null });
@@ -520,6 +520,7 @@ function Risorse({ client, consultazione, setError }) {
                                 <i className="fas fa-print me-2"></i>
                                 Scarica Modulo Cartaceo
                             </button>
+                            {canDownloadDesignazioni && (
                             <button
                                 className="btn btn-sm"
                                 style={{
@@ -543,6 +544,7 @@ function Risorse({ client, consultazione, setError }) {
                                     </>
                                 )}
                             </button>
+                            )}
                         </div>
                     </div>
                 </div>

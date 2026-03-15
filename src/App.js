@@ -77,6 +77,7 @@ function AppContent() {
         can_generate_documents: false,       // Genera Moduli
         has_scrutinio_access: false,         // Scrutinio
         can_view_resources: false,           // Risorse
+        can_download_designazioni: false,    // Download designazioni
         can_view_live_results: false,        // Risultati Live
         can_view_kpi: false,                 // Diretta (KPI)
 
@@ -1201,6 +1202,7 @@ function AppContent() {
                                         client={client}
                                         consultazione={consultazione}
                                         setError={setError}
+                                        canDownloadDesignazioni={permissions.can_download_designazioni}
                                     />
                                 </div>
                             )}
