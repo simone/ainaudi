@@ -1205,7 +1205,7 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         from django.core.files.base import ContentFile
         from django.core.files.storage import default_storage
         from django.utils import timezone
-        import pikepdf
+        from PyPDF2 import PdfWriter, PdfReader
         import io
         import json
         import logging
@@ -1241,12 +1241,12 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
 
         # FASE 2: Merge (tutti i batch generati, ora unisci)
         if phase == 'merging' or (phase == 'generating' and offset >= total):
-            logger.info(f"[BatchGen] Processo {processo.id}: MERGE fase, {offset}/{total} batch generati")
+            logger.info(f"[BatchGen] Processo {processo.id}: MERGE fase, {offset}/{total}")
             return self._merge_batches(processo, total, batch_size, progress_path, batch_dir)
 
         # FASE 1: Genera batch
         if offset >= total:
-            offset = 0  # Safeguard
+            offset = 0
 
         template_file = processo.template_individuale.template_file
         template_bytes = io.BytesIO(template_file.read())
@@ -1255,25 +1255,21 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         batch_end = min(offset + batch_size, total)
         batch_num = offset // batch_size
 
-        logger.info(f"[BatchGen] Processo {processo.id}: generazione batch {batch_num} ({offset}-{batch_end}/{total})")
+        logger.info(f"[BatchGen] Processo {processo.id}: batch {batch_num} ({offset}-{batch_end}/{total})")
 
-        batch_pdf = pikepdf.Pdf.new()
-        source_pdfs = []
+        writer = PdfWriter()
         for designazione in designazioni[offset:batch_end]:
             data = DesignationSingleType.serialize(processo, designazione)
             template_bytes.seek(0)
             generator = PDFGenerator(template_bytes, data)
             pdf_output = generator.generate_from_template(processo.template_individuale)
-            src = pikepdf.Pdf.open(pdf_output)
-            batch_pdf.pages.extend(src.pages)
-            source_pdfs.append(src)
+            reader = PdfReader(pdf_output)
+            for page in reader.pages:
+                writer.add_page(page)
 
-        # Salva batch compresso
+        # Salva batch
         batch_output = io.BytesIO()
-        batch_pdf.save(batch_output, compress_streams=True)
-        for sp in source_pdfs:
-            sp.close()
-        batch_pdf.close()
+        writer.write(batch_output)
 
         batch_path = f'{batch_dir}/batch_{batch_num:04d}.pdf'
         if default_storage.exists(batch_path):
@@ -1296,14 +1292,12 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             ContentFile(json.dumps(new_progress).encode('utf-8'))
         )
 
-        # Se tutti generati, la prossima chiamata farà il merge
         percentage = int(generated / total * 100) if total > 0 else 100
-        # Cap at 95% during generation, reserve 95-100% for merge
         if not all_generated:
             percentage = min(percentage, 95)
 
         return {
-            'completed': False,  # Merge non ancora fatto
+            'completed': False,
             'phase': 'merging' if all_generated else 'generating',
             'generated': generated,
             'total': total,
@@ -1311,41 +1305,34 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         }
 
     def _merge_batches(self, processo, total, batch_size, progress_path, batch_dir):
-        """Merge tutti i batch PDF nel documento finale."""
+        """Merge tutti i batch PDF nel documento finale con PyPDF2."""
         from django.core.files.base import ContentFile
         from django.core.files.storage import default_storage
         from django.utils import timezone
-        import pikepdf
+        from PyPDF2 import PdfWriter, PdfReader
         import io
         import logging
 
         logger = logging.getLogger(__name__)
 
-        merged_pdf = pikepdf.Pdf.new()
+        writer = PdfWriter()
         n_batches = (total + batch_size - 1) // batch_size
-        batch_pdfs = []
 
         logger.info(f"[BatchGen] Processo {processo.id}: merge {n_batches} batch")
 
         for i in range(n_batches):
             bp = f'{batch_dir}/batch_{i:04d}.pdf'
             if default_storage.exists(bp):
-                batch_bytes = io.BytesIO()
                 with default_storage.open(bp, 'rb') as f:
-                    batch_bytes.write(f.read())
-                batch_bytes.seek(0)
-                batch_pdf = pikepdf.Pdf.open(batch_bytes)
-                merged_pdf.pages.extend(batch_pdf.pages)
-                batch_pdfs.append(batch_pdf)
+                    reader = PdfReader(f)
+                    for page in reader.pages:
+                        writer.add_page(page)
 
         final_output = io.BytesIO()
-        merged_pdf.save(final_output, compress_streams=True,
-                       object_stream_mode=pikepdf.ObjectStreamMode.generate)
-        for bp in batch_pdfs:
-            bp.close()
-        merged_pdf.close()
+        writer.write(final_output)
 
-        logger.info(f"[BatchGen] Processo {processo.id}: merge completato, size={len(final_output.getvalue())} bytes")
+        size_mb = len(final_output.getvalue()) / (1024 * 1024)
+        logger.info(f"[BatchGen] Processo {processo.id}: merge completato, {size_mb:.1f} MB")
 
         processo.documento_individuale.save(
             f'processo_{processo.id}_individuale.pdf',
