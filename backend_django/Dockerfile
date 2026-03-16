@@ -12,6 +12,7 @@ WORKDIR /build
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
+    qpdf \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment

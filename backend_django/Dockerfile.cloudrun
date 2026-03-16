@@ -8,6 +8,10 @@ FROM python:3.11-slim AS python-builder
 
 WORKDIR /opt
 
+# Install build dependencies for pikepdf
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential qpdf && rm -rf /var/lib/apt/lists/*
+
 # Create virtual environment
 RUN python -m venv venv
 
@@ -28,6 +32,7 @@ RUN apt-get update && \
         postgresql-15 \
         postgresql-client-15 \
         gosu \
+        qpdf \
         ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 

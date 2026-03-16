@@ -1234,21 +1234,28 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         batch_end = min(offset + batch_size, total)
         batch_num = offset // batch_size
 
-        writer = PdfWriter()
+        # Genera pagine per questo batch e salva con pikepdf (de-duplica risorse)
+        import pikepdf
+
+        batch_pdf = pikepdf.Pdf.new()
+        source_pdfs = []  # Keep references alive
         for designazione in designazioni[offset:batch_end]:
             data = DesignationSingleType.serialize(processo, designazione)
 
             template_bytes.seek(0)
             generator = PDFGenerator(template_bytes, data)
-            pdf_bytes = generator.generate_from_template(processo.template_individuale)
+            pdf_output = generator.generate_from_template(processo.template_individuale)
 
-            pdf_reader = PdfReader(pdf_bytes)
-            for page in pdf_reader.pages:
-                writer.add_page(page)
+            src = pikepdf.Pdf.open(pdf_output)
+            batch_pdf.pages.extend(src.pages)
+            source_pdfs.append(src)
 
-        # Salva questo batch come file separato (piccolo e veloce)
+        # Salva questo batch come file separato (compresso e de-duplicato)
         batch_output = io.BytesIO()
-        writer.write(batch_output)
+        batch_pdf.save(batch_output, compress_streams=True, object_stream_mode=pikepdf.ObjectStreamMode.generate)
+        for sp in source_pdfs:
+            sp.close()
+        batch_pdf.close()
         batch_path = f'{batch_dir}/batch_{batch_num:04d}.pdf'
         if default_storage.exists(batch_path):
             default_storage.delete(batch_path)
@@ -1266,19 +1273,28 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         )
 
         if completed:
-            # Merge tutti i batch nel documento finale
-            final_writer = PdfWriter()
+            # Merge tutti i batch nel documento finale usando pikepdf
+            # pikepdf de-duplica risorse identiche (immagini, font) → file molto più piccolo
+            import pikepdf
+
+            merged_pdf = pikepdf.Pdf.new()
             n_batches = (total + batch_size - 1) // batch_size
+            batch_pdfs = []  # Keep references alive during merge
             for i in range(n_batches):
                 bp = f'{batch_dir}/batch_{i:04d}.pdf'
                 if default_storage.exists(bp):
+                    batch_bytes = io.BytesIO()
                     with default_storage.open(bp, 'rb') as f:
-                        reader = PdfReader(f)
-                        for page in reader.pages:
-                            final_writer.add_page(page)
+                        batch_bytes.write(f.read())
+                    batch_bytes.seek(0)
+                    batch_pdf = pikepdf.Pdf.open(batch_bytes)
+                    merged_pdf.pages.extend(batch_pdf.pages)
+                    batch_pdfs.append(batch_pdf)
 
             final_output = io.BytesIO()
-            final_writer.write(final_output)
+            merged_pdf.save(final_output, compress_streams=True, object_stream_mode=pikepdf.ObjectStreamMode.generate)
+            for bp in batch_pdfs:
+                bp.close()
 
             processo.documento_individuale.save(
                 f'processo_{processo.id}_individuale.pdf',
