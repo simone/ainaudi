@@ -1,7 +1,7 @@
 service: pdf
 runtime: python311
 env: standard
-instance_class: B4
+instance_class: B8
 
 entrypoint: gunicorn -b :$PORT config.wsgi_pdf:application --workers 2 --threads 4 --timeout 300
 

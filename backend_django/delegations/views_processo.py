@@ -398,14 +398,18 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         }
         """
         processo = self.get_object()
+        logger = logging.getLogger(__name__)
 
         if processo.stato not in ['SELEZIONE_TEMPLATE', 'BOZZA']:
+            logger.warning(f"[configura] Processo {processo.id} stato={processo.stato}, atteso SELEZIONE_TEMPLATE o BOZZA")
             return Response(
-                {'error': 'Processo già configurato o non più modificabile'},
+                {'error': f'Processo in stato {processo.stato}, non modificabile'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         serializer = ConfiguraProcessoSerializer(data=request.data)
+        if not serializer.is_valid():
+            logger.warning(f"[configura] Processo {processo.id} validation errors: {serializer.errors}")
         serializer.is_valid(raise_exception=True)
 
         template_ind_id = serializer.validated_data['template_individuale_id']
@@ -440,6 +444,7 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
                 return Response({'error': 'SubDelegato non trovato'}, status=status.HTTP_404_NOT_FOUND)
 
         if not delegato and not sub_delega:
+            logger.warning(f"[configura] Processo {processo.id} né delegato né subdelegato fornito (delegato_id={delegato_id}, subdelegato_id={subdelegato_id})")
             return Response({'error': 'Deve essere fornito almeno uno tra delegato e subdelegato'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Step 1: Crea designazioni dalle sezioni salvate
@@ -547,9 +552,11 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
                 ))
 
         if errori:
+            logger.warning(f"[configura] Processo {processo.id} errori designazioni: {errori}")
             return Response({'error': 'Errori nella creazione designazioni', 'dettagli': errori}, status=status.HTTP_400_BAD_REQUEST)
 
         if not to_create and not to_update:
+            logger.warning(f"[configura] Processo {processo.id} nessuna designazione creata, sezioni={processo.sezione_ids}")
             return Response({'error': 'Nessuna designazione creata'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Bulk operations (skip signals, much faster)
@@ -1205,7 +1212,6 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         from django.core.files.base import ContentFile
         from django.core.files.storage import default_storage
         from django.utils import timezone
-        from PyPDF2 import PdfWriter, PdfReader
         import io
         import json
         import logging
@@ -1239,8 +1245,8 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         offset = progress_data.get('generated', 0)
         phase = progress_data.get('phase', 'generating')
 
-        # FASE 2: Merge (tutti i batch generati, ora unisci)
-        if phase == 'merging' or (phase == 'generating' and offset >= total):
+        # FASE 2: Merge/Upload (tutti i batch generati, ora unisci)
+        if phase in ('merging', 'uploading') or (phase == 'generating' and offset >= total):
             logger.info(f"[BatchGen] Processo {processo.id}: MERGE fase, {offset}/{total}")
             return self._merge_batches(processo, total, batch_size, progress_path, batch_dir)
 
@@ -1257,19 +1263,26 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
 
         logger.info(f"[BatchGen] Processo {processo.id}: batch {batch_num} ({offset}-{batch_end}/{total})")
 
-        writer = PdfWriter()
+        import pikepdf
+        merged_batch = pikepdf.Pdf.new()
+        source_pdfs = []
         for designazione in designazioni[offset:batch_end]:
             data = DesignationSingleType.serialize(processo, designazione)
             template_bytes.seek(0)
             generator = PDFGenerator(template_bytes, data)
             pdf_output = generator.generate_from_template(processo.template_individuale)
-            reader = PdfReader(pdf_output)
-            for page in reader.pages:
-                writer.add_page(page)
+            pdf_output.seek(0)
+            src = pikepdf.Pdf.open(pdf_output)
+            merged_batch.pages.extend(src.pages)
+            source_pdfs.append(src)
 
-        # Salva batch
+        # Salva batch con deduplicazione risorse
         batch_output = io.BytesIO()
-        writer.write(batch_output)
+        merged_batch.save(batch_output, compress_streams=True,
+                         object_stream_mode=pikepdf.ObjectStreamMode.generate)
+        for src in source_pdfs:
+            src.close()
+        merged_batch.close()
 
         batch_path = f'{batch_dir}/batch_{batch_num:04d}.pdf'
         if default_storage.exists(batch_path):
@@ -1305,44 +1318,96 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         }
 
     def _merge_batches(self, processo, total, batch_size, progress_path, batch_dir):
-        """Merge tutti i batch PDF nel documento finale con PyPDF2."""
+        """Merge tutti i batch PDF nel documento finale.
+        Usa pikepdf se disponibile (de-duplica risorse), altrimenti PyPDF2.
+
+        Fasi interne:
+        - merging: merge dei batch in un file unico su GCS
+        - uploading: file merged esiste su GCS, va collegato al processo
+        """
         from django.core.files.base import ContentFile
         from django.core.files.storage import default_storage
         from django.utils import timezone
-        from PyPDF2 import PdfWriter, PdfReader
         import io
+        import json
+        import os
+        import tempfile
         import logging
 
         logger = logging.getLogger(__name__)
-
-        writer = PdfWriter()
         n_batches = (total + batch_size - 1) // batch_size
+        merged_path = f'{batch_dir}/merged_final.pdf'
 
-        logger.info(f"[BatchGen] Processo {processo.id}: merge {n_batches} batch")
+        # Se il file merged esiste già su GCS (crash durante save precedente), salta il merge
+        if default_storage.exists(merged_path):
+            logger.info(f"[BatchGen] Processo {processo.id}: merged_final.pdf già presente, skip merge")
+        else:
+            logger.info(f"[BatchGen] Processo {processo.id}: merge {n_batches} batch")
+            tmp_path = os.path.join(tempfile.gettempdir(), f'merge_{processo.id}.pdf')
 
-        for i in range(n_batches):
-            bp = f'{batch_dir}/batch_{i:04d}.pdf'
-            if default_storage.exists(bp):
-                with default_storage.open(bp, 'rb') as f:
-                    reader = PdfReader(f)
-                    for page in reader.pages:
-                        writer.add_page(page)
+            try:
+                import pikepdf
+                merged_pdf = pikepdf.Pdf.new()
+                for i in range(n_batches):
+                    bp = f'{batch_dir}/batch_{i:04d}.pdf'
+                    if default_storage.exists(bp):
+                        # Scarica batch in file temporaneo per non tenere tutto in RAM
+                        tmp_batch = os.path.join(tempfile.gettempdir(), f'batch_{processo.id}_{i}.pdf')
+                        with default_storage.open(bp, 'rb') as f:
+                            with open(tmp_batch, 'wb') as out:
+                                for chunk in iter(lambda: f.read(8192), b''):
+                                    out.write(chunk)
+                        batch_pdf = pikepdf.Pdf.open(tmp_batch)
+                        merged_pdf.pages.extend(batch_pdf.pages)
+                        batch_pdf.close()
+                        os.unlink(tmp_batch)
 
-        final_output = io.BytesIO()
-        writer.write(final_output)
+                # Salva su disco, NON in memoria
+                merged_pdf.save(tmp_path, compress_streams=True,
+                               object_stream_mode=pikepdf.ObjectStreamMode.generate)
+                merged_pdf.close()
+            except ImportError:
+                from PyPDF2 import PdfWriter, PdfReader
+                writer = PdfWriter()
+                for i in range(n_batches):
+                    bp = f'{batch_dir}/batch_{i:04d}.pdf'
+                    if default_storage.exists(bp):
+                        with default_storage.open(bp, 'rb') as f:
+                            reader = PdfReader(f)
+                            for page in reader.pages:
+                                writer.add_page(page)
+                with open(tmp_path, 'wb') as out:
+                    writer.write(out)
 
-        size_mb = len(final_output.getvalue()) / (1024 * 1024)
-        logger.info(f"[BatchGen] Processo {processo.id}: merge completato, {size_mb:.1f} MB")
+            size_mb = os.path.getsize(tmp_path) / (1024 * 1024)
+            logger.info(f"[BatchGen] Processo {processo.id}: merge completato, {size_mb:.1f} MB")
 
-        processo.documento_individuale.save(
-            f'processo_{processo.id}_individuale.pdf',
-            ContentFile(final_output.getvalue()),
-            save=False
-        )
+            # Upload da file (non da memoria) verso GCS
+            logger.info(f"[BatchGen] Processo {processo.id}: upload su GCS...")
+            with open(tmp_path, 'rb') as f:
+                default_storage.save(merged_path, f)
+            os.unlink(tmp_path)
+            logger.info(f"[BatchGen] Processo {processo.id}: upload completato")
+
+            # Aggiorna progress a "uploading" così non rifà il merge se crasha
+            if default_storage.exists(progress_path):
+                default_storage.delete(progress_path)
+            default_storage.save(
+                progress_path,
+                ContentFile(json.dumps({
+                    'generated': total, 'total': total, 'phase': 'uploading'
+                }).encode('utf-8'))
+            )
+
+        # Collega il file merged al processo (FileField punta al path su GCS)
+        logger.info(f"[BatchGen] Processo {processo.id}: collegamento file al processo")
+        processo.documento_individuale.name = merged_path
         processo.data_generazione_individuale = timezone.now()
         processo.n_pagine = total
+        processo.save()
 
-        # Cleanup batch files
+        # Cleanup batch files (ma NON il merged_final.pdf che ora è il documento)
+        logger.info(f"[BatchGen] Processo {processo.id}: cleanup batch files")
         self._cleanup_batch_files(default_storage, progress_path, batch_dir, total)
 
         return {
