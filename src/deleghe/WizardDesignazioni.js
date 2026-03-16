@@ -310,25 +310,60 @@ function WizardDesignazioni({
         setLoading(true);
         setPdfIndividualeProgress(null);
         setError(null);
+        let retryCount = 0;
+        const MAX_RETRIES = 5;
+
         try {
             let completed = false;
             while (!completed) {
-                const result = await client.deleghe.processi.generaIndividuale(processoId);
+                let result;
+                try {
+                    result = await client.deleghe.processi.generaIndividuale(processoId);
+                } catch (fetchErr) {
+                    // Network error or 503 — retry with backoff
+                    retryCount++;
+                    if (retryCount > MAX_RETRIES) {
+                        throw new Error(`Generazione interrotta dopo ${MAX_RETRIES} tentativi. Clicca "Genera" per riprendere.`);
+                    }
+                    const delay = Math.min(3000 * retryCount, 15000);
+                    console.warn(`[Wizard] Errore rete, retry ${retryCount}/${MAX_RETRIES} tra ${delay/1000}s...`);
+                    setPdfIndividualeProgress(prev => prev ? { ...prev, retrying: retryCount } : null);
+                    await new Promise(r => setTimeout(r, delay));
+                    continue;
+                }
 
                 if (result.error) {
+                    // Server error — retry if transient (503, timeout)
+                    if (result.error.includes('temporaneamente') || result.error.includes('502') || result.error.includes('503')) {
+                        retryCount++;
+                        if (retryCount > MAX_RETRIES) {
+                            throw new Error(`Generazione interrotta dopo ${MAX_RETRIES} tentativi. Clicca "Genera" per riprendere.`);
+                        }
+                        const delay = Math.min(3000 * retryCount, 15000);
+                        console.warn(`[Wizard] Errore server, retry ${retryCount}/${MAX_RETRIES} tra ${delay/1000}s...`);
+                        setPdfIndividualeProgress(prev => prev ? { ...prev, retrying: retryCount } : null);
+                        await new Promise(r => setTimeout(r, delay));
+                        continue;
+                    }
                     throw new Error(result.error);
                 }
 
+                // Success — reset retry count
+                retryCount = 0;
+
+                const phase = result.phase || 'generating';
                 setPdfIndividualeProgress({
                     percentage: result.percentage,
                     generated: result.generated,
-                    total: result.total
+                    total: result.total,
+                    phase,
+                    retrying: null
                 });
 
                 completed = result.completed;
 
                 if (!completed) {
-                    console.log(`[Wizard] PDF individuale: ${result.generated}/${result.total} (${result.percentage}%)`);
+                    console.log(`[Wizard] PDF individuale: ${result.generated}/${result.total} (${result.percentage}%) [${phase}]`);
                 }
             }
 
@@ -338,7 +373,6 @@ function WizardDesignazioni({
         } catch (err) {
             console.error('[Wizard] Errore generazione PDF individuale:', err);
             setError(err.message);
-            setPdfIndividualeProgress(null);
         } finally {
             setLoading(false);
         }
@@ -878,20 +912,30 @@ function StepPdfIndividuale({ processoId, generato, onGenera, onDownload, progre
             {generating && progress ? (
                 <div>
                     <p className="text-muted mb-3">
-                        Generazione in corso: {progress.generated} / {progress.total} pagine
+                        {progress.phase === 'merging'
+                            ? 'Unione documenti in corso...'
+                            : `Generazione in corso: ${progress.generated} / ${progress.total} designazioni`
+                        }
                     </p>
                     <div className="progress mb-3" style={{ height: '25px' }}>
                         <div
-                            className="progress-bar progress-bar-striped progress-bar-animated"
+                            className={`progress-bar progress-bar-striped progress-bar-animated ${progress.retrying ? 'bg-warning' : ''}`}
                             role="progressbar"
                             style={{ width: `${progress.percentage}%` }}
                         >
                             {progress.percentage}%
                         </div>
                     </div>
-                    <p className="text-muted small">
-                        Non chiudere questa pagina durante la generazione.
-                    </p>
+                    {progress.retrying ? (
+                        <p className="text-warning small">
+                            <i className="fas fa-sync-alt fa-spin me-1"></i>
+                            Riconnessione in corso (tentativo {progress.retrying})...
+                        </p>
+                    ) : (
+                        <p className="text-muted small">
+                            Non chiudere questa pagina durante la generazione.
+                        </p>
+                    )}
                 </div>
             ) : !generato ? (
                 <div>

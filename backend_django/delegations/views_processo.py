@@ -596,21 +596,23 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         """
         POST /api/processi/{id}/genera_individuale/
 
-        Step 4: Genera PDF individuale in batch (max 100 pagine per chiamata).
+        Step 4: Genera PDF individuale in batch (25 designazioni per chiamata).
         Il frontend chiama ripetutamente fino a completamento.
+        Fasi: generating (genera batch) → merging (merge finale) → completed.
 
         Response:
         {
             "success": true,
             "completed": false,
-            "generated": 100,
+            "phase": "generating",  // "generating" | "merging" | "completed"
+            "generated": 25,
             "total": 1500,
-            "percentage": 6
+            "percentage": 1
         }
         """
         processo = self.get_object()
 
-        if processo.stato not in ['BOZZA', 'IN_GENERAZIONE']:
+        if processo.stato not in ['BOZZA', 'IN_GENERAZIONE', 'GENERATO']:
             return Response(
                 {'error': 'Processo non configurato o già completato'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -622,24 +624,28 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Setta stato IN_GENERAZIONE al primo batch
+        if processo.stato == 'BOZZA':
+            processo.stato = 'IN_GENERAZIONE'
+            processo.save(update_fields=['stato'])
+
         reset = request.data.get('reset', False)
 
         try:
-            result = self._genera_pdf_individuale_batch(processo, batch_size=100, reset=reset)
+            result = self._genera_pdf_individuale_batch(processo, batch_size=25, reset=reset)
             processo.save()
 
             return Response({
                 'success': True,
                 'completed': result['completed'],
+                'phase': result.get('phase', 'generating'),
                 'generated': result['generated'],
                 'total': result['total'],
                 'percentage': result['percentage'],
-                'documento_url': (
-                    request.build_absolute_uri(processo.documento_individuale.url)
-                    if result['completed'] and processo.documento_individuale else None
-                )
             })
         except Exception as e:
+            import logging
+            logging.getLogger(__name__).exception("Errore generazione PDF individuale")
             return Response(
                 {'error': f'Errore generazione PDF individuale: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -1181,25 +1187,30 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
 
         return campi
 
-    def _genera_pdf_individuale_batch(self, processo, batch_size=100, reset=False):
+    def _genera_pdf_individuale_batch(self, processo, batch_size=25, reset=False):
         """
         Genera PDF individuale in batch: ogni batch salva un piccolo PDF separato.
-        Al completamento, tutti i batch vengono mergiati nel documento finale.
+        Al completamento, il merge è una chiamata separata.
 
-        Strategia: salva batch_0.pdf, batch_1.pdf, ... e merge alla fine.
-        Ogni chiamata è veloce (non rilegge tutto il pregresso).
+        Fasi:
+        1. generating: genera batch_N.pdf (25 designazioni per chiamata)
+        2. merging: unisce tutti i batch nel documento finale
+        3. completed: tutto fatto
 
         Returns:
-            {'completed': bool, 'generated': int, 'total': int, 'percentage': int}
+            {'completed': bool, 'phase': str, 'generated': int, 'total': int, 'percentage': int}
         """
         from documents.pdf_generator import PDFGenerator
         from documents.template_types import DesignationSingleType
         from django.core.files.base import ContentFile
         from django.core.files.storage import default_storage
         from django.utils import timezone
-        from PyPDF2 import PdfWriter, PdfReader
+        import pikepdf
         import io
         import json
+        import logging
+
+        logger = logging.getLogger(__name__)
 
         designazioni = list(
             processo.designazioni.all().select_related(
@@ -1217,16 +1228,26 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             self._cleanup_batch_files(default_storage, progress_path, batch_dir, total)
 
         # Leggi progresso attuale
-        offset = 0
+        progress_data = {'generated': 0, 'total': total, 'phase': 'generating'}
         if default_storage.exists(progress_path):
-            with default_storage.open(progress_path, 'rb') as f:
-                progress_data = json.loads(f.read().decode('utf-8'))
-                offset = progress_data.get('generated', 0)
+            try:
+                with default_storage.open(progress_path, 'rb') as f:
+                    progress_data = json.loads(f.read().decode('utf-8'))
+            except Exception:
+                pass
 
+        offset = progress_data.get('generated', 0)
+        phase = progress_data.get('phase', 'generating')
+
+        # FASE 2: Merge (tutti i batch generati, ora unisci)
+        if phase == 'merging' or (phase == 'generating' and offset >= total):
+            logger.info(f"[BatchGen] Processo {processo.id}: MERGE fase, {offset}/{total} batch generati")
+            return self._merge_batches(processo, total, batch_size, progress_path, batch_dir)
+
+        # FASE 1: Genera batch
         if offset >= total:
-            offset = total
+            offset = 0  # Safeguard
 
-        # Genera batch di pagine
         template_file = processo.template_individuale.template_file
         template_bytes = io.BytesIO(template_file.read())
         template_file.close()
@@ -1234,86 +1255,115 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         batch_end = min(offset + batch_size, total)
         batch_num = offset // batch_size
 
-        # Genera pagine per questo batch e salva con pikepdf (de-duplica risorse)
-        import pikepdf
+        logger.info(f"[BatchGen] Processo {processo.id}: generazione batch {batch_num} ({offset}-{batch_end}/{total})")
 
         batch_pdf = pikepdf.Pdf.new()
-        source_pdfs = []  # Keep references alive
+        source_pdfs = []
         for designazione in designazioni[offset:batch_end]:
             data = DesignationSingleType.serialize(processo, designazione)
-
             template_bytes.seek(0)
             generator = PDFGenerator(template_bytes, data)
             pdf_output = generator.generate_from_template(processo.template_individuale)
-
             src = pikepdf.Pdf.open(pdf_output)
             batch_pdf.pages.extend(src.pages)
             source_pdfs.append(src)
 
-        # Salva questo batch come file separato (compresso e de-duplicato)
+        # Salva batch compresso
         batch_output = io.BytesIO()
-        batch_pdf.save(batch_output, compress_streams=True, object_stream_mode=pikepdf.ObjectStreamMode.generate)
+        batch_pdf.save(batch_output, compress_streams=True)
         for sp in source_pdfs:
             sp.close()
         batch_pdf.close()
+
         batch_path = f'{batch_dir}/batch_{batch_num:04d}.pdf'
         if default_storage.exists(batch_path):
             default_storage.delete(batch_path)
         default_storage.save(batch_path, ContentFile(batch_output.getvalue()))
 
         generated = batch_end
-        completed = generated >= total
+        all_generated = generated >= total
 
         # Aggiorna progresso
+        new_progress = {
+            'generated': generated,
+            'total': total,
+            'phase': 'merging' if all_generated else 'generating'
+        }
         if default_storage.exists(progress_path):
             default_storage.delete(progress_path)
         default_storage.save(
             progress_path,
-            ContentFile(json.dumps({'generated': generated, 'total': total}).encode('utf-8'))
+            ContentFile(json.dumps(new_progress).encode('utf-8'))
         )
 
-        if completed:
-            # Merge tutti i batch nel documento finale usando pikepdf
-            # pikepdf de-duplica risorse identiche (immagini, font) → file molto più piccolo
-            import pikepdf
-
-            merged_pdf = pikepdf.Pdf.new()
-            n_batches = (total + batch_size - 1) // batch_size
-            batch_pdfs = []  # Keep references alive during merge
-            for i in range(n_batches):
-                bp = f'{batch_dir}/batch_{i:04d}.pdf'
-                if default_storage.exists(bp):
-                    batch_bytes = io.BytesIO()
-                    with default_storage.open(bp, 'rb') as f:
-                        batch_bytes.write(f.read())
-                    batch_bytes.seek(0)
-                    batch_pdf = pikepdf.Pdf.open(batch_bytes)
-                    merged_pdf.pages.extend(batch_pdf.pages)
-                    batch_pdfs.append(batch_pdf)
-
-            final_output = io.BytesIO()
-            merged_pdf.save(final_output, compress_streams=True, object_stream_mode=pikepdf.ObjectStreamMode.generate)
-            for bp in batch_pdfs:
-                bp.close()
-
-            processo.documento_individuale.save(
-                f'processo_{processo.id}_individuale.pdf',
-                ContentFile(final_output.getvalue()),
-                save=False
-            )
-            processo.data_generazione_individuale = timezone.now()
-            processo.n_pagine = total
-
-            # Cleanup batch files
-            self._cleanup_batch_files(default_storage, progress_path, batch_dir, total)
-
+        # Se tutti generati, la prossima chiamata farà il merge
         percentage = int(generated / total * 100) if total > 0 else 100
+        # Cap at 95% during generation, reserve 95-100% for merge
+        if not all_generated:
+            percentage = min(percentage, 95)
 
         return {
-            'completed': completed,
+            'completed': False,  # Merge non ancora fatto
+            'phase': 'merging' if all_generated else 'generating',
             'generated': generated,
             'total': total,
             'percentage': percentage,
+        }
+
+    def _merge_batches(self, processo, total, batch_size, progress_path, batch_dir):
+        """Merge tutti i batch PDF nel documento finale."""
+        from django.core.files.base import ContentFile
+        from django.core.files.storage import default_storage
+        from django.utils import timezone
+        import pikepdf
+        import io
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        merged_pdf = pikepdf.Pdf.new()
+        n_batches = (total + batch_size - 1) // batch_size
+        batch_pdfs = []
+
+        logger.info(f"[BatchGen] Processo {processo.id}: merge {n_batches} batch")
+
+        for i in range(n_batches):
+            bp = f'{batch_dir}/batch_{i:04d}.pdf'
+            if default_storage.exists(bp):
+                batch_bytes = io.BytesIO()
+                with default_storage.open(bp, 'rb') as f:
+                    batch_bytes.write(f.read())
+                batch_bytes.seek(0)
+                batch_pdf = pikepdf.Pdf.open(batch_bytes)
+                merged_pdf.pages.extend(batch_pdf.pages)
+                batch_pdfs.append(batch_pdf)
+
+        final_output = io.BytesIO()
+        merged_pdf.save(final_output, compress_streams=True,
+                       object_stream_mode=pikepdf.ObjectStreamMode.generate)
+        for bp in batch_pdfs:
+            bp.close()
+        merged_pdf.close()
+
+        logger.info(f"[BatchGen] Processo {processo.id}: merge completato, size={len(final_output.getvalue())} bytes")
+
+        processo.documento_individuale.save(
+            f'processo_{processo.id}_individuale.pdf',
+            ContentFile(final_output.getvalue()),
+            save=False
+        )
+        processo.data_generazione_individuale = timezone.now()
+        processo.n_pagine = total
+
+        # Cleanup batch files
+        self._cleanup_batch_files(default_storage, progress_path, batch_dir, total)
+
+        return {
+            'completed': True,
+            'phase': 'completed',
+            'generated': total,
+            'total': total,
+            'percentage': 100,
         }
 
     @staticmethod
