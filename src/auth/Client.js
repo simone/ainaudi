@@ -1273,40 +1273,67 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                     return { error: error.message };
                 }),
 
-            // Preview PDF individuale (restituisce blob URL per viewer)
+            // Get direct PDF URLs (GCS) - avoids proxy timeout on large files
+            pdfUrls: async (processoId) => {
+                const response = await fetch(`${server}/api/deleghe/processi/${processoId}/pdf-urls/`, {
+                    headers: { 'Authorization': getAuthHeader() }
+                });
+                return safeJson(response);
+            },
+
+            // Preview PDF individuale (returns URL for viewer - GCS direct or blob fallback)
             previewIndividuale: async (processoId) => {
+                // Try GCS direct URL first (no proxy, no timeout)
+                try {
+                    const urls = await fetch(`${server}/api/deleghe/processi/${processoId}/pdf-urls/`, {
+                        headers: { 'Authorization': getAuthHeader() }
+                    }).then(r => r.json());
+                    if (urls.individuale_url) return urls.individuale_url;
+                } catch { /* fallback to blob */ }
+
                 const response = await fetch(`${server}/api/deleghe/processi/${processoId}/download_individuale/`, {
                     headers: { 'Authorization': getAuthHeader() }
                 });
-                if (!response.ok) {
-                    throw new Error('Errore caricamento PDF individuale');
-                }
+                if (!response.ok) throw new Error('Errore caricamento PDF individuale');
                 const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                return url; // Restituisci blob URL (caller deve revocarlo)
+                return window.URL.createObjectURL(blob);
             },
 
-            // Preview PDF cumulativo (restituisce blob URL per viewer)
+            // Preview PDF cumulativo (returns URL for viewer - GCS direct or blob fallback)
             previewCumulativo: async (processoId) => {
+                // Try GCS direct URL first
+                try {
+                    const urls = await fetch(`${server}/api/deleghe/processi/${processoId}/pdf-urls/`, {
+                        headers: { 'Authorization': getAuthHeader() }
+                    }).then(r => r.json());
+                    if (urls.cumulativo_url) return urls.cumulativo_url;
+                } catch { /* fallback to blob */ }
+
                 const response = await fetch(`${server}/api/deleghe/processi/${processoId}/download_cumulativo/`, {
                     headers: { 'Authorization': getAuthHeader() }
                 });
-                if (!response.ok) {
-                    throw new Error('Errore caricamento PDF cumulativo');
-                }
+                if (!response.ok) throw new Error('Errore caricamento PDF cumulativo');
                 const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                return url; // Restituisci blob URL (caller deve revocarlo)
+                return window.URL.createObjectURL(blob);
             },
 
-            // Download PDF individuale
+            // Download PDF individuale (redirect to GCS or blob fallback)
             downloadIndividuale: async (processoId) => {
+                // Try GCS direct URL first (open in new tab to download)
+                try {
+                    const urls = await fetch(`${server}/api/deleghe/processi/${processoId}/pdf-urls/`, {
+                        headers: { 'Authorization': getAuthHeader() }
+                    }).then(r => r.json());
+                    if (urls.individuale_url) {
+                        window.open(urls.individuale_url, '_blank');
+                        return;
+                    }
+                } catch { /* fallback */ }
+
                 const response = await fetch(`${server}/api/deleghe/processi/${processoId}/download_individuale/`, {
                     headers: { 'Authorization': getAuthHeader() }
                 });
-                if (!response.ok) {
-                    throw new Error('Errore download PDF individuale');
-                }
+                if (!response.ok) throw new Error('Errore download PDF individuale');
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
@@ -1318,14 +1345,23 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
                 window.URL.revokeObjectURL(url);
             },
 
-            // Download PDF cumulativo
+            // Download PDF cumulativo (redirect to GCS or blob fallback)
             downloadCumulativo: async (processoId) => {
+                // Try GCS direct URL first
+                try {
+                    const urls = await fetch(`${server}/api/deleghe/processi/${processoId}/pdf-urls/`, {
+                        headers: { 'Authorization': getAuthHeader() }
+                    }).then(r => r.json());
+                    if (urls.cumulativo_url) {
+                        window.open(urls.cumulativo_url, '_blank');
+                        return;
+                    }
+                } catch { /* fallback */ }
+
                 const response = await fetch(`${server}/api/deleghe/processi/${processoId}/download_cumulativo/`, {
                     headers: { 'Authorization': getAuthHeader() }
                 });
-                if (!response.ok) {
-                    throw new Error('Errore download PDF cumulativo');
-                }
+                if (!response.ok) throw new Error('Errore download PDF cumulativo');
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');

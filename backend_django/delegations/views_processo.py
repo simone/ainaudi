@@ -686,45 +686,65 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=True, methods=['get'])
-    def download_individuale(self, request, pk=None):
-        """
-        GET /api/processi/{id}/download_individuale/
-
-        Scarica il documento PDF individuale.
-        """
+    def _serve_pdf(self, processo, field_name, filename):
+        """Serve un PDF: redirect a GCS se disponibile, altrimenti FileResponse."""
         from django.http import FileResponse, Http404
+        from django.shortcuts import redirect
 
-        processo = self.get_object()
+        file_field = getattr(processo, field_name)
+        if not file_field:
+            raise Http404(f"Documento {field_name} non ancora generato")
 
-        if not processo.documento_individuale:
-            raise Http404("Documento individuale non ancora generato")
+        # Se il file è su GCS (ha un URL pubblico), redirect diretto
+        # Evita timeout su file grandi trasferiti attraverso Django/GAE
+        try:
+            file_url = file_field.url
+            if 'storage.googleapis.com' in file_url:
+                return redirect(file_url)
+        except Exception:
+            pass
 
         return FileResponse(
-            processo.documento_individuale.open('rb'),
+            file_field.open('rb'),
             as_attachment=True,
-            filename=f'designazioni_individuale_{processo.id}.pdf'
+            filename=filename
         )
+
+    @action(detail=True, methods=['get'])
+    def download_individuale(self, request, pk=None):
+        """GET /api/processi/{id}/download_individuale/ - Scarica PDF individuale."""
+        processo = self.get_object()
+        return self._serve_pdf(processo, 'documento_individuale',
+                               f'designazioni_individuale_{processo.id}.pdf')
 
     @action(detail=True, methods=['get'])
     def download_cumulativo(self, request, pk=None):
-        """
-        GET /api/processi/{id}/download_cumulativo/
-
-        Scarica il documento PDF cumulativo.
-        """
-        from django.http import FileResponse, Http404
-
+        """GET /api/processi/{id}/download_cumulativo/ - Scarica PDF cumulativo."""
         processo = self.get_object()
+        return self._serve_pdf(processo, 'documento_cumulativo',
+                               f'designazioni_cumulativo_{processo.id}.pdf')
 
-        if not processo.documento_cumulativo:
-            raise Http404("Documento cumulativo non ancora generato")
+    @action(detail=True, methods=['get'], url_path='pdf-urls')
+    def pdf_urls(self, request, pk=None):
+        """
+        GET /api/processi/{id}/pdf-urls/
 
-        return FileResponse(
-            processo.documento_cumulativo.open('rb'),
-            as_attachment=True,
-            filename=f'designazioni_cumulativo_{processo.id}.pdf'
-        )
+        Restituisce URL diretti ai PDF (GCS) per il frontend viewer.
+        Evita problemi CORS con redirect e timeout su file grandi.
+        """
+        processo = self.get_object()
+        result = {}
+        if processo.documento_individuale:
+            try:
+                result['individuale_url'] = processo.documento_individuale.url
+            except Exception:
+                result['individuale_url'] = None
+        if processo.documento_cumulativo:
+            try:
+                result['cumulativo_url'] = processo.documento_cumulativo.url
+            except Exception:
+                result['cumulativo_url'] = None
+        return Response(result)
 
     @action(detail=True, methods=['post'])
     @transaction.atomic

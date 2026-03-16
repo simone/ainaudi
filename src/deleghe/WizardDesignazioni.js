@@ -364,69 +364,23 @@ function WizardDesignazioni({
         }
     };
 
-    const handlePreviewIndividuale = async () => {
-        if (!processoId) {
-            console.error('[Wizard] Processo ID mancante');
-            return;
-        }
-
-        setLoadingPdf(true);
+    const handleDownloadIndividuale = async () => {
+        if (!processoId) return;
         try {
-            console.log('[Wizard] Caricamento PDF individuale, processo:', processoId);
-
-            // Usa il metodo preview che restituisce blob URL con autenticazione
-            const blobUrl = await client.deleghe.processi.previewIndividuale(processoId);
-
-            console.log('[Wizard] Blob URL ottenuto:', blobUrl);
-
-            // URL originale per apertura in nuova scheda
-            const serverUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
-            const originalUrl = `${serverUrl}/api/deleghe/processi/${processoId}/download_individuale/`;
-
-            setPdfViewer({
-                url: blobUrl,
-                originalUrl,
-                blobUrl,
-                titolo: `Designazioni Individuali - Processo #${processoId}`
-            });
+            await client.deleghe.processi.downloadIndividuale(processoId);
         } catch (err) {
-            console.error('[Wizard] Errore caricamento PDF:', err);
-            setError('Errore caricamento PDF: ' + err.message);
-        } finally {
-            setLoadingPdf(false);
+            console.error('[Wizard] Errore download PDF individuale:', err);
+            setError('Errore download PDF: ' + err.message);
         }
     };
 
-    const handlePreviewCumulativo = async () => {
-        if (!processoId) {
-            console.error('[Wizard] Processo ID mancante');
-            return;
-        }
-
-        setLoadingPdf(true);
+    const handleDownloadCumulativo = async () => {
+        if (!processoId) return;
         try {
-            console.log('[Wizard] Caricamento PDF cumulativo, processo:', processoId);
-
-            // Usa il metodo preview che restituisce blob URL con autenticazione
-            const blobUrl = await client.deleghe.processi.previewCumulativo(processoId);
-
-            console.log('[Wizard] Blob URL ottenuto:', blobUrl);
-
-            // URL originale per apertura in nuova scheda
-            const serverUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
-            const originalUrl = `${serverUrl}/api/deleghe/processi/${processoId}/download_cumulativo/`;
-
-            setPdfViewer({
-                url: blobUrl,
-                originalUrl,
-                blobUrl,
-                titolo: `Designazioni Cumulative - Processo #${processoId}`
-            });
+            await client.deleghe.processi.downloadCumulativo(processoId);
         } catch (err) {
-            console.error('[Wizard] Errore caricamento PDF:', err);
-            setError('Errore caricamento PDF: ' + err.message);
-        } finally {
-            setLoadingPdf(false);
+            console.error('[Wizard] Errore download PDF cumulativo:', err);
+            setError('Errore download PDF: ' + err.message);
         }
     };
 
@@ -601,7 +555,7 @@ function WizardDesignazioni({
                             processoId={processoId}
                             generato={pdfIndividualeGenerato}
                             onGenera={handleGeneraPdfIndividuale}
-                            onPreview={handlePreviewIndividuale}
+                            onDownload={handleDownloadIndividuale}
                             progress={pdfIndividualeProgress}
                             generating={loading}
                         />
@@ -612,7 +566,7 @@ function WizardDesignazioni({
                             processoId={processoId}
                             generato={pdfCumulativoGenerato}
                             onGenera={handleGeneraPdfCumulativo}
-                            onPreview={handlePreviewCumulativo}
+                            onDownload={handleDownloadCumulativo}
                         />
                     )}
 
@@ -916,10 +870,10 @@ function StepFormDati({ campiRichiesti, formData, setFormData }) {
     );
 }
 
-function StepPdfIndividuale({ processoId, generato, onGenera, onPreview, progress, generating }) {
+function StepPdfIndividuale({ processoId, generato, onGenera, onDownload, progress, generating }) {
     return (
         <div className="step-container text-center">
-            <h5 className="mb-4">Genera e controlla il PDF Individuale</h5>
+            <h5 className="mb-4">Genera il PDF Individuale</h5>
 
             {generating && progress ? (
                 <div>
@@ -970,10 +924,10 @@ function StepPdfIndividuale({ processoId, generato, onGenera, onPreview, progres
                     </div>
                     <button
                         className="btn btn-outline-primary"
-                        onClick={onPreview}
+                        onClick={onDownload}
                     >
-                        <i className="fas fa-eye me-2"></i>
-                        Visualizza e Controlla
+                        <i className="fas fa-download me-2"></i>
+                        Scarica PDF
                     </button>
                 </div>
             )}
@@ -981,10 +935,10 @@ function StepPdfIndividuale({ processoId, generato, onGenera, onPreview, progres
     );
 }
 
-function StepPdfCumulativo({ processoId, generato, onGenera, onPreview }) {
+function StepPdfCumulativo({ processoId, generato, onGenera, onDownload }) {
     return (
         <div className="step-container text-center">
-            <h5 className="mb-4">Genera e controlla il PDF Cumulativo</h5>
+            <h5 className="mb-4">Genera il PDF Cumulativo</h5>
 
             {!generato ? (
                 <div>
@@ -1007,10 +961,10 @@ function StepPdfCumulativo({ processoId, generato, onGenera, onPreview }) {
                     </div>
                     <button
                         className="btn btn-outline-primary"
-                        onClick={onPreview}
+                        onClick={onDownload}
                     >
-                        <i className="fas fa-eye me-2"></i>
-                        Visualizza e Controlla
+                        <i className="fas fa-download me-2"></i>
+                        Scarica PDF
                     </button>
                 </div>
             )}

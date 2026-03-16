@@ -517,74 +517,29 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
         }
     };
 
-    const handlePreviewIndividuale = async (processoId) => {
+    const handleDownloadIndividuale = async (processoId) => {
         if (!processoId) {
-            console.error('[GestioneDesignazioni] Processo ID mancante');
-            setError?.('Impossibile visualizzare: atto non trovato');
+            setError?.('Impossibile scaricare: atto non trovato');
             return;
         }
-
-        setLoadingPdf(true);
         try {
-            console.log('[GestioneDesignazioni] Caricamento PDF individuale, processo:', processoId);
-
-            // Usa il metodo preview che restituisce blob URL con autenticazione
-            const blobUrl = await client.deleghe.processi.previewIndividuale(processoId);
-
-            console.log('[GestioneDesignazioni] Blob URL ottenuto:', blobUrl);
-
-            // URL originale per apertura in nuova scheda (questo farà il download)
-            const serverUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
-            const originalUrl = `${serverUrl}/api/deleghe/processi/${processoId}/download_individuale/`;
-
-            const viewerData = {
-                url: blobUrl,  // Blob URL per il viewer
-                originalUrl,   // URL originale per download
-                blobUrl,       // Mantieni riferimento per revoke
-                titolo: `Designazioni Individuali - Processo #${processoId}`
-            };
-
-            console.log('[GestioneDesignazioni] Apertura PDFViewer con:', viewerData);
-            setPdfViewer(viewerData);
+            await client.deleghe.processi.downloadIndividuale(processoId);
         } catch (err) {
-            console.error('[GestioneDesignazioni] Errore caricamento PDF:', err);
-            setError?.('Errore caricamento PDF: ' + err.message);
-        } finally {
-            setLoadingPdf(false);
+            console.error('[GestioneDesignazioni] Errore download PDF individuale:', err);
+            setError?.('Errore download PDF: ' + err.message);
         }
     };
 
-    const handlePreviewCumulativo = async (processoId) => {
+    const handleDownloadCumulativo = async (processoId) => {
         if (!processoId) {
-            console.error('[GestioneDesignazioni] Processo ID mancante');
-            setError?.('Impossibile visualizzare: atto non trovato');
+            setError?.('Impossibile scaricare: atto non trovato');
             return;
         }
-
-        setLoadingPdf(true);
         try {
-            console.log('[GestioneDesignazioni] Caricamento PDF cumulativo, processo:', processoId);
-
-            // Usa il metodo preview che restituisce blob URL con autenticazione
-            const blobUrl = await client.deleghe.processi.previewCumulativo(processoId);
-
-            console.log('[GestioneDesignazioni] Blob URL ottenuto:', blobUrl);
-
-            // URL originale per apertura in nuova scheda
-            const serverUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
-            const originalUrl = `${serverUrl}/api/deleghe/processi/${processoId}/download_cumulativo/`;
-
-            setPdfViewer({
-                url: blobUrl,
-                originalUrl,
-                blobUrl,
-                titolo: `Designazioni Cumulative - Processo #${processoId}`
-            });
+            await client.deleghe.processi.downloadCumulativo(processoId);
         } catch (err) {
-            console.error('[GestioneDesignazioni] Errore caricamento PDF:', err);
-            setError?.('Errore caricamento PDF: ' + err.message);
-        } finally {
-            setLoadingPdf(false);
+            console.error('[GestioneDesignazioni] Errore download PDF cumulativo:', err);
+            setError?.('Errore download PDF: ' + err.message);
         }
     };
 
@@ -835,10 +790,10 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                                             {processoInCorso.batch_individuale.stato === 'GENERATO' && (
                                                 <button
                                                     className="btn btn-primary gd-btn-preview"
-                                                    onClick={() => handlePreviewIndividuale(processoInCorso.id)}
+                                                    onClick={() => handleDownloadIndividuale(processoInCorso.id)}
                                                 >
-                                                    <i className="fas fa-eye"></i>
-                                                    <span>Visualizza PDF</span>
+                                                    <i className="fas fa-download"></i>
+                                                    <span>Scarica PDF</span>
                                                 </button>
                                             )}
                                         </div>
@@ -866,10 +821,10 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                                             {processoInCorso.batch_riepilogativo.stato === 'GENERATO' && (
                                                 <button
                                                     className="btn btn-primary gd-btn-preview"
-                                                    onClick={() => handlePreviewCumulativo(processoInCorso.id)}
+                                                    onClick={() => handleDownloadCumulativo(processoInCorso.id)}
                                                 >
-                                                    <i className="fas fa-eye"></i>
-                                                    <span>Visualizza PDF</span>
+                                                    <i className="fas fa-download"></i>
+                                                    <span>Scarica PDF</span>
                                                 </button>
                                             )}
                                         </div>
@@ -1064,12 +1019,12 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                                                                 console.log('[Archivio] Click PDF Individuale, processo.id:', processo.id);
                                                                 e.stopPropagation();
                                                                 e.preventDefault();
-                                                                handlePreviewIndividuale(processo.id);
+                                                                handleDownloadIndividuale(processo.id);
                                                             }}
                                                             className="btn btn-outline-primary"
                                                             type="button"
                                                         >
-                                                            <i className="fas fa-eye me-1"></i>
+                                                            <i className="fas fa-download me-1"></i>
                                                             <span>PDF Individuale</span>
                                                         </button>
                                                     )}
@@ -1079,12 +1034,12 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                                                                 console.log('[Archivio] Click PDF Cumulativo, processo.id:', processo.id);
                                                                 e.stopPropagation();
                                                                 e.preventDefault();
-                                                                handlePreviewCumulativo(processo.id);
+                                                                handleDownloadCumulativo(processo.id);
                                                             }}
                                                             className="btn btn-outline-primary"
                                                             type="button"
                                                         >
-                                                            <i className="fas fa-eye me-1"></i>
+                                                            <i className="fas fa-download me-1"></i>
                                                             <span>PDF Cumulativo</span>
                                                         </button>
                                                     )}
