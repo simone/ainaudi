@@ -116,6 +116,8 @@ export DB_USER="${DB_USER}"
 export DB_PASSWORD="${DB_PASSWORD}"
 export DEBUG="False"
 export GOOGLE_CLOUD_PROJECT="${PROJECT}"
+export USE_GCS="true"
+export GS_BUCKET_NAME="ainaudi-documents"
 
 cd backend_django
 
