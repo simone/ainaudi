@@ -10,8 +10,7 @@ from territory.admin_filters import make_territory_filters
 
 from .models import (
     Delegato, SubDelega, DesignazioneRDL,
-    BatchGenerazioneDocumenti, EmailDesignazioneLog,
-    ProcessoDesignazione
+    BatchGenerazioneDocumenti, EmailDesignazioneLog
 )
 
 
@@ -251,18 +250,6 @@ class SubDelegaAdmin(admin.ModelAdmin):
             obj.created_by_email = request.user.email
         super().save_model(request, obj, form, change)
 
-
-@admin.register(ProcessoDesignazione)
-class ProcessoDesignazioneAdmin(admin.ModelAdmin):
-    list_display = ['id', 'consultazione', 'comune', 'stato', 'n_designazioni', 'created_by_email', 'created_at']
-    list_filter = ['stato', 'consultazione']
-    search_fields = ['created_by_email', 'comune__nome']
-    readonly_fields = ['created_at', 'created_by_email', 'n_designazioni', 'n_pagine', 'sezione_ids']
-    fieldsets = (
-        (None, {'fields': ('consultazione', 'comune', 'stato', 'delegato', 'created_by_email', 'created_at')}),
-        ('Documenti', {'fields': ('documento_individuale', 'documento_cumulativo', 'data_generazione_individuale')}),
-        ('Info', {'fields': ('n_designazioni', 'n_pagine', 'sezione_ids')}),
-    )
 
 
 # DesignazioneRDL are shown only as inline of ProcessoDesignazione
