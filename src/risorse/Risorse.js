@@ -321,41 +321,10 @@ function Risorse({ client, consultazione, setError, canDownloadDesignazioni }) {
         // Altrimenti lascia che il link apra in nuova scheda
     };
 
-    // IndexedDB cache for nomination PDF (avoids re-hitting PDF backend)
-    const getCachedNomina = async (consultazioneId) => {
-        try {
-            const db = await new Promise((resolve, reject) => {
-                const req = indexedDB.open('ainaudi_cache', 1);
-                req.onupgradeneeded = () => req.result.createObjectStore('pdf_cache');
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = () => reject(req.error);
-            });
-            const tx = db.transaction('pdf_cache', 'readonly');
-            const store = tx.objectStore('pdf_cache');
-            const result = await new Promise((resolve, reject) => {
-                const req = store.get(`nomina_${consultazioneId}`);
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = () => reject(req.error);
-            });
-            db.close();
-            return result ? new Blob([result], { type: 'application/pdf' }) : null;
-        } catch { return null; }
-    };
-
-    const setCachedNomina = async (consultazioneId, blob) => {
-        try {
-            const buffer = await blob.arrayBuffer();
-            const db = await new Promise((resolve, reject) => {
-                const req = indexedDB.open('ainaudi_cache', 1);
-                req.onupgradeneeded = () => req.result.createObjectStore('pdf_cache');
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = () => reject(req.error);
-            });
-            const tx = db.transaction('pdf_cache', 'readwrite');
-            tx.objectStore('pdf_cache').put(buffer, `nomina_${consultazioneId}`);
-            db.close();
-        } catch (e) { console.warn('Cache nomina failed:', e); }
-    };
+    // Clear legacy IndexedDB cache (was caching stale test PDFs)
+    useEffect(() => {
+        try { indexedDB.deleteDatabase('ainaudi_cache'); } catch {}
+    }, []);
 
     const handleDownloadNomina = async () => {
         if (!consultazione?.id) {
@@ -366,27 +335,19 @@ function Risorse({ client, consultazione, setError, canDownloadDesignazioni }) {
         setLoadingNomina(true);
 
         try {
-            // Check IndexedDB cache first
-            let blob = await getCachedNomina(consultazione.id);
+            const apiUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
+            const url = `${apiUrl}/api/deleghe/processi/download-mia-nomina/?consultazione_id=${consultazione.id}`;
 
-            if (!blob) {
-                const apiUrl = client.server || process.env.REACT_APP_API_URL || window.location.origin.replace(':3000', ':3001');
-                const url = `${apiUrl}/api/deleghe/processi/download-mia-nomina/?consultazione_id=${consultazione.id}`;
+            const response = await fetch(url, {
+                headers: { 'Authorization': client.authHeader }
+            });
 
-                const response = await fetch(url, {
-                    headers: { 'Authorization': client.authHeader }
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error || `Errore ${response.status}`);
-                }
-
-                blob = await response.blob();
-
-                // Cache in IndexedDB for future use
-                setCachedNomina(consultazione.id, blob);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Errore ${response.status}`);
             }
+
+            const blob = await response.blob();
 
             const blobUrl = URL.createObjectURL(blob);
 
