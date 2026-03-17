@@ -1679,6 +1679,41 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             'totale_sezioni': len(designazioni_list)
         })
 
+    @action(detail=True, methods=['post'], url_path='pre-genera-pdf-rdl')
+    def pre_genera_pdf_rdl(self, request, pk=None):
+        """
+        POST /api/processi/{id}/pre-genera-pdf-rdl/
+
+        Pre-genera PDF individuali per ogni RDL e li salva su GCS.
+        Così il download è un redirect diretto senza caricare 300MB in RAM.
+        """
+        processo = self.get_object()
+
+        if processo.stato not in ['APPROVATO', 'INVIATO']:
+            return Response(
+                {'error': f'Processo in stato {processo.stato}, deve essere APPROVATO o INVIATO'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not processo.documento_individuale:
+            return Response(
+                {'error': 'PDF individuale non ancora generato'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            result = PDFExtractionService.pre_genera_pdf_rdl(processo)
+            return Response({
+                'success': True,
+                **result
+            })
+        except Exception as e:
+            logging.getLogger(__name__).exception("Errore pre-generazione PDF RDL")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     def _generate_test_pdf_response(self, consultazione_id):
         """
         Generate a fake PDF for TEST processes.
@@ -1797,6 +1832,12 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         # Se è un processo TEST, genera un PDF finto per indicare che è in test
         if processo.stato == 'TEST':
             return self._generate_test_pdf_response(consultazione_id)
+
+        # Prova redirect a PDF pre-generato su GCS (zero RAM, zero latenza)
+        gcs_url = PDFExtractionService.get_rdl_pdf_url(processo.id, user_email)
+        if gcs_url:
+            from django.shortcuts import redirect
+            return redirect(gcs_url)
 
         # Filtra designazioni per il processo selezionato
         designazioni = designazioni.filter(processo=processo)
