@@ -1776,9 +1776,20 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
                 'error': 'Nessuna designazione trovata per questa consultazione'
             }, status=404)
 
-        # Verifica che il documento sia stato generato
-        processo = designazioni.first().processo
-        if not processo.documento_individuale:
+        # Cerca il processo con documento generato, preferendo APPROVATO/INVIATO su TEST
+        processo = None
+        for des in designazioni:
+            p = des.processo
+            if p.documento_individuale and p.stato in ['APPROVATO', 'INVIATO']:
+                processo = p
+                break
+        if not processo:
+            # Fallback: primo processo con documento
+            for des in designazioni:
+                if des.processo.documento_individuale:
+                    processo = des.processo
+                    break
+        if not processo or not processo.documento_individuale:
             return Response({
                 'error': 'Il documento di designazione non è ancora stato generato.'
             }, status=404)
@@ -1786,6 +1797,9 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         # Se è un processo TEST, genera un PDF finto per indicare che è in test
         if processo.stato == 'TEST':
             return self._generate_test_pdf_response(consultazione_id)
+
+        # Filtra designazioni per il processo selezionato
+        designazioni = designazioni.filter(processo=processo)
 
         # Determina ruoli: può essere effettivo per alcune sezioni E supplente per altre
         sezioni_effettivo = []
