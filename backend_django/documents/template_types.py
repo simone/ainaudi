@@ -152,6 +152,9 @@ Una pagina per sezione. I dati della designazione sono al top level.
 - `$.supplente.luogo_nascita`
 - `$.supplente.domicilio`
 
+### Variabili built-in
+- `$.data_di_oggi` (data odierna in formato dd/MM/YYYY)
+
 ### Concatenazioni
 - `$.effettivo.cognome + " " + $.effettivo.nome`
 - `$.delegato.cognome + " " + $.delegato.nome`
@@ -321,6 +324,9 @@ Il supplente viene saltato se assente.
 - `$.data_nascita`
 - `$.luogo_nascita`
 - `$.domicilio`
+
+### Variabili built-in
+- `$.data_di_oggi` (data odierna in formato dd/MM/YYYY)
 """
 
     @staticmethod

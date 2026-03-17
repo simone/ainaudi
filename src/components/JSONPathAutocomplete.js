@@ -27,9 +27,16 @@ function JSONPathAutocomplete({
     const inputRef = useRef(null);
     const suggestionsRef = useRef(null);
 
-    // Extract all JSONPath from example data (memoized)
+    // Extract all JSONPath from example data (memoized) + builtins
     const availablePaths = useMemo(() => {
-        return extractJSONPaths(exampleData);
+        const paths = extractJSONPaths(exampleData);
+        // Variabili built-in disponibili in tutti i template
+        paths.push({
+            path: '$.data_di_oggi',
+            type: 'string',
+            sample: new Date().toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        });
+        return paths;
     }, [exampleData]);
 
     // Sync with external value
