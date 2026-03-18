@@ -8,6 +8,14 @@
     />
     <meta name="theme-color" content="#000000" />
     <!--
+      Content Security Policy: blocca script esterni tranne quelli esplicitamente consentiti
+      - 'self': consenti script dal nostro dominio
+      - 'unsafe-inline': necessario per React e Vite (dev)
+      - www.gstatic.com: Firebase CDN (notifiche push)
+    -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://www.gstatic.com https://fcm.googleapis.com; worker-src 'self' blob:;">
+    <!--
       manifest.json provides metadata used when your web app is added to the
       homescreen on Android. See https://developers.google.com/web/fundamentals/engage-and-retain/web-app-manifest/
     -->
