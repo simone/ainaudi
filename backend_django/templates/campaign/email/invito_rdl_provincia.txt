@@ -1,0 +1,49 @@
+{{ consultazione }}
+Rappresentante di Lista
+
+Ciao {{ nome }},
+
+{% if is_pending %}
+COMPLETA LA TUA REGISTRAZIONE
+
+La tua candidatura come Rappresentante di Lista per {{ comune }} è in attesa di approvazione.
+
+Riceverai una conferma non appena il delegato avrà verificato la tua registrazione.
+
+Accedi alla piattaforma:
+{{ app_url }}
+
+{% elif ha_designazioni %}
+LE TUE DESIGNAZIONI SONO PRONTE!
+
+Comune: {{ comune }}
+Numero designazioni: {{ n_designazioni }}
+
+SCARICA IL TUO DOCUMENTO DI DESIGNAZIONE UFFICIALE:
+{{ pdf_url }}
+
+IMPORTANTE: Porta questo documento stampato il giorno delle elezioni.
+Ti serve per accedere al seggio elettorale come Rappresentante di Lista.
+
+Puoi anche accedere alla piattaforma per vedere tutti i dettagli:
+{{ app_url }}
+
+{% else %}
+REGISTRAZIONE CONFERMATA
+
+La tua registrazione come Rappresentante di Lista per {{ comune }} è stata approvata.
+
+Sarai assegnato alle sezioni elettorali nei prossimi giorni.
+Riceverai una nuova email quando le tue designazioni saranno pronte.
+
+Accedi alla piattaforma:
+{{ app_url }}
+
+{% endif %}
+
+Hai domande?
+Contatta il tuo delegato o accedi alla piattaforma per maggiori informazioni.
+
+---
+Questa email è stata inviata automaticamente.
+Movimento 5 Stelle - {{ consultazione }}

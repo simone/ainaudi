@@ -824,10 +824,6 @@ class ProcessoDesignazione(models.Model):
         )
 
 
-# Alias per retrocompatibilità con codice esistente
-BatchGenerazioneDocumenti = ProcessoDesignazione
-
-
 # =============================================================================
 # EmailDesignazioneLog - Log invii email notifiche RDL
 # =============================================================================

@@ -10,7 +10,7 @@ from territory.admin_filters import make_territory_filters
 
 from .models import (
     Delegato, SubDelega, DesignazioneRDL,
-    BatchGenerazioneDocumenti, EmailDesignazioneLog
+    ProcessoDesignazione, EmailDesignazioneLog
 )
 
 
@@ -381,8 +381,8 @@ class DesignazioniProcessoInline(admin.TabularInline):
         return False
 
 
-@admin.register(BatchGenerazioneDocumenti)
-class BatchGenerazioneDocumentiAdmin(admin.ModelAdmin):
+@admin.register(ProcessoDesignazione)
+class ProcessoDesignazioneAdmin(admin.ModelAdmin):
     list_display = ['id', 'consultazione', 'comune', 'delegato', 'stato', 'n_designazioni', 'created_at']
     list_filter = ['stato', 'consultazione', *make_territory_filters('comune')]
     search_fields = ['consultazione__nome', 'comune__nome', 'created_by_email', 'delegato__cognome', 'delegato__nome']

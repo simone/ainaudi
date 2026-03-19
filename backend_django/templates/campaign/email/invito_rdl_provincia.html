@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ consultazione }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+        }
+        .content {
+            background: #f8f9fa;
+            padding: 30px 20px;
+            border-radius: 0 0 8px 8px;
+        }
+        .button {
+            display: inline-block;
+            background: #667eea;
+            color: white !important;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .button:hover {
+            background: #5568d3;
+        }
+        .designation-box {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        .pdf-link {
+            background: #28a745;
+            color: white !important;
+            padding: 15px 25px;
+            text-decoration: none;
+            border-radius: 6px;
+            display: inline-block;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .pdf-link:hover {
+            background: #218838;
+        }
+        .footer {
+            text-align: center;
+            color: #6c757d;
+            font-size: 12px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+        h2 {
+            color: #667eea;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 style="margin: 0;">{{ consultazione }}</h1>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">Rappresentante di Lista</p>
+    </div>
+
+    <div class="content">
+        <p>Ciao <strong>{{ nome }}</strong>,</p>
+
+        {% if is_pending %}
+            <h2>Completa la tua registrazione</h2>
+            <p>
+                La tua candidatura come Rappresentante di Lista per <strong>{{ comune }}</strong>
+                è in attesa di approvazione.
+            </p>
+            <p>
+                Riceverai una conferma non appena il delegato avrà verificato la tua registrazione.
+            </p>
+            <a href="{{ app_url }}" class="button">Accedi alla piattaforma</a>
+
+        {% elif ha_designazioni %}
+            <h2>Le tue designazioni sono pronte!</h2>
+            <div class="designation-box">
+                <p>
+                    <strong>Comune:</strong> {{ comune }}<br>
+                    <strong>Numero designazioni:</strong> {{ n_designazioni }}
+                </p>
+            </div>
+
+            <p>
+                <strong>Scarica il tuo documento di designazione ufficiale:</strong>
+            </p>
+            <a href="{{ pdf_url }}" class="pdf-link">📄 Scarica Designazione RDL (PDF)</a>
+
+            <p style="font-size: 14px; color: #6c757d;">
+                <strong>Importante:</strong> Porta questo documento stampato il giorno delle elezioni.
+                Ti serve per accedere al seggio elettorale come Rappresentante di Lista.
+            </p>
+
+            <p>
+                Puoi anche accedere alla piattaforma per vedere tutti i dettagli:
+            </p>
+            <a href="{{ app_url }}" class="button">Accedi alla piattaforma</a>
+
+        {% else %}
+            <h2>Registrazione confermata</h2>
+            <p>
+                La tua registrazione come Rappresentante di Lista per <strong>{{ comune }}</strong>
+                è stata approvata.
+            </p>
+            <p>
+                Sarai assegnato alle sezioni elettorali nei prossimi giorni.
+                Riceverai una nuova email quando le tue designazioni saranno pronte.
+            </p>
+            <a href="{{ app_url }}" class="button">Accedi alla piattaforma</a>
+        {% endif %}
+
+        <p style="margin-top: 30px;">
+            <strong>Hai domande?</strong><br>
+            Contatta il tuo delegato o accedi alla piattaforma per maggiori informazioni.
+        </p>
+    </div>
+
+    <div class="footer">
+        <p>
+            Questa email è stata inviata automaticamente.<br>
+            Movimento 5 Stelle - {{ consultazione }}
+        </p>
+    </div>
+</body>
+</html>

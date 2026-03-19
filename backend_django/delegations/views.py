@@ -11,12 +11,12 @@ from django.db.models import Q
 from core.permissions import CanManageDelegations, CanGenerateDocuments
 from elections.models import ConsultazioneElettorale
 from territory.models import SezioneElettorale
-from .models import Delegato, SubDelega, DesignazioneRDL, BatchGenerazioneDocumenti
+from .models import Delegato, SubDelega, DesignazioneRDL, ProcessoDesignazione
 from .serializers import (
     DelegatoSerializer,
     SubDelegaSerializer, SubDelegaCreateSerializer,
     DesignazioneRDLSerializer, DesignazioneRDLCreateSerializer, DesignazioneRDLListSerializer,
-    BatchGenerazioneDocumentiSerializer,
+    ProcessoDesignazioneSerializer,
     MiaCatenaSerializer, SezioneDisponibileSerializer,
     RdlRegistrationForMappatura,
     ConfermaDesignazioneSerializer, RifiutaDesignazioneSerializer,
@@ -1065,10 +1065,10 @@ from .views_processo import ProcessoDesignazioneViewSet
 # Nuovo ViewSet per processo completo (template-driven)
 ProcessoDesignazioneViewSet = ProcessoDesignazioneViewSet
 
-# Vecchio ViewSet per retrocompatibilità endpoint /batch/
-class BatchGenerazioneDocumentiViewSet(viewsets.ModelViewSet):
+# Legacy ViewSet for backward compatibility with old /batch/ endpoint
+class ProcessoDesignazioneLegacyViewSet(viewsets.ModelViewSet):
     """
-    ViewSet per la generazione batch di documenti.
+    LEGACY ViewSet for old batch endpoint (backward compatibility).
 
     GET /api/deleghe/batch/ - Lista batch
     POST /api/deleghe/batch/ - Crea batch e collega designazioni
@@ -1077,7 +1077,7 @@ class BatchGenerazioneDocumentiViewSet(viewsets.ModelViewSet):
 
     Permission: can_generate_documents (Delegato, SubDelegato)
     """
-    serializer_class = BatchGenerazioneDocumentiSerializer
+    serializer_class = ProcessoDesignazioneSerializer
     permission_classes = [permissions.IsAuthenticated, CanGenerateDocuments]
 
     def get_queryset(self):
@@ -1096,7 +1096,7 @@ class BatchGenerazioneDocumentiViewSet(viewsets.ModelViewSet):
 
         if sezioni_filter is None:
             # User has no access
-            return BatchGenerazioneDocumenti.objects.none()
+            return ProcessoDesignazione.objects.none()
 
         # Get sezioni IDs in user's territory
         sezioni_ids = SezioneElettorale.objects.filter(sezioni_filter).values_list('id', flat=True)
@@ -1108,7 +1108,7 @@ class BatchGenerazioneDocumentiViewSet(viewsets.ModelViewSet):
             processo__isnull=False
         ).values_list('processo_id', flat=True).distinct()
 
-        qs = BatchGenerazioneDocumenti.objects.filter(
+        qs = ProcessoDesignazione.objects.filter(
             id__in=batch_ids
         ).select_related('consultazione')
 
@@ -1153,7 +1153,7 @@ class BatchGenerazioneDocumentiViewSet(viewsets.ModelViewSet):
             )
 
         # Crea batch
-        batch = BatchGenerazioneDocumenti.objects.create(
+        batch = ProcessoDesignazione.objects.create(
             consultazione=consultazione,
             tipo=tipo,  # INDIVIDUALE o RIEPILOGATIVO
             stato='BOZZA',
@@ -1165,7 +1165,7 @@ class BatchGenerazioneDocumentiViewSet(viewsets.ModelViewSet):
         designazioni.update(processo=batch)
 
         return Response(
-            BatchGenerazioneDocumentiSerializer(batch).data,
+            ProcessoDesignazioneSerializer(batch).data,
             status=status.HTTP_201_CREATED
         )
 

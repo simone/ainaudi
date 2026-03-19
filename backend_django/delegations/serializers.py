@@ -5,7 +5,7 @@ Gerarchia: PARTITO -> DELEGATO -> SUB-DELEGATO -> RDL
 """
 from django.db import models
 from rest_framework import serializers
-from .models import Delegato, SubDelega, DesignazioneRDL, ProcessoDesignazione, BatchGenerazioneDocumenti
+from .models import Delegato, SubDelega, DesignazioneRDL, ProcessoDesignazione
 from campaign.models import CampagnaReclutamento, RdlRegistration
 
 
@@ -408,9 +408,9 @@ class ProcessoDesignazioneSerializer(serializers.ModelSerializer):
         return obj.email_inviate_at is not None
 
 
-# Serializer per vecchio endpoint /batch/ (retrocompatibilità)
-class BatchGenerazioneDocumentiSerializer(serializers.ModelSerializer):
-    """Serializer per vecchio endpoint batch (con campo tipo per retrocompatibilità)."""
+# Legacy serializer for old /batch/ endpoint (compact format)
+class ProcessoDesignazioneLegacySerializer(serializers.ModelSerializer):
+    """Legacy serializer for old batch endpoint (compact format for backward compatibility)."""
     stato_display = serializers.CharField(source='get_stato_display', read_only=True)
     consultazione_nome = serializers.CharField(source='consultazione.nome', read_only=True)
     tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
@@ -430,6 +430,10 @@ class BatchGenerazioneDocumentiSerializer(serializers.ModelSerializer):
             'n_designazioni', 'n_pagine', 'created_at', 'created_by_email',
             'approvata_at', 'approvata_da_email'
         ]
+
+
+# Alias for backward compatibility - DEPRECATED
+BatchGenerazioneDocumentiSerializer = ProcessoDesignazioneLegacySerializer
 
 
 class AvviaProcessoSerializer(serializers.Serializer):

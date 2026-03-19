@@ -119,13 +119,17 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
         try {
             console.log('[GestioneDesignazioni] Loading data for comune:', comuneId);
 
-            // 1. Load mappature (sezioni mappate)
+            // 1. Load nuove mappature (sezioni senza designazioni confermate - già filtrate dal backend)
             const mappaturaResult = await client.mappatura.sezioni({
                 comune_id: comuneId,
-                municipio_id: municipioId
+                municipio_id: municipioId,
+                filter_status: 'nuove_mappature'
             });
 
+            console.log('[GestioneDesignazioni] Mappatura result:', mappaturaResult);
+
             if (!mappaturaResult.error && mappaturaResult.plessi) {
+                console.log('[GestioneDesignazioni] Plessi trovati:', mappaturaResult.plessi.length);
                 const allSezioni = [];
                 mappaturaResult.plessi.forEach(plesso => {
                     if (plesso.sezioni) {
@@ -143,165 +147,44 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                         });
                     }
                 });
-                console.log('[GestioneDesignazioni] Sezioni mappate totali:', allSezioni.length);
+                console.log('[GestioneDesignazioni] Nuove mappature disponibili:', allSezioni.length);
+                setMappature(allSezioni);
+            }
 
-                // Filtra sezioni già in processi (BOZZA o CONFERMATA)
-                // Carica designazioni per sapere quali sezioni sono già processate
-                const designazioniResult = await client.deleghe.designazioni.list(consultazione.id);
-                console.log('[GestioneDesignazioni] Designazioni result:', designazioniResult);
+            // 2. Carica tutti i processi per questo comune/consultazione
+            const processiResult = await client.deleghe.processi.list(consultazione.id);
+            console.log('[GestioneDesignazioni] Processi result:', processiResult);
 
-                if (!designazioniResult.error && designazioniResult.results) {
-                    // Carica anche i batch per verificare lo stato dei processi
-                    const batchTempResult = await client.deleghe.batch.list(consultazione.id);
-                    const allBatch = batchTempResult.error ? [] : batchTempResult.results;
+            if (!processiResult.error && processiResult.results) {
+                const tuttiProcessi = processiResult.results;
+                console.log('[GestioneDesignazioni] Total processi found:', tuttiProcessi.length);
 
-                    // Crea mappa batch_id -> stato per lookup veloce
-                    const batchStati = {};
-                    allBatch.forEach(b => {
-                        batchStati[b.id] = b.stato;
-                    });
+                // Processi attivi: BOZZA, IN_GENERAZIONE, GENERATO
+                const statiAttivi = ['BOZZA', 'IN_GENERAZIONE', 'GENERATO'];
+                const processiAttivi = tuttiProcessi.filter(p => statiAttivi.includes(p.stato));
 
-                    // Sezioni DA ESCLUDERE: solo quelle in processi ATTIVI o COMPLETATI
-                    // NON escludere sezioni in processi ERRORE, ANNULLATI o con batch mancanti
-                    const designazioniProcessate = designazioniResult.results.filter(d => {
-                        // SEMPRE escludi designazioni CONFERMATE (indipendentemente da processo/batch)
-                        if (d.stato === 'CONFERMATA') {
-                            return true; // Escludi sezioni confermate
-                        }
-
-                        // Per designazioni BOZZA: controlla se sono in processi attivi
-                        if (!d.processo || !d.batch_pdf) {
-                            // Designazione BOZZA orfana (processo eliminato) → sezione disponibile
-                            return false;
-                        }
-
-                        const batchStato = batchStati[d.batch_pdf];
-
-                        // Escludi BOZZE con batch in stato BOZZA o GENERATO (processo in corso)
-                        if (d.stato === 'BOZZA' && ['BOZZA', 'GENERATO'].includes(batchStato)) {
-                            return true; // Escludi sezioni in processi attivi
-                        }
-
-                        // Altrimenti sezione disponibile (BOZZE in batch ERRORE, APPROVATO senza conferma, etc.)
-                        return false;
-                    });
-
-                    const sezioniProcessate = new Set(designazioniProcessate.map(d => d.sezione));
-                    console.log('[GestioneDesignazioni] Sezioni già processate (escluse):', sezioniProcessate.size, Array.from(sezioniProcessate));
-
-                    // Debug: mostra quali designazioni sono state filtrate e perché
-                    const confermate = designazioniResult.results.filter(d => d.stato === 'CONFERMATA');
-                    console.log('[GestioneDesignazioni] Designazioni CONFERMATE totali:', confermate.length, confermate.map(d => `Sezione ${d.sezione}: ${d.effettivo_cognome}`));
-
-                    const bozzeAttive = designazioniResult.results.filter(d => {
-                        return d.stato === 'BOZZA' && d.processo && d.batch_pdf && ['BOZZA', 'GENERATO'].includes(batchStati[d.batch_pdf]);
-                    });
-                    console.log('[GestioneDesignazioni] BOZZE in processi attivi:', bozzeAttive.length);
-
-                    // Filtra sezioni disponibili (solo differenze - non ancora processate)
-                    const sezioniDisponibili = allSezioni.filter(sez => !sezioniProcessate.has(sez.id));
-                    console.log('[GestioneDesignazioni] Sezioni disponibili (differenze):', sezioniDisponibili.length);
-                    setMappature(sezioniDisponibili);
+                if (processiAttivi.length > 0) {
+                    // Prendi il processo attivo più recente
+                    const processoAttivo = processiAttivi[0];
+                    console.log('[GestioneDesignazioni] Processo attivo:', processoAttivo);
+                    setProcessoInCorso(processoAttivo);
                 } else {
-                    // Se errore caricando designazioni, mostra tutto
-                    setMappature(allSezioni);
-                }
-            }
-
-            // 2. Check processo in corso (batch con stato BOZZA o GENERATO)
-            let foundProcessoInCorso = false;
-            const batchResult = await client.deleghe.batch.list(consultazione.id);
-            console.log('[GestioneDesignazioni] Batch result:', batchResult);
-
-            if (!batchResult.error && batchResult.results) {
-                console.log('[GestioneDesignazioni] Total batch found:', batchResult.results.length);
-
-                const batchInCorso = batchResult.results.filter(b =>
-                    ['BOZZA', 'GENERATO'].includes(b.stato)
-                );
-                console.log('[GestioneDesignazioni] Batch in corso:', batchInCorso.length, batchInCorso);
-
-                if (batchInCorso.length > 0) {
-                    // Raggruppa batch individuale + riepilogativo dello stesso processo
-                    // I batch hanno un campo processo_id che indica a quale processo appartengono
-                    const individuale = batchInCorso.find(b => b.tipo === 'INDIVIDUALE');
-                    const riepilogativo = batchInCorso.find(b => b.tipo === 'RIEPILOGATIVO');
-
-                    console.log('[GestioneDesignazioni] Individuale:', individuale);
-                    console.log('[GestioneDesignazioni] Riepilogativo:', riepilogativo);
-
-                    if (individuale && riepilogativo) {
-                        // Usa il processo_id dal batch (dovrebbero avere lo stesso)
-                        const processoId = individuale.processo_id || riepilogativo.processo_id;
-
-                        const processo = {
-                            id: processoId,  // IMPORTANTE: Aggiungi processo_id
-                            batch_individuale: individuale,
-                            batch_riepilogativo: riepilogativo,
-                            created_at: individuale.created_at
-                        };
-                        console.log('[GestioneDesignazioni] Setting processo in corso:', processo);
-                        setProcessoInCorso(processo);
-                        foundProcessoInCorso = true;
-                    } else if (individuale || riepilogativo) {
-                        console.warn('[GestioneDesignazioni] Batch incompleto - manca uno dei due tipi!');
-                        const batch = individuale || riepilogativo;
-                        const processoId = batch.processo_id;
-
-                        // Mostra comunque quello che c'è
-                        setProcessoInCorso({
-                            id: processoId,  // IMPORTANTE: Aggiungi processo_id
-                            batch_individuale: individuale || null,
-                            batch_riepilogativo: riepilogativo || null,
-                            created_at: batch.created_at
-                        });
-                        foundProcessoInCorso = true;
-                    }
+                    setProcessoInCorso(null);
                 }
 
-                // OLD: Processi completati (APPROVATO, INVIATO) - sostituito con archivio
-            }
+                // Processi completati: APPROVATO, INVIATO
+                const processiCompletati = tuttiProcessi.filter(p => ['APPROVATO', 'INVIATO'].includes(p.stato));
+                console.log('[GestioneDesignazioni] Processi completati:', processiCompletati.length);
+                setProcessiArchivio(processiCompletati);
 
-            // 3. Carica archivio processi completati (APPROVATO)
-            const archivioResult = await client.deleghe.processi.archivio(consultazione.id, comuneId, 'completati');
-            console.log('[GestioneDesignazioni] Archivio result:', archivioResult);
-
-            if (!archivioResult.error && Array.isArray(archivioResult)) {
-                console.log('[GestioneDesignazioni] Processi archiviati:', archivioResult.length);
-                archivioResult.forEach(p => {
-                    console.log('[GestioneDesignazioni] Processo archivio:', {
-                        id: p.id,
-                        documento_individuale_url: p.documento_individuale_url,
-                        documento_cumulativo_url: p.documento_cumulativo_url
-                    });
-                });
-                setProcessiArchivio(archivioResult);
-            }
-
-            // 4. Carica storico processi (ANNULLATO, etc.) per audit
-            const storicoResult = await client.deleghe.processi.archivio(consultazione.id, comuneId, 'storico');
-            console.log('[GestioneDesignazioni] Storico result:', storicoResult);
-
-            if (!storicoResult.error && Array.isArray(storicoResult)) {
-                console.log('[GestioneDesignazioni] Processi storici:', storicoResult.length);
-
-                // Detect active processes from storico (BOZZA, SELEZIONE_TEMPLATE, IN_GENERAZIONE, GENERATO)
-                // Only set if batch detection above didn't already find one
-                const statiInCorso = ['BOZZA', 'SELEZIONE_TEMPLATE', 'IN_GENERAZIONE', 'GENERATO'];
-                const processoAttivo = storicoResult.find(p => statiInCorso.includes(p.stato));
-                if (processoAttivo && !foundProcessoInCorso) {
-                    console.log('[GestioneDesignazioni] Processo attivo trovato in storico:', processoAttivo);
-                    setProcessoInCorso({
-                        id: processoAttivo.id,
-                        batch_individuale: processoAttivo.documento_individuale_url ? { stato: 'GENERATO', id: processoAttivo.id } : { stato: processoAttivo.stato, id: processoAttivo.id },
-                        batch_riepilogativo: processoAttivo.documento_cumulativo_url ? { stato: 'GENERATO', id: processoAttivo.id } : { stato: processoAttivo.stato, id: processoAttivo.id },
-                        created_at: processoAttivo.created_at,
-                        stato: processoAttivo.stato
-                    });
-                }
-
-                // Only show truly closed processes in storico
-                setProcessiStorico(storicoResult.filter(p => !statiInCorso.includes(p.stato)));
+                // Processi annullati/test per storico
+                const processiStorici = tuttiProcessi.filter(p => ['ANNULLATO', 'TEST'].includes(p.stato));
+                console.log('[GestioneDesignazioni] Processi storici:', processiStorici.length);
+                setProcessiStorico(processiStorici);
+            } else {
+                setProcessoInCorso(null);
+                setProcessiArchivio([]);
+                setProcessiStorico([]);
             }
 
         } catch (err) {
@@ -451,15 +334,10 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
         try {
             console.log('[GestioneDesignazioni] Conferma processo');
 
-            // Approva entrambi i batch
-            const approve1 = await client.deleghe.batch.approva(processoInCorso.batch_individuale.id);
-            if (approve1.error) {
-                throw new Error('Errore approvazione batch INDIVIDUALE: ' + approve1.error);
-            }
-
-            const approve2 = await client.deleghe.batch.approva(processoInCorso.batch_riepilogativo.id);
-            if (approve2.error) {
-                throw new Error('Errore approvazione batch RIEPILOGATIVO: ' + approve2.error);
+            // Conferma il processo
+            const result = await client.deleghe.processi.conferma(processoInCorso.id);
+            if (result.error) {
+                throw new Error('Errore conferma processo: ' + result.error);
             }
 
             setSuccessMessage(
@@ -486,25 +364,10 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
         try {
             console.log('[GestioneDesignazioni] Annullamento processo');
 
-            // Raccogli gli ID unici dei batch da eliminare
-            const batchIds = new Set();
-            if (processoInCorso.batch_individuale) {
-                batchIds.add(processoInCorso.batch_individuale.id);
-            }
-            if (processoInCorso.batch_riepilogativo) {
-                batchIds.add(processoInCorso.batch_riepilogativo.id);
-            }
-
-            // Elimina ogni batch unico
-            for (const batchId of batchIds) {
-                console.log('[GestioneDesignazioni] Eliminazione batch #', batchId);
-                const result = await client.deleghe.batch.delete(batchId);
-
-                if (result.error && !result.deleted) {
-                    throw new Error('Errore eliminazione batch #' + batchId + ': ' + result.error);
-                }
-
-                console.log('[GestioneDesignazioni] ✓ Batch #', batchId, 'eliminato');
+            // Annulla il processo
+            const result = await client.deleghe.processi.annulla(processoInCorso.id);
+            if (result.error) {
+                throw new Error('Errore annullamento processo: ' + result.error);
             }
 
             setSuccessMessage('✓ Atto di designazione annullato con successo! Le sezioni sono di nuovo disponibili.');
@@ -771,66 +634,62 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                             </div>
 
                             {/* Documento INDIVIDUALE */}
-                            {processoInCorso.batch_individuale && (
-                                <div className="gd-pdf-document">
-                                    <div className="gd-pdf-document-header">
-                                        <div className="gd-pdf-document-info">
-                                            <div className="gd-pdf-document-title">
-                                                <i className="fas fa-file-pdf text-danger"></i>
-                                                <span>Documento INDIVIDUALE</span>
-                                            </div>
-                                            <span className="gd-pdf-document-subtitle">
-                                                Un PDF per ogni sezione • Batch #{processoInCorso.batch_individuale.id}
-                                            </span>
-                                            <span className={`badge ${processoInCorso.batch_individuale.stato === 'GENERATO' ? 'bg-success' : 'bg-warning'}`}>
-                                                {processoInCorso.batch_individuale.stato}
-                                            </span>
+                            <div className="gd-pdf-document">
+                                <div className="gd-pdf-document-header">
+                                    <div className="gd-pdf-document-info">
+                                        <div className="gd-pdf-document-title">
+                                            <i className="fas fa-file-pdf text-danger"></i>
+                                            <span>Documento INDIVIDUALE</span>
                                         </div>
-                                        <div className="gd-pdf-document-actions">
-                                            {processoInCorso.batch_individuale.stato === 'GENERATO' && (
-                                                <button
-                                                    className="btn btn-primary gd-btn-preview"
-                                                    onClick={() => handleDownloadIndividuale(processoInCorso.id)}
-                                                >
-                                                    <i className="fas fa-download"></i>
-                                                    <span>Scarica PDF</span>
-                                                </button>
-                                            )}
-                                        </div>
+                                        <span className="gd-pdf-document-subtitle">
+                                            Un PDF per ogni sezione • Processo #{processoInCorso.id}
+                                        </span>
+                                        <span className={`badge ${processoInCorso.documento_individuale ? 'bg-success' : 'bg-warning'}`}>
+                                            {processoInCorso.documento_individuale ? 'GENERATO' : processoInCorso.stato}
+                                        </span>
+                                    </div>
+                                    <div className="gd-pdf-document-actions">
+                                        {processoInCorso.documento_individuale && (
+                                            <button
+                                                className="btn btn-primary gd-btn-preview"
+                                                onClick={() => handleDownloadIndividuale(processoInCorso.id)}
+                                            >
+                                                <i className="fas fa-download"></i>
+                                                <span>Scarica PDF</span>
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-                            )}
+                            </div>
 
                             {/* Documento RIEPILOGATIVO */}
-                            {processoInCorso.batch_riepilogativo && (
-                                <div className="gd-pdf-document">
-                                    <div className="gd-pdf-document-header">
-                                        <div className="gd-pdf-document-info">
-                                            <div className="gd-pdf-document-title">
-                                                <i className="fas fa-file-pdf text-danger"></i>
-                                                <span>Documento RIEPILOGATIVO</span>
-                                            </div>
-                                            <span className="gd-pdf-document-subtitle">
-                                                Un PDF cumulativo • Batch #{processoInCorso.batch_riepilogativo.id}
-                                            </span>
-                                            <span className={`badge ${processoInCorso.batch_riepilogativo.stato === 'GENERATO' ? 'bg-success' : 'bg-warning'}`}>
-                                                {processoInCorso.batch_riepilogativo.stato}
-                                            </span>
+                            <div className="gd-pdf-document">
+                                <div className="gd-pdf-document-header">
+                                    <div className="gd-pdf-document-info">
+                                        <div className="gd-pdf-document-title">
+                                            <i className="fas fa-file-pdf text-danger"></i>
+                                            <span>Documento RIEPILOGATIVO</span>
                                         </div>
-                                        <div className="gd-pdf-document-actions">
-                                            {processoInCorso.batch_riepilogativo.stato === 'GENERATO' && (
-                                                <button
-                                                    className="btn btn-primary gd-btn-preview"
-                                                    onClick={() => handleDownloadCumulativo(processoInCorso.id)}
-                                                >
-                                                    <i className="fas fa-download"></i>
-                                                    <span>Scarica PDF</span>
-                                                </button>
-                                            )}
-                                        </div>
+                                        <span className="gd-pdf-document-subtitle">
+                                            Un PDF cumulativo • Processo #{processoInCorso.id}
+                                        </span>
+                                        <span className={`badge ${processoInCorso.documento_cumulativo ? 'bg-success' : 'bg-warning'}`}>
+                                            {processoInCorso.documento_cumulativo ? 'GENERATO' : processoInCorso.stato}
+                                        </span>
+                                    </div>
+                                    <div className="gd-pdf-document-actions">
+                                        {processoInCorso.documento_cumulativo && (
+                                            <button
+                                                className="btn btn-primary gd-btn-preview"
+                                                onClick={() => handleDownloadCumulativo(processoInCorso.id)}
+                                            >
+                                                <i className="fas fa-download"></i>
+                                                <span>Scarica PDF</span>
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-                            )}
+                            </div>
 
                             {/* Azioni finali */}
                             <div className="gd-processo-actions">
@@ -852,10 +711,8 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                                     className="btn btn-success"
                                     onClick={handleConfermaProcesso}
                                     disabled={
-                                        !processoInCorso.batch_individuale ||
-                                        !processoInCorso.batch_riepilogativo ||
-                                        processoInCorso.batch_individuale.stato !== 'GENERATO' ||
-                                        processoInCorso.batch_riepilogativo.stato !== 'GENERATO'
+                                        !processoInCorso.documento_individuale ||
+                                        !processoInCorso.documento_cumulativo
                                     }
                                 >
                                     <i className="fas fa-check me-1"></i>
@@ -1103,27 +960,11 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                                                 </div>
                                             </div>
 
-                                            {/* Lista Sezioni */}
+                                            {/* Riepilogo Designazioni */}
                                             <div className="gd-archivio-section">
-                                                <h6 className="gd-archivio-section-title">Sezioni ({processo.sezioni.length})</h6>
-                                                <div className="gd-sezioni-archive-list">
-                                                    {processo.sezioni.map(sez => (
-                                                        <div key={sez.id} className="gd-sezione-item">
-                                                            <div className="gd-sezione-content">
-                                                                <div className="gd-sezione-numero">Sez. {sez.numero}</div>
-                                                                <div className="gd-sezione-rdl">
-                                                                    <div className="gd-rdl-effettivo">
-                                                                        <span className="gd-rdl-label">Eff:</span> {sez.effettivo_cognome} {sez.effettivo_nome}
-                                                                    </div>
-                                                                    {sez.supplente_cognome && (
-                                                                        <div className="gd-rdl-supplente">
-                                                                            <span className="gd-rdl-label">Sup:</span> {sez.supplente_cognome} {sez.supplente_nome}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
+                                                <div className="alert alert-info mb-0">
+                                                    <i className="fas fa-users me-2"></i>
+                                                    <strong>{processo.n_designazioni || 0} designazioni confermate</strong>
                                                 </div>
                                             </div>
                                         </div>
@@ -1188,27 +1029,11 @@ function GestioneDesignazioni({ client, consultazione, setError }) {
                                                 </div>
                                             </div>
 
-                                            {/* Lista Sezioni */}
+                                            {/* Riepilogo Designazioni */}
                                             <div className="gd-archivio-section">
-                                                <h6 className="gd-archivio-section-title">Sezioni ({processo.sezioni.length})</h6>
-                                                <div className="gd-sezioni-archive-list">
-                                                    {processo.sezioni.map(sez => (
-                                                        <div key={sez.id} className="gd-sezione-item">
-                                                            <div className="gd-sezione-content">
-                                                                <div className="gd-sezione-numero">Sez. {sez.numero}</div>
-                                                                <div className="gd-sezione-rdl">
-                                                                    <div className="gd-rdl-effettivo">
-                                                                        <span className="gd-rdl-label">Eff:</span> {sez.effettivo_cognome} {sez.effettivo_nome}
-                                                                    </div>
-                                                                    {sez.supplente_cognome && (
-                                                                        <div className="gd-rdl-supplente">
-                                                                            <span className="gd-rdl-label">Sup:</span> {sez.supplente_cognome} {sez.supplente_nome}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
+                                                <div className="alert alert-info mb-0">
+                                                    <i className="fas fa-users me-2"></i>
+                                                    <strong>{processo.n_designazioni || 0} designazioni confermate</strong>
                                                 </div>
                                             </div>
                                         </div>

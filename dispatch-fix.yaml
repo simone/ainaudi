@@ -1,0 +1,32 @@
+dispatch:
+  # PDF generation (heavy, 1GB RAM, scale-to-zero)
+  - url: "*/api/deleghe/processi/*"
+    service: pdf
+
+  # AI Assistant (Vertex AI + pgvector, scale-to-zero)
+  - url: "*/api/ai/*"
+    service: ai
+
+  # RDL scrutinio + risorse (high traffic on election day)
+  - url: "*/api/scrutinio/*"
+    service: rdl
+  - url: "*/api/risorse/*"
+    service: rdl
+  - url: "*/api/resources/*"
+    service: rdl
+
+  # Django Admin (scale-to-zero, full Django)
+  - url: "*/admin/*"
+    service: admin
+
+  # Campagna Open Graph
+  - url: "*/campagna/*"
+    service: api2
+
+  # API backend (management, auth, elections, delegations, etc.)
+  - url: "*/api/*"
+    service: api2
+
+  # Tutto il resto → React frontend
+  - url: "*/*"
+    service: fe

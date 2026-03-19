@@ -32,6 +32,8 @@ from campaign.models import RdlRegistration
 from documents.models import Template
 from territory.models import SezioneElettorale
 
+logger = logging.getLogger(__name__)
+
 
 class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
     """
@@ -132,19 +134,8 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         if not sezioni.exists():
             return Response({'error': 'Nessuna sezione trovata'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Verifica che nessuna sezione sia già confermata
-        errori = []
-        for sezione in sezioni:
-            confirmed = DesignazioneRDL.objects.filter(
-                sezione=sezione,
-                is_attiva=True,
-                stato='CONFERMATA'
-            ).first()
-            if confirmed:
-                errori.append(f'Sezione {sezione.numero}: già confermata in altro processo')
-
-        if errori:
-            return Response({'error': 'Sezioni non disponibili', 'dettagli': errori}, status=status.HTTP_400_BAD_REQUEST)
+        # NON bloccare sezioni già confermate - permettere correzioni/integrazioni
+        # Il metodo configura farà merge dei dati (effettivo vecchio + supplente nuovo)
 
         # Determina il comune dalle sezioni selezionate
         sezione_sample = sezioni.first()
@@ -476,6 +467,16 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             )
         }
 
+        # Pre-fetch designazioni CONFERMATE esistenti per merge
+        existing_confermate = {
+            d.sezione_id: d
+            for d in DesignazioneRDL.objects.filter(
+                sezione__in=sezioni,
+                is_attiva=True,
+                stato='CONFERMATA'
+            )
+        }
+
         to_update = []
         to_create = []
 
@@ -489,6 +490,40 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
                     effettivo = assignment.rdl_registration
                 elif assignment.role == 'SUPPLENTE':
                     supplente = assignment.rdl_registration
+
+            # MERGE con designazione confermata esistente
+            # Se mancano effettivo o supplente negli assignments, prendiamoli dalla vecchia designazione
+            confermata = existing_confermate.get(sezione.id)
+            if confermata:
+                if not effettivo and confermata.effettivo_email:
+                    # Crea oggetto fittizio con i dati della vecchia designazione
+                    class FakeRDL:
+                        def __init__(self, des):
+                            self.cognome = des.effettivo_cognome
+                            self.nome = des.effettivo_nome
+                            self.email = des.effettivo_email
+                            self.telefono = des.effettivo_telefono
+                            self.comune_nascita = des.effettivo_luogo_nascita
+                            self.data_nascita = des.effettivo_data_nascita
+                            # Estrai solo indirizzo da domicilio (formato: "indirizzo, comune")
+                            parts = des.effettivo_domicilio.rsplit(', ', 1) if des.effettivo_domicilio else ['', '']
+                            self.indirizzo_residenza = parts[0] if len(parts) > 0 else ''
+                            self.comune_residenza = parts[1] if len(parts) > 1 else ''
+                    effettivo = FakeRDL(confermata)
+
+                if not supplente and confermata.supplente_email:
+                    class FakeRDL:
+                        def __init__(self, des):
+                            self.cognome = des.supplente_cognome
+                            self.nome = des.supplente_nome
+                            self.email = des.supplente_email
+                            self.telefono = des.supplente_telefono
+                            self.comune_nascita = des.supplente_luogo_nascita
+                            self.data_nascita = des.supplente_data_nascita
+                            parts = des.supplente_domicilio.rsplit(', ', 1) if des.supplente_domicilio else ['', '']
+                            self.indirizzo_residenza = parts[0] if len(parts) > 0 else ''
+                            self.comune_residenza = parts[1] if len(parts) > 1 else ''
+                    supplente = FakeRDL(confermata)
 
             if not effettivo and not supplente:
                 errori.append(f'Sezione {sezione.numero}: nessun RDL assegnato')
@@ -783,16 +818,31 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         processo.approvata_da_email = request.user.email
         processo.save()
 
-        # Conferma designazioni
+        # Ottieni le sezioni di questo processo
         designazioni = processo.designazioni.filter(stato='BOZZA')
-        designazioni.update(
+        sezioni_ids = list(designazioni.values_list('sezione_id', flat=True))
+
+        # Disattiva vecchie designazioni CONFERMATE per le stesse sezioni
+        # (questo processo le sostituisce/integra)
+        vecchie_designazioni = DesignazioneRDL.objects.filter(
+            sezione_id__in=sezioni_ids,
+            is_attiva=True,
+            stato='CONFERMATA'
+        ).exclude(processo=processo)
+
+        n_disattivate = vecchie_designazioni.update(is_attiva=False)
+        logger.info(f"[conferma] Processo {processo.id}: disattivate {n_disattivate} designazioni precedenti")
+
+        # Conferma nuove designazioni
+        n_confermate = designazioni.update(
             stato='CONFERMATA',
             data_approvazione=timezone.now()
         )
 
         return Response({
             'success': True,
-            'designazioni_confermate': designazioni.count()
+            'designazioni_confermate': n_confermate,
+            'designazioni_precedenti_disattivate': n_disattivate
         })
 
     @action(detail=False, methods=['get'])
@@ -1836,8 +1886,8 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
         # Prova redirect a PDF pre-generato su GCS (zero RAM, zero latenza)
         gcs_url = PDFExtractionService.get_rdl_pdf_url(processo.id, user_email)
         if gcs_url:
-            from django.shortcuts import redirect
-            return redirect(gcs_url)
+            # Restituisci URL come JSON invece di redirect (evita problemi CORS con Authorization header)
+            return Response({'pdf_url': gcs_url, 'has_gcs_pdf': True})
 
         # Filtra designazioni per il processo selezionato
         designazioni = designazioni.filter(processo=processo)
@@ -1941,5 +1991,4 @@ class ProcessoDesignazioneViewSet(viewsets.ModelViewSet):
             return Response({'error': str(e)}, status=500)
 
 
-# Alias per retrocompatibilità con URL esistenti
-BatchGenerazioneDocumentiViewSet = ProcessoDesignazioneViewSet
+# Removed BatchGenerazioneDocumenti alias - use ProcessoDesignazione instead

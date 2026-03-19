@@ -3499,7 +3499,13 @@ class MappaturaSezioniView(APIView):
         ?comune_id=1
         ?municipio_id=5 or ?municipio=15 (numero)
         ?plesso=<denominazione>
-        ?filter_status=all|assigned|unassigned
+        ?filter_status=all|assigned|unassigned|nuove_mappature
+
+    filter_status:
+        - all: tutte le sezioni
+        - assigned: solo sezioni con RDL assegnati
+        - unassigned: solo sezioni senza RDL assegnati
+        - nuove_mappature: solo sezioni senza designazioni confermate (disponibili per nuove designazioni)
 
     Returns sections grouped by plesso (denominazione) with assignment info.
     Also returns user's territory info for filtering UI.
@@ -3565,6 +3571,57 @@ class MappaturaSezioniView(APIView):
         sezioni = SezioneElettorale.objects.filter(filters).select_related(
             'comune', 'municipio'
         ).order_by('denominazione', 'numero')
+
+        # Filter nuove_mappature: mostra sezioni con mappature nuove o modificate
+        filter_status = request.query_params.get('filter_status', 'all')
+        if filter_status == 'nuove_mappature':
+            from delegations.models import DesignazioneRDL
+
+            # Ottieni designazioni confermate attive
+            designazioni_attive = DesignazioneRDL.objects.filter(
+                stato='CONFERMATA',
+                is_attiva=True
+            ).filter(
+                Q(delegato__consultazione=consultazione) |
+                Q(sub_delega__delegato__consultazione=consultazione)
+            ).select_related('sezione')
+
+            # Crea mapping sezione_id -> (effettivo_email, supplente_email) delle designazioni confermate
+            designazioni_map = {
+                d.sezione_id: (d.effettivo_email or '', d.supplente_email or '')
+                for d in designazioni_attive
+            }
+
+            # Ottieni tutti gli assignments per confronto
+            all_assignments = SectionAssignment.objects.filter(
+                consultazione=consultazione,
+                sezione__in=sezioni
+            ).select_related('rdl_registration')
+
+            # Raggruppa assignments per sezione
+            assignments_map = defaultdict(lambda: {'effettivo': '', 'supplente': ''})
+            for a in all_assignments:
+                email = a.rdl_registration.email if a.rdl_registration else ''
+                if a.role == 'RDL':
+                    assignments_map[a.sezione_id]['effettivo'] = email
+                elif a.role == 'SUPPLENTE':
+                    assignments_map[a.sezione_id]['supplente'] = email
+
+            # Filtra sezioni: mostra solo quelle senza designazione O con mappature diverse
+            sezioni_da_mostrare = []
+            for sez in sezioni:
+                des_emails = designazioni_map.get(sez.id)
+                if not des_emails:
+                    # Nessuna designazione confermata -> mostra
+                    sezioni_da_mostrare.append(sez.id)
+                else:
+                    # Confronta con assignments attuali
+                    ass = assignments_map[sez.id]
+                    if (ass['effettivo'] != des_emails[0]) or (ass['supplente'] != des_emails[1]):
+                        # Mappatura diversa -> mostra (serve processo correttivo)
+                        sezioni_da_mostrare.append(sez.id)
+
+            sezioni = [s for s in sezioni if s.id in sezioni_da_mostrare]
 
         # Get all assignments for these sezioni
         sezioni_ids = [s.id for s in sezioni]

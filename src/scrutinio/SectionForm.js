@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef, useCallback} from "react";
+import React, {useEffect, useState, useRef, useCallback, useMemo} from "react";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 // Stili per il wizard mobile-first
@@ -729,10 +729,21 @@ function SectionForm({schede, section, sectionData, saveSection, saveAndClose, c
     // No auto-save on data change - save only on step change or exit
     // This prevents hammering the server
 
-    // Calculate totals
-    const totalElettori = (+datiSeggio.elettori_maschi || 0) + (+datiSeggio.elettori_femmine || 0);
-    const totalVotanti = (+datiSeggio.votanti_maschi || 0) + (+datiSeggio.votanti_femmine || 0);
-    const affluenza = totalElettori > 0 ? ((totalVotanti / totalElettori) * 100).toFixed(1) : 0;
+    // Calculate totals (memoized to prevent re-renders on Android)
+    const totalElettori = useMemo(() =>
+        (+datiSeggio.elettori_maschi || 0) + (+datiSeggio.elettori_femmine || 0),
+        [datiSeggio.elettori_maschi, datiSeggio.elettori_femmine]
+    );
+
+    const totalVotanti = useMemo(() =>
+        (+datiSeggio.votanti_maschi || 0) + (+datiSeggio.votanti_femmine || 0),
+        [datiSeggio.votanti_maschi, datiSeggio.votanti_femmine]
+    );
+
+    const affluenza = useMemo(() =>
+        totalElettori > 0 ? ((totalVotanti / totalElettori) * 100).toFixed(1) : 0,
+        [totalElettori, totalVotanti]
+    );
 
     const handleSeggioChange = (field, value) => {
         const numValue = value === '' ? '' : Math.max(0, parseInt(value) || 0);

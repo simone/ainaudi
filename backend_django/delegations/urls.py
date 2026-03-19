@@ -21,9 +21,10 @@ from .views import (
     MiaCatenaView,
     SubDelegaViewSet,
     DesignazioneRDLViewSet,
-    BatchGenerazioneDocumentiViewSet,
-    ProcessoDesignazioneViewSet,
+    ProcessoDesignazioneLegacyViewSet as BatchGenerazioneDocumentiViewSet,
 )
+# New processo viewset with full workflow
+from .views_processo import ProcessoDesignazioneViewSet
 from .views_campagna import (
     CampagnaListCreateView,
     CampagnaDetailView,

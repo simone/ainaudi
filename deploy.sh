@@ -38,6 +38,10 @@ while [[ $# -gt 0 ]]; do
       SKIP_BUILD=true
       shift
       ;;
+    --skip-frontend)
+      SKIP_FRONTEND=true
+      shift
+      ;;
     --frontend-only)
       SKIP_BACKEND=true
       SKIP_PDF=true
@@ -108,6 +112,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --no-promote        Deploy senza promuovere la versione (default: con promote)"
       echo "  --project PROJECT   Specifica il project ID GCP (default: ainaudi-prod)"
       echo "  --skip-build        Salta la build del frontend (usa build esistente)"
+      echo "  --skip-frontend     Salta il deploy del frontend (deploya solo backend services)"
       echo "  --frontend-only     Deploya solo il frontend React"
       echo "  --backend-only      Deploya solo il backend Django (api)"
       echo "  --pdf-only          Deploya solo il servizio PDF"

@@ -947,15 +947,38 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
         // Designazioni RDL
         designazioni: {
             list: async (consultazioneId) => {
-                const url = consultazioneId
+                // Carica TUTTE le designazioni (gestisce paginazione)
+                let allResults = [];
+                let nextUrl = consultazioneId
                     ? `${server}/api/deleghe/designazioni/?consultazione=${consultazioneId}`
                     : `${server}/api/deleghe/designazioni/`;
-                return fetch(url, {
-                    headers: { 'Authorization': authHeader }
-                }).then(response => safeJson(response)).catch(error => {
+
+                try {
+                    while (nextUrl) {
+                        const response = await fetch(nextUrl, {
+                            headers: { 'Authorization': authHeader }
+                        });
+                        const data = await safeJson(response);
+
+                        if (data.error) {
+                            return { error: data.error };
+                        }
+
+                        // Aggiungi risultati di questa pagina
+                        if (data.results) {
+                            allResults = allResults.concat(data.results);
+                            nextUrl = data.next; // URL prossima pagina o null
+                        } else {
+                            // Risposta non paginata (array diretto)
+                            return data;
+                        }
+                    }
+
+                    return { results: allResults, count: allResults.length };
+                } catch (error) {
                     console.error(error);
                     return { error: error.message };
-                });
+                }
             },
 
             create: async (data) =>
@@ -1183,6 +1206,15 @@ const Client = (server, pdfServer, token, getValidToken, onAuthFailure) => {
 
         // Processi (nuovo workflow template-driven)
         processi: {
+            // Lista processi
+            list: async (consultazioneId) =>
+                fetch(`${server}/api/deleghe/processi/?consultazione=${consultazioneId}`, {
+                    headers: { 'Authorization': getAuthHeader() }
+                }).then(response => safeJson(response)).catch(error => {
+                    console.error(error);
+                    return { error: error.message, results: [] };
+                }),
+
             // Avvia processo (fotografa mappatura + analizza template)
             avvia: async (data) =>
                 fetch(`${server}/api/deleghe/processi/`, {

@@ -347,16 +347,34 @@ function Risorse({ client, consultazione, setError, canDownloadDesignazioni }) {
                 throw new Error(errorData.error || `Errore ${response.status}`);
             }
 
+            const contentType = response.headers.get('content-type');
+
+            // Se backend restituisce JSON con URL GCS, scaricalo direttamente
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+                if (data.pdf_url) {
+                    // Download diretto del PDF da GCS
+                    const a = document.createElement('a');
+                    a.href = data.pdf_url;
+                    a.download = 'Nomina_RDL_2026.pdf';
+                    a.target = '_blank';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    return;
+                }
+            }
+
+            // Fallback: PDF blob dal backend (vecchio comportamento)
             const blob = await response.blob();
-
             const blobUrl = URL.createObjectURL(blob);
-
-            // Open PDF in viewer using blob URL
-            setPdfViewer({
-                url: blobUrl,
-                titolo: 'La Tua Designazione RDL',
-                originalUrl: blobUrl
-            });
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = 'Nomina_RDL_2026.pdf';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
 
         } catch (err) {
             console.error('Errore download nomina:', err);
@@ -500,8 +518,8 @@ function Risorse({ client, consultazione, setError, canDownloadDesignazioni }) {
                                     </>
                                 ) : (
                                     <>
-                                        <i className="fas fa-file-pdf me-2"></i>
-                                        Visualizza Nomina Ufficiale
+                                        <i className="fas fa-download me-2"></i>
+                                        Scarica Nomina Ufficiale
                                     </>
                                 )}
                             </button>

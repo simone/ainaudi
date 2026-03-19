@@ -1,0 +1,80 @@
+{{ consultazione }}
+Rappresentante di Lista
+
+Caro/a {{ nome }},
+
+ti diamo ufficialmente il benvenuto e ti ringraziamo per aver scelto di mettere a disposizione il tuo tempo e il tuo impegno a tutela della regolarità e della trasparenza del voto.
+
+Il ruolo di RdL è fondamentale per garantire il corretto svolgimento delle operazioni di voto e scrutinio. La tua presenza nei seggi rappresenta un presidio democratico essenziale: sarai presente nel momento in cui la volontà popolare prende forma, contribuendo a garantire che ogni voto venga rispettato, conteggiato correttamente e tutelato fino all'ultimo verbale.
+
+Proprio per questo è importante arrivare preparati al giorno dello scrutinio, consapevoli dei propri diritti, delle proprie responsabilità e delle procedure da seguire.
+
+Stiamo completando l'organizzazione operativa e nei prossimi giorni riceverai tutte le informazioni relative alla tua assegnazione e ai dettagli logistici. Nel frattempo, il corso formativo del 3 marzo si è già svolto, ma abbiamo reso disponibile la registrazione per consentire anche ai nuovi arrivati di recuperare tutti i contenuti utili alla preparazione.
+
+CORSO GIÀ SVOLTO
+📅 03 marzo 2026
+🎥 Registrazione disponibile tramite il gruppo WhatsApp di riferimento
+
+Ti invitiamo quindi a entrare quanto prima nel gruppo WhatsApp del tuo Municipio: lì troverai la registrazione del corso, oltre a comunicazioni operative e aggiornamenti utili per il coordinamento.
+
+È inoltre previsto un incontro di reminder e approfondimento qualche giorno prima delle votazioni:
+
+REMINDER PRE-VOTO
+📅 18 marzo 2026
+🕘 Ore 21:00 – 23:00
+
+L'incontro si svolgerà online al seguente link Zoom:
+https://us02web.zoom.us/j/9893942803?pwd=PbM2BNSJYbw6TcNJwqbaNHLx855DIR.1&omn=81303758428
+
+Ti invitiamo a segnare fin da ora la data in agenda: la formazione è un passaggio indispensabile per svolgere con sicurezza e consapevolezza questo ruolo così importante per la democrazia.
+
+Durante l'incontro affronteremo sia l'aspetto politico e civile del ruolo, sia quello operativo e pratico. Parleremo di cosa può fare e cosa non può fare un rappresentante di lista, di come presidiare correttamente le fasi di apertura del seggio, di voto e di scrutinio, di come intervenire in caso di anomalie e di come far verbalizzare eventuali osservazioni.
+
+NOVITÀ 2026 – PIATTAFORMA OPERATIVA AINAUDI
+
+Da quest'anno è attiva AInaudi, la nuova piattaforma digitale dedicata ai Rappresentanti di Lista: uno strumento unico, accessibile da smartphone, tablet o computer, pensato per supportarti in ogni fase.
+
+All'interno troverai:
+- La tua assegnazione di sezione con indirizzo del seggio
+- L'area per l'inserimento dei dati di scrutinio in tempo reale
+- Guide operative, FAQ e materiali formativi sempre disponibili
+- La generazione autonoma di moduli e documenti
+- Un assistente virtuale per chiarimenti su procedure, diritti e gestione di eventuali anomalie
+
+Accedi ad AInaudi:
+https://ainaudi.it
+
+{% if ha_pdf %}
+LA TUA NOMINA RDL È ALLEGATA A QUESTA EMAIL
+Designazioni: {{ n_designazioni }}
+Stampa il documento e portalo con te il giorno delle elezioni.
+{% endif %}
+
+---
+
+IMPORTANTE – GRUPPI DI SUPPORTO WHATSAPP
+
+Per garantire un coordinamento efficace sul territorio, sono attivi gruppi WhatsApp di riferimento per ciascun Municipio.
+
+MUNICIPI IX, X, XI
+Referente: Simone Federici
+Entra nel gruppo: https://chat.whatsapp.com/CVlb5jGRZFVAjX7UM6zqzQ?mode=gi_t
+
+Nel gruppo WhatsApp troverai anche la registrazione del corso del 3 marzo, così da poter recuperare la formazione già svolta e arrivare preparato/a all'appuntamento elettorale.
+
+Nei prossimi giorni riceverai anche le informazioni relative all'assegnazione del seggio e ai riferimenti territoriali per il coordinamento.
+
+Difendere il voto è un atto di responsabilità verso la comunità.
+
+Grazie per aver scelto di farne parte.
+Ci vediamo alla formazione!
+
+Un saluto,
+
+⭐⭐⭐⭐⭐
+Coordinamento Rappresentanti di Lista
+Movimento 5 Stelle
+
+---
+Questa email è stata inviata automaticamente.
+Movimento 5 Stelle - {{ consultazione }}
